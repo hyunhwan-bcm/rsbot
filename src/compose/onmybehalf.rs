@@ -37,7 +37,7 @@ static POINTING_WORD_NOTHING: LazyLock<Vec<String>> =
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// Python: bot/compose/onmybehalf.py:153 `_facing_them(phrase)`

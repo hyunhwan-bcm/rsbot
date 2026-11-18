@@ -23,7 +23,7 @@ static A_VIEW: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// Python: bot/compose/no_advice.py:132 `_what_is_left_after_the_decline(line)`

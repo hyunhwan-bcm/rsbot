@@ -24,7 +24,7 @@ static UNKNOWN_A_COURT_THING: LazyLock<Vec<String>> = LazyLock::new(|| data::str
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// `turns[-look_back:]` with Python's slice rules (0 is the whole list).

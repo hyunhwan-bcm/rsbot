@@ -37,7 +37,7 @@ static _TYPED_SHORT_DICT: LazyLock<HashMap<String, String>> = LazyLock::new(|| d
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// Python: bot/compose/talkto.py:152 `_as_typed(line)`

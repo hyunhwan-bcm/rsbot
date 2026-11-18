@@ -22,7 +22,7 @@ static GO_ON: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(&format!("{M}G
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// Python: bot/compose/handoff.py:82 `reads_as_handoff_about_a_thing(text)`

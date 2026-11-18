@@ -16,7 +16,7 @@ static GRIEF_PLAN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compos
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// Python: bot/compose/recall.py:47 `_is_a_death(said)`

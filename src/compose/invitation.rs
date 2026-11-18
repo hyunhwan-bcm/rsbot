@@ -30,7 +30,7 @@ static PRESENCE_REPLIES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bo
 
 /// `from . import pick as compose_pick`: its contract takes the memory as a `Value`.
 fn compose_pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// Python: bot/compose/invitation.py:170 `_the_invitation(clean)`

@@ -34,7 +34,13 @@ static PLURAL: LazyLock<Re> = LazyLock::new(|| Re::new(r"^\s*(?:are|were|have|ha
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Value, seed_text: &str) -> String {
-    crate::compose::pick(options, memory, seed_text)
+    // Python hands pick a dict that is not the chat's memory (a reading or a one-turn dict);
+    // pick reads it as one, so it is read here as a Memory built from that dict.
+    let as_memory = match memory.to_plain() {
+        serde_json::Value::Object(m) => Memory::from_plain(&m),
+        _ => Memory::new(),
+    };
+    crate::compose::pick(options, &as_memory, seed_text)
 }
 
 /// Python: bot/compose/theirperson.py:157 `_said(text)`

@@ -31,7 +31,7 @@ static THE_KINDS: LazyLock<Vec<(String, &'static Re)>> = LazyLock::new(|| {
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// Python: bot/compose/a_document_lives_with_an_office.py:179 `a_map_app_line(reply)`

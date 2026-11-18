@@ -23,7 +23,7 @@ static BAD_STRETCH_REPLIES: LazyLock<Vec<String>> =
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// Python: bot/compose/nottheirbest.py:69 `reads_as_a_low_day(text)`

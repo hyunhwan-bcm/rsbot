@@ -24,7 +24,7 @@ static RESULT: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(&format!("{M}
 
 /// `from . import pick`: its contract takes the memory as a `Value`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// Python: bot/compose/pleased.py:64 `_thing(match)`: only this file calls it, with the match.

@@ -331,7 +331,7 @@ pub fn lower_of(entry: &Value, key: &str) -> String {
 /// `bot.compose.pick(options, memory, seed_text)` (its contract takes the memory as a value).
 pub fn pick<S: AsRef<str>>(options: &[S], memory: &Memory, seed_text: &str) -> String {
     let owned: Vec<String> = options.iter().map(|s| s.as_ref().to_string()).collect();
-    crate::compose::pick(&owned, &Value::from_plain(&serde_json::Value::Object(memory.to_plain())), seed_text)
+    crate::compose::pick(&owned, memory, seed_text)
 }
 
 /// Python's `try: ... except Exception:` around a call: a panic that stands for a Python
