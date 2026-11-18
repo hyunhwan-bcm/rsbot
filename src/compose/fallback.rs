@@ -111,14 +111,12 @@ fn lower(s: &str) -> String {
 
 /// `random.Random(seed).choice(...)`-free pick: `_choose` with no seed text.
 fn choose(options: &[String], memory: &Memory, clean: &str) -> Option<String> {
-    let picked = _choose(options, memory, clean, "");
-    if picked.is_empty() { None } else { Some(picked) }
+    _choose(options, memory, clean, None)
 }
 
 /// `_choose(options, memory, clean, seed_text)` with a seed text.
 fn choose_seeded(options: &[String], memory: &Memory, clean: &str, seed_text: &str) -> Option<String> {
-    let picked = _choose(options, memory, clean, seed_text);
-    if picked.is_empty() { None } else { Some(picked) }
+    _choose(options, memory, clean, Some(seed_text))
 }
 
 /// Python's `str.format` with named fields: `{name}` replaced, `{{`/`}}` unescaped.

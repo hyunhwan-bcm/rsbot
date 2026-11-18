@@ -30,9 +30,9 @@ vals!(
 );
 
 /// `fallback._choose(options, memory, clean)`, the composer's own chooser. Python passes no
-/// seed (`seed_text=None`); the contract's `seed_text` is a `&str`, so it gets "".
+/// seed (`seed_text=None`). The pools are never empty, so None (an empty pool) is a panic here.
 fn choose(options: &Value, memory: &Memory, clean: &str) -> String {
-    crate::compose::fallback_chain::_choose(&options.strs(), memory, clean, "")
+    crate::compose::fallback_chain::_choose(&options.strs(), memory, clean, None).expect("fallback._choose gave None")
 }
 
 /// Python: bot/modules/chasing_a_body.py:196 `_the_shape_unnamed(memory, lowered)`
