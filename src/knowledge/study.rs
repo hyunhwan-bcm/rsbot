@@ -403,6 +403,13 @@ pub fn _a_test_of_a_thing(understood: &Understood) -> bool {
     !understood.words.iter().any(|w| LEARNING_OBJECTS.contains(&w.to_lowercase()))
 }
 
+/// The reply, unless the line is testing a thing rather than revising for a test (import time:
+/// the entries hold the closure it makes, `_unless_testing_a_thing__answer`).
+pub fn _unless_testing_a_thing(reply: &str) -> impl Fn(&Memory, &Understood) -> String + use<> {
+    let reply = reply.to_string();
+    move |memory: &Memory, understood: &Understood| _unless_testing_a_thing__answer(&reply, memory, understood)
+}
+
 /// The closure `_unless_testing_a_thing(reply)` makes: the reply, unless the line is testing a
 /// thing rather than revising for a test ("" then).
 #[allow(non_snake_case)]
