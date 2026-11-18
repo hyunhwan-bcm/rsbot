@@ -330,6 +330,49 @@ pub fn fit_wanted(memory: &crate::state::Memory) -> Option<String> {
 }
 
 // ---------------------------------------------------------------------------------------------
+// bot.knowledge.lookup: the kinds ask, and the engine's `find`
+
+static KINDS_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KINDS_WORDS"));
+static KINDS_SHAPE: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.lookup.KINDS_SHAPE"));
+static KINDS_ASKS_ME: LazyLock<&'static crate::py::re::Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_ASKS_ME"));
+static KINDS_ASKS_WITH_A_VERB: LazyLock<&'static crate::py::re::Re> =
+    LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_ASKS_WITH_A_VERB"));
+static KINDS_SAYS_HOW_IT_IS: LazyLock<&'static crate::py::re::Re> =
+    LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_SAYS_HOW_IT_IS"));
+static KINDS_NAMED_A_USE: LazyLock<&'static crate::py::re::Re> =
+    LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_NAMED_A_USE"));
+
+/// DUP(bot.knowledge.lookup::asks_the_kinds): the line asks which families a thing comes in
+/// ("what kinds of tea are there"), in its own words or leaning on the kinds ask before it.
+pub fn asks_the_kinds(u: &Understood) -> bool {
+    let said = sh::clean_or_text(u);
+    if !said.is_empty() && KINDS_ASKS_ME.is_match(said) {
+        return false;
+    }
+    if !said.is_empty() && !KINDS_NAMED_A_USE.is_match(said) {
+        let cleaned = said.to_lowercase().replace(['[', ']', ',', '\''], " ");
+        let words = format!(" {} ", cleaned.split_whitespace().collect::<Vec<_>>().join(" "));
+        let lowered = said.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ");
+        let says_it = u.intent == "news"
+            || (u.kind != "question" && !KINDS_ASKS_WITH_A_VERB.is_match(&lowered) && KINDS_SAYS_HOW_IT_IS.is_match(&lowered));
+        if !says_it && KINDS_WORDS.iter().any(|k| words.contains(k.as_str())) {
+            return true;
+        }
+    }
+    u.wants.as_deref() == Some(KINDS_SHAPE.as_str())
+        && !KINDS_NAMED_A_USE.is_match(said)
+        && u.asks.iter().all(|a| a == "what" || a == "yesno")
+}
+
+/// DUP(bot.knowledge.lookup::find) as `find(understood) is not None`. UNRESOLVED: the matching
+/// engine (lookup.find, score, _the_best_entry ...) belongs to the engine workstream and is not
+/// ported; None stands for "the engine could not answer" (the callers treat it as Python treats
+/// an exception there).
+pub fn lookup_find_is_some(_u: &Understood) -> Option<bool> {
+    None
+}
+
+// ---------------------------------------------------------------------------------------------
 // bot.knowledge.cooking (the functions the dish, meal and cooking_more tables call, with their
 // closure). Every `pub fn` here is DUP(bot.knowledge.cooking::<same name>).
 
