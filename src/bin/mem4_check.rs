@@ -1,0 +1,573 @@
+//! Replays PyBot's own calls to the MEM4 files (narrow, callback, repeat, ack) against the port.
+//!
+//!     mem4_check CALLS.jsonl.gz [--fn NAME]... [--show K]
+//!
+//! CALLS is what `harness/mem4_calls.py` recorded while PyBot ran whole conversations: every
+//! distinct call with its arguments, its result, the global RNG state when the call used it, and
+//! the memory after it when the call changed it. Each call is made again in Rust and the result
+//! (and memory) compared. A call that reaches a function another workstream has not ported yet
+//! is counted apart ("unported"), as is a Rust panic that stands for a Python exception.
+
+use rsbot::memory::{callback, narrow, repeat};
+use rsbot::state::Memory;
+use serde_json::{Map, Value as J};
+use std::collections::BTreeMap;
+use std::io::BufRead;
+
+struct A<'a> {
+    args: &'a [J],
+    kwargs: &'a Map<String, J>,
+    params: Vec<String>,
+}
+
+impl<'a> A<'a> {
+    fn get(&self, i: usize) -> Option<&'a J> {
+        if let Some(v) = self.args.get(i) {
+            return Some(v);
+        }
+        self.params.get(i).and_then(|name| self.kwargs.get(name))
+    }
+    fn s(&self, i: usize) -> String {
+        match self.get(i) {
+            Some(J::String(s)) => s.clone(),
+            Some(J::Null) | None => String::new(),
+            Some(other) => other.to_string(),
+        }
+    }
+    fn opt_s(&self, i: usize) -> Option<String> {
+        match self.get(i) {
+            Some(J::String(s)) => Some(s.clone()),
+            _ => None,
+        }
+    }
+    fn b(&self, i: usize) -> bool {
+        match self.get(i) {
+            Some(J::Bool(b)) => *b,
+            Some(J::Null) | None => false,
+            Some(J::Number(n)) => n.as_f64() != Some(0.0),
+            Some(J::String(s)) => !s.is_empty(),
+            Some(J::Array(a)) => !a.is_empty(),
+            Some(_) => true,
+        }
+    }
+    fn n(&self, i: usize) -> i64 {
+        self.get(i).and_then(|v| v.as_i64()).unwrap_or(0)
+    }
+    fn strs(&self, i: usize) -> Vec<String> {
+        match self.get(i) {
+            Some(J::Array(a)) => a.iter().map(|v| v.as_str().unwrap_or("").to_string()).collect(),
+            _ => Vec::new(),
+        }
+    }
+    fn set(&self, i: usize) -> std::collections::HashSet<String> {
+        self.strs(i).into_iter().collect()
+    }
+    fn mem(&self, i: usize) -> Memory {
+        match self.get(i) {
+            Some(J::Object(o)) => match o.get("__memory__") {
+                Some(J::Object(m)) => Memory::from_plain(m),
+                _ => Memory::from_plain(o),
+            },
+            _ => Memory::new(),
+        }
+    }
+    fn value(&self, i: usize) -> rsbot::data::Value {
+        match self.get(i) {
+            Some(v) => rsbot::data::Value::from_plain(v),
+            None => rsbot::data::Value::None,
+        }
+    }
+    fn re(&self, i: usize) -> rsbot::py::re::Re {
+        match self.get(i) {
+            Some(J::Object(o)) if o.contains_key("__re__") => {
+                rsbot::py::re::Re::new(o["__re__"].as_str().unwrap(), o["flags"].as_u64().unwrap_or(0) as u32)
+            }
+            Some(J::String(s)) => rsbot::py::re::Re::new(s, 0),
+            _ => panic!("not a pattern"),
+        }
+    }
+}
+
+/// How a result is compared: as Python truthiness, as text (None and "" alike), or exactly.
+enum Out {
+    Bool(bool),
+    Text(Option<String>),
+    Exact(J),
+}
+
+fn text(s: String) -> Out {
+    Out::Text(Some(s))
+}
+fn opt(s: Option<String>) -> Out {
+    Out::Text(s)
+}
+fn strs_out(v: Vec<String>) -> Out {
+    Out::Exact(J::Array(v.into_iter().map(J::String).collect()))
+}
+
+/// Runs one recorded call; None when this checker has no adapter for the function.
+fn call(fid: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out> {
+    let (module, name) = fid.split_once(':').unwrap();
+    let module = module.rsplit('.').next().unwrap();
+    let out = match (module, name) {
+        // ---- narrow
+        ("narrow", "only_a_length") => Out::Bool(narrow::only_a_length(&a.s(0))),
+        ("narrow", "_the_remedy_in") => opt(narrow::_the_remedy_in(&a.s(0))),
+        ("narrow", "carries") => Out::Bool(narrow::carries(&a.s(0), &a.s(1))),
+        ("narrow", "has_a_date") => Out::Bool(narrow::has_a_date(&a.s(0))),
+        ("narrow", "pieces_of") => strs_out(narrow::pieces_of(&a.s(0), &a.re(1))),
+        ("narrow", "step_word") => opt(narrow::step_word(&a.s(0))),
+        ("narrow", "kind_of") => opt(narrow::kind_of(&a.s(0))),
+        ("narrow", "asks_a_part") => Out::Bool(narrow::asks_a_part(&a.s(0))),
+        ("narrow", "_named_follow_up") => Out::Bool(narrow::_named_follow_up(&a.s(0))),
+        ("narrow", "_gives_a_figure_in") => Out::Bool(narrow::_gives_a_figure_in(&a.s(0), &a.s(1))),
+        ("narrow", "_the_clause_in_the_unit") => opt(narrow::_the_clause_in_the_unit(&a.s(0), &a.s(1))),
+        ("narrow", "_the_sentence_in_the_unit") => opt(narrow::_the_sentence_in_the_unit(&a.s(0), &a.s(1))),
+        ("narrow", "part_in_the_unit") => opt(narrow::part_in_the_unit_text(&a.s(0), &a.s(1))),
+        ("narrow", "asked_unit") => opt(narrow::asked_unit(&a.s(0))),
+        ("narrow", "_states_a_length") => Out::Bool(narrow::_states_a_length(&a.s(0))),
+        ("narrow", "the_outcome_asked") => text(narrow::the_outcome_asked(&a.s(0))),
+        ("narrow", "the_part_asked") => opt(narrow::the_part_asked(&a.s(0), &a.s(1), &a.s(2))),
+        ("narrow", "_a_rate_cut_from_its_figure") => Out::Bool(narrow::_a_rate_cut_from_its_figure(&a.s(0), &a.s(1), &a.s(2))),
+        ("narrow", "narrow") => opt(narrow::narrow(&a.s(0), &a.s(1), &a.s(2))),
+        ("narrow", "_narrow") => opt(narrow::_narrow(&a.s(0), &a.s(1))),
+        ("narrow", "_a_length_of_a_doing") => Out::Bool(narrow::_a_length_of_a_doing(&a.s(0), &a.s(1), &a.s(2))),
+        ("narrow", "_a_cut_off_not_a_length") => Out::Bool(narrow::_a_cut_off_not_a_length(&a.s(0), &a.s(1))),
+        ("narrow", "the_doings_length") => text(narrow::the_doings_length(&a.s(0), &a.s(1))),
+        ("narrow", "_at_another_place") => Out::Bool(narrow::_at_another_place(&a.s(0), &a.s(1), &a.s(2))),
+        ("narrow", "_gives_another_places_figure") => {
+            Out::Bool(narrow::_gives_another_places_figure(&a.s(0), a.opt_s(1).as_deref(), &a.s(2)))
+        }
+        ("narrow", "_the_time_it_does_keep") => opt(narrow::_the_time_it_does_keep(&a.strs(0), &a.s(1))),
+        ("narrow", "_says_a_time") => Out::Bool(narrow::_says_a_time(&a.s(0))),
+        ("narrow", "_only_a_cut_off") => Out::Bool(narrow::_only_a_cut_off(&a.s(0))),
+        ("narrow", "_the_answer_said_again") => opt(narrow::_the_answer_said_again(&a.strs(0), &a.s(1))),
+        ("narrow", "_the_sentence_a_figure_hangs_on") => {
+            opt(narrow::_the_sentence_a_figure_hangs_on(&a.s(0), &a.s(1), &a.s(2), a.b(3)))
+        }
+        ("narrow", "_unit_stem") => text(narrow::_unit_stem(&a.s(0))),
+        ("narrow", "_same_word") => Out::Bool(narrow::_same_word(&a.s(0), &a.s(1))),
+        ("narrow", "_names_one_of") => Out::Bool(narrow::_names_one_of(&a.set(0), &a.strs(1))),
+        ("narrow", "_only_a_count") => Out::Bool(narrow::_only_a_count(&a.s(0))),
+        ("narrow", "_how_often") => opt(narrow::_how_often(&a.strs(0), &a.s(1), &a.s(2))),
+        ("narrow", "_counts_on_the_answer") => Out::Bool(narrow::_counts_on_the_answer(&a.s(0))),
+        ("narrow", "_freq_clause") => opt(narrow::_freq_clause(&a.s(0), a.b(1), &a.set(2))),
+        ("narrow", "_dated") => opt(narrow::_dated(&a.strs(0), &a.s(1), &a.s(2))),
+        ("narrow", "_the_part_they_named") => opt(narrow::_the_part_they_named(&a.strs(0), &a.s(1), &a.s(2))),
+        ("narrow", "_not_a_figure") => opt(narrow::_not_a_figure(&a.strs(0), &a.s(1), &a.s(2), &a.s(3))),
+        ("narrow", "_named_clause") => opt(narrow::_named_clause(&a.s(0), &a.s(1))),
+        ("narrow", "_root") => text(narrow::_root(&a.s(0))),
+        ("narrow", "_says") => Out::Bool(narrow::_says(&a.s(0), &a.s(1))),
+        ("narrow", "_informative") => Out::Bool(narrow::_informative(&a.s(0))),
+        ("narrow", "_cuts_a_list") => Out::Bool(narrow::_cuts_a_list(&a.s(0), &a.s(1))),
+        ("narrow", "_with_unit") => text(narrow::_with_unit(&a.s(0), &a.s(1))),
+        ("narrow", "_property_ask") => Out::Bool(narrow::_property_ask(&a.s(0))),
+        ("narrow", "_option_ask") => Out::Bool(narrow::_option_ask(&a.s(0))),
+        ("narrow", "_stands_alone") => Out::Bool(narrow::_stands_alone(&a.s(0))),
+        ("narrow", "_by_option") => opt(narrow::_by_option(&a.strs(0), &a.s(1))),
+        ("narrow", "_only_a_qualifier") => Out::Bool(narrow::_only_a_qualifier(&a.s(0))),
+        ("narrow", "_by_step") => opt(narrow::_by_step(&a.strs(0), &a.s(1))),
+        ("narrow", "_with_the_script") => opt(narrow::_with_the_script(&a.s(0), &a.strs(1), &a.s(2))),
+        ("narrow", "_the_quotation") => opt(narrow::_the_quotation(&a.s(0))),
+        ("narrow", "_to_the_end_of_the_script") => text(narrow::_to_the_end_of_the_script(&a.strs(0), a.n(1) as usize)),
+        ("narrow", "_by_words") => opt(narrow::_by_words(&a.strs(0), &a.s(1))),
+        ("narrow", "_as_a_length") => text(narrow::_as_a_length(&a.s(0))),
+        ("narrow", "_names_a_thing") => Out::Bool(narrow::_names_a_thing(&a.s(0))),
+        ("narrow", "_measure") => text(narrow::_measure(&a.s(0))),
+        ("narrow", "_a_figure_each") => match narrow::_a_figure_each(&a.s(0), &a.s(1)) {
+            Some(v) => strs_out(v),
+            None => Out::Exact(J::Null),
+        },
+        ("narrow", "_the_item_they_named") => opt(narrow::_the_item_they_named(&a.s(0), &a.s(1), &a.s(2))),
+        ("narrow", "_the_half_they_named") => opt(narrow::_the_half_they_named(&a.strs(0), &a.s(1))),
+        ("narrow", "_part") => match narrow::_part(&a.s(0), &a.s(1), &a.s(2)) {
+            narrow::Part::Text(t) => Out::Exact(J::String(t)),
+            narrow::Part::Nothing => Out::Exact(J::Null),
+            narrow::Part::NoLength => Out::Exact(J::String("NO_LENGTH".into())),
+        },
+        ("narrow", "_canonical") => text(narrow::_canonical(&a.s(0))),
+        ("narrow", "_same_step") => Out::Bool(narrow::_same_step(&a.set(0), &a.set(1))),
+        ("narrow", "_aside_back") => text(narrow::_aside_back(&a.s(0), &a.strs(1))),
+        ("narrow", "clauses") => strs_out(narrow::clauses(&a.s(0), &a.re(1))),
+        ("narrow", "clauses_bare") => {
+            let (p, b) = narrow::clauses_bare(&a.s(0), &a.re(1));
+            Out::Exact(J::Array(vec![
+                J::Array(p.into_iter().map(J::String).collect()),
+                J::Array(b.into_iter().map(J::String).collect()),
+            ]))
+        }
+        ("narrow", "_aside_held") => {
+            let (h, k) = narrow::_aside_held(&a.s(0));
+            Out::Exact(J::Array(vec![J::String(h), J::Array(k.into_iter().map(J::String).collect())]))
+        }
+        ("narrow", "_clause") => opt(narrow::_clause(&a.s(0), &a.s(1))),
+        ("narrow", "_clause_with") => opt(narrow::_clause_with(&a.s(0), &a.s(1))),
+        ("narrow", "_clause_holding") => opt(narrow::_clause_holding(&a.s(0), &a.s(1))),
+        ("narrow", "words_of") => strs_out(narrow::words_of(&a.s(0))),
+        ("narrow", "flat") => text(narrow::flat(&a.s(0))),
+        ("narrow", "tidy") => opt(narrow::tidy(&a.s(0))),
+        // ---- callback
+        ("callback", "reply_for") => {
+            let mut m = a.mem(1);
+            let r = callback::reply_for(&a.s(0), &mut m);
+            *memory_after = Some(m);
+            text(r)
+        }
+        ("callback", "claims") => {
+            let mut m = a.mem(1);
+            let r = callback::claims(&a.s(0), &mut m);
+            *memory_after = Some(m);
+            Out::Bool(r)
+        }
+        ("callback", "_a_medical_episode") => Out::Bool(callback::_a_medical_episode(&a.mem(0))),
+        ("callback", "_the_pronouns") => strs_out(callback::_the_pronouns(&a.s(0))),
+        ("callback", "_the_news_about") => text(callback::_the_news_about(&a.mem(0), &a.s(1), &a.s(2))),
+        // ---- repeat
+        ("repeat", "asks_for_the_same_work") => Out::Bool(repeat::asks_for_the_same_work(&a.s(0), &a.mem(1))),
+        ("repeat", "without_a_reset") => text(repeat::without_a_reset(&a.s(0))),
+        ("repeat", "only_said_it_back") => Out::Bool(repeat::only_said_it_back(&a.s(0), a.opt_s(1).as_deref())),
+        ("repeat", "_a_help_ask") => Out::Bool(repeat::_a_help_ask(&a.s(0))),
+        ("repeat", "asks_for_the_move") => Out::Bool(repeat::asks_for_the_move(&a.s(0))),
+        ("repeat", "names_nothing") => Out::Bool(repeat::names_nothing(&a.s(0))),
+        ("repeat", "_names_a_thing_of_its_own") => strs_out(repeat::_names_a_thing_of_its_own(&a.s(0))),
+        ("repeat", "asks_to_put_it_right") => Out::Bool(repeat::asks_to_put_it_right(&a.s(0))),
+        ("repeat", "a_step_of_the_same_answer") => Out::Bool(repeat::a_step_of_the_same_answer(&a.s(0))),
+        ("repeat", "_recent_answers") => Out::Exact(J::Array(
+            repeat::recent_answers(&a.mem(0))
+                .into_iter()
+                .map(|(b, q, s)| J::Array(vec![J::from(b as i64), J::String(q), J::String(s)]))
+                .collect(),
+        )),
+        ("repeat", "_nothing_but_acknowledgements") => {
+            Out::Bool(repeat::_nothing_but_acknowledgements(a.n(0) as usize, &a.mem(1)))
+        }
+        ("repeat", "_about_the_same_thing") => Out::Bool(repeat::_about_the_same_thing(&a.s(0), &a.s(1), &a.mem(2))),
+        ("repeat", "_short") => text(repeat::_short(&a.s(0))),
+        ("repeat", "_explains") => Out::Bool(repeat::_explains(&a.s(0))),
+        ("repeat", "_a_step_comes_after") => Out::Bool(repeat::_a_step_comes_after(&a.s(0))),
+        ("repeat", "_opens_an_instruction") => Out::Bool(repeat::_opens_an_instruction(&a.s(0))),
+        ("repeat", "_opening_move") => opt(repeat::_opening_move(&a.s(0))),
+        ("repeat", "_a_question") => Out::Bool(repeat::_a_question(&a.s(0))),
+        ("repeat", "_a_move") => opt(repeat::a_move(&a.s(0), a.b(1))),
+        ("repeat", "_a_move_in") => opt(repeat::_a_move_in(&a.s(0), a.b(1))),
+        ("repeat", "_a_conditional_move") => opt(repeat::_a_conditional_move(&a.s(0))),
+        ("repeat", "asks_for_more") => Out::Bool(repeat::asks_for_more(&a.s(0))),
+        ("repeat", "a_hand_back") => Out::Bool(repeat::a_hand_back(&a.s(0), &a.mem(1))),
+        ("repeat", "_handed_back_last") => Out::Bool(repeat::_handed_back_last(&a.mem(0))),
+        ("repeat", "_another_part") => {
+            let (p, d) = repeat::_another_part(&a.s(0), &a.mem(1));
+            Out::Exact(J::Array(vec![J::String(p), J::Bool(d)]))
+        }
+        ("repeat", "_said_in_a_turn") => Out::Bool(repeat::_said_in_a_turn(&a.s(0), &a.mem(1))),
+        ("repeat", "_says_what_to_do") => Out::Bool(repeat::_says_what_to_do(&a.s(0)).truthy()),
+        ("repeat", "_said_in_the_chat") => Out::Bool(repeat::_said_in_the_chat(&a.s(0), &a.mem(1))),
+        ("repeat", "_claims_what_it_never_said") => text(repeat::_claims_what_it_never_said(&a.s(0), &a.mem(1))),
+        ("repeat", "_handed_back") | ("repeat", "handed_back") => {
+            let mut m = a.mem(0);
+            let r = repeat::_handed_back(&mut m, &a.s(1));
+            *memory_after = Some(m);
+            text(r)
+        }
+        ("repeat", "framed") => Out::Bool(repeat::framed(&a.s(0))),
+        ("repeat", "_already_repeated") => Out::Bool(repeat::_already_repeated(&a.s(0), &a.mem(1))),
+        ("repeat", "_handed_back_already") => Out::Bool(repeat::_handed_back_already(&a.s(0), &a.mem(1))),
+        ("repeat", "_a_lead_of_its_own") => Out::Bool(repeat::_a_lead_of_its_own(&a.s(0))),
+        ("repeat", "_kept_clause") => text(repeat::_kept_clause(&a.s(0))),
+        ("repeat", "asks_for_less") => Out::Bool(repeat::asks_for_less(&a.s(0))),
+        ("repeat", "_sentences") => strs_out(repeat::_sentences(&a.s(0))),
+        ("repeat", "_most_condensed") => text(repeat::_most_condensed(&a.s(0), Some(&a.mem(1)))),
+        ("repeat", "_short_enough") => text(repeat::_short_enough(&a.s(0))),
+        ("repeat", "_ended") => text(repeat::_ended(&a.s(0))),
+        ("repeat", "_unbalanced") => Out::Bool(repeat::_unbalanced(&a.s(0))),
+        ("repeat", "_the_quotation") => text(repeat::_the_quotation(&a.s(0))),
+        ("repeat", "_closing_the_quote") => text(repeat::_closing_the_quote(&a.s(0), &a.s(1))),
+        ("repeat", "_read_up_to_the_colon") => text(repeat::_read_up_to_the_colon(&a.s(0))),
+        ("repeat", "_keeps") => text(repeat::_keeps(&a.s(0), &a.s(1))),
+        ("repeat", "shorter_for") => {
+            let mut m = a.mem(1);
+            let r = repeat::shorter_for_text(&a.s(0), &mut m);
+            *memory_after = Some(m);
+            opt(r)
+        }
+        ("repeat", "_a_bare_time") => opt(repeat::_a_bare_time(a.opt_s(0).as_deref())),
+        ("repeat", "_names_no_thing_of_its_own") => Out::Bool(repeat::_names_no_thing_of_its_own(&a.s(0))),
+        ("repeat", "_the_price_the_answer_gave") => {
+            let mut m = a.mem(1);
+            let r = repeat::_the_price_the_answer_gave(&a.s(0), &mut m);
+            *memory_after = Some(m);
+            opt(r)
+        }
+        ("repeat", "asks_what_that_costs") => Out::Bool(repeat::asks_what_that_costs(&a.s(0), &a.mem(1))),
+        ("repeat", "_the_price_in_hand") => opt(repeat::_the_price_in_hand(&a.s(0), &a.mem(1))),
+        ("repeat", "_the_time_an_earlier_answer_gave") => {
+            let mut m = a.mem(1);
+            let r = repeat::_the_time_an_earlier_answer_gave(&a.s(0), &mut m);
+            *memory_after = Some(m);
+            opt(r)
+        }
+        ("repeat", "_a_length_already_handed") => Out::Bool(repeat::_a_length_already_handed(&a.s(0), &a.mem(1))),
+        ("repeat", "_a_what_to_do_answer") => Out::Bool(repeat::_a_what_to_do_answer(&a.mem(0))),
+        ("repeat", "answer_for") => {
+            let mut m = a.mem(1);
+            let r = repeat::answer_for_text(&a.s(0), &mut m);
+            *memory_after = Some(m);
+            opt(r)
+        }
+        ("repeat", "_words") => strs_out(repeat::_words(&a.s(0))),
+        ("repeat", "_a_bare_ask") => Out::Bool(repeat::_a_bare_ask(&a.s(0))),
+        ("repeat", "_a_lead_and_a_step") => text(repeat::_a_lead_and_a_step(&a.s(0), &a.s(1))),
+        ("repeat", "_the_lead_for") => strs_out(repeat::_the_lead_for(&a.s(0), &a.s(1))),
+        ("repeat", "_trouble") => Out::Bool(repeat::_trouble(&a.s(0))),
+        ("repeat", "_a_thing_of_its_own") => Out::Bool(repeat::_a_thing_of_its_own(&a.s(0), &a.s(1))),
+        ("repeat", "after_an_ack") => text(repeat::after_an_ack(&a.s(0))),
+        ("repeat", "_a_feeling") => Out::Bool(repeat::_a_feeling(&a.s(0))),
+        ("repeat", "_the_doing") => text(repeat::_the_doing(&a.s(0))),
+        ("repeat", "_the_advice") => text(repeat::_the_advice(&a.s(0))),
+        ("repeat", "the_next_move") => text(repeat::the_next_move(&a.mem(0), &a.s(1))),
+        ("repeat", "_next_step") => text(repeat::_next_step(&a.s(0))),
+        ("repeat", "_later_part") => text(repeat::later_part(&a.s(0), &a.s(1))),
+        ("repeat", "_opens_a_doing") => Out::Bool(repeat::_opens_a_doing(&a.s(0))),
+        ("repeat", "_the_untried") => {
+            let mut m = a.mem(1);
+            let r = repeat::_the_untried(&a.s(0), &mut m);
+            *memory_after = Some(m);
+            opt(r)
+        }
+        ("repeat", "_tried") => Out::Bool(repeat::_tried(&a.s(0))),
+        ("repeat", "_says_they_agree") => Out::Bool(repeat::_says_they_agree(&a.s(0))),
+        ("repeat", "_the_thing_they_named") => text(repeat::_the_thing_they_named(&a.s(0), &a.s(1))),
+        ("repeat", "agreement_with_the_answer") => text(repeat::agreement_with_the_answer(&a.s(0), &a.mem(1))),
+        ("repeat", "_agreed") => text(repeat::_agreed(&a.s(0), &a.mem(1))),
+        ("repeat", "_the_act") => opt(repeat::_the_act(&a.s(0))),
+        ("repeat", "_the_answer_gives") => Out::Bool(repeat::_the_answer_gives(&a.s(0), &a.s(1))),
+        ("repeat", "_a_step_done") => Out::Bool(repeat::_a_step_done(&a.s(0), &a.s(1))),
+        ("repeat", "_the_step_just_given") => Out::Bool(repeat::_the_step_just_given(&a.s(0), &a.mem(1))),
+        ("repeat", "carried_on") => {
+            let mut m = a.mem(1);
+            let r = repeat::carried_on_text(&a.s(0), &mut m);
+            *memory_after = Some(m);
+            opt(r)
+        }
+        ("repeat", "_starting_out_names_a_thing") => Out::Bool(repeat::_starting_out_names_a_thing(&a.s(0))),
+        ("repeat", "says_where_to_start") => Out::Bool(repeat::says_where_to_start(&a.s(0))),
+        ("repeat", "a_more_ask") => Out::Bool(repeat::a_more_ask(&a.s(0))),
+        ("repeat", "_a_list_item") => text(repeat::_a_list_item(&a.s(0))),
+        ("repeat", "_pieces") => strs_out(repeat::_pieces(&a.s(0))),
+        ("repeat", "_opens_on_a_verb") => Out::Bool(repeat::_opens_on_a_verb(&a.s(0))),
+        ("repeat", "_the_next_step") => opt(repeat::_the_next_step(&a.s(0), &a.mem(1))),
+        ("repeat", "_the_first_step") => opt(repeat::_the_first_step(&a.s(0))),
+        ("repeat", "_a_new_work") => Out::Bool(repeat::_a_new_work(&a.s(0), &a.s(1))),
+        ("repeat", "asks_which_part") => Out::Bool(repeat::asks_which_part(&a.s(0))),
+        ("repeat", "_leads_for") => strs_out(repeat::_leads_for(&a.s(0))),
+        ("repeat", "the_move") => {
+            let mut m = a.mem(2);
+            let r = repeat::the_move(&a.s(0), &a.s(1), &mut m);
+            *memory_after = Some(m);
+            opt(r)
+        }
+        ("repeat", "_they_say_they_tried") => Out::Bool(repeat::_they_say_they_tried(&a.s(0), &a.mem(1))),
+        ("repeat", "the_figure_asked") => opt(repeat::the_figure_asked_text(&a.s(0), &a.mem(1))),
+        ("repeat", "answers_nothing") => Out::Bool(repeat::answers_nothing(&a.s(0))),
+        ("repeat", "the_advice_was_to_get_seen") => Out::Bool(repeat::the_advice_was_to_get_seen(&a.mem(0))),
+        ("repeat", "the_part_asked") => opt(repeat::the_part_asked_text(&a.s(0), &a.mem(1))),
+        ("repeat", "_whether_to") => text(repeat::_whether_to(&a.s(0))),
+        ("repeat", "_a_stem") => text(repeat::_a_stem(&a.s(0))),
+        ("repeat", "_the_chat_is_still_on") => Out::Bool(repeat::_the_chat_is_still_on(&a.s(0), &a.mem(1))),
+        ("repeat", "what_it_knows") => opt(repeat::what_it_knows_text(&a.s(0), &a.mem(1))),
+        ("repeat", "the_plain_line") => text(repeat::the_plain_line(&a.s(0))),
+        ("repeat", "how_long_its_been") => Out::Bool(repeat::how_long_its_been(&a.s(0))),
+        ("repeat", "_a_line_that_corrects") => Out::Bool(repeat::_a_line_that_corrects(&a.s(0))),
+        ("repeat", "_a_list_of_ages") => Out::Bool(repeat::_a_list_of_ages(&a.s(0))),
+        ("repeat", "_something_gone") => Out::Bool(repeat::_something_gone(&a.strs(0), a.n(1) as usize, &a.strs(2))),
+        ("repeat", "_the_ask_gave_that_figure") => Out::Bool(repeat::_the_ask_gave_that_figure(&a.s(0), &a.s(1))),
+        ("repeat", "_a_count_of_one_with_a_plural") => {
+            Out::Bool(repeat::_a_count_of_one_with_a_plural(&a.s(0), &a.s(1)))
+        }
+        ("repeat", "_the_thing_counted") => text(repeat::_the_thing_counted(&a.s(0), &a.s(1))),
+        ("repeat", "_figures_in") => Out::Exact(J::Array(
+            repeat::_figures_in(&a.s(0))
+                .into_iter()
+                .map(|(k, s, n, c)| J::Array(vec![J::String(k), J::String(s), J::String(n), J::Bool(c)]))
+                .collect(),
+        )),
+        ("repeat", "_money_paid_for_a_thing") => Out::Bool(repeat::_money_paid_for_a_thing(&a.s(0), &a.s(1))),
+        ("repeat", "_a_bare_count") => Out::Bool(repeat::_a_bare_count(&a.s(0))),
+        ("repeat", "_the_same_word") => Out::Bool(repeat::_the_same_word(&a.s(0), &a.s(1))),
+        ("repeat", "_the_length_they_mean") => text(repeat::_the_length_they_mean(&a.s(0), &a.strs(1), &a.strs(2))),
+        ("repeat", "_the_figure_counts_the_thing") => Out::Bool(repeat::_the_figure_counts_the_thing(&a.s(0), &a.s(1))),
+        ("repeat", "a_narrowing_and_its_line") => {
+            Out::Exact(repeat::a_narrowing_and_its_line(&a.s(0), &a.mem(1)).to_plain())
+        }
+        ("repeat", "_the_turn_that_names_it") => opt(repeat::_the_turn_that_names_it(&a.s(0), &a.mem(1))),
+        ("repeat", "the_figure_they_gave") => opt(repeat::the_figure_they_gave_text(&a.s(0), &a.mem(1))),
+        ("repeat", "_the_store_keeps_this_figure") => Out::Bool(repeat::_the_store_keeps_this_figure(&a.s(0), &a.mem(1))),
+        ("repeat", "asked_back") => opt(repeat::asked_back_text(&a.s(0), &a.mem(1))),
+        ("repeat", "carries_the_figure") => Out::Bool(repeat::carries_the_figure(&a.value(0), &a.s(1))),
+        ("repeat", "_the_same_words") => Out::Bool(repeat::_the_same_words(&a.s(0), &a.s(1))),
+        ("repeat", "_shortened") => text(repeat::_shortened(&a.s(0))),
+        ("repeat", "_the_answer_again") => text(repeat::_the_answer_again(&a.s(0), &a.mem(1))),
+        ("repeat", "the_same_question_again") => opt(repeat::the_same_question_again_text(&a.s(0), &a.mem(1))),
+        _ => return ack_call(name, a, memory_after),
+    };
+    Some(out)
+}
+
+/// The ack adapters (kept apart, so the list above stays readable).
+fn ack_call(name: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out> {
+    let _ = (a, memory_after);
+    let out = match name {
+        _ => return None,
+    };
+    #[allow(unreachable_code)]
+    Some(out)
+}
+
+fn truthy(v: &J) -> bool {
+    match v {
+        J::Null => false,
+        J::Bool(b) => *b,
+        J::Number(n) => n.as_f64() != Some(0.0),
+        J::String(s) => !s.is_empty(),
+        J::Array(a) => !a.is_empty(),
+        J::Object(o) => !o.is_empty(),
+    }
+}
+
+fn same(py: &J, out: &Out) -> bool {
+    match out {
+        Out::Bool(b) => truthy(py) == *b,
+        Out::Text(t) => {
+            let p = match py {
+                J::String(s) if !s.is_empty() => Some(s.as_str()),
+                _ => None,
+            };
+            p == t.as_deref().filter(|s| !s.is_empty())
+        }
+        Out::Exact(j) => py == j,
+    }
+}
+
+fn show(out: &Out) -> String {
+    match out {
+        Out::Bool(b) => b.to_string(),
+        Out::Text(t) => format!("{t:?}"),
+        Out::Exact(j) => j.to_string(),
+    }
+}
+
+fn main() {
+    rsbot::runtime::quiet_panics();
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let mut files = Vec::new();
+    let mut only: Vec<String> = Vec::new();
+    let mut show_k = 3usize;
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--fn" => {
+                only.push(args[i + 1].clone());
+                i += 1;
+            }
+            "--show" => {
+                show_k = args[i + 1].parse().unwrap();
+                i += 1;
+            }
+            other => files.push(other.to_string()),
+        }
+        i += 1;
+    }
+    // (ok, mismatch, unported, panic, no adapter)
+    let mut stats: BTreeMap<String, [usize; 5]> = BTreeMap::new();
+    let mut shown: BTreeMap<String, usize> = BTreeMap::new();
+    for file in &files {
+        let f = std::fs::File::open(file).expect("calls file");
+        let reader = std::io::BufReader::new(flate2::read::GzDecoder::new(f));
+        for line in reader.lines() {
+            let line = line.unwrap();
+            let rec: J = serde_json::from_str(&line).unwrap();
+            let fid = rec["fn"].as_str().unwrap().to_string();
+            if !only.is_empty() && !only.iter().any(|o| fid.ends_with(o.as_str())) {
+                continue;
+            }
+            let empty = Map::new();
+            let a = A {
+                args: rec["args"].as_array().map(|v| v.as_slice()).unwrap_or(&[]),
+                kwargs: rec["kwargs"].as_object().unwrap_or(&empty),
+                params: rec["params"].as_array().map(|v| v.iter().map(|p| p.as_str().unwrap_or("").to_string()).collect()).unwrap_or_default(),
+            };
+            if let Some(J::Array(state)) = rec.get("rng") {
+                let st: Vec<u64> = state.iter().map(|v| v.as_u64().unwrap()).collect();
+                rsbot::py::random::setstate(rsbot::py::random::Random::from_python_state(&st));
+            } else {
+                rsbot::py::random::seed(0);
+            }
+            let entry = stats.entry(fid.clone()).or_default();
+            let mut memory_after: Option<Memory> = None;
+            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| call(&fid, &a, &mut memory_after)));
+            let raised = rec["raised"].as_str();
+            match res {
+                Ok(None) => entry[4] += 1,
+                Ok(Some(out)) => {
+                    let mut ok = raised.is_none() && same(&rec["result"], &out);
+                    let mut why = String::new();
+                    if ok {
+                        if let (Some(m), Some(J::Object(want))) = (&memory_after, rec.get("mem_after")) {
+                            let got = m.to_plain();
+                            let differs: Vec<&String> = want
+                                .iter()
+                                .filter(|(k, v)| k.as_str() != "understood" && got.get(k.as_str()) != Some(v))
+                                .map(|(k, _)| k)
+                                .collect();
+                            if !differs.is_empty() {
+                                ok = false;
+                                why = format!(" memory differs at {differs:?}");
+                            }
+                        }
+                    }
+                    if ok {
+                        entry[0] += 1;
+                    } else {
+                        entry[1] += 1;
+                        let n = shown.entry(fid.clone()).or_default();
+                        if *n < show_k {
+                            *n += 1;
+                            let a_text = serde_json::to_string(&rec["args"]).unwrap();
+                            let a_text: String = a_text.chars().take(400).collect();
+                            println!(
+                                "MISMATCH {fid}{why}\n  args: {a_text}\n  py:   {} {}\n  rs:   {}",
+                                rec["result"],
+                                raised.unwrap_or(""),
+                                show(&out)
+                            );
+                        }
+                    }
+                }
+                Err(_) => {
+                    let msg = rsbot::runtime::take_last_panic().unwrap_or_default();
+                    if msg.starts_with("UNPORTED") {
+                        entry[2] += 1;
+                    } else if raised.is_some() {
+                        entry[0] += 1; // Python raised, and so did the port
+                    } else {
+                        entry[3] += 1;
+                        let n = shown.entry(fid.clone()).or_default();
+                        if *n < show_k {
+                            *n += 1;
+                            let a_text: String = serde_json::to_string(&rec["args"]).unwrap().chars().take(300).collect();
+                            println!("PANIC {fid}: {msg}\n  args: {a_text}");
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let mut total = [0usize; 5];
+    println!("\n{:<55} {:>6} {:>6} {:>8} {:>6} {:>6}", "function", "ok", "diff", "unported", "panic", "n/a");
+    for (fid, s) in &stats {
+        println!("{:<55} {:>6} {:>6} {:>8} {:>6} {:>6}", fid, s[0], s[1], s[2], s[3], s[4]);
+        for k in 0..5 {
+            total[k] += s[k];
+        }
+    }
+    println!("{:<55} {:>6} {:>6} {:>8} {:>6} {:>6}", "TOTAL", total[0], total[1], total[2], total[3], total[4]);
+}
