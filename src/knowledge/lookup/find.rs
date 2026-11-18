@@ -587,14 +587,14 @@ pub fn _the_best_entry(understood: &Understood, entries: Option<&[&'static Entry
     }
     // left = understood.get('intensifier_left'): a full reading always has it.
     if !understood.intensifier_left.is_empty() {
-        let mut going: HashMap<String, i64> = HashMap::new();
+        let mut going: HashMap<String, i64> = HashMap::default();
         for word in &understood.intensifier_left {
             *going.entry(text::lower(word)).or_default() += 1;
         }
         words = without_counted(words, &mut going, true);
     }
     if !understood.background.is_empty() && understood.topic_own.as_deref().unwrap_or("").is_empty() {
-        let mut drop: HashMap<String, i64> = HashMap::new();
+        let mut drop: HashMap<String, i64> = HashMap::default();
         for word in &understood.background {
             *drop.entry(text::lower(word)).or_default() += 1;
         }
@@ -614,7 +614,7 @@ pub fn _the_best_entry(understood: &Understood, entries: Option<&[&'static Entry
             let vocab = _vocabulary(every_entry);
             let here = _best(understood, &words, &clean, &FormLine::of(&words), &lower_all(&words), every_entry, &vocab.by_domain, &vocab.every, reject, false);
             if here.is_none_or(|h| !FEELING_DOMAINS.contains(&h.domain)) {
-                let mut gone: HashMap<String, i64> = HashMap::new();
+                let mut gone: HashMap<String, i64> = HashMap::default();
                 for word in &occasion {
                     *gone.entry(word.clone()).or_default() += 1;
                 }
@@ -1131,7 +1131,7 @@ fn reading_topics(understood: &Understood, with_leans: bool) -> Vec<String> {
 pub fn _declared_for(allowed: &HashSet<String>, understood: &Understood) -> HashSet<String> {
     let topics = reading_topics(understood, false);
     if topics.is_empty() {
-        return HashSet::new();
+        return HashSet::default();
     }
     allowed.iter().filter(|name| topics.iter().any(|t| judged(name).is_some_and(|j| j.contains(t)))).cloned().collect()
 }
@@ -1354,11 +1354,74 @@ pub fn _line_rows(
     ask_names: &[String],
     ask_said: &[String],
 ) -> Vec<Row> {
-    let rows = _scanned_rows(forms, typed, entries, by_domain, every, named, frame, framed, ask_names, ask_said);
+    let rows = cached_rows(forms, typed, entries, by_domain, every, named, frame, framed, ask_names, ask_said);
     match stands_down {
         None => rows,
         Some(s) => rows.into_iter().filter(|r| !s(r.item)).collect(),
     }
+}
+
+/// `_rows_key(...)`: what the scanned rows depend on (`forms` by content).
+type RowsKey = (usize, usize, Vec<Vec<String>>, Vec<String>, Vec<String>, bool, bool, Vec<String>, Vec<String>);
+
+/// `_line_rows`' use of `_ROWS_CACHE`: the rows a line scanned before, for the whole knowledge
+/// base (Python keys by the entries list's identity; the port keeps rows only for the lists that
+/// live for the whole run, so an address is never reused).
+#[allow(clippy::too_many_arguments)]
+fn cached_rows(
+    forms: &FormLine,
+    typed: &[String],
+    entries: &[&'static Entry],
+    by_domain: &HashMap<String, HashMap<String, usize>>,
+    every: &HashMap<String, usize>,
+    named: &[String],
+    frame: bool,
+    framed: bool,
+    ask_names: &[String],
+    ask_said: &[String],
+) -> Vec<Row> {
+    use std::cell::RefCell;
+    thread_local! {
+        static CACHE: RefCell<indexmap::IndexMap<RowsKey, Vec<Row>>> = RefCell::new(indexmap::IndexMap::new());
+    }
+    let lasting = {
+        let all = all_entry_refs();
+        let kept = _the_kept_rows();
+        (std::ptr::eq(entries.as_ptr(), all.as_ptr()) && entries.len() == all.len()) || (std::ptr::eq(entries.as_ptr(), kept.as_ptr()) && entries.len() == kept.len())
+    };
+    if !lasting {
+        return _scanned_rows(forms, typed, entries, by_domain, every, named, frame, framed, ask_names, ask_said);
+    }
+    let key: RowsKey = (
+        entries.as_ptr() as usize,
+        entries.len(),
+        forms
+            .iter()
+            .map(|group| {
+                let mut g: Vec<String> = group.iter().cloned().collect();
+                g.sort();
+                g
+            })
+            .collect(),
+        typed.to_vec(),
+        named.to_vec(),
+        frame,
+        framed,
+        ask_names.to_vec(),
+        ask_said.to_vec(),
+    );
+    if let Some(rows) = CACHE.with(|c| c.borrow().get(&key).cloned()) {
+        return rows;
+    }
+    let rows = _scanned_rows(forms, typed, entries, by_domain, every, named, frame, framed, ask_names, ask_said);
+    CACHE.with(|c| {
+        let mut c = c.borrow_mut();
+        while c.len() >= 256 {
+            c.shift_remove_index(0);
+        }
+        c.insert(key, rows.clone());
+    });
+    rows
 }
 
 /// `_scanned_rows(...)`: every reached entry the line scores, ranked.
@@ -1403,7 +1466,7 @@ pub fn _scanned_rows(
 /// `_the_longest_run(item, ask_line, name_forms, asked_seen)`: the longest key phrase the ask
 /// says that holds one of its names.
 pub fn _the_longest_run(item: &Entry, ask_line: &FormLine, name_forms: &[Forms], asked_seen: &SeenRef) -> usize {
-    let mut wanted = HashSet::new();
+    let mut wanted = HashSet::default();
     for f in name_forms {
         wanted.extend(f.iter().cloned());
     }
@@ -1553,7 +1616,7 @@ pub fn _the_occasion_family(phrase: &str) -> String {
 /// `_the_occasion_words(typed)`.
 pub fn _the_occasion_words(typed: &[String]) -> HashSet<String> {
     let said = typed.join(" ");
-    let mut found = HashSet::new();
+    let mut found = HashSet::default();
     for m in OCCASION.finditer(&said) {
         let family = _the_occasion_family(m.as_str());
         if !family.is_empty() {
@@ -1697,7 +1760,7 @@ pub fn _best(
         (Some(a), Some(s)) => a != s && !_says_what_is_missing(understood) && _is_a_person(understood, a) == _is_a_person(understood, s),
         _ => false,
     };
-    let mut turned_down: HashSet<&str> = HashSet::new();
+    let mut turned_down: HashSet<&str> = HashSet::default();
     for whole_line_first in [true, false] {
         for row in &ranked_items {
             let item = row.item;
@@ -1818,8 +1881,8 @@ pub fn _touches(item: &Entry, forms: &FormLine, rarity: &HashMap<String, usize>)
 
 /// `_parts_across(item, carried_forms, forms)`: the key is said partly before and partly now.
 pub fn _parts_across(item: &Entry, carried_forms: &FormLine, forms: &FormLine) -> bool {
-    let mut own = HashSet::new();
-    let mut above = HashSet::new();
+    let mut own = HashSet::default();
+    let mut above = HashSet::default();
     for (index, part) in item.key.iter().enumerate() {
         if !_part_matches(part.into(), forms, None).is_empty() {
             own.insert(index);
@@ -1833,7 +1896,7 @@ pub fn _parts_across(item: &Entry, carried_forms: &FormLine, forms: &FormLine) -
 
 /// `key_words(item)`: the key's words without a plural "s".
 pub fn key_words(item: &Entry) -> HashSet<String> {
-    let mut found = HashSet::new();
+    let mut found = HashSet::default();
     for part in &item.key {
         for option in alternatives(part) {
             for word in text::split(&text::lower(option)) {
@@ -1960,7 +2023,7 @@ pub fn _following_on(
     {
         let head = _forms(text::split(subject).last().map(|s| s.as_str()).unwrap_or(""));
         let other: Vec<Forms> = carried_forms.iter().filter(|f| !meets(f, &head)).cloned().collect();
-        let mut words = HashSet::new();
+        let mut words = HashSet::default();
         for word in key_words(best) {
             words.extend(_forms(&word).iter().cloned());
         }

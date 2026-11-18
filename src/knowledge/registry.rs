@@ -55,6 +55,7 @@ fn guard_tables() -> Vec<&'static [(&'static str, GuardFn)]> {
         // U: the guards defined in bot/knowledge/__init__.py, lookup.py and understanding/
         crate::knowledge::GUARDS,
         crate::knowledge::lookup::GUARDS,
+        U_LINKED_GUARDS,
         crate::understanding::cars::GUARDS,
         crate::understanding::car_glass::GUARDS,
         // D2
@@ -341,6 +342,7 @@ static SHAPES: LazyLock<HashMap<&'static str, ShapeFn>> = LazyLock::new(|| {
 /// Every ported module's figure-shape readers.
 fn shape_tables() -> Vec<&'static [(&'static str, ShapeFn)]> {
     vec![
+        U_LINKED_SHAPES,
         crate::understanding::kinds::SHAPES,
         crate::knowledge::takes::SHAPES,
         crate::knowledge::family::SHAPES,
@@ -369,6 +371,9 @@ pub fn shape(f: &FnRef, line: &str) -> bool {
 pub fn has_guard(id: &str) -> bool {
     GUARDS.contains_key(id)
 }
+pub fn has_shape(id: &str) -> bool {
+    SHAPES.contains_key(id)
+}
 pub fn has_reply(id: &str) -> bool {
     REPLIES.contains_key(id)
 }
@@ -377,3 +382,64 @@ pub fn has_reply(id: &str) -> bool {
 pub fn misses() -> BTreeMap<String, usize> {
     MISSES.lock().unwrap().clone()
 }
+
+// ---------------------------------------------------------------------------------------------
+// U (integration): domain functions that entries name as a guard or a shape and that the domain
+// ports have (or are one-line lambdas over the domain's data) but no table registered. Linked here
+// so `lookup.find` runs them; a domain table registering the same id later takes precedence only
+// if it is listed after these (the maps keep the last insert), and both run the same port.
+
+fn u_pets_stands_aside(_: &FnRef, u: &Understood) -> bool {
+    crate::knowledge::pets::STANDS_ASIDE(u)
+}
+fn u_travel_not_a_wage(_: &FnRef, u: &Understood) -> bool {
+    crate::knowledge::travel::_not_a_wage(u)
+}
+
+/// Guards linked by U (see above).
+pub const U_LINKED_GUARDS: &[(&str, GuardFn)] = &[
+    ("bot.knowledge.pets:STANDS_ASIDE:3595", u_pets_stands_aside),
+    ("bot.knowledge.travel:_not_a_wage:5929", u_travel_not_a_wage),
+];
+
+fn u_consumer_a_stretch_of_waiting(_: &FnRef, line: &str) -> bool {
+    crate::knowledge::consumer::_a_stretch_of_waiting(line)
+}
+fn u_health_a_high_reading(_: &FnRef, line: &str) -> bool {
+    crate::knowledge::health::_a_high_reading(line)
+}
+fn u_shopping_names_a_childs_age(_: &FnRef, line: &str) -> bool {
+    crate::knowledge::shopping::_names_a_childs_age(line)
+}
+fn u_work_asks_what_to_do(_: &FnRef, line: &str) -> bool {
+    crate::knowledge::work::_asks_what_to_do(line)
+}
+/// health.py L2291 `lambda words: bool(_SAID_COLD.search(words))`.
+fn u_health_said_cold(_: &FnRef, line: &str) -> bool {
+    crate::data::re("bot.knowledge.health._SAID_COLD").is_match(line)
+}
+/// health.py L2320 `lambda words: bool(_SAID_HOT.search(words))`.
+fn u_health_said_hot(_: &FnRef, line: &str) -> bool {
+    crate::data::re("bot.knowledge.health._SAID_HOT").is_match(line)
+}
+/// health.py L7745 `lambda words: bool(re.search(r"\d", (words or "")))`.
+fn u_health_a_figure(_: &FnRef, line: &str) -> bool {
+    crate::understanding::rx("\\d").is_match(line)
+}
+/// cooking.py L12363 `_alone(line, _only=tuple(_names))`.
+fn u_cooking_alone(f: &FnRef, line: &str) -> bool {
+    let only: Vec<String> = f.defaults.first().map(|v| v.strs()).unwrap_or_default();
+    crate::knowledge::cooking_b::_names_nothing_but_the_dish(line, &only)
+}
+
+/// Shapes linked by U (see above).
+pub const U_LINKED_SHAPES: &[(&str, ShapeFn)] = &[
+    ("bot.knowledge.consumer:_a_stretch_of_waiting:1505", u_consumer_a_stretch_of_waiting),
+    ("bot.knowledge.health:_a_high_reading:1611", u_health_a_high_reading),
+    ("bot.knowledge.shopping:_names_a_childs_age:1649", u_shopping_names_a_childs_age),
+    ("bot.knowledge.work:_asks_what_to_do:1707", u_work_asks_what_to_do),
+    ("bot.knowledge.health:<lambda>:2291", u_health_said_cold),
+    ("bot.knowledge.health:<lambda>:2320", u_health_said_hot),
+    ("bot.knowledge.health:<lambda>:7745", u_health_a_figure),
+    ("bot.knowledge.cooking:_alone:12363", u_cooking_alone),
+];

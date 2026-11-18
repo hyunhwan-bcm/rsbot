@@ -32,7 +32,7 @@ fn main() {
             known.sort();
             let want: Vec<String> = serde_json::from_value(v["known"].clone()).unwrap();
             println!("known: {} vs {} same={}", known.len(), want.len(), known.iter().map(|s| s.as_str()).eq(want.iter().map(|s| s.as_str())));
-            let every: std::collections::HashMap<String, usize> = serde_json::from_value(v["every"].clone()).unwrap();
+            let every: lookup::HashMap<String, usize> = serde_json::from_value(v["every"].clone()).unwrap();
             println!("every same={}", every == voc.every);
             let mut ew: Vec<&String> = rsbot::understanding::lexicon::every_word().iter().collect();
             ew.sort();
@@ -270,7 +270,7 @@ fn main() {
             // use_context, against PyBot's answers (corpus made by find/make_find.py).
             rsbot::runtime::quiet_panics();
             let show: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(10);
-            let (mut ok, mut bad, mut shown) = (0, 0, 0);
+            let (mut ok, mut bad, mut shown, mut blocked) = (0, 0, 0, 0);
             let t0 = std::time::Instant::now();
             for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
                 let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
@@ -279,17 +279,35 @@ fn main() {
                     Err(e) => { println!("-- unreadable {:?}: {e}", v["text"]); bad += 1; continue; }
                 };
                 for (key, ctx) in [("find", false), ("ctx", true)] {
+                    let before: usize = rsbot::knowledge::registry::misses().values().sum();
                     let got = rsbot::runtime::guarded(|| lookup::find(&u, None, None, ctx).map(|e| e.id.clone()));
                     let got = match got { Some(Some(id)) => serde_json::Value::String(id), Some(None) => serde_json::Value::Null, None => serde_json::Value::String(format!("!panic {}", rsbot::runtime::take_last_panic().unwrap_or_default())) };
-                    if got == v[key] { ok += 1 } else {
+                    let missed = rsbot::knowledge::registry::misses().values().sum::<usize>() > before;
+                    if got == v[key] { ok += 1 } else if missed { blocked += 1; if let Ok(path) = std::env::var("U_BLOCKED") { use std::io::Write; let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap(); writeln!(f, "{}", serde_json::json!({"text": v["text"], "key": key, "rust": got})).unwrap(); } } else {
                         bad += 1;
                         if shown < show { println!("-- {key} {:?}\n   rust {got}\n   py   {}", v["text"], v[key]); shown += 1; }
                     }
                 }
             }
-            println!("find ok {ok} bad {bad} in {:?}", t0.elapsed());
+            println!("find ok {ok} bad {bad} (+{blocked} differing where an unported domain function was called) in {:?}", t0.elapsed());
             let misses = rsbot::knowledge::registry::misses();
             if !misses.is_empty() { println!("unported functions called: {}", misses.len()); for (k, n) in misses.iter().take(40) { println!("  {n} {k}"); } }
+        }
+        "unported" => {
+            // u_check unported: the guard and shape functions entries name that have no port
+            fn walk(v: &rsbot::data::FnRef, out: &mut std::collections::BTreeSet<String>) {
+                if !rsbot::knowledge::registry::has_guard(&v.id) { out.insert(format!("guard {}", v.id)); }
+                for (_, c) in &v.cells {
+                    if let Some(f) = c.as_fn() { walk(f, out) }
+                    for x in c.items() { if let Some(f) = x.as_fn() { walk(f, out) } }
+                }
+            }
+            let mut out = std::collections::BTreeSet::new();
+            for e in lookup::all_entries() {
+                if let Some(g) = &e.guard { walk(g, &mut out) }
+                for s in &e.shape { if !rsbot::knowledge::registry::has_shape(&s.id) { out.insert(format!("shape {}", s.id)); } }
+            }
+            for x in out { println!("{x}"); }
         }
         x => panic!("unknown check {x}"),
     }

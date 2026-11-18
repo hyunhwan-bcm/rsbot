@@ -13,14 +13,18 @@ pub type Forms = Arc<HashSet<String>>;
 
 /// `frozenset()`.
 pub fn no_forms() -> Forms {
-    static EMPTY: LazyLock<Forms> = LazyLock::new(|| Arc::new(HashSet::new()));
+    static EMPTY: LazyLock<Forms> = LazyLock::new(|| Arc::new(HashSet::default()));
     EMPTY.clone()
 }
 
 /// `a & b` is not empty.
 #[inline]
-pub fn meets(a: &HashSet<String>, b: &HashSet<String>) -> bool {
-    !a.is_disjoint(b)
+pub fn meets<S1: std::hash::BuildHasher, S2: std::hash::BuildHasher>(a: &std::collections::HashSet<String, S1>, b: &std::collections::HashSet<String, S2>) -> bool {
+    if a.len() <= b.len() {
+        a.iter().any(|x| b.contains(x))
+    } else {
+        b.iter().any(|x| a.contains(x))
+    }
 }
 
 /// A line read as word forms: Python's `forms` list. It carries an identity (`id`) because
@@ -110,8 +114,8 @@ pub struct Seen {
     pub parts: HashMap<PartKey, Rc<Vec<Hit>>>,
     pub line_forms: Option<(u64, Arc<HashSet<String>>)>,
     pub where_: Option<(u64, Rc<Where>)>,
-    /// `seen[_PHRASE_SPANS]`: (forms, {phrase or ('between', phrase): span}).
-    pub spans: Option<(u64, HashMap<(bool, String), Vec<usize>>)>,
+    /// `seen[_PHRASE_SPANS]`: (forms, {phrase: span}, {('between', phrase): span}).
+    pub spans: Option<(u64, HashMap<String, Vec<usize>>, HashMap<String, Vec<usize>>)>,
     pub wanting: Option<(u64, bool)>,
     pub about_someone: HashMap<PartKey, (u64, bool)>,
     /// `seen[_FRAME_MASK]`: (forms, masked and its memo when masked is not forms, frame words).
@@ -142,7 +146,7 @@ pub fn tokens(text: &str) -> Vec<String> {
 /// `_forms(word)`: every form a key word can be typed in (plural, past, -ing, US spelling),
 /// worked out once per word.
 pub fn _forms(word: &str) -> Forms {
-    static CACHE: LazyLock<RwLock<HashMap<String, Forms>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+    static CACHE: LazyLock<RwLock<HashMap<String, Forms>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(f) = CACHE.read().unwrap().get(word) {
         return f.clone();
     }
@@ -157,7 +161,7 @@ pub fn _work_out_forms(word: &str) -> HashSet<String> {
     let w: Vec<char> = word.chars().collect();
     let n = w.len();
     let cut = |k: usize| -> String { w[..n - k].iter().collect() };
-    let mut forms = HashSet::new();
+    let mut forms = HashSet::default();
     forms.insert(word.clone());
     if let Some(other) = US_SPELLINGS.get(&word) {
         if !other.is_empty() {
@@ -319,7 +323,7 @@ pub fn _engine_reads(word: &str) -> bool {
 /// `_typo_forms(word, vocabulary)`: the forms of the one key word a misspelt word is a slip of.
 pub fn _typo_forms(word: &str, vocabulary: &HashMap<String, usize>) -> HashSet<String> {
     if text::len(word) < *MIN_TYPO_LENGTH || _engine_reads(word) {
-        return HashSet::new();
+        return HashSet::default();
     }
     let first = word.chars().next();
     let n = text::len(word);
@@ -329,9 +333,9 @@ pub fn _typo_forms(word: &str, vocabulary: &HashMap<String, usize>) -> HashSet<S
         .collect();
     let families: HashSet<String> = close.iter().map(|other| _stem(other)).collect();
     if families.len() != 1 {
-        return HashSet::new();
+        return HashSet::default();
     }
-    let mut forms = HashSet::new();
+    let mut forms = HashSet::default();
     for other in close {
         forms.extend(_forms(other).iter().cloned());
     }
@@ -340,13 +344,13 @@ pub fn _typo_forms(word: &str, vocabulary: &HashMap<String, usize>) -> HashSet<S
 
 /// `_wanted(phrase)`: the forms of each word of a phrase.
 pub fn _wanted(phrase: &str) -> Arc<Vec<Forms>> {
-    static CACHE: LazyLock<RwLock<HashMap<String, Arc<Vec<Forms>>>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+    static CACHE: LazyLock<RwLock<HashMap<String, Arc<Vec<Forms>>>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(got) = CACHE.read().unwrap().get(phrase) {
         return got.clone();
     }
     let low = text::lower(phrase);
     let got: Vec<Forms> = if PLURAL_ONLY_PHRASES.contains(&low) {
-        text::split(&low).into_iter().map(|w| Arc::new(HashSet::from([w]))).collect()
+        text::split(&low).into_iter().map(|w| Arc::new(std::iter::once(w).collect::<HashSet<String>>())).collect()
     } else {
         text::split(&low).iter().map(|w| _forms(w)).collect()
     };
@@ -357,7 +361,7 @@ pub fn _wanted(phrase: &str) -> Arc<Vec<Forms>> {
 
 /// `_wanted_bare(phrase)`: the phrase's forms without its articles, when that leaves enough.
 pub fn _wanted_bare(phrase: &str) -> Option<Arc<Vec<Forms>>> {
-    static CACHE: LazyLock<RwLock<HashMap<String, Option<Arc<Vec<Forms>>>>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+    static CACHE: LazyLock<RwLock<HashMap<String, Option<Arc<Vec<Forms>>>>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(got) = CACHE.read().unwrap().get(phrase) {
         return got.clone();
     }
@@ -409,7 +413,7 @@ pub fn _phrase_span_bare(forms: &[Forms], wanted: &[Forms]) -> Vec<usize> {
 
 /// `_shape(phrase)`: the phrase's words and what saying it is worth.
 pub fn _shape(phrase: &str) -> (Arc<[String]>, i64) {
-    static CACHE: LazyLock<RwLock<HashMap<String, (Arc<[String]>, i64)>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+    static CACHE: LazyLock<RwLock<HashMap<String, (Arc<[String]>, i64)>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(got) = CACHE.read().unwrap().get(phrase) {
         return got.clone();
     }
@@ -429,7 +433,7 @@ pub fn _line_forms(forms: &FormLine, seen: Option<&SeenRef>) -> Arc<HashSet<Stri
             }
         }
     }
-    let mut every = HashSet::new();
+    let mut every = HashSet::default();
     for word_forms in forms.iter() {
         every.extend(word_forms.iter().cloned());
     }
@@ -449,7 +453,7 @@ pub fn _where(forms: &FormLine, seen: Option<&SeenRef>) -> Rc<Where> {
             }
         }
     }
-    let mut where_: HashMap<String, Vec<usize>> = HashMap::new();
+    let mut where_: HashMap<String, Vec<usize>> = HashMap::default();
     for (index, word_forms) in forms.iter().enumerate() {
         for form in word_forms.iter() {
             where_.entry(form.clone()).or_default().push(index);
@@ -464,22 +468,22 @@ pub fn _where(forms: &FormLine, seen: Option<&SeenRef>) -> Rc<Where> {
 }
 
 /// The memo's span table for this line (`seen[_PHRASE_SPANS]`), made fresh for a new line.
-fn spans_get(seen: &SeenRef, forms: &FormLine, key: &(bool, String)) -> Option<Vec<usize>> {
+fn spans_get(seen: &SeenRef, forms: &FormLine, between: bool, phrase: &str) -> Option<Vec<usize>> {
     let mut s = seen.borrow_mut();
     match &s.spans {
-        Some((id, spans)) if *id == forms.id => spans.get(key).cloned(),
+        Some((id, plain, gaps)) if *id == forms.id => (if between { gaps } else { plain }).get(phrase).cloned(),
         _ => {
-            s.spans = Some((forms.id, HashMap::new()));
+            s.spans = Some((forms.id, HashMap::default(), HashMap::default()));
             None
         }
     }
 }
 
-fn spans_put(seen: &SeenRef, forms: &FormLine, key: (bool, String), span: Vec<usize>) {
+fn spans_put(seen: &SeenRef, forms: &FormLine, between: bool, phrase: &str, span: Vec<usize>) {
     let mut s = seen.borrow_mut();
-    if let Some((id, spans)) = &mut s.spans {
+    if let Some((id, plain, gaps)) = &mut s.spans {
         if *id == forms.id {
-            spans.insert(key, span);
+            (if between { gaps } else { plain }).insert(phrase.to_string(), span);
         }
     }
 }
@@ -487,12 +491,11 @@ fn spans_put(seen: &SeenRef, forms: &FormLine, key: (bool, String), span: Vec<us
 /// `_phrase_span(forms, phrase, seen=None)`: the positions the phrase is said at, or ().
 pub fn _phrase_span(forms: &FormLine, phrase: &str, seen: Option<&SeenRef>) -> Vec<usize> {
     if let Some(s) = seen {
-        let key = (false, phrase.to_string());
-        if let Some(got) = spans_get(s, forms, &key) {
+        if let Some(got) = spans_get(s, forms, false, phrase) {
             return got;
         }
         let end = _phrase_span_work(forms, phrase, Some(s));
-        spans_put(s, forms, key, end.clone());
+        spans_put(s, forms, false, phrase, end.clone());
         return end;
     }
     _phrase_span_work(forms, phrase, None)
@@ -501,7 +504,7 @@ pub fn _phrase_span(forms: &FormLine, phrase: &str, seen: Option<&SeenRef>) -> V
 /// `_ask_frame_forms()`: every form of the ask frame's words.
 pub fn _ask_frame_forms() -> &'static HashSet<String> {
     static GOT: LazyLock<HashSet<String>> = LazyLock::new(|| {
-        let mut got = HashSet::new();
+        let mut got = HashSet::default();
         for word in ASK_FRAME.iter() {
             got.extend(_forms(word).iter().cloned());
         }
@@ -520,9 +523,8 @@ pub fn _phrase_span_between(forms: &FormLine, phrase: &str, seen: Option<&SeenRe
     if meets(&wanted[0], _ask_frame_forms()) {
         return vec![];
     }
-    let key = (true, phrase.to_string());
     if let Some(s) = seen {
-        if let Some(got) = spans_get(s, forms, &key) {
+        if let Some(got) = spans_get(s, forms, true, phrase) {
             return got;
         }
     }
@@ -558,7 +560,7 @@ pub fn _phrase_span_between(forms: &FormLine, phrase: &str, seen: Option<&SeenRe
         }
     }
     if let Some(s) = seen {
-        spans_put(s, forms, key, answer.clone());
+        spans_put(s, forms, true, phrase, answer.clone());
     }
     answer
 }
@@ -566,7 +568,7 @@ pub fn _phrase_span_between(forms: &FormLine, phrase: &str, seen: Option<&SeenRe
 /// `_ONE_SPELLING_EITHER_WAY`: each spelling's other spellings. Python's values are sets; they
 /// are walked here in sorted order (Python's order is its string hashing).
 static _ONE_SPELLING_EITHER_WAY: LazyLock<HashMap<String, Vec<String>>> = LazyLock::new(|| {
-    let mut m: HashMap<String, std::collections::BTreeSet<String>> = HashMap::new();
+    let mut m: HashMap<String, std::collections::BTreeSet<String>> = HashMap::default();
     for pair in data::get(&format!("{M}_ONE_SPELLING")).items() {
         let it = pair.strs();
         m.entry(it[0].clone()).or_default().insert(it[1].clone());
@@ -577,7 +579,7 @@ static _ONE_SPELLING_EITHER_WAY: LazyLock<HashMap<String, Vec<String>>> = LazyLo
 
 /// `_the_same_words(phrase)`: the phrase in its other spellings ("won't" / "will not").
 pub fn _the_same_words(phrase: &str) -> Arc<Vec<String>> {
-    static CACHE: LazyLock<RwLock<HashMap<String, Arc<Vec<String>>>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+    static CACHE: LazyLock<RwLock<HashMap<String, Arc<Vec<String>>>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(got) = CACHE.read().unwrap().get(phrase) {
         return got.clone();
     }
@@ -675,7 +677,7 @@ pub fn _phrase_span_spelling(forms: &FormLine, phrase: &str, seen: Option<&SeenR
     }
     let mut hits: Vec<HashSet<usize>> = Vec::new();
     for word_forms in wanted.iter() {
-        let mut found = HashSet::new();
+        let mut found = HashSet::default();
         for form in word_forms.iter() {
             if let Some(at) = where_.get(form) {
                 found.extend(at.iter().copied());
@@ -703,7 +705,7 @@ pub fn _phrase_found(forms: &FormLine, phrase: &str) -> bool {
 
 /// `_part_forms(part)`: every form any alternative of the part is said in.
 pub fn _part_forms(part: Part) -> Arc<HashSet<String>> {
-    static CACHE: LazyLock<RwLock<HashMap<PartKey, (Vec<String>, Arc<HashSet<String>>)>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+    static CACHE: LazyLock<RwLock<HashMap<PartKey, (Vec<String>, Arc<HashSet<String>>)>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     let alternatives = part.alternatives();
     let key = part.key();
     if let Some((alts, got)) = CACHE.read().unwrap().get(&key) {
@@ -711,7 +713,7 @@ pub fn _part_forms(part: Part) -> Arc<HashSet<String>> {
             return got.clone();
         }
     }
-    let mut every = HashSet::new();
+    let mut every = HashSet::default();
     for alternative in &alternatives {
         if text::strip(alternative).is_empty() {
             continue;

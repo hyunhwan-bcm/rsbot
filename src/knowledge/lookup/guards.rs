@@ -435,11 +435,11 @@ fn key_strings_popped(item: &Entry) -> Vec<String> {
 
 /// `_the_age_is_a_childs(item)`: the row is about a child's age in years.
 pub fn _the_age_is_a_childs(item: &Entry) -> bool {
-    static CACHE: LazyLock<RwLock<HashMap<String, bool>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+    static CACHE: LazyLock<RwLock<HashMap<String, bool>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(known) = CACHE.read().unwrap().get(&item.id) {
         return *known;
     }
-    let mut words: HashSet<String> = HashSet::new();
+    let mut words: HashSet<String> = HashSet::default();
     let mut phrases: Vec<String> = Vec::new();
     for part in key_strings_popped(item) {
         let plain = text::lower(&part).replace("'s", "s");

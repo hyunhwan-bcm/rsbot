@@ -15,8 +15,47 @@ use crate::data;
 use crate::py::re::Re;
 use crate::py::text;
 use crate::understood::Understood;
-use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, LazyLock, RwLock};
+
+/// A fast hasher for the matcher's sets of short words (FxHash, as rustc uses): the sets are
+/// Python's sets, and only membership is ever asked of them, so the hasher changes nothing but
+/// speed.
+#[derive(Default, Clone, Copy)]
+pub struct Fx(u64);
+
+impl std::hash::Hasher for Fx {
+    #[inline]
+    fn write(&mut self, bytes: &[u8]) {
+        const K: u64 = 0x51_7c_c1_b7_27_22_0a_95;
+        let mut h = self.0;
+        let mut chunks = bytes.chunks_exact(8);
+        for c in &mut chunks {
+            h = (h.rotate_left(5) ^ u64::from_le_bytes(c.try_into().unwrap())).wrapping_mul(K);
+        }
+        for &b in chunks.remainder() {
+            h = (h.rotate_left(5) ^ b as u64).wrapping_mul(K);
+        }
+        self.0 = h;
+    }
+    #[inline]
+    fn write_u8(&mut self, b: u8) {
+        self.0 = (self.0.rotate_left(5) ^ b as u64).wrapping_mul(0x51_7c_c1_b7_27_22_0a_95);
+    }
+    #[inline]
+    fn write_usize(&mut self, n: usize) {
+        self.0 = (self.0.rotate_left(5) ^ n as u64).wrapping_mul(0x51_7c_c1_b7_27_22_0a_95);
+    }
+    #[inline]
+    fn finish(&self) -> u64 {
+        self.0
+    }
+}
+
+pub type FxBuild = std::hash::BuildHasherDefault<Fx>;
+/// `set` / `frozenset` in the matcher.
+pub type HashSet<T> = std::collections::HashSet<T, FxBuild>;
+/// `dict` in the matcher.
+pub type HashMap<K, V> = std::collections::HashMap<K, V, FxBuild>;
 
 pub use crate::knowledge::entry::{Entry, KeyPart, Reply};
 
@@ -37,7 +76,7 @@ fn v(name: &str) -> &'static data::Value {
 }
 
 macro_rules! sets {
-    ($($n:ident),* $(,)?) => { $(pub(crate) static $n: LazyLock<HashSet<String>> = LazyLock::new(|| v(stringify!($n)).str_set());)* };
+    ($($n:ident),* $(,)?) => { $(pub(crate) static $n: LazyLock<HashSet<String>> = LazyLock::new(|| v(stringify!($n)).str_set().into_iter().collect());)* };
 }
 macro_rules! lists {
     ($($n:ident),* $(,)?) => { $(pub(crate) static $n: LazyLock<Vec<String>> = LazyLock::new(|| v(stringify!($n)).strs());)* };
@@ -110,24 +149,24 @@ pub(crate) static _WRAPPED: LazyLock<Vec<&'static Re>> = LazyLock::new(|| v("_WR
 pub(crate) static THE_FAULT: LazyLock<Vec<(String, String)>> = LazyLock::new(|| pairs("THE_FAULT"));
 /// `SLIPS`: {word: the ids of the entries whose key misspells it on purpose}.
 pub(crate) static SLIPS: LazyLock<HashMap<String, HashSet<String>>> =
-    LazyLock::new(|| v("SLIPS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str_set())).collect());
+    LazyLock::new(|| v("SLIPS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str_set().into_iter().collect())).collect());
 pub(crate) static MODAL_PHRASES: LazyLock<HashMap<String, Vec<String>>> =
     LazyLock::new(|| v("MODAL_PHRASES").pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect());
-pub(crate) static IRREGULAR_PLURALS: LazyLock<HashMap<String, String>> = LazyLock::new(|| v("IRREGULAR_PLURALS").str_map());
+pub(crate) static IRREGULAR_PLURALS: LazyLock<HashMap<String, String>> = LazyLock::new(|| v("IRREGULAR_PLURALS").str_map().into_iter().collect());
 /// `THE_SAME_OCCASION`: {family: the words of it}, in the dict's order.
 pub(crate) static THE_SAME_OCCASION: LazyLock<Vec<(String, HashSet<String>)>> =
-    LazyLock::new(|| v("THE_SAME_OCCASION").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str_set())).collect());
-pub(crate) static HOUSEHOLD_WORDS: LazyLock<HashMap<String, String>> = LazyLock::new(|| v("HOUSEHOLD_WORDS").str_map());
-pub(crate) static PART_INSIDE: LazyLock<HashMap<String, String>> = LazyLock::new(|| v("PART_INSIDE").str_map());
+    LazyLock::new(|| v("THE_SAME_OCCASION").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str_set().into_iter().collect())).collect());
+pub(crate) static HOUSEHOLD_WORDS: LazyLock<HashMap<String, String>> = LazyLock::new(|| v("HOUSEHOLD_WORDS").str_map().into_iter().collect());
+pub(crate) static PART_INSIDE: LazyLock<HashMap<String, String>> = LazyLock::new(|| v("PART_INSIDE").str_map().into_iter().collect());
 /// `_OF_THE_RULE_OUT`: the words a ruled-out phrase is built from (keys only matter).
 pub(crate) static _OF_THE_RULE_OUT: LazyLock<HashSet<String>> =
     LazyLock::new(|| v("_OF_THE_RULE_OUT").pairs().iter().filter(|(_, v)| !v.is_none()).map(|(k, _)| k.str().to_string()).collect());
 
-pub(crate) static US_SPELLINGS: LazyLock<HashMap<String, String>> = LazyLock::new(|| data::str_map("bot.understanding.lexicon.US_SPELLINGS"));
-pub(crate) static LEX_CHAT: LazyLock<HashMap<String, String>> = LazyLock::new(|| data::str_map("bot.understanding.lexicon.CHAT"));
-pub(crate) static LEX_EXPAND: LazyLock<HashMap<String, String>> = LazyLock::new(|| data::str_map("bot.understanding.lexicon.EXPAND"));
+pub(crate) static US_SPELLINGS: LazyLock<HashMap<String, String>> = LazyLock::new(|| data::str_map("bot.understanding.lexicon.US_SPELLINGS").into_iter().collect());
+pub(crate) static LEX_CHAT: LazyLock<HashMap<String, String>> = LazyLock::new(|| data::str_map("bot.understanding.lexicon.CHAT").into_iter().collect());
+pub(crate) static LEX_EXPAND: LazyLock<HashMap<String, String>> = LazyLock::new(|| data::str_map("bot.understanding.lexicon.EXPAND").into_iter().collect());
 pub(crate) static HANDOFF_LEADS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.understanding.lexicon.HANDOFF_LEADS"));
-pub(crate) static BODY_PARTS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.understanding.lexicon.BODY_PARTS"));
+pub(crate) static BODY_PARTS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.understanding.lexicon.BODY_PARTS").into_iter().collect());
 
 fn pairs(name: &str) -> Vec<(String, String)> {
     v(name)

@@ -18,7 +18,7 @@ fn line_words(forms: &[Forms], typed: Option<&[String]>) -> Vec<String> {
 
 /// `_own_words(item)`: the key's words long enough to be misspelt.
 pub fn _own_words(item: &Entry) -> HashSet<String> {
-    let mut words = HashSet::new();
+    let mut words = HashSet::default();
     for part in &item.key {
         for key in alternatives(part) {
             for word in text::split(&text::lower(text::strip(key))) {
@@ -332,7 +332,7 @@ pub fn _frame_starts() -> &'static (Vec<(Forms, Vec<String>)>, HashSet<String>) 
                 (_forms(&words[0]), words)
             })
             .collect();
-        let mut end_forms = HashSet::new();
+        let mut end_forms = HashSet::default();
         for word in FRAME_ENDS.iter() {
             end_forms.extend(_forms(word).iter().cloned());
         }
@@ -345,8 +345,8 @@ pub fn _frame_starts() -> &'static (Vec<(Forms, Vec<String>)>, HashSet<String>) 
 /// first words. None when no frame is said (Python returns the same list).
 pub fn _frame_masked(forms: &[Forms]) -> (Option<Vec<Forms>>, HashSet<String>) {
     let (starts, end_forms) = _frame_starts();
-    let mut found = HashSet::new();
-    let mut dead = HashSet::new();
+    let mut found = HashSet::default();
+    let mut dead = HashSet::default();
     let mut index = 0;
     while index < forms.len() {
         let here = &forms[index];
@@ -529,7 +529,7 @@ pub fn _only_as_a_kind(forms: &[Forms], span: &[usize], covered: &[usize], item:
     if !AS_A_KIND.contains(&words[start - 1]) {
         return false;
     }
-    let mut asked = HashSet::new();
+    let mut asked = HashSet::default();
     for part in &item.ask {
         for alternative in alternatives(part) {
             for word in text::split(&text::lower(alternative)) {
@@ -538,7 +538,7 @@ pub fn _only_as_a_kind(forms: &[Forms], span: &[usize], covered: &[usize], item:
             }
         }
     }
-    let mut said = HashSet::new();
+    let mut said = HashSet::default();
     for &index in covered {
         if span.contains(&index) || index >= words.len() {
             continue;
@@ -569,7 +569,7 @@ pub fn score(item: &Entry, forms: &FormLine, typed: Option<&[String]>, seen: Opt
     if typed_truthy && _under_their_own_hands(item, typed.unwrap()) {
         return 0;
     }
-    let (masked, memo, frame_words) = if frame { _unframed(forms, seen) } else { (None, seen.cloned(), Arc::new(HashSet::new())) };
+    let (masked, memo, frame_words) = if frame { _unframed(forms, seen) } else { (None, seen.cloned(), Arc::new(HashSet::default())) };
     let (forms, seen): (&FormLine, Option<SeenRef>) =
         if !frame_words.is_empty() && !_key_names(&frame_words, item) { (masked.as_deref().unwrap_or(forms), memo) } else { (forms, seen.cloned()) };
     let seen = seen.as_ref();
@@ -682,7 +682,7 @@ pub fn _under_their_own_hands(item: &Entry, typed: &[String]) -> bool {
 
 /// `_keeping_row(item)`: the key says keeping and a life ("how long does it keep").
 pub fn _keeping_row(item: &Entry) -> bool {
-    static CACHE: LazyLock<RwLock<HashMap<String, bool>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+    static CACHE: LazyLock<RwLock<HashMap<String, bool>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(known) = CACHE.read().unwrap().get(&item.id) {
         return *known;
     }
@@ -721,7 +721,7 @@ pub fn _gerund(forms: &[Forms], index: usize) -> String {
 
 /// `_later_words(forms, index, reach=3)`.
 pub fn _later_words(forms: &[Forms], index: usize, reach: usize) -> HashSet<String> {
-    let mut seen = HashSet::new();
+    let mut seen = HashSet::default();
     for step in index..(index + reach).min(forms.len()) {
         seen.extend(forms[step].iter().cloned());
     }
@@ -772,7 +772,7 @@ pub fn _keeps_failing(forms: &[Forms], seen: Option<&SeenRef>) -> bool {
 /// `_the_whole_subject(part, forms, seen=None)`: the part covers every word that is not a
 /// pointer.
 pub fn _the_whole_subject(part: Part, forms: &FormLine, seen: Option<&SeenRef>) -> bool {
-    let mut span = HashSet::new();
+    let mut span = HashSet::default();
     for hit in _part_matches(part, forms, seen).iter() {
         span.extend(hit.span.iter().copied());
     }
@@ -782,7 +782,7 @@ pub fn _the_whole_subject(part: Part, forms: &FormLine, seen: Option<&SeenRef>) 
 
 /// `_rarity(entries)`: how many entries use each key word.
 pub fn _rarity(entries: &[&Entry]) -> HashMap<String, usize> {
-    let mut counts = HashMap::new();
+    let mut counts = HashMap::default();
     for item in entries {
         for word in _key_words(item) {
             *counts.entry(word).or_default() += 1;
@@ -837,7 +837,7 @@ pub fn _rank(item: &Entry, forms: &FormLine, rarity: &HashMap<String, usize>, se
 
 /// `_key_words(item)`: every word of the key.
 pub fn _key_words(item: &Entry) -> HashSet<String> {
-    let mut words = HashSet::new();
+    let mut words = HashSet::default();
     for part in &item.key {
         for alternative in alternatives(part) {
             words.extend(text::split(&text::lower(alternative)));
@@ -848,14 +848,14 @@ pub fn _key_words(item: &Entry) -> HashSet<String> {
 
 /// `_key_forms(item)`: every form of every key word.
 pub fn _key_forms(item: &Entry) -> Arc<HashSet<String>> {
-    static CACHE: LazyLock<RwLock<HashMap<usize, Arc<HashSet<String>>>>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+    static CACHE: LazyLock<RwLock<HashMap<usize, Arc<HashSet<String>>>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     let canonical = item.index != usize::MAX && crate::knowledge::entry::entries().get(item.index).is_some_and(|e| std::ptr::eq(e, item));
     if canonical {
         if let Some(got) = CACHE.read().unwrap().get(&item.index) {
             return got.clone();
         }
     }
-    let mut forms = HashSet::new();
+    let mut forms = HashSet::default();
     for word in _key_words(item) {
         forms.extend(_forms(&word).iter().cloned());
     }
@@ -897,7 +897,7 @@ pub fn _word_index(entries: &[&'static Entry]) -> Arc<HashMap<String, Vec<usize>
 }
 
 fn work_out_word_index(entries: &[&Entry]) -> HashMap<String, Vec<usize>> {
-    let mut index: HashMap<String, Vec<usize>> = HashMap::new();
+    let mut index: HashMap<String, Vec<usize>> = HashMap::default();
     for (position, item) in entries.iter().enumerate() {
         for word in _key_words(item) {
             for form in _forms(&word).iter() {
@@ -915,7 +915,7 @@ fn work_out_word_index(entries: &[&Entry]) -> HashMap<String, Vec<usize>> {
 /// their order.
 pub fn _reaching(entries: &[&'static Entry], forms: &[Forms]) -> Vec<&'static Entry> {
     let index = _word_index(entries);
-    let mut hit: HashSet<usize> = HashSet::new();
+    let mut hit: HashSet<usize> = HashSet::default();
     for word_forms in forms {
         for form in word_forms.iter() {
             if let Some(positions) = index.get(form) {
@@ -933,8 +933,8 @@ pub fn _reaching(entries: &[&'static Entry], forms: &[Forms]) -> Vec<&'static En
 
 /// `_domain_rarity(entries)`: `(by_domain, every)`, how many entries use each key word.
 pub fn _domain_rarity(entries: &[&'static Entry]) -> (HashMap<String, HashMap<String, usize>>, HashMap<String, usize>) {
-    let mut by_domain: HashMap<String, HashMap<String, usize>> = HashMap::new();
-    let mut owners: HashMap<String, HashSet<&str>> = HashMap::new();
+    let mut by_domain: HashMap<String, HashMap<String, usize>> = HashMap::default();
+    let mut owners: HashMap<String, HashSet<&str>> = HashMap::default();
     for item in entries {
         let counts = by_domain.entry(item.domain.clone()).or_default();
         for word in _key_words(item) {
@@ -942,7 +942,7 @@ pub fn _domain_rarity(entries: &[&'static Entry]) -> (HashMap<String, HashMap<St
             owners.entry(word).or_default().insert(item.id.as_str());
         }
     }
-    let mut every = HashMap::new();
+    let mut every = HashMap::default();
     for (word, owned) in owners {
         if let Some(slips) = SLIPS.get(&word) {
             if owned.iter().all(|id| slips.contains(*id)) {
@@ -977,7 +977,7 @@ fn work_out_vocabulary(entries: &[&'static Entry]) -> Vocabulary {
     let (by_domain, every) = _domain_rarity(entries);
     let slips: HashSet<String> = entries.iter().flat_map(|item| item.slips.iter().map(|s| text::lower(s))).collect();
     let every: HashMap<String, usize> = every.into_iter().filter(|(word, _)| !slips.contains(&text::lower(word))).collect();
-    let mut known = HashSet::new();
+    let mut known = HashSet::default();
     for word in every.keys() {
         known.extend(_forms(word).iter().cloned());
     }
@@ -1009,7 +1009,7 @@ pub fn _a_cut_of_meat(words: &[String], index: usize) -> bool {
 
 /// `_body_parts(words)`: the particular body parts the words name.
 pub fn _body_parts(words: &[String]) -> HashSet<String> {
-    let mut parts = HashSet::new();
+    let mut parts = HashSet::default();
     for (index, word) in words.iter().enumerate() {
         let word = text::lower(word);
         if !BODY_WORDS.contains(&word) {
@@ -1031,7 +1031,7 @@ pub fn _body_parts(words: &[String]) -> HashSet<String> {
 
 /// `_key_body_parts(item)`.
 pub fn _key_body_parts(item: &Entry) -> HashSet<String> {
-    let mut parts = HashSet::new();
+    let mut parts = HashSet::default();
     for part in &item.key {
         for alternative in alternatives(part) {
             parts.extend(_body_parts(&text::split(&text::lower(alternative))));
