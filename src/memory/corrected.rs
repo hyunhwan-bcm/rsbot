@@ -2159,7 +2159,7 @@ pub fn _correct_fact(memory: &mut Memory, target: &Value, wrong: &Value, text: &
             if wrong.truthy() && lower(&sv(vget(pet, "name"))) != lower(&sv(wrong)) {
                 continue;
             }
-            let name = crate::memory::relations::_tidy_name(target);
+            let name = Value::from(crate::memory::relations::_tidy_name(target));
             set_pet(memory, index, "name", name.clone());
             let animal = if vget(pet, "animal").truthy() { vget(pet, "animal").clone() } else { Value::from("pet") };
             return dict(vec![("key", "pet".into()), ("value", name), ("animal", animal)]);

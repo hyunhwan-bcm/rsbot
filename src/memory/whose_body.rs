@@ -1,29 +1,42 @@
-//! Port of `bot/memory/whose_body.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/memory/whose_body.py`: "he cant breathe", "her leg is swollen" after the chat
+//! named somebody the person looks after - a body that is somebody else's.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
-use std::sync::LazyLock;
+use super::mem8_py::rx;
+use crate::state::Memory;
 
-/// Python: bot/memory/whose_body.py:47 `somebody_was_named(memory)` (never called on the trace corpus)
+const M: &str = "bot.memory.whose_body.";
+
+rx!(NAMED_SOMEBODY, PRONOUN_BODY, OWN_BODY, PET);
+
+/// Python: bot/memory/whose_body.py:47 `somebody_was_named(memory)`
+///
+/// True when the chat has named somebody the person looks after, in the last few turns.
 pub fn somebody_was_named(memory: &Memory) -> bool {
-    crate::unported!("bot.memory.whose_body:somebody_was_named")
+    let turns = &memory.turns;
+    for turn in turns[turns.len().saturating_sub(4)..].iter().rev() {
+        if PET.is_match(&turn.user) {
+            return false;
+        }
+        if NAMED_SOMEBODY.is_match(&turn.user) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Python: bot/memory/whose_body.py:66 `a_body_of_a_pronoun(clean)`
+///
+/// True when the line hangs a body or a hurt on he/she/they rather than on "my".
 pub fn a_body_of_a_pronoun(clean: &str) -> bool {
-    crate::unported!("bot.memory.whose_body:a_body_of_a_pronoun")
+    if OWN_BODY.is_match(clean) {
+        return false;
+    }
+    PRONOUN_BODY.is_match(clean)
 }
 
 /// Python: bot/memory/whose_body.py:74 `somebody_elses_body(clean, memory)`
+///
+/// True when this line is somebody else's body, named earlier in the chat.
 pub fn somebody_elses_body(clean: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.memory.whose_body:somebody_elses_body")
+    a_body_of_a_pronoun(clean) && somebody_was_named(memory)
 }
-

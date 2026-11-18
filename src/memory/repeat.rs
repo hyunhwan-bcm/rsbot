@@ -274,24 +274,8 @@ fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
 }
 
 /// `limits.names_a_limit(clean)`: whether the line names something a person cannot do.
-///
-/// CONTRACT: `limits::names_a_limit` (and `limits::_kind` under it) is typed `()` in the
-/// generated contract, while Python returns the kind of limit or None. The reading is small, so
-/// it is made here with `limits`' own patterns (Python: bot/memory/limits.py:218 `_kind`).
 fn names_a_limit(text_: &str) -> bool {
-    let clean = text::squash(&text_.replace('\u{2019}', "'"));
-    let re = |name: &str| data::re(&format!("bot.memory.limits.{name}"));
-    if re("_IN_A_CHAIR").is_match(&clean) || re("_AID").is_match(&clean) || re("_LIMIT_VERB").is_match(&clean) {
-        return true;
-    }
-    if re("_DISLIKES_THE_WALK").is_match(&clean) || re("_FLAT").is_match(&clean) {
-        return true;
-    }
-    let lead = re("_RULE_LEAD").match_(&clean).map(|m| m.end()).unwrap_or(0);
-    match re("_NO_WALKS").search_at(&clean, lead).filter(|m| m.start() == lead) {
-        Some(rule) => re("_RULE_TAIL").match_(&clean[rule.end()..]).is_some(),
-        None => false,
-    }
+    crate::memory::limits::names_a_limit(text_).is_some()
 }
 
 /// CONTRACT: `topics::said_again` is typed `()`; Python returns the framed repeat or None. Read
