@@ -1623,7 +1623,7 @@ pub fn _the_words_without_a_colour(clean: &str, words: &[String]) -> Option<Vec<
 }
 
 /// `_the_key_words(entry)`.
-pub fn _the_key_words(entry: &Entry) -> HashSet<String> {
+pub fn _the_key_words(entry: &Entry) -> Arc<HashSet<String>> {
     _key_words(entry)
 }
 

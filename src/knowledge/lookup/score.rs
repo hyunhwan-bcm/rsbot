@@ -784,8 +784,8 @@ pub fn _the_whole_subject(part: Part, forms: &FormLine, seen: Option<&SeenRef>) 
 pub fn _rarity(entries: &[&Entry]) -> HashMap<String, usize> {
     let mut counts = HashMap::default();
     for item in entries {
-        for word in _key_words(item) {
-            *counts.entry(word).or_default() += 1;
+        for word in _key_words(item).iter() {
+            *counts.entry(word.clone()).or_default() += 1;
         }
     }
     counts
@@ -836,14 +836,22 @@ pub fn _rank(item: &Entry, forms: &FormLine, rarity: &HashMap<String, usize>, se
 }
 
 /// `_key_words(item)`: every word of the key.
-pub fn _key_words(item: &Entry) -> HashSet<String> {
+pub fn _key_words(item: &Entry) -> Arc<HashSet<String>> {
+    static EVERY: LazyLock<Vec<Arc<HashSet<String>>>> = LazyLock::new(|| all_entries().iter().map(work_out_key_words).collect());
+    if item.index != usize::MAX && all_entries().get(item.index).is_some_and(|e| std::ptr::eq(e, item)) {
+        return EVERY[item.index].clone();
+    }
+    work_out_key_words(item)
+}
+
+fn work_out_key_words(item: &Entry) -> Arc<HashSet<String>> {
     let mut words = HashSet::default();
     for part in &item.key {
         for alternative in alternatives(part) {
             words.extend(text::split(&text::lower(alternative)));
         }
     }
-    words
+    Arc::new(words)
 }
 
 /// `_key_forms(item)`: every form of every key word.
@@ -858,7 +866,7 @@ pub fn _key_forms(item: &Entry) -> Arc<HashSet<String>> {
 
 fn work_out_key_forms(item: &Entry) -> Arc<HashSet<String>> {
     let mut forms = HashSet::default();
-    for word in _key_words(item) {
+    for word in _key_words(item).iter() {
         forms.extend(_forms(&word).iter().cloned());
     }
     Arc::new(forms)
@@ -897,7 +905,7 @@ pub fn _word_index(entries: &[&'static Entry]) -> Arc<HashMap<String, Vec<usize>
 fn work_out_word_index(entries: &[&Entry]) -> HashMap<String, Vec<usize>> {
     let mut index: HashMap<String, Vec<usize>> = HashMap::default();
     for (position, item) in entries.iter().enumerate() {
-        for word in _key_words(item) {
+        for word in _key_words(item).iter() {
             for form in _forms(&word).iter() {
                 let at = index.entry(form.clone()).or_default();
                 if at.last() != Some(&position) {
@@ -935,9 +943,9 @@ pub fn _domain_rarity(entries: &[&'static Entry]) -> (HashMap<String, HashMap<St
     let mut owners: HashMap<String, HashSet<&str>> = HashMap::default();
     for item in entries {
         let counts = by_domain.entry(item.domain.clone()).or_default();
-        for word in _key_words(item) {
+        for word in _key_words(item).iter() {
             *counts.entry(word.clone()).or_default() += 1;
-            owners.entry(word).or_default().insert(item.id.as_str());
+            owners.entry(word.clone()).or_default().insert(item.id.as_str());
         }
     }
     let mut every = HashMap::default();
