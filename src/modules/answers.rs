@@ -1624,7 +1624,7 @@ pub fn _about_subject(text_: &str, memory: &Memory, about: Option<&str>) -> Stri
 
 /// Python: bot/modules/answers.py:1917 `_keyed_on_the_person(item, who)`
 /// Whether the entry answers for this kind of person, not just for the word in the line.
-pub fn _keyed_on_the_person(item: &'static Entry, who: &str) -> bool {
+pub fn _keyed_on_the_person(item: &Entry, who: &str) -> bool {
     if who.is_empty() {
         return false;
     }
@@ -1777,7 +1777,7 @@ pub fn _offer_with(reader: &mut Reader, memory: &mut Memory, reading: &Understoo
 
 /// Python: bot/modules/answers.py:6178 `_reply_of(item, reading, memory)`
 /// What this entry would say, without keeping it, so a reply can be read before it is given.
-pub fn _reply_of(item: &'static Entry, reading: &Understood, memory: &Memory) -> String {
+pub fn _reply_of(item: &Entry, reading: &Understood, memory: &Memory) -> String {
     use crate::knowledge::entry::Reply;
     match &item.reply {
         Reply::Text(s) => s.clone(),
@@ -1811,13 +1811,13 @@ fn reraise_unported() {
 /// Python: bot/modules/answers.py:6319 `_payload(item, memory, reading)` - the contract form. The
 /// entry's reply may write to memory; through `&Memory` that write is not kept (callers that hold
 /// the memory mutably use [`_payload_mut`]).
-pub fn _payload(item: &'static Entry, memory: &Memory, reading: &Understood) -> String {
+pub fn _payload(item: &Entry, memory: &Memory, reading: &Understood) -> String {
     _payload_mut(item, &mut memory.clone(), reading)
 }
 
 /// Python: bot/modules/answers.py:6319 `_payload(item, memory, reading)`
 /// The entry's reply, chosen the way the composer will choose it, or "" if it declines.
-pub fn _payload_mut(item: &'static Entry, memory: &mut Memory, reading: &Understood) -> String {
+pub fn _payload_mut(item: &Entry, memory: &mut Memory, reading: &Understood) -> String {
     use crate::knowledge::entry::Reply;
     match &item.reply {
         Reply::Text(s) => s.clone(),
@@ -2046,7 +2046,7 @@ pub fn _choosing(text_: &str, memory: &mut Memory) -> Option<(Understood, &'stat
 
 /// Python: bot/modules/answers.py:2285 `_only_a_size_of(item, text)`
 /// True when every word of the line is this entry's own, a size, or the ask itself.
-pub fn _only_a_size_of(item: &'static Entry, text_: &str) -> bool {
+pub fn _only_a_size_of(item: &Entry, text_: &str) -> bool {
     let words = _key_words(item);
     for word in memory::topics::keywords(text_) {
         if AMOUNT.is_match(&word) || words.contains(&word) {
@@ -2162,7 +2162,7 @@ pub fn _says_it_leaves_it_out(reply: &str, refused: &str) -> bool {
 
 /// Python: bot/modules/answers.py:2504 `_hands_back_the_refusal(item, refused)`
 /// True when the entry is the thing the line ruled out and its answer does not skip it.
-pub fn _hands_back_the_refusal(item: &'static Entry, refused: &str) -> bool {
+pub fn _hands_back_the_refusal(item: &Entry, refused: &str) -> bool {
     if refused.is_empty() || !_is_about(item, refused) {
         return false;
     }
@@ -2184,13 +2184,13 @@ pub fn _hands_back_the_refusal(item: &'static Entry, refused: &str) -> bool {
 
 /// Python: bot/modules/answers.py:2528 `_about_a_lack(item)`
 /// True when the entry is keyed on a thing being missing, not on choosing one.
-pub fn _about_a_lack(item: &'static Entry) -> bool {
+pub fn _about_a_lack(item: &Entry) -> bool {
     item.key.iter().any(|part| part.words().iter().any(|option| LACK_OPEN.match_(text::strip(option)).is_some()))
 }
 
 /// Python: bot/modules/answers.py:2538 `_key_words(item)`
 /// Every word an entry says it is about.
-pub fn _key_words(item: &'static Entry) -> HashSet<String> {
+pub fn _key_words(item: &Entry) -> HashSet<String> {
     let mut found = HashSet::new();
     for part in &item.key {
         for option in part.words() {
@@ -2359,7 +2359,7 @@ pub fn _head_thing(subject: &str) -> String {
 
 /// Python: bot/modules/answers.py:2708 `_the_same_kind_of_thing(item, memory, text='')`
 /// True when the entry's domain answers the topic the chat is on.
-pub fn _the_same_kind_of_thing(item: &'static Entry, memory: &Memory, text_: &str) -> bool {
+pub fn _the_same_kind_of_thing(item: &Entry, memory: &Memory, text_: &str) -> bool {
     py_try(|| {
         let domain = &item.domain;
         if domain.is_empty() {
@@ -2379,7 +2379,7 @@ pub fn _the_same_kind_of_thing(item: &'static Entry, memory: &Memory, text_: &st
 
 /// Python: bot/modules/answers.py:2737 `_reaches_another_subject(text, item, memory)`
 /// True when the entry the line reaches is about something the conversation is not.
-pub fn _reaches_another_subject(text_: &str, item: &'static Entry, memory: &Memory) -> bool {
+pub fn _reaches_another_subject(text_: &str, item: &Entry, memory: &Memory) -> bool {
     py_try(|| {
         if !memory::topics::is_follow_up(text_, memory) {
             return false;
@@ -2466,7 +2466,7 @@ pub fn py_str_or_empty(v: &Value) -> String {
 
 /// Python: bot/modules/answers.py:2903 `_from_another_domain(item, off_topic)`
 /// True when the entry is about neither the topic's words nor the topic's own kind of thing.
-pub fn _from_another_domain(item: &'static Entry, off_topic: &OffTopic) -> bool {
+pub fn _from_another_domain(item: &Entry, off_topic: &OffTopic) -> bool {
     let (words, domain) = (&off_topic.0, &off_topic.1);
     if !domain.is_empty() && item.domain == *domain {
         return false;
@@ -2476,7 +2476,7 @@ pub fn _from_another_domain(item: &'static Entry, off_topic: &OffTopic) -> bool 
 
 /// Python: bot/modules/answers.py:2911 `_names_a_topic_word(item, wanted)`
 /// True when the entry is keyed on one of the words, in any of their forms.
-pub fn _names_a_topic_word(item: &'static Entry, wanted: &HashSet<String>) -> bool {
+pub fn _names_a_topic_word(item: &Entry, wanted: &HashSet<String>) -> bool {
     let keys: HashSet<String> = _key_words(item).into_iter().map(|k| k.to_lowercase()).collect();
     wanted.iter().any(|w| keys.contains(w) || keys.contains(&memory::topics::stem(w)))
 }
@@ -2520,13 +2520,13 @@ pub fn _same_word(word: &str, said: &str) -> bool {
 
 /// Python: bot/modules/answers.py:2988 `_writes_its_own_reply(item)`
 /// True when the entry writes its answer from the reading instead of storing one.
-pub fn _writes_its_own_reply(item: &'static Entry) -> bool {
+pub fn _writes_its_own_reply(item: &Entry) -> bool {
     matches!(item.reply, crate::knowledge::entry::Reply::Fn(_))
 }
 
 /// Python: bot/modules/answers.py:3009 `_leans_on(reading, item, memory=None)`
 /// True when an entry reached only with the last topic belongs to the line's own words too.
-pub fn _leans_on(reading: &Understood, item: &'static Entry, memory: &Memory) -> bool {
+pub fn _leans_on(reading: &Understood, item: &Entry, memory: &Memory) -> bool {
     let line = if !reading.clean.is_empty() { reading.clean.clone() } else { reading.text.clone() };
     let line_words = memory::topics::content(&line);
     let own: Vec<String> = line_words
@@ -2594,7 +2594,7 @@ pub fn _leans_on(reading: &Understood, item: &'static Entry, memory: &Memory) ->
 
 /// Python: bot/modules/answers.py:3118 `_is_about(item, subject)`
 /// True when the entry is about the thing, not about a neighbour: a stew is not a steak.
-pub fn _is_about(item: &'static Entry, subject: &str) -> bool {
+pub fn _is_about(item: &Entry, subject: &str) -> bool {
     let all = text::split_ref(subject);
     let words: Vec<&str> = {
         let w: Vec<&str> = all.iter().copied().filter(|w| !DESCRIBING.contains(*w)).collect();
@@ -3831,7 +3831,7 @@ pub fn _figures(text_: &str) -> HashSet<String> {
 
 /// Python: bot/modules/answers.py:5193 `_keyed_on_the_line(item, text)`
 /// True when the entry is keyed on a word the line itself says: "wear" in "what do i wear".
-pub fn _keyed_on_the_line(item: &'static Entry, text_: &str) -> bool {
+pub fn _keyed_on_the_line(item: &Entry, text_: &str) -> bool {
     let keys = _key_words(item);
     for word in az_words(&text_.to_lowercase()) {
         if text::len(&word) < 3 || GENERIC.contains(&word) || NOT_NEW.contains(&word) || PROPERTY_WORDS.contains(&word) {
@@ -3998,7 +3998,7 @@ pub fn _care_holds(text_: &str, memory: &Memory) -> bool {
 
 /// Python: bot/modules/answers.py:4962 `_named_by(item, subject)`
 /// True when the subject names the entry, not just brushes one of its words.
-pub fn _named_by(item: &'static Entry, subject: &str) -> bool {
+pub fn _named_by(item: &Entry, subject: &str) -> bool {
     let low = format!(" {} ", subject.to_lowercase());
     for part in &item.key {
         for option in part.words() {
@@ -4087,7 +4087,7 @@ pub fn _filler(word: &str) -> bool {
 
 /// Python: bot/modules/answers.py:5161 `_left_out(item, text)`
 /// True when the line names a thing this entry never mentions.
-pub fn _left_out(item: &'static Entry, text_: &str) -> bool {
+pub fn _left_out(item: &Entry, text_: &str) -> bool {
     let keys = _key_words(item);
     let names = _name_words();
     for word in az_words(&text_.to_lowercase()) {
@@ -4112,7 +4112,7 @@ pub fn _left_out(item: &'static Entry, text_: &str) -> bool {
 
 /// Python: bot/modules/answers.py:5209 `_shares_a_word(item, subject)`
 /// True when the entry is keyed on a word of the subject: "save money" is about saving.
-pub fn _shares_a_word(item: &'static Entry, subject: &str) -> bool {
+pub fn _shares_a_word(item: &Entry, subject: &str) -> bool {
     let keys = _key_words(item);
     let low = subject.to_lowercase();
     text::split_ref(&low).iter().any(|w| {
@@ -4146,7 +4146,7 @@ pub fn _asks_how_to_say_it(text_: &str) -> bool {
 
 /// Python: bot/modules/answers.py:5286 `_in_the_subjects_field(item, subject)`
 /// Whether the entry is in the same field as the thing the subject names, or has no field.
-pub fn _in_the_subjects_field(item: &'static Entry, subject: &str) -> bool {
+pub fn _in_the_subjects_field(item: &Entry, subject: &str) -> bool {
     let field = if subject.is_empty() { None } else { understanding::understand(subject, None).topic };
     match field.filter(|f| !f.is_empty()) {
         None => true,
@@ -4172,7 +4172,7 @@ pub fn _own_thing_words(text_: &str, memory: &Memory) -> Vec<String> {
 
 /// Python: bot/modules/answers.py:5332 `_about_the_talk(item, text, memory, reading)`
 /// False when the entry is from a part of the knowledge base this talk never touched.
-pub fn _about_the_talk(item: &'static Entry, text_: &str, memory: &Memory, reading: &Understood) -> bool {
+pub fn _about_the_talk(item: &Entry, text_: &str, memory: &Memory, reading: &Understood) -> bool {
     if memory.understood.as_ref().is_some_and(|u| u.change_of_subject) {
         return true;
     }
@@ -4222,7 +4222,7 @@ pub fn _about_the_talk(item: &'static Entry, text_: &str, memory: &Memory, readi
 
 /// Python: bot/modules/answers.py:5412 `_agrees_with_its_own_field(item, reading)`
 /// True when the entry is in the field the line itself is read as, or in no field at all.
-pub fn _agrees_with_its_own_field(item: &'static Entry, reading: &Understood) -> bool {
+pub fn _agrees_with_its_own_field(item: &Entry, reading: &Understood) -> bool {
     if item.raw.attr("topic").map_or(true, Value::is_none) {
         return true;
     }
@@ -4231,7 +4231,7 @@ pub fn _agrees_with_its_own_field(item: &'static Entry, reading: &Understood) ->
 
 /// Python: bot/modules/answers.py:5423 `_the_field_on_the_screen(item, text, reading, memory)`
 /// True when the line says the entry's own subject and the entry is from the field on screen.
-pub fn _the_field_on_the_screen(item: &'static Entry, text_: &str, reading: Option<&Understood>, memory: &Memory) -> bool {
+pub fn _the_field_on_the_screen(item: &Entry, text_: &str, reading: Option<&Understood>, memory: &Memory) -> bool {
     if !reading.is_some_and(|r| r.kind == "question") {
         return false;
     }
@@ -4260,7 +4260,7 @@ pub fn _last_turn_answered_from_the_field(memory: &Memory) -> bool {
 
 /// Python: bot/modules/answers.py:5476 `_says_a_subject_phrase(item, text)`
 /// True when the line says a subject of the entry in so many words, two words or more.
-pub fn _says_a_subject_phrase(item: &'static Entry, text_: &str) -> bool {
+pub fn _says_a_subject_phrase(item: &Entry, text_: &str) -> bool {
     let Some(first) = item.key.first() else { return false };
     let said = format!(" {} ", inline_re!(r"[a-z0-9']+").findall_str(&text_.to_lowercase()).join(" "));
     for option in first.words() {
@@ -4274,7 +4274,7 @@ pub fn _says_a_subject_phrase(item: &'static Entry, text_: &str) -> bool {
 
 /// Python: bot/modules/answers.py:5524 `_names_the_entry(text, item)`
 /// True when the line names the thing this entry is about, with a determiner in front of it.
-pub fn _names_the_entry(text_: &str, item: &'static Entry) -> bool {
+pub fn _names_the_entry(text_: &str, item: &Entry) -> bool {
     let mut heads: HashSet<String> = HashSet::new();
     for option in first_key_things(item) {
         let low = option.to_lowercase();
@@ -4305,7 +4305,7 @@ pub fn _names_the_entry(text_: &str, item: &'static Entry) -> bool {
 
 /// Python: bot/modules/answers.py:5564 `_a_definition_of_the_entry(text, item)`
 /// True when the line asks what one of the entry's own words means ("what is inflation").
-pub fn _a_definition_of_the_entry(text_: &str, item: &'static Entry) -> bool {
+pub fn _a_definition_of_the_entry(text_: &str, item: &Entry) -> bool {
     let said = text::squash(&text_.to_lowercase());
     let words: Vec<String> = text::split_ref(&said).iter().map(|w| text::strip_chars(w, ".,!?;:").to_string()).collect();
     if words.is_empty() || words.len() > *DEFINITION_WORD_AT + 1 {
@@ -4337,7 +4337,7 @@ pub fn _a_definition_of_the_entry(text_: &str, item: &'static Entry) -> bool {
 
 /// Python: bot/modules/answers.py:5611 `_says_the_ask_whole(text, item)`
 /// True when the line is nothing but one of the entry's own key phrases.
-pub fn _says_the_ask_whole(text_: &str, item: &'static Entry) -> bool {
+pub fn _says_the_ask_whole(text_: &str, item: &Entry) -> bool {
     let said: Vec<String> = words_in(&text_.to_lowercase()).into_iter().filter(|w| !HANDOVER_FILLER.contains(w)).collect();
     if said.len() < 2 {
         return false;
@@ -4355,14 +4355,14 @@ pub fn _says_the_ask_whole(text_: &str, item: &'static Entry) -> bool {
 
 /// Python: bot/modules/answers.py:5633 `_a_why_line_that_names(item, reading)`
 /// True when a why-line names the subject of the entry it reached.
-pub fn _a_why_line_that_names(item: &'static Entry, reading: Option<&Understood>) -> bool {
+pub fn _a_why_line_that_names(item: &Entry, reading: Option<&Understood>) -> bool {
     let Some(reading) = reading.filter(|r| r.asks.iter().any(|a| a == "why")) else { return false };
     knowledge::lookup::names_its_own_subject(item, reading)
 }
 
 /// Python: bot/modules/answers.py:5640 `_names_the_thing_apart_from_the_talk(item, text, subject, reading)`
 /// True when the line ends on this entry's own subject and says nothing of the talk's.
-pub fn _names_the_thing_apart_from_the_talk(item: &'static Entry, text_: &str, subject: &str, reading: Option<&Understood>) -> bool {
+pub fn _names_the_thing_apart_from_the_talk(item: &Entry, text_: &str, subject: &str, reading: Option<&Understood>) -> bool {
     let Some(reading) = reading.filter(|r| r.kind == "question") else { return false };
     if !knowledge::lookup::names_its_own_subject(item, reading) {
         return false;
@@ -4490,82 +4490,377 @@ pub fn _the_topic_rules_it_out(item: &'static Entry, memory: &Memory) -> bool {
     memory::topics::keeps_away(&topic, &topic, item)
 }
 
-// ==== ported code ends; the stubs below are the functions not yet ported ====
+re_static!(KEEPS, _NOT_THE_FRIDGE, A_FIGURE, A_PUT_RIGHT);
+set_static!(STORING);
 
-/// Python: bot/modules/answers.py:5829 `_in_context(text, memory, reject=None)`
-pub fn _in_context(text: &str, memory: &Value, reject: &Value) {
-    crate::unported!("bot.modules.answers:_in_context")
+/// Python: bot/modules/answers.py:5829 `_in_context(text, memory, reject=None)` - the contract
+/// form. Its memory is the plain dict and its reject a Python callable a `Value` cannot hold;
+/// callers use [`_in_context_with`].
+pub fn _in_context(text_: &str, memory: &Value, reject: &Value) {
+    let _ = reject;
+    let mut memory = memory_from_value(memory);
+    let _ = _in_context_with(text_, &mut memory, None);
 }
 
-/// Python: bot/modules/answers.py:6005 `_from_rewrite(fuller, text, memory, reject, added='', domain=None)` (never called on the trace corpus)
-pub fn _from_rewrite(fuller: &Value, text: &str, memory: &Memory, reject: &Value, added: &Value, domain: &Value) -> Value {
-    crate::unported!("bot.modules.answers:_from_rewrite")
+/// Python: bot/modules/answers.py:5829 `_in_context(text, memory, reject=None)`
+/// The knowledge entry a follow-up is about, by naming the thing it refers to (the entry, and
+/// the reading it phrases itself from when that is the written-out line's).
+pub fn _in_context_with(text_: &str, memory: &mut Memory, reject: Reject) -> Offered {
+    let subject = memory::topics::subject(memory);
+    let thing = _head_thing(&subject);
+    let refused = _refused(text_);
+    let refusing = |one: &Entry| _hands_back_the_refusal(one, &refused) || reject.is_some_and(|r| r(one));
+    let reject: Reject = if !refused.is_empty() { Some(&refusing) } else { reject };
+    let understood = match memory.understood.clone() {
+        Some(u) => u,
+        None => understanding::understand(text_, Some(&*memory)),
+    };
+    if understood.intent == "ack" {
+        return None;
+    }
+    if _asks_how_to_say_it(text_) {
+        return None;
+    }
+    if !knowledge::lookup::leans_on_a_subject(&understood) {
+        return None;
+    }
+    if _names_its_own_thing(text_, Some(memory)) {
+        return None;
+    }
+    let mut fuller = _with_subject(text_, memory, None);
+    if text::strip(&fuller) == text::strip(text_) && _own_thing_words(text_, memory).is_empty() {
+        fuller = _about_subject(text_, memory, None);
+    }
+    if text::strip(&fuller) == text::strip(text_) {
+        fuller = _with_bare_subject(text_, memory);
+        for (rewrite, added, domain) in _qualifier_rewrites(text_, memory) {
+            if let Some(item) = _from_rewrite(&rewrite, text_, memory, reject, &added, domain.as_deref()) {
+                if _hands_back_the_refusal(item, &_refused(text_)) {
+                    continue;
+                }
+                return Some((item, None));
+            }
+        }
+    }
+    if text::strip(&fuller) == text::strip(text_)
+        && _the_answer_was_about_the_subject(memory)
+        && (_own_thing_words(text_, memory).is_empty() || ADDING_TO_THE_SUBJECT.match_(text_).is_some())
+    {
+        let mut skip: HashSet<String> = HashSet::new();
+        let own_reading = understanding::understand(text_, Some(&*memory));
+        for fuller in _subject_tails(text_, memory, Some(&own_reading)) {
+            let reading = understanding::understand(&fuller, Some(&*memory));
+            let mut after_used = false;
+            loop {
+                let item = {
+                    let skip_now = skip.clone();
+                    let rej = move |one: &Entry| skip_now.contains(&one.id) || reject.is_some_and(|r| r(one));
+                    knowledge::lookup::find(&reading, None, Some(&rej), false)
+                };
+                let Some(item) = item else { break };
+                skip.insert(item.id.clone());
+                if !_named_by(item, &subject) {
+                    continue;
+                }
+                if !thing.is_empty() && !_is_about(item, &thing) {
+                    continue;
+                }
+                let reply = _payload_mut(item, memory, &reading);
+                if text::strip(&reply).is_empty() {
+                    continue;
+                }
+                if _said_before(&reply, memory, 3) {
+                    after_used = true;
+                    continue;
+                }
+                if !_answers_the_figure(text_, &reply) {
+                    return None;
+                }
+                if after_used && !_keyed_on_the_line(item, text_) {
+                    return None;
+                }
+                if _left_out(item, text_) {
+                    return None;
+                }
+                if _the_topic_rules_it_out(item, memory) {
+                    return None;
+                }
+                return Some((item, None));
+            }
+        }
+        return None;
+    }
+    if fuller.is_empty() || text::strip(&fuller) == text::strip(text_) {
+        return None;
+    }
+    let reading_here = understanding::understand(&fuller, Some(&*memory));
+    let want = if !thing.is_empty() { thing.clone() } else { subject.clone() };
+    let fits = |one: &Entry| _is_about(one, &want) && knowledge::lookup::about_the_topic(one, &reading_here);
+    let about = |one: &Entry| _is_about(one, &subject) && knowledge::lookup::about_the_topic(one, &reading_here);
+    let strict = |one: &Entry| !fits(one) || reject.is_some_and(|r| r(one));
+    let loose = |one: &Entry| !about(one) || reject.is_some_and(|r| r(one));
+    let mut item = knowledge::lookup::find(&reading_here, None, Some(&loose), false);
+    if item.is_none_or(|i| !_in_the_subjects_field(i, &subject)) {
+        let better = knowledge::lookup::find(&reading_here, None, Some(&strict), false);
+        if let Some(b) = better {
+            if item.is_none_or(|_| _in_the_subjects_field(b, &subject)) {
+                item = Some(b);
+            }
+        }
+    }
+    let item = item?;
+    let own = if MEM_KIND_ASK.is_match(text_) { String::new() } else { _own_thing(&understanding::understand(text_, Some(&*memory))) };
+    if !own.is_empty() && !_is_about(item, &own) {
+        return None;
+    }
+    if _left_out(item, text_) {
+        return None;
+    }
+    match &item.reply {
+        crate::knowledge::entry::Reply::Choices(_) | crate::knowledge::entry::Reply::Fn(_) => {
+            let mut held = reading_here.clone();
+            let first = _payload_mut(item, memory, &reading_here);
+            if _said_before(&first, memory, 3) {
+                let here = understanding::understand(text_, Some(&*memory));
+                let own_words = _payload_mut(item, memory, &here);
+                if !text::strip(&own_words).is_empty() && !_said_before(&own_words, memory, 3) {
+                    held = here;
+                }
+            }
+            Some((item, Some(held)))
+        }
+        crate::knowledge::entry::Reply::Text(reply) => {
+            if _said_before(reply, memory, 3) {
+                return None;
+            }
+            if !_answers_the_figure(text_, reply) {
+                return None;
+            }
+            Some((item, Some(reading_here)))
+        }
+    }
+}
+
+/// Python: bot/modules/answers.py:6005 `_from_rewrite(fuller, text, memory, reject, added='', domain=None)`
+/// The entry a rewritten line reaches, when it is about the last subject and is not a repeat.
+pub fn _from_rewrite(fuller: &str, text_: &str, memory: &Memory, reject: Reject, added: &str, domain: Option<&str>) -> Option<&'static Entry> {
+    let item = knowledge::lookup::find(&understanding::understand(fuller, Some(memory)), None, reject, false)?;
+    if let Some(domain) = domain {
+        if item.domain != domain {
+            return None;
+        }
+    }
+    if !(_is_about(item, &memory::topics::subject(memory)) || (!added.is_empty() && _is_about(item, added))) {
+        return None;
+    }
+    let own = _own_thing(&understanding::understand(text_, Some(memory)));
+    if !own.is_empty() && !_is_about(item, &own) {
+        return None;
+    }
+    match &item.reply {
+        crate::knowledge::entry::Reply::Text(reply) => {
+            if _said_before(reply, memory, 3) {
+                return None;
+            }
+            Some(item)
+        }
+        _ => Some(item),
+    }
 }
 
 /// Python: bot/modules/answers.py:6049 `_asks_storing(memory)`
+/// True when the line before was a how-to-store (or how-to-keep-fresh) question.
 pub fn _asks_storing(memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_asks_storing")
+    let subject = memory::topics::subject(memory);
+    text::split_ref(&subject).first().is_some_and(|w| STORING.contains(*w))
 }
 
-/// Python: bot/modules/answers.py:6060 `_keeping_thing(memory)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:6060 `_keeping_thing(memory)`
+/// The thing a keeping follow-up is about, without the storing word the how-to line asked with.
 pub fn _keeping_thing(memory: &Memory) -> String {
-    crate::unported!("bot.modules.answers:_keeping_thing")
+    let subject = memory::topics::subject(memory);
+    let mut words: Vec<&str> = text::split_ref(&subject);
+    while words.first().is_some_and(|w| STORING.contains(*w) || STORING.contains(text::rstrip_chars(w, "s"))) {
+        words.remove(0);
+    }
+    words.join(" ")
 }
 
-/// Python: bot/modules/answers.py:6068 `_the_plan_keeps(understood, memory)` (never called on the trace corpus)
-pub fn _the_plan_keeps(understood: &Understood, memory: &Memory) -> Value {
-    crate::unported!("bot.modules.answers:_the_plan_keeps")
+/// Python: bot/modules/answers.py:6068 `_the_plan_keeps(understood, memory)`
+/// The keeping fact a dish the conversation planned says for itself: "it keeps 3 days".
+pub fn _the_plan_keeps(understood: Option<&Understood>, memory: &Memory) -> Option<String> {
+    let understood = understood?;
+    let words: HashSet<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
+    if knowledge::dishes::ask_kind(understood) != Some("keep") || !["it", "that", "this", "them", "they"].iter().any(|w| words.contains(*w)) {
+        return None;
+    }
+    if !_own_thing(understood).is_empty() {
+        return None;
+    }
+    knowledge::dishes::follow_up(memory, understood)
 }
 
-/// Python: bot/modules/answers.py:6085 `_keeping_entry(text, memory, thing=None, storing=False)` (never called on the trace corpus)
-pub fn _keeping_entry(text: &str, memory: &Memory, thing: &str, storing: &Value) -> Value {
-    crate::unported!("bot.modules.answers:_keeping_entry")
+/// Python: bot/modules/answers.py:6085 `_keeping_entry(text, memory, thing=None, storing=False)`
+/// The entry that says how long the topic keeps, when the knowledge base has one.
+pub fn _keeping_entry(text_: &str, memory: &mut Memory, thing: Option<&str>, storing: bool) -> Option<String> {
+    let mut fuller = _with_subject(text_, memory, thing);
+    if text::strip(&fuller) == text::strip(text_) {
+        fuller = _about_subject(text_, memory, None);
+    }
+    if text::strip(&fuller) == text::strip(text_) {
+        return None;
+    }
+    let reading = understanding::understand(&fuller, Some(&*memory));
+    let item = find_plain(&reading)?;
+    if !_is_about(item, &memory::topics::subject(memory)) {
+        return None;
+    }
+    let reply = _reply_of(item, &reading, memory);
+    if text::strip(&reply).is_empty() {
+        return None;
+    }
+    let said_already = storing && _said_before(&reply, memory, 3);
+    if !KEEPS.is_match(&reply) && !said_already {
+        return None;
+    }
+    let subject = memory::topics::subject(memory);
+    if !subject.is_empty() && knowledge::cooking::ingredients(&understanding::understand(&subject, Some(&*memory))).len() > 1 {
+        return None;
+    }
+    if said_already {
+        let figures: Vec<String> =
+            SENTENCE.split(&reply).iter().filter(|part| FIGURE.is_match(part)).map(|part| text::strip(part).to_string()).collect();
+        if !figures.is_empty() {
+            return Some(figures.join(" "));
+        }
+    }
+    Some(reply)
 }
 
 /// Python: bot/modules/answers.py:6140 `_in_this_conversation(reject, reading)`
-pub fn _in_this_conversation(reject: &Value, reading: &Understood) -> Value {
-    crate::unported!("bot.modules.answers:_in_this_conversation")
+/// The caller's veto, and one of its own: a fact from another part of the knowledge base.
+pub fn _in_this_conversation<'a>(reject: Reject<'a>, reading: &'a Understood) -> impl Fn(&Entry) -> bool + 'a {
+    move |item: &Entry| {
+        if !knowledge::lookup::about_the_topic(item, reading) {
+            return true;
+        }
+        reject.is_some_and(|r| r(item))
+    }
 }
 
 /// Python: bot/modules/answers.py:6155 `_in_bare_context(text, memory, reject=None)`
-pub fn _in_bare_context(text: &str, memory: &Value, reject: &Value) {
-    crate::unported!("bot.modules.answers:_in_bare_context")
+/// The entry a bare ask reaches once the thing it is about is put on the end of it.
+pub fn _in_bare_context(text_: &str, memory: &Memory, reject: Reject) -> Offered {
+    if _names_its_own_thing(text_, Some(memory)) {
+        return None;
+    }
+    let fuller = _with_bare_subject(text_, memory);
+    if text::strip(&fuller) == text::strip(text_) {
+        return None;
+    }
+    let reading = understanding::understand(&fuller, Some(memory));
+    let veto = _in_this_conversation(reject, &reading);
+    let item = knowledge::lookup::find(&reading, None, Some(&veto), false)?;
+    if !_is_about(item, &memory::topics::subject(memory)) {
+        return None;
+    }
+    if let crate::knowledge::entry::Reply::Text(reply) = &item.reply {
+        if _said_before(reply, memory, 3) {
+            return None;
+        }
+    }
+    Some((item, Some(reading.clone())))
 }
 
 /// Python: bot/modules/answers.py:6198 `_figures_of(said)`
-pub fn _figures_of(said: &str) -> Vec<String> {
-    crate::unported!("bot.modules.answers:_figures_of")
+/// The numbers a sentence carries, as words a set can hold.
+pub fn _figures_of(said: &str) -> HashSet<String> {
+    NUMBER_IN_TEXT.findall_str(&memory::narrow::flat(said)).into_iter().collect()
 }
 
 /// Python: bot/modules/answers.py:6203 `_new_figure(fresh, before)`
+/// Whether the answer has a figure the one before it did not.
 pub fn _new_figure(fresh: &str, before: &str) -> bool {
-    crate::unported!("bot.modules.answers:_new_figure")
+    !minus(&_figures_of(fresh), &_figures_of(before)).is_empty()
 }
 
 /// Python: bot/modules/answers.py:6213 `_adds_a_figure(text)`
-pub fn _adds_a_figure(text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_adds_a_figure")
+/// Whether the line brings a number for the thing under discussion, and asks nothing.
+pub fn _adds_a_figure(text_: &str) -> bool {
+    let said = memory::narrow::flat(text_);
+    if said.is_empty() || said.contains('?') {
+        return false;
+    }
+    A_FIGURE.is_match(&said)
 }
 
 /// Python: bot/modules/answers.py:6233 `_a_figure_put_right(text)`
-pub fn _a_figure_put_right(text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_a_figure_put_right")
+/// True when the line moves a figure the chat already gave ("make it 150 instead").
+pub fn _a_figure_put_right(text_: &str) -> bool {
+    A_PUT_RIGHT.is_match(text_) && inline_re!(r"\d").is_match(text_)
 }
 
-/// Python: bot/modules/answers.py:6239 `_without_the_figures(line)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:6239 `_without_the_figures(line)`
+/// The earlier line with its sums taken out, so only its words are handed on.
 pub fn _without_the_figures(line: &str) -> String {
-    crate::unported!("bot.modules.answers:_without_the_figures")
+    text::squash(&inline_re!(r"[£$]?\b\d[\d,.]*\b").sub("", line))
 }
 
 /// Python: bot/modules/answers.py:6244 `_the_entry_asked_again(text, memory)`
-pub fn _the_entry_asked_again(text: &str, memory: &Memory) -> Option<String> {
-    crate::unported!("bot.modules.answers:_the_entry_asked_again")
+/// The entry that answered last, asked this line with its own subject still in it.
+pub fn _the_entry_asked_again(text_: &str, memory: &mut Memory) -> Option<String> {
+    let record = _last_answer(memory)?;
+    let entry_id = record.get("id").filter(|v| v.truthy()).map(py_str)?;
+    let item = knowledge::entry::entries().iter().find(|c| c.id == entry_id)?;
+    let turn = match record.get("turn") {
+        Some(Value::Int(t)) => *t,
+        _ => return None,
+    };
+    if turn < 0 || turn as usize >= memory.turns.len() {
+        return None;
+    }
+    let line = text::strip(&memory.turns[turn as usize].user).to_string();
+    if line.is_empty() {
+        return None;
+    }
+    let earlier = if _a_figure_put_right(text_) { _without_the_figures(&line) } else { line };
+    let reading = understanding::understand(&format!("{earlier} {text_}"), Some(&*memory));
+    let fresh = _payload_mut(item, memory, &reading);
+    if text::strip(&fresh).is_empty() {
+        return None;
+    }
+    let said = record_str(&record, "reply");
+    if memory::narrow::flat(&fresh) == memory::narrow::flat(&said) {
+        return None;
+    }
+    if let Some(new_part) = _the_part_a_longer_variant_adds(&fresh, &said) {
+        return Some(new_part);
+    }
+    Some(fresh)
 }
 
 /// Python: bot/modules/answers.py:6294 `_the_part_a_longer_variant_adds(fresh, said)`
-pub fn _the_part_a_longer_variant_adds(fresh: &str, said: &str) {
-    crate::unported!("bot.modules.answers:_the_part_a_longer_variant_adds")
+/// What a longer variant of the answer on the screen adds to it, or None.
+pub fn _the_part_a_longer_variant_adds(fresh: &str, said: &str) -> Option<String> {
+    let said = memory::narrow::flat(said);
+    let mine = memory::narrow::flat(fresh);
+    if said.is_empty() || !mine.starts_with(&said) {
+        return None;
+    }
+    let rest = &mine[said.len()..];
+    if !rest.starts_with(' ') {
+        return None;
+    }
+    let words = text::split_ref(&said).len();
+    let added = text::split_ref(fresh).into_iter().skip(words).collect::<Vec<_>>().join(" ");
+    let added = text::strip(&added).to_string();
+    if text::split_ref(&added).len() < 3 {
+        return None;
+    }
+    Some(added)
 }
+
+// ==== ported code ends; the stubs below are the functions not yet ported ====
 
 /// Python: bot/modules/answers.py:6329 `_the_sentence_owed(text, reply, memory)`
 pub fn _the_sentence_owed(text: &str, reply: &str, memory: &Memory) {
