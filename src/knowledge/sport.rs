@@ -170,6 +170,24 @@ pub fn _a_clock_half_is_not_the_race(understood: &Understood) -> bool {
     !_CLOCK_HALF.iter().any(|hour| padded.contains(&format!(" {hour} ")))
 }
 
+/// The World Cup table read the other way round: each winner (lower case, West Germany as
+/// Germany) and the years it won, in table order. `WIN_YEARS` in the bundle is this, built at import.
+pub fn _win_years() -> Vec<(String, Vec<i64>)> {
+    let mut found: Vec<(String, Vec<i64>)> = Vec::new();
+    for (year, row) in g("WORLD_CUP").pairs() {
+        let (Some(year), Some(winner)) = (year.as_int(), row.items().first().and_then(Value::as_str)) else { continue };
+        let name = winner.to_lowercase().replace("west ", "");
+        match found.iter_mut().find(|(n, _)| *n == name) {
+            Some((_, years)) => years.push(year),
+            None => found.push((name, vec![year])),
+        }
+    }
+    for (_, years) in found.iter_mut() {
+        years.sort();
+    }
+    found
+}
+
 /// "1966; 1958 and 1962; 1958, 1962 and 1970."
 pub fn _listed(years: &[i64]) -> String {
     let said: Vec<String> = years.iter().map(i64::to_string).collect();
@@ -555,37 +573,60 @@ pub fn _a_short_game_to_play(understood: &Understood) -> bool {
     !_A_GAME_WORD.is_match(line)
 }
 
+/// `_says`'s pattern: any of the phrases, anchored at a word start.
+fn says_re<S: AsRef<str>>(phrases: &[S]) -> Re {
+    let alts: Vec<String> = phrases.iter().map(|p| sh::escape(p.as_ref())).collect();
+    Re::new(&format!(r"(?<!\w)(?:{})", alts.join("|")), 0)
+}
+
 /// True when one of these phrases is in the line as a word, not inside a longer word.
 pub fn _says<S: AsRef<str>>(clean: &str, phrases: &[S]) -> bool {
     let alts: Vec<String> = phrases.iter().map(|p| sh::escape(p.as_ref())).collect();
     sh::re_search(&format!(r"(?<!\w)(?:{})", alts.join("|")), clean, 0)
 }
 
+// The phrase lists `_says` is asked about, compiled once (the guard runs on every line).
+macro_rules! says_lists {
+    ($($re:ident <- $list:ident),* $(,)?) => {
+        $(static $re: LazyLock<Re> = LazyLock::new(|| says_re(&$list));)*
+    };
+}
+says_lists!(
+    SAYS_WET_MATCH_SPORT <- _WET_MATCH_SPORT,
+    SAYS_WET_MATCH_WEATHER <- _WET_MATCH_WEATHER,
+    SAYS_WET_MATCH_WEAR <- _WET_MATCH_WEAR,
+    SAYS_WET_MATCH_NOT <- _WET_MATCH_NOT,
+    SAYS_WET_MATCH_I_PLAY <- _WET_MATCH_I_PLAY,
+    SAYS_WET_MATCH_WATCHING_WORDS <- _WET_MATCH_WATCHING_WORDS,
+    SAYS_WET_MATCH_PLAYS <- _WET_MATCH_PLAYS,
+    SAYS_GYM_KIT_WORDS <- _GYM_KIT_WORDS,
+);
+
 /// True for a line that asks what to wear, bring or take to a match in bad weather.
 pub fn _a_wet_match(reading: &Understood) -> bool {
     let clean = format!(" {} ", reading.clean.to_lowercase());
-    if !_says(&clean, &_WET_MATCH_SPORT) {
+    if !SAYS_WET_MATCH_SPORT.is_match(&clean) {
         return false;
     }
-    if !_says(&clean, &_WET_MATCH_WEATHER) {
+    if !SAYS_WET_MATCH_WEATHER.is_match(&clean) {
         return false;
     }
-    if !_says(&clean, &_WET_MATCH_WEAR) {
+    if !SAYS_WET_MATCH_WEAR.is_match(&clean) {
         return false;
     }
-    !_says(&clean, &_WET_MATCH_NOT)
+    !SAYS_WET_MATCH_NOT.is_match(&clean)
 }
 
 /// What to wear for a match in the rain, led by the playing or the watching half.
 pub fn _kit_for_a_wet_match(_memory: &Memory, understood: &Understood) -> String {
     let clean = format!(" {} ", understood.clean.to_lowercase());
-    if _says(&clean, &_WET_MATCH_I_PLAY) {
+    if SAYS_WET_MATCH_I_PLAY.is_match(&clean) {
         return s("_WET_MATCH_PLAYING");
     }
-    if _says(&clean, &_WET_MATCH_WATCHING_WORDS) {
+    if SAYS_WET_MATCH_WATCHING_WORDS.is_match(&clean) {
         return s("_WET_MATCH_WATCHING");
     }
-    if _says(&clean, &_WET_MATCH_PLAYS) {
+    if SAYS_WET_MATCH_PLAYS.is_match(&clean) {
         return s("_WET_MATCH_PLAYING");
     }
     s("_WET_MATCH_WATCHING")
@@ -594,7 +635,7 @@ pub fn _kit_for_a_wet_match(_memory: &Memory, understood: &Understood) -> String
 /// What to bring to the gym induction, or what to do with it, whichever the line asked.
 pub fn _the_gym_induction(_memory: &Memory, understood: &Understood) -> String {
     let clean = format!(" {} ", understood.clean.to_lowercase());
-    if _says(&clean, &_GYM_KIT_WORDS) {
+    if SAYS_GYM_KIT_WORDS.is_match(&clean) {
         return s("_GYM_INDUCTION_KIT");
     }
     s("_GYM_INDUCTION")

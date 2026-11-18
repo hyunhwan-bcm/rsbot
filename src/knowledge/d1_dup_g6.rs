@@ -751,4 +751,15 @@ mod g6_diff {
         }
         println!("direct calls {ok} ok / {bad} differ");
     }
+
+    /// `sport._win_years()` rebuilds the `WIN_YEARS` table the bundle holds.
+    #[test]
+    fn win_years_is_the_bundle_table() {
+        let bundle: Vec<(String, Vec<i64>)> = crate::data::get("bot.knowledge.sport.WIN_YEARS")
+            .pairs()
+            .iter()
+            .map(|(k, v)| (k.str().to_string(), v.items().iter().filter_map(Value::as_int).collect()))
+            .collect();
+        assert_eq!(crate::knowledge::sport::_win_years(), bundle);
+    }
 }
