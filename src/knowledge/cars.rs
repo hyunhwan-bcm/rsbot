@@ -610,28 +610,46 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 pub const SHAPES: &[(&str, ShapeFn)] = &[("bot.knowledge.cars:_an_animal_struck:348", shape_an_animal_struck)];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories (`knowledge::built`).
 
-    /// Python: bot/knowledge/cars.py:398 `_entry(name, keys, reply, avoid=())` (never called on the trace corpus)
-    pub fn _entry(name: &str, keys: &Value, reply: &str, avoid: &Value) -> Value {
-        crate::unported!("bot.knowledge.cars:_entry")
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, KeyPart, Reply};
+
+/// `_entry(name, keys, reply, avoid=(), **kw)`: a car row - its keys, then the vehicle and the
+/// models; the models join an `ask` it has; `bikes=True` lets a bicycle line reach it; the
+/// avoid words are de-duplicated in order, with the lease-or-buy words after them.
+#[allow(clippy::too_many_arguments)]
+pub fn _entry(name: &str, keys: &[Value], reply: Reply, avoid: &[String], ask: Option<&[String]>, bikes: bool, bias: i64, guard: Option<FnRef>) -> Entry {
+    let models = g("MODELS").strs();
+    let mut key: Vec<KeyPart> = keys
+        .iter()
+        .map(|k| match k {
+            Value::Str(s) => KeyPart::Word(s.to_string()),
+            other => KeyPart::Any(other.strs()),
+        })
+        .collect();
+    key.push(KeyPart::Any(g("VEHICLE").strs()));
+    key.push(KeyPart::Any(models.clone()));
+    let ask: Vec<KeyPart> = match ask.filter(|a| !a.is_empty()) {
+        Some(a) => a.iter().chain(models.iter()).cloned().map(KeyPart::Word).collect(),
+        None => vec![],
+    };
+    let mut all: Vec<String> = avoid.to_vec();
+    if !bikes {
+        all.extend(g("NOT_BIKE").strs());
     }
-
-    /// Python: bot/knowledge/cars.py:4727 `_how_to(reply)` (never called on the trace corpus)
-    pub fn _how_to(reply: &str) -> Value {
-        crate::unported!("bot.knowledge.cars:_how_to")
+    all.extend(g("LEASE_OR_BUY").strs());
+    let mut unique: Vec<String> = Vec::new();
+    for word in all {
+        if !unique.contains(&word) {
+            unique.push(word);
+        }
     }
-
+    built::entry(name, key, reply, &[built::words(&unique)], bias, ask, guard)
 }
 
+/// `_how_to(reply)`: the procedure, unless the line says the car is doing something wrong.
+pub fn _how_to(reply: &str) -> FnRef {
+    built::closure("bot.knowledge.cars:_how_to.<locals>.answer:4730", vec![("reply", Value::from(reply))])
+}

@@ -107,3 +107,22 @@ fn same_value(a: &Value, b: &Value) -> bool {
 pub fn exported(name: &str) -> Vec<Entry> {
     crate::data::get(name).items().iter().enumerate().map(|(i, v)| Entry::from_value(i, v)).collect()
 }
+
+/// For a test: every built row agrees with the exported row of the same id (and one exists).
+pub fn assert_rows_match(built: &[Entry], exported_name: &str) {
+    let exported = exported(exported_name);
+    assert!(!built.is_empty(), "no rows built");
+    for mine in built {
+        let theirs = exported.iter().find(|r| r.id == mine.id).unwrap_or_else(|| panic!("no exported row {}", mine.id));
+        assert_eq!(same_entry(mine, theirs), None);
+    }
+}
+
+/// A reply as Python held it: a string, a function, or a pool of lines.
+pub fn reply_of(v: &Value) -> Reply {
+    match v {
+        Value::Str(s) => Reply::Text(s.to_string()),
+        Value::Fn(f) => Reply::Fn((**f).clone()),
+        other => Reply::Choices(other.strs()),
+    }
+}

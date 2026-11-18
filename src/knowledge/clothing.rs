@@ -1082,23 +1082,11 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The reply factory.
 
-    /// Python: bot/knowledge/clothing.py:4859 `_a_garment_to_choose(fit)` (never called on the trace corpus)
-    pub fn _a_garment_to_choose(fit: &Value) -> Value {
-        crate::unported!("bot.knowledge.clothing:_a_garment_to_choose")
-    }
-
+/// `_a_garment_to_choose(fit)`: the use's answer when the chat named one, and the garment's fit
+/// points otherwise.
+pub fn _a_garment_to_choose(fit: &str) -> FnRef {
+    crate::knowledge::built::closure("bot.knowledge.clothing:_a_garment_to_choose.<locals>.answer:4861", vec![("fit", crate::data::Value::from(fit))])
 }
-

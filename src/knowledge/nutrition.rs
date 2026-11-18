@@ -620,23 +620,59 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factory (`knowledge::built`).
 
-    /// Python: bot/knowledge/nutrition.py:65 `entry(id, key, reply, avoid=(), bias=0, ask=(), slips=(), keep=(), guard=None)` (never called on the trace corpus)
-    pub fn entry(id: &Value, key: &str, reply: &str, avoid: &Value, bias: &Value, ask: &str, slips: &Value, keep: i64, guard: &Value) -> Value {
-        crate::unported!("bot.knowledge.nutrition:entry")
+/// `entry(id, key, reply, avoid=(), bias=0, ask=(), slips=(), keep=(), guard=None)`: a
+/// nutrition row - it passes on a children's, a pet's, a statement's or a pack date's line
+/// (those words join its avoid list, less the ones in `keep`), and on a food that has gone off
+/// (folded into its guard).
+#[allow(clippy::too_many_arguments)]
+pub fn entry(
+    id: &str,
+    key: Vec<crate::knowledge::entry::KeyPart>,
+    reply: crate::knowledge::entry::Reply,
+    avoid: &[String],
+    bias: i64,
+    ask: Vec<crate::knowledge::entry::KeyPart>,
+    slips: &[String],
+    keep: &[String],
+    guard: Option<FnRef>,
+) -> crate::knowledge::entry::Entry {
+    use crate::knowledge::built;
+    let guard = match guard {
+        None => built::function("bot.knowledge.nutrition:entry.<locals>.<lambda>:83"),
+        Some(inner) => built::closure("bot.knowledge.nutrition:entry.<locals>.<lambda>:86", vec![("inner", Value::Fn(std::sync::Arc::new(inner)))]),
+    };
+    let mut words: Vec<String> = avoid.to_vec();
+    for name in ["_NOT_A_PERSON_OR_PET", "_A_STATEMENT_ABOUT_ME", "_PACK_DATE"] {
+        words.extend(g(name).strs().into_iter().filter(|w| !keep.contains(w)));
     }
-
+    let mut row = built::entry(id, key, reply, &[built::words(&words)], bias, ask, Some(guard));
+    row.slips = slips.to_vec();
+    row
 }
 
+#[cfg(test)]
+mod factory_tests {
+    use crate::knowledge::entry::KeyPart;
+
+    /// The rows whose avoid list ends with the full guard words rebuild with `keep` empty.
+    #[test]
+    fn rows_rebuild() {
+        crate::data::load();
+        let tail: Vec<String> = ["_NOT_A_PERSON_OR_PET", "_A_STATEMENT_ABOUT_ME", "_PACK_DATE"].iter().flat_map(|n| super::g(n).strs()).collect();
+        let mut rows = Vec::new();
+        for r in crate::knowledge::built::exported("bot.knowledge.nutrition.ENTRIES") {
+            if r.avoid.len() < tail.len() || r.avoid[r.avoid.len() - tail.len()..] != tail[..] {
+                continue;
+            }
+            let own = &r.avoid[..r.avoid.len() - tail.len()];
+            let inner = r.guard.as_ref().and_then(|g| g.cell("inner")).and_then(crate::data::Value::as_fn).cloned();
+            let ask: Vec<KeyPart> = r.ask.clone();
+            rows.push(super::entry(&r.id, r.key.clone(), r.reply.clone(), own, r.bias, ask, &r.slips, &[], inner));
+        }
+        assert!(rows.len() > 20, "{}", rows.len());
+        crate::knowledge::built::assert_rows_match(&rows, "bot.knowledge.nutrition.ENTRIES");
+    }
+}

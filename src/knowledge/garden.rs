@@ -1642,28 +1642,73 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 pub const LEADS: &[(&str, LeadFn)] = &[("bot.knowledge.garden:_the_no_cooked_food:2499", l_the_no_cooked_food)];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row builders (`knowledge::built`).
 
-    /// Python: bot/knowledge/garden.py:550 `_harvest_entries()` (never called on the trace corpus)
-    pub fn _harvest_entries() -> Value {
-        crate::unported!("bot.knowledge.garden:_harvest_entries")
-    }
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, KeyPart, Reply};
 
-    /// Python: bot/knowledge/garden.py:1605 `_plant_entries()` (never called on the trace corpus)
-    pub fn _plant_entries() -> Value {
-        crate::unported!("bot.knowledge.garden:_plant_entries")
-    }
-
+fn g(name: &str) -> &'static Value {
+    data::get(&format!("{M}{name}"))
 }
 
+/// `_harvest_entries()`: one row per crop, keyed the same way as the sowing row but only for a
+/// harvest question.
+pub fn _harvest_entries() -> Vec<Entry> {
+    let keys = g("HARVEST_KEYS").strs();
+    let ask: Vec<KeyPart> = g("HARVEST_ASK").strs().into_iter().map(KeyPart::Word).collect();
+    let row = |words: &[String], reply: &Value| {
+        let pan: Vec<String> = _done_means_a_pan(&words[0]).into_iter().map(str::to_string).collect();
+        built::entry(
+            &format!("harvest-{}", words[0]),
+            vec![built::part(words), built::part(&keys)],
+            built::reply_of(reply),
+            &[g("SOW_NOT").clone(), g("DONE_NOT").clone(), built::words(&pan)],
+            3,
+            ask.clone(),
+            None,
+        )
+    };
+    let harvest = g("HARVEST");
+    let mut out = Vec::new();
+    for sow in g("SOWING").items() {
+        let words = sow.items()[0].strs();
+        let Some(reply) = harvest.get(&words[0]).filter(|r| r.truthy()) else { continue };
+        out.push(row(&words, reply));
+    }
+    for more in g("HARVEST_MORE").items() {
+        out.push(row(&more.items()[0].strs(), &more.items()[1]));
+    }
+    out
+}
+
+/// `_plant_entries()`: one entry per plant in `PLANT_CARE`.
+pub fn _plant_entries() -> Vec<Entry> {
+    let words = g("PLANT_CARE_WORDS").strs();
+    g("PLANT_CARE")
+        .items()
+        .iter()
+        .map(|row| {
+            let r = row.items();
+            built::entry(
+                &format!("plant-{}", r[0].str()),
+                vec![built::part(&r[1].strs()), built::part(&words)],
+                built::reply_of(&r[2]),
+                &[g("LIGHT_QUESTION").clone()],
+                1,
+                vec![],
+                Some(built::function("bot.knowledge.garden:_the_care_is_for_a_person:1482")),
+            )
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod factory_tests {
+    #[test]
+    fn rows_rebuild() {
+        crate::data::load();
+        crate::knowledge::built::assert_rows_match(&super::_harvest_entries(), "bot.knowledge.garden.ENTRIES");
+        crate::knowledge::built::assert_rows_match(&super::_plant_entries(), "bot.knowledge.garden.ENTRIES");
+    }
+}

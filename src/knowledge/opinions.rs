@@ -648,28 +648,45 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories (`knowledge::built`).
 
-    /// Python: bot/knowledge/opinions.py:205 `_asked(reply)` (never called on the trace corpus)
-    pub fn _asked(reply: &str) -> Value {
-        crate::unported!("bot.knowledge.opinions:_asked")
-    }
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, KeyPart, Reply};
 
-    /// Python: bot/knowledge/opinions.py:346 `_either(id, a, b, reply, avoid=(), bias=0)` (never called on the trace corpus)
-    pub fn _either(id: &Value, a: &Value, b: &Value, reply: &str, avoid: &Value, bias: &Value) -> Value {
-        crate::unported!("bot.knowledge.opinions:_either")
-    }
-
+/// `_asked(reply)`: a reply, but only to a line that asks (`_asked_answer`).
+pub fn _asked(reply: &Value) -> FnRef {
+    built::closure("bot.knowledge.opinions:_asked.<locals>.answer:207", vec![("reply", reply.clone())])
 }
 
+/// `_either(id, a, b, reply, avoid=(), bias=0)`: a pick between two everyday things, in either
+/// order, only when the line is a choice; one point of bias over a row that noticed one half.
+pub fn _either(id: &str, a: &[String], b: &[String], reply: &Value, avoid: &[String], bias: i64) -> Entry {
+    let answer = built::closure(
+        "bot.knowledge.opinions:_either.<locals>.answer:358",
+        vec![("a", built::words(a)), ("b", built::words(b)), ("reply", reply.clone())],
+    );
+    let mut choice: Vec<String> = CHOICE.iter().cloned().collect();
+    choice.sort();
+    choice.extend(data::get("bot.knowledge.opinions.CHOICE_ASKS").strs());
+    built::entry(id, vec![built::part(a), built::part(b)], Reply::Fn(answer), &[built::words(avoid)], bias + 1, choice.into_iter().map(KeyPart::Word).collect(), None)
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    #[test]
+    fn either_rows_rebuild() {
+        data::load();
+        let mut rows = Vec::new();
+        for r in built::exported("bot.knowledge.opinions.ENTRIES") {
+            let Reply::Fn(f) = &r.reply else { continue };
+            if f.name() != "bot.knowledge.opinions:_either.<locals>.answer" {
+                continue;
+            }
+            rows.push(_either(&r.id, &f.cell("a").unwrap().strs(), &f.cell("b").unwrap().strs(), f.cell("reply").unwrap(), &r.avoid, r.bias - 1));
+        }
+        built::assert_rows_match(&rows, "bot.knowledge.opinions.ENTRIES");
+    }
+}

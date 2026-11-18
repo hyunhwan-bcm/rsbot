@@ -286,23 +286,20 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row pass PyBot runs over `ENTRIES` at import.
 
-    /// Python: bot/knowledge/devices.py:348 `_stands_down_for_food(one)` (never called on the trace corpus)
-    pub fn _stands_down_for_food(one: &str) -> Value {
-        crate::unported!("bot.knowledge.devices:_stands_down_for_food")
+/// `_stands_down_for_food(one)`: a Mac entry (a key group holding "mac"), with the food words
+/// added to its stay-away list; any other entry unchanged.
+pub fn _stands_down_for_food(mut one: crate::knowledge::entry::Entry) -> crate::knowledge::entry::Entry {
+    let mac = one.key.iter().any(|part| matches!(part, crate::knowledge::entry::KeyPart::Any(v) if v.iter().any(|w| w == "mac")));
+    if !mac {
+        return one;
     }
-
+    for word in data::get("bot.knowledge.devices._FOOD_NOT_A_MACHINE").strs() {
+        if !one.avoid.contains(&word) {
+            one.avoid.push(word);
+        }
+    }
+    one
 }
-

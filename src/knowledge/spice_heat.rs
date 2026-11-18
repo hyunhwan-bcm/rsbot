@@ -1,19 +1,44 @@
-//! Port of `bot/knowledge/spice_heat.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/knowledge/spice_heat.py`: how hot a spice is - one row per spice, keyed by the
+//! names it is written as and the heat words.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
-use std::sync::LazyLock;
+use crate::data;
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, Reply};
 
-/// Python: bot/knowledge/spice_heat.py:221 `_rows()` (never called on the trace corpus)
-pub fn _rows() -> Value {
-    crate::unported!("bot.knowledge.spice_heat:_rows")
+/// `_rows()`: one row per spice in `HEAT`, the names and the verdict in the same shape.
+pub fn _rows() -> Vec<Entry> {
+    let hot = data::get("bot.knowledge.spice_heat.HOT").strs();
+    let not_a_spice_line = data::get("bot.knowledge.spice_heat.NOT_A_SPICE_LINE").clone();
+    let more: Vec<String> = [
+        "instead", "substitute", "ran out", "my curry", "too spicy", "too hot", "what does a dash", "what is a dash", "how much is a dash", "dash mean",
+        "what does a pinch", "what is a pinch", "how much is a pinch", "pinch mean",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect();
+    data::get("bot.knowledge.spice_heat.HEAT")
+        .items()
+        .iter()
+        .map(|row| {
+            let names = row.items()[0].strs();
+            built::entry(
+                &format!("spice-heat-{}", names[0].replace(' ', "-").replace('\'', "")),
+                vec![built::part(&names), built::part(&hot)],
+                Reply::Text(row.items()[1].str().to_string()),
+                &[not_a_spice_line.clone(), built::words(&more)],
+                1,
+                vec![],
+                None,
+            )
+        })
+        .collect()
 }
 
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn rows_rebuild() {
+        crate::data::load();
+        crate::knowledge::built::assert_rows_match(&super::_rows(), "bot.knowledge.spice_heat.ENTRIES");
+    }
+}
