@@ -334,6 +334,20 @@ fn main() {
             }
             println!("gives ok {ok} bad {bad} {by_want:?}");
         }
+        "dream" => {
+            // u_check dream DREAM.jsonl: memory/dream.py's readers against PyBot (dream/make.py)
+            use rsbot::memory::dream as d;
+            let died = rsbot::understanding::rx("\\bdied\\b");
+            let (mut ok, mut bad) = (0, 0);
+            for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
+                let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+                let t = v["text"].as_str().unwrap();
+                let got = serde_json::json!({"text": t, "scene": d::the_scene(t), "named": d::named(t), "told": d::told_as_a_dream(t),
+                    "not_happening": d::a_dream_is_not_happening(t), "death_first": d::a_death_came_first(t), "before_died": d::dreamed_before(t, died)});
+                if got == v { ok += 1 } else { bad += 1; if bad < 10 { println!("-- {t:?}\n   rust {got}\n   py   {v}"); } }
+            }
+            println!("dream ok {ok} bad {bad}");
+        }
         x => panic!("unknown check {x}"),
     }
 }
