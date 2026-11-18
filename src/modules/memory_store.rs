@@ -1469,7 +1469,7 @@ pub fn _the_store_readings(text_: &str, memory: &mut Memory) -> bool {
         // said how many they were. The number is kept here, so the topic must not take the line.
         return true;
     }
-    if ret_true(crate::memory::repeat::how_long_its_been(text_)) && ret_true(crate::memory::repeat::the_figure_they_gave(text_, memory)) {
+    if ret_true(crate::memory::repeat::how_long_its_been(text_)) && ret_true(crate::memory::repeat::the_figure_they_gave_text(text_, memory)) {
         // The length they gave about their own thing, asked back with the thing named: "how long
         // has my back been like this now" after "my lower back has been sore for about 3 weeks".
         // Claimed here because the carry into the card that answers a back took the turn and said
@@ -3114,7 +3114,7 @@ pub fn _the_figure_the_answer_names(text_: &str, memory: &Memory) -> Option<Stri
     // chat all along. The same line after "i started running two weeks ago" was "20 minutes.", the
     // length of the run-walk in the answer. Only where the person's own figure is there to give:
     // with nothing of their own, the answer on the screen is still the best thing the store knows.
-    if let Some(theirs) = ret_some(crate::memory::repeat::the_figure_they_gave(text_, memory)) {
+    if let Some(theirs) = ret_some(crate::memory::repeat::the_figure_they_gave_text(text_, memory)) {
         return Some(theirs);
     }
     // An amount per month is not a length in months: an answer that states rates is a table of
@@ -3345,7 +3345,7 @@ pub fn respond(text_: &str, memory: &mut Memory) -> Option<String> {
     // answer while the length is in the chat.
     let folded_line = fold(text_);
     if data::re("bot.memory.repeat.A_BARE_DURATION_ASK").is_match(&folded_line) {
-        if let Some(theirs) = ret_some(crate::memory::repeat::the_figure_they_gave(text_, memory)) {
+        if let Some(theirs) = ret_some(crate::memory::repeat::the_figure_they_gave_text(text_, memory)) {
             return Some(theirs);
         }
     }
@@ -3356,7 +3356,7 @@ pub fn respond(text_: &str, memory: &mut Memory) -> Option<String> {
         // carry a unit word, and the person asking for their own pay got the budgeting card. The
         // figure they gave is the answer to any ask for it, and the reader below is where the
         // judgement words that make it a different ask are refused.
-        if let Some(theirs) = ret_some(crate::memory::repeat::the_figure_they_gave(text_, memory)) {
+        if let Some(theirs) = ret_some(crate::memory::repeat::the_figure_they_gave_text(text_, memory)) {
             return Some(theirs);
         }
     }
@@ -3364,7 +3364,7 @@ pub fn respond(text_: &str, memory: &mut Memory) -> Option<String> {
         // The same ask with the thing named instead of "it" ("how long has my back been like this
         // now"): the unit reader names the back and stands down, so the store says the figure the
         // person gave, which is what the line asked for.
-        if let Some(theirs) = ret_some(crate::memory::repeat::the_figure_they_gave(text_, memory)) {
+        if let Some(theirs) = ret_some(crate::memory::repeat::the_figure_they_gave_text(text_, memory)) {
             return Some(theirs);
         }
     }
@@ -3381,7 +3381,7 @@ pub fn respond(text_: &str, memory: &mut Memory) -> Option<String> {
     if let Some(along) = ret_some(sr::_how_far_along(memory, &bare_line)) {
         return Some(along);
     }
-    if let Some(theirs) = ret_some(crate::memory::repeat::asked_back(text_, memory)) {
+    if let Some(theirs) = ret_some(crate::memory::repeat::asked_back_text(text_, memory)) {
         // A recall ask about a figure of their own is answered from the line they gave it on,
         // before any entry is looked up for the thing it names. "how long am i going for" after
         // "we fly out on the 12th for 10 days" reached the departure card and answered about

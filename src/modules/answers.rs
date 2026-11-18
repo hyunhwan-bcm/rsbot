@@ -6149,7 +6149,7 @@ pub fn _asks_only_the_length(text_: &str) -> bool {
 /// Python: bot/modules/answers.py:8187 `TAKES_AS_IT_COMES(text, memory=None)`
 /// A request for less is answered with the answer they already have, cut down.
 pub fn TAKES_AS_IT_COMES(text_: &str, memory: &mut Memory) -> bool {
-    memory::repeat::asks_for_less(text_) && memory::repeat::shorter_for(text_, memory).py_truth()
+    memory::repeat::asks_for_less(text_) && memory::repeat::shorter_for_text(text_, memory).py_truth()
 }
 
 /// Python: bot/modules/answers.py:8201 `claims_instead(text, memory=None)` (also bound as `CLAIMS_INSTEAD`)
@@ -6167,7 +6167,7 @@ pub fn claims_instead(text_: &str, memory: &mut Memory) -> Option<bool> {
 /// Python: bot/modules/answers.py:8224 `_a_limit_on_the_plan(text, memory)`
 /// True when the line is only a limit on the plan, which the composer answers itself.
 pub fn _a_limit_on_the_plan(text_: &str, memory: &Memory) -> bool {
-    py_try(|| memory::facts::a_limit_on_the_plan(text_).py_truth() && memory::ack::a_limit_reply(text_, memory).py_truth()).unwrap_or(false)
+    py_try(|| memory::facts::a_limit_on_the_plan(text_).py_truth() && memory::ack::a_limit_reply_text(text_, memory).py_truth()).unwrap_or(false)
 }
 
 /// Python: bot/modules/answers.py:8250 `_a_bare_thanks(understood)`
@@ -6268,7 +6268,7 @@ fn _respond_hook(text_: &str, memory: &mut Memory) -> Option<String> {
     if THEIR_OWN_ASK.is_match(text_) {
         return None;
     }
-    if REPEAT_A_PAY_WORD.is_match(&text::squash(&text_.to_lowercase())) && memory::repeat::the_figure_they_gave(text_, memory).py_truth() {
+    if REPEAT_A_PAY_WORD.is_match(&text::squash(&text_.to_lowercase())) && memory::repeat::the_figure_they_gave_text(text_, memory).py_truth() {
         return None;
     }
     if memory::portions::an_ask(text_, memory)
@@ -6733,7 +6733,7 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
     if memory_truthy(memory) && memory::when::asks_what_today_is(text_) {
         return _answer(text_, &mut Memory::new());
     }
-    if memory::stuck::pool(text_, memory).py_truth() && !memory::repeat::answer_for(text_, memory).py_truth() {
+    if memory::stuck::pool(text_, memory).py_truth() && !memory::repeat::answer_for_text(text_, memory).py_truth() {
         return None;
     }
     let understood = memory.understood.clone();
@@ -6807,7 +6807,7 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
     if BARE_SAY_NO.is_match(text_) {
         return Some(_the_line_again(text_, memory).filter(|a| !a.is_empty()).unwrap_or_else(|| SAY_NO_POLITELY.clone()));
     }
-    if let Some(shorter) = memory::repeat::shorter_for(text_, memory).py() {
+    if let Some(shorter) = memory::repeat::shorter_for_text(text_, memory).py() {
         return Some(shorter);
     }
     let dated = memory::deadline::follow_up(text_, memory);

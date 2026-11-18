@@ -246,7 +246,7 @@ fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         }
     }
     if has(&reply) && fallback::_is_a_hedge(&reply) {
-        let again_asked = memory::repeat::the_same_question_again(text_, memory).py();
+        let again_asked = memory::repeat::the_same_question_again_text(text_, memory).py();
         if again_asked.is_some() {
             return again_asked;
         }
@@ -254,11 +254,11 @@ fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         if outcome.is_some() {
             return outcome;
         }
-        let figure = memory::repeat::the_figure_asked(text_, memory).py();
+        let figure = memory::repeat::the_figure_asked_text(text_, memory).py();
         if figure.is_some() {
             return figure;
         }
-        let figure = memory::repeat::the_figure_they_gave(text_, memory).py();
+        let figure = memory::repeat::the_figure_they_gave_text(text_, memory).py();
         if figure.is_some() {
             return figure;
         }
@@ -267,7 +267,7 @@ fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
             return worth;
         }
     }
-    if let Some(back) = memory::repeat::asked_back(text_, memory).py() {
+    if let Some(back) = memory::repeat::asked_back_text(text_, memory).py() {
         if !memory::repeat::carries_the_figure(&Value::from(back.as_str()), &reply) {
             return Some(back);
         }
@@ -470,12 +470,12 @@ fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         }
     }
     if memory::repeat::answers_nothing(&reply) {
-        let part = memory::repeat::the_part_asked(text_, memory).py();
+        let part = memory::repeat::the_part_asked_text(text_, memory).py();
         if part.is_some() {
             return part;
         }
         if !memory::repeat::the_advice_was_to_get_seen(memory) {
-            let knows = memory::repeat::what_it_knows(text_, memory).py();
+            let knows = memory::repeat::what_it_knows_text(text_, memory).py();
             if knows.is_some() {
                 return knows;
             }
