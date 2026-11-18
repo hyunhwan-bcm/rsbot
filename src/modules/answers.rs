@@ -6481,37 +6481,133 @@ pub fn _the_figure_the_thing_we_are_on_holds(text_: &str, memory: &mut Memory) -
     if _figure_missing(&reply, text_).is_some() { String::new() } else { reply }
 }
 
-// ==== ported code ends; the stubs below are the functions not yet ported ====
+re_static!(TAKEN_BACK_OPENER, LEAD_ASK, LEAD_VERB, A_CASE_ASK);
+set_static!(A_CASE_STOP);
+static LEAD_ROWS: LazyLock<Vec<(Vec<String>, String)>> =
+    LazyLock::new(|| g("LEAD_ROWS").items().iter().map(|r| (r.items()[0].strs(), r.items()[1].str().to_string())).collect());
+static LEAD_ANY: LazyLock<String> = LazyLock::new(|| g("LEAD_ANY").str().to_string());
 
-/// Python: bot/modules/answers.py:8799 `_a_length_ask_with_no_figure(text, memory, answer='')` (never called on the trace corpus)
-pub fn _a_length_ask_with_no_figure(text: &str, memory: &Memory, answer: &str) -> Value {
-    crate::unported!("bot.modules.answers:_a_length_ask_with_no_figure")
+/// Python: bot/modules/answers.py:8799 `_a_length_ask_with_no_figure(text, memory, answer='')`
+/// The honest line for a length ask about an answer that holds no time.
+pub fn _a_length_ask_with_no_figure(text_: &str, memory: &mut Memory, answer: &str) -> Option<String> {
+    if !_asks_only_the_length(text_) || last_module(memory).as_deref() != Some("answers") {
+        return None;
+    }
+    let earlier = _last_answer(memory);
+    let last = earlier.as_ref().map(|e| record_str(e, "reply")).unwrap_or_default();
+    if text::strip(&last).is_empty() {
+        return None;
+    }
+    if !answer.is_empty() {
+        let opening = text::slice(&_flat(&last), 0, Some(60));
+        if opening.is_empty() || !_flat(answer).contains(&opening) {
+            return None;
+        }
+    }
+    let honest = _figure_missing(&last, text_)?;
+    if _flat(&honest) == _flat(answer) {
+        return None;
+    }
+    let held = _the_figure_the_thing_we_are_on_holds(text_, memory);
+    Some(if held.is_empty() { honest } else { held })
 }
 
-/// Python: bot/modules/answers.py:8828 `_a_city_card_asks_which_first(text, memory)` (never called on the trace corpus)
-pub fn _a_city_card_asks_which_first(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_a_city_card_asks_which_first")
+/// Python: bot/modules/answers.py:8828 `_a_city_card_asks_which_first(text, memory)`
+/// True when the line asks which of a city card's places comes first.
+pub fn _a_city_card_asks_which_first(text_: &str, memory: &Memory) -> bool {
+    knowledge::travel::asks_which_one_first(text_) && knowledge::travel::a_city_card_is_in_front(&_the_answer_in_front(memory))
 }
 
-/// Python: bot/modules/answers.py:8839 `_the_answer_in_front(memory)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:8839 `_the_answer_in_front(memory)`
+/// The reply just given by the knowledge base, for a line asking which part of it to do.
 pub fn _the_answer_in_front(memory: &Memory) -> String {
-    crate::unported!("bot.modules.answers:_the_answer_in_front")
+    match memory.turns.last() {
+        Some(said) if said.module.as_deref() == Some("answers") => said.bot.clone(),
+        _ => String::new(),
+    }
 }
 
 /// Python: bot/modules/answers.py:8920 `_a_lead_time(text)`
-pub fn _a_lead_time(text: &str) {
-    crate::unported!("bot.modules.answers:_a_lead_time")
+/// The answer to "how long before the day should we order it", or None.
+pub fn _a_lead_time(text_: &str) -> Option<String> {
+    let low = text_.to_lowercase();
+    let found = LEAD_ASK.search(&low)?;
+    let act = found.groups().into_iter().flatten().filter(|p| !p.is_empty()).collect::<Vec<_>>().join(" ");
+    if !LEAD_VERB.is_match(&act) {
+        return None;
+    }
+    let words: HashSet<String> = words_in(&low).iter().map(|w| text::rstrip_chars(w, "s").to_string()).collect();
+    for (needles, answer) in LEAD_ROWS.iter() {
+        if needles.iter().any(|n| words.contains(text::rstrip_chars(n, "s"))) {
+            return Some(answer.clone());
+        }
+    }
+    Some(LEAD_ANY.clone())
 }
 
 /// Python: bot/modules/answers.py:8950 `_the_thing_has_got_better(text, memory)`
-pub fn _the_thing_has_got_better(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_the_thing_has_got_better")
+/// Whether the line reports that the trouble has passed, so the advice would be stale.
+pub fn _the_thing_has_got_better(text_: &str, memory: &Memory) -> bool {
+    let clean = text::squash(&text_.to_lowercase());
+    if clean.is_empty() || clean.contains('?') {
+        return false;
+    }
+    let got_better = compose::goodnews::reads_as_recovery(&clean)
+        || (compose::goodnews::reads_as_settled(&clean) && compose::goodnews::worry_on_the_table(memory, &Value::Int(4)));
+    got_better && compose::goodnews::the_news_is_the_whole_of_it(&clean)
 }
 
 /// Python: bot/modules/answers.py:8983 `_a_case_of_the_answer_in_hand(text, memory)`
-pub fn _a_case_of_the_answer_in_hand(text: &str, memory: &Memory) -> String {
-    crate::unported!("bot.modules.answers:_a_case_of_the_answer_in_hand")
+/// The words of an answer on the screen that cover the case this line names, or "".
+pub fn _a_case_of_the_answer_in_hand(text_: &str, memory: &Memory) -> String {
+    let line = text::squash(text_);
+    if line.is_empty() || text::split_ref(&line).len() > 8 {
+        return String::new();
+    }
+    if A_CASE_ASK.match_(&line.to_lowercase()).is_none() {
+        return String::new();
+    }
+    let wanted: HashSet<String> =
+        words_in(&line.to_lowercase()).into_iter().filter(|w| text::len(w) > 2 && !A_CASE_STOP.contains(w)).collect();
+    if wanted.is_empty() {
+        return String::new();
+    }
+    let answers: Vec<String> =
+        memory.turns.iter().rev().filter(|t| !t.bot.is_empty() && t.module.as_deref() == Some("answers")).map(|t| t.bot.clone()).collect();
+    let after_a_case = answers.first().is_some_and(|a| text::split_ref(a).len() <= 12);
+    for answer in answers.iter().take(3) {
+        let cut = py_try(|| memory::narrow::narrow(answer, text_, "")).flatten().unwrap_or_default();
+        let mut part = if text::strip(&cut).is_empty() { String::new() } else { cut };
+        let uncut = part.is_empty() || text::squash(&part.to_lowercase()) == text::squash(&text::strip(answer).to_lowercase());
+        if uncut {
+            part = if text::split_ref(answer).len() <= 30 { text::strip(answer).to_string() } else { String::new() };
+        }
+        if part.is_empty() {
+            continue;
+        }
+        if !inline_re!(r"\d").is_match(&part) {
+            continue;
+        }
+        if text::split_ref(&part).len() > if after_a_case { 30 } else { 14 } {
+            continue;
+        }
+        if after_a_case && inline_re!(r"(?<=[.!?])\s+").split(text::strip(&part)).iter().filter(|s| !text::strip(s).is_empty()).count() > 1 {
+            continue;
+        }
+        let said: HashSet<String> = words_in(&part.to_lowercase()).iter().map(|w| text::rstrip_chars(w, "s").to_string()).collect();
+        if !wanted.iter().any(|w| said.contains(text::rstrip_chars(w, "s"))) {
+            continue;
+        }
+        let mut part = text::strip(&part).to_string();
+        if !part.ends_with(['.', '!', '?']) {
+            part.push('.');
+        }
+        return up1(&part);
+    }
+    String::new()
 }
+
+// ==== ported code ends; the stubs below are the functions not yet ported ====
 
 /// Python: bot/modules/answers.py:9060 `_answer(text, memory)`
 pub fn _answer(text: &str, memory: &mut Memory) -> Option<String> {
