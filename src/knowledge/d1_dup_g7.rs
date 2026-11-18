@@ -321,3 +321,46 @@ pub fn the_ask_is_the_order_of_steps(understood: &Understood) -> bool {
 pub fn not_the_ask_about_the_order(understood: &Understood) -> bool {
     !the_ask_is_the_order_of_steps(understood)
 }
+
+static FREEZE_DISH_TIMES: LazyLock<Vec<(Vec<String>, String)>> = LazyLock::new(|| {
+    data::get("bot.knowledge.cooking_entries.FREEZE_DISH_TIMES")
+        .items()
+        .iter()
+        .map(|r| (r.items()[0].strs(), r.items()[1].str().to_string()))
+        .collect()
+});
+static FREEZE_COOKED_STEP: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.cooking_entries.FREEZE_COOKED_STEP"));
+
+/// DUP(bot.knowledge.cooking_entries::freeze_cooked_answer): how long the cooked dish the line
+/// names keeps frozen (`_freeze_cooked`).
+pub fn freeze_cooked_answer(_memory: &Memory, understood: &Understood) -> String {
+    let said = format!(" {} ", understood.words.iter().map(|w| w.to_lowercase()).collect::<Vec<_>>().join(" "));
+    for (names, keeps) in FREEZE_DISH_TIMES.iter() {
+        if names.iter().any(|n| said.contains(&format!(" {n} ")) || said.contains(&format!(" {n}s "))) {
+            return pct(
+                "Yes - it keeps %s in the freezer, so cool it within an hour, then pack it flat in bags or tubs so it freezes fast. %s",
+                &[keeps, &FREEZE_COOKED_STEP],
+            );
+        }
+    }
+    pct(
+        "Yes - cooked dishes keep about three months frozen, and a month for mash, so cool it within an hour, then pack it flat in bags or tubs so it freezes fast. %s",
+        &[&FREEZE_COOKED_STEP],
+    )
+}
+
+/// DUP(bot.knowledge.lookup::said_in_this_line): the line as typed this turn (the answers
+/// module's copy, else the reading's own line without the carried-over earlier line).
+pub fn said_in_this_line(understood: &Understood, memory: Option<&Memory>) -> String {
+    if let Some(typed) = memory.and_then(|m| m.asked_now.as_deref()) {
+        if !text::strip(typed).is_empty() {
+            return text::strip(typed).to_string();
+        }
+    }
+    // `understood["said_now"]` is not a field the reading carries here.
+    if understood.setup.as_deref().is_some_and(|s| !s.is_empty()) && !understood.focus.is_empty() {
+        return text::strip(&understood.focus.join(" ")).to_string();
+    }
+    // LEANS_ON: Python removes the earlier reading's text when the line leans on one.
+    text::strip(crate::knowledge::d1_shared::clean_or_text(understood)).to_string()
+}
