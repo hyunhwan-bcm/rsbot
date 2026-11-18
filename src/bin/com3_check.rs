@@ -7,7 +7,7 @@
 //! Per function: calls that give PyBot's result (and, for a function that writes memory, PyBot's
 //! memory after it), calls that differ, and calls that reached a stub not ported yet.
 use flate2::read::GzDecoder;
-use rsbot::compose::{check_with_you as cwy, checking as ck, fallback_pools as fp, finding_out as fo, loss, onsubject as os, quantity as qt, ruledout as ro, trouble as tr, what_i_do_know as wk};
+use rsbot::compose::{goodnews as gn, check_with_you as cwy, checking as ck, fallback_pools as fp, finding_out as fo, loss, onsubject as os, quantity as qt, ruledout as ro, trouble as tr, what_i_do_know as wk};
 use rsbot::runtime::{guarded, quiet_panics, take_last_panic};
 use rsbot::state::{Memory, Turn};
 use rsbot::understood::Understood;
@@ -158,6 +158,28 @@ fn run(name: &str, c: &Call) -> Option<Out> {
     let r = |j: J| Some((j, None));
     let und_opt = |i: usize| if c.has_und(i) { Some(c.und(i)) } else { None };
     match name {
+        // ---- goodnews ----
+        "bot.compose.goodnews:reads_as_good_news" => r(json!(gn::reads_as_good_news(&c.s(0)))),
+        "bot.compose.goodnews:reads_as_a_pass" => r(json!(gn::reads_as_a_pass(&c.s(0)))),
+        "bot.compose.goodnews:reads_as_news_to_come" => r(json!(gn::reads_as_news_to_come(&c.s(0)))),
+        "bot.compose.goodnews:reads_as_an_occasion" => r(optj(gn::reads_as_an_occasion(&c.s(0)))),
+        "bot.compose.goodnews:reads_as_recovery" => r(json!(gn::reads_as_recovery(&c.s(0)))),
+        "bot.compose.goodnews:reads_as_settled" => r(json!(gn::reads_as_settled(&c.s(0)))),
+        "bot.compose.goodnews:reads_as_a_clear_result" => r(json!(gn::reads_as_a_clear_result(&c.s(0)))),
+        "bot.compose.goodnews:reads_as_a_win_nobody_noticed" => r(json!(gn::reads_as_a_win_nobody_noticed(&c.s(0)))),
+        "bot.compose.goodnews:reads_as_a_win_a_cost_came_with" => r(json!(gn::reads_as_a_win_a_cost_came_with(&c.s(0)))),
+        "bot.compose.goodnews:reads_as_a_prize_in_a_message" => r(json!(gn::reads_as_a_prize_in_a_message(&c.s(0)))),
+        "bot.compose.goodnews:asks_for_news" => r(json!(gn::asks_for_news(&c.s(0)))),
+        "bot.compose.goodnews:new_thing" => r(gn::new_thing(&c.s(0)).map(|v| v.to_plain()).unwrap_or(J::Null)),
+        "bot.compose.goodnews:a_detail_of_the_news" => r(json!(if c.has_mem(1) { gn::a_detail_of_the_news(&c.s(0), &c.mem(1)) } else { gn::a_detail_of_the_news_in(&c.s(0), None) })),
+        "bot.compose.goodnews:reads_as_a_detail_of_the_news" => r(json!(gn::reads_as_a_detail_of_the_news(&c.s(0), &c.mem(1)))),
+        "bot.compose.goodnews:reply_for_a_year_ago" => r(optj(gn::reply_for_a_year_ago(&c.s(0), &c.s(1), &c.mem(2)))),
+        "bot.compose.goodnews:the_cheer_was_this_pool" => r(json!(gn::the_cheer_was_this_pool(&c.mem(0)))),
+        "bot.compose.goodnews:the_reply_just_cheered" => r(json!(gn::the_reply_just_cheered(&c.mem(0)))),
+        "bot.compose.goodnews:reads_as_a_congratulation" => r(json!(gn::reads_as_a_congratulation(&c.s(0)))),
+        "bot.compose.goodnews:_a_hand_over" => r(json!(gn::_a_hand_over(&c.strs(0)))),
+        "bot.compose.goodnews:worry_on_the_table" => r(json!(gn::worry_on_the_table(&c.mem(0), &rsbot::data::Value::Int(c.n(1, 4))))),
+        "bot.compose.goodnews:a_year_behind" => r(json!(gn::a_year_behind(&c.s(0), None))),
         // ---- loss ----
         "bot.compose.loss:reads_as_loss" => { let w = words_arg(c, 1); r(json!(loss::reads_as_loss(&c.s(0), w.as_deref(), c.b(2, false)))) }
         "bot.compose.loss:reply_for" => r(opt_pool(loss::reply_for(&c.s(0), &c.mem(1), &c.s(2), &c.strs(3), c.os(4).as_deref()))),
