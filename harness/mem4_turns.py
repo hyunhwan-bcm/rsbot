@@ -1,6 +1,6 @@
 """Call the MEM4 readers that take a memory on every turn of the per-turn oracle.
 
-    python3 harness/mem4_turns.py OUT.jsonl.gz [--limit N] [--skip K]
+    python3 harness/mem4_turns.py OUT.jsonl.gz [--limit N] [--skip K] [--oracle NAME]
 
 Each oracle turn gives the line and the memory the modules saw (the turn's memory with the
 observers' changes applied), so every reader is asked about every turn, not only the turns
@@ -62,6 +62,7 @@ def post_observer(rec):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("out"); ap.add_argument("--limit", type=int, default=2000); ap.add_argument("--skip", type=int, default=0)
+    ap.add_argument("--oracle", default="conversations")
     a = ap.parse_args()
     run_python.pin_clock("2026-11-17")
     sys.path.insert(0, os.path.abspath(run_python.PYBOT))
@@ -69,7 +70,7 @@ def main():
     import importlib, inspect
     fns = [(m, n, s, getattr(importlib.import_module(m), n)) for m, n, s in FUNCTIONS]
     out = []
-    with gzip.open(ORACLE, "rt") as f:
+    with gzip.open(ORACLE.replace("conversations", a.oracle), "rt") as f:
         for at, line in enumerate(f):
             if at < a.skip:
                 continue
