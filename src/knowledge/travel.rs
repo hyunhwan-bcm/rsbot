@@ -587,9 +587,7 @@ pub fn _tipping(memory: &mut Memory, understood: &Understood) -> Option<String> 
         "excursion", "walking tour", "coach driver", "mover", "movers", "removal men", "man and van",
     ];
     if HOTEL_OR_TOUR.iter().any(|w| clean.contains(w)) {
-        // DUP-D2(bot.knowledge.lifeadmin::_tipping): a registered reply, called by its id.
-        let said = d2_shared::call_reply("bot.knowledge.lifeadmin:_tipping:334", memory, understood);
-        if !said.is_empty() {
+        if let Some(said) = crate::knowledge::lifeadmin::_tipping(memory, understood).filter(|s| !s.is_empty()) {
             return Some(said);
         }
     }

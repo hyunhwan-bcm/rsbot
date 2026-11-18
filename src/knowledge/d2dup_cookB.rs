@@ -226,23 +226,9 @@ pub fn reads_as_news(understood: &Understood, clean: &str) -> bool {
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/picking.py, bot/knowledge/dishes.py, bot/knowledge/lookup.py
 
-static PICKING_GUARDS: LazyLock<Vec<Option<data::FnRef>>> = LazyLock::new(|| {
-    data::get("bot.knowledge.picking.ENTRIES")
-        .items()
-        .iter()
-        .map(|e| e.attr("guard").and_then(|g| g.as_fn()).cloned())
-        .collect()
-});
 
-// DUP-D2(bot.knowledge.picking::choosing)
-/// Whether any picking entry's guard takes the line: it asks which one to choose. Runs the
-/// entries' own guards through the registry.
-pub fn choosing(understood: &Understood) -> bool {
-    PICKING_GUARDS.iter().any(|g| match g {
-        Some(f) => crate::knowledge::registry::guard(f, understood),
-        None => panic!("TypeError: 'NoneType' object is not callable"),
-    })
-}
+// was DUP-D2(bot.knowledge.picking::choosing): now the real port
+pub use crate::knowledge::picking::choosing;
 
 // NEEDS(bot.knowledge.dishes::dish_in, bot.knowledge.dishes::PLANS)
 /// Whether the dish a text names has an oven temperature in its plan. dishes.dish_in is a

@@ -321,7 +321,7 @@ pub fn _not_a_kitchen_ask(understood: &Understood) -> bool {
     if any_in(&text, &KITCHEN_QUIET) {
         return true;
     }
-    // DUP-D2(bot.knowledge.cooking::without), see d2dup_g8
+    // cooking::without (re-exported by d2dup_g8 as cooking_without)
     text::strip(&cooking_without(understood).unwrap_or_default()).is_empty()
 }
 

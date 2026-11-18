@@ -219,7 +219,7 @@ pub fn _one_persons_lunch(understood: &Understood) -> bool {
         if _OTHER_PEOPLE_AT_LUNCH.is_match(said) {
             return false;
         }
-        let table = dup::_crowd(said); // DUP-D2(bot.knowledge.cooking::_crowd)
+        let table = dup::_crowd(said); // cooking::_crowd (re-exported by d2dup_g6)
         if table >= 6 || (table >= 3 && said.contains("of us")) {
             return false;
         }
@@ -584,7 +584,7 @@ pub fn _no_sandwich_lunch(memory: &mut Memory, understood: &Understood) -> Optio
     let kid = _lunch_is_for_a_child(memory, &said)
         || ["year old", "nursery", "school", "fussy", "picky"].iter().any(|w| said.contains(w));
     let user = dup::user_facts(memory);
-    let mut banned = dup::_bans_of(user); // DUP-D2(bot.knowledge.cooking::_bans_of)
+    let mut banned = dup::_bans_of(user); // cooking::_bans_of (re-exported by d2dup_g6)
     banned.extend(dup::avoids_for_the_one_talked_about(memory));
     if !banned.is_empty() {
         for said_allergy in user.and_then(|u| u.get("allergies")).map(|v| v.items()).unwrap_or(&[]) {
@@ -716,7 +716,7 @@ pub fn not_a_cup_of_tea(understood: &Understood) -> bool {
 /// An afternoon snack that fits what the person cannot eat.
 pub fn _a_snack(memory: &mut Memory, _understood: &Understood) -> Option<String> {
     let user = dup::user_facts(memory);
-    let mut banned = dup::_bans_of(user); // DUP-D2(bot.knowledge.cooking::_bans_of)
+    let mut banned = dup::_bans_of(user); // cooking::_bans_of (re-exported by d2dup_g6)
     banned.extend(dup::avoids_for_the_one_talked_about(memory));
     for said in user.and_then(|u| u.get("allergies")).map(|v| v.items()).unwrap_or(&[]) {
         for word in text::split(&dup::py_str(said).to_lowercase().replace(',', " ")) {
@@ -994,7 +994,7 @@ pub fn _rice_pudding_pot(_memory: &mut Memory, reading: &Understood) -> Option<S
 /// What to cook with the kitchen kit the line has left, unless it is deciding about a repair or
 /// the last reply already gave the no-kit answer.
 pub fn _no_appliance(memory: &mut Memory, understood: &Understood) -> Option<String> {
-    let gone = dup::missing(understood); // DUP-D2(bot.knowledge.cooking::missing)
+    let gone = dup::missing(understood); // cooking::missing (re-exported by d2dup_g6)
     if gone.is_empty() {
         return None;
     }
@@ -1015,7 +1015,7 @@ pub fn _no_appliance(memory: &mut Memory, understood: &Understood) -> Option<Str
     {
         return None;
     }
-    dup::without(understood) // DUP-D2(bot.knowledge.cooking::without)
+    dup::without(understood) // cooking::without (re-exported by d2dup_g6)
 }
 
 /// Smoked fish: already cooked, so heat it through (smoked salmon wants no cooking).
