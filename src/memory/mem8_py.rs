@@ -81,10 +81,27 @@ pub(crate) fn py_int_str(s: &str) -> Option<i64> {
         if c == '_' {
             continue;
         }
-        let d = c.to_digit(10).filter(|_| c.is_numeric())? as i64;
+        let d = decimal_value(c)?;
         n = n.checked_mul(10)?.checked_add(d)?;
     }
     Some(if neg { -n } else { n })
+}
+
+/// The value of a Unicode decimal digit (category Nd), as `int()` reads it. Every run of Nd
+/// characters is whole tens starting at a zero, so the value is the offset in its run.
+pub(crate) fn decimal_value(c: char) -> Option<i64> {
+    use crate::understanding::pyuni::ch_decimal;
+    if c.is_ascii() {
+        return c.to_digit(10).map(|d| d as i64);
+    }
+    if !ch_decimal(c) {
+        return None;
+    }
+    let mut start = c as u32;
+    while char::from_u32(start - 1).is_some_and(ch_decimal) {
+        start -= 1;
+    }
+    Some(((c as u32 - start) % 10) as i64)
 }
 
 /// `memory.get(key)` as a value (None when missing).
@@ -149,4 +166,93 @@ macro_rules! inline_re {
             std::sync::LazyLock::new(|| crate::py::re::Re::new($pattern, $flags));
     };
 }
-pub(crate) use {inline_re, rx, strs, strset, val};
+/// A module-level int.
+macro_rules! int {
+    ($($name:ident),* $(,)?) => {$(
+        static $name: std::sync::LazyLock<i64> = std::sync::LazyLock::new(|| {
+            crate::data::get(&format!("{}{}", M, stringify!($name))).as_int().expect(stringify!($name))
+        });
+    )*};
+}
+pub(crate) use {inline_re, int, rx, strs, strset, val};
+
+/// The value a call into another file gives back, whatever Rust type its contract has: a
+/// contract generated from a trace that only saw `None` returns `()`, and such a function's
+/// real value arrives here unchanged once its owner types it properly.
+pub(crate) trait PyVal {
+    fn val(self) -> Value;
+}
+impl PyVal for () {
+    fn val(self) -> Value {
+        Value::None
+    }
+}
+impl PyVal for Value {
+    fn val(self) -> Value {
+        self
+    }
+}
+impl PyVal for &Value {
+    fn val(self) -> Value {
+        self.clone()
+    }
+}
+impl PyVal for bool {
+    fn val(self) -> Value {
+        Value::Bool(self)
+    }
+}
+impl PyVal for i64 {
+    fn val(self) -> Value {
+        Value::Int(self)
+    }
+}
+impl PyVal for String {
+    fn val(self) -> Value {
+        Value::from(self)
+    }
+}
+impl PyVal for &str {
+    fn val(self) -> Value {
+        Value::from(self)
+    }
+}
+impl PyVal for Vec<String> {
+    fn val(self) -> Value {
+        Value::from(self)
+    }
+}
+impl PyVal for Vec<Value> {
+    fn val(self) -> Value {
+        Value::from(self)
+    }
+}
+impl<T: PyVal> PyVal for Option<T> {
+    fn val(self) -> Value {
+        self.map(PyVal::val).unwrap_or(Value::None)
+    }
+}
+impl<A: PyVal, B: PyVal> PyVal for (A, B) {
+    fn val(self) -> Value {
+        Value::Tuple(std::sync::Arc::new(vec![self.0.val(), self.1.val()]))
+    }
+}
+
+/// `s[:1].lower() + s[1:]`.
+pub(crate) fn lower_first(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_lowercase().chain(c).collect(),
+    }
+}
+
+/// The last turn's bot line (`turns[-1].get("bot") or ""`), "" without a turn.
+pub(crate) fn last_bot(memory: &Memory) -> String {
+    memory.turns.last().map(|t| t.bot.clone()).unwrap_or_default()
+}
+
+/// The last turn's user line, "" without a turn.
+pub(crate) fn last_user(memory: &Memory) -> String {
+    memory.turns.last().map(|t| t.user.clone()).unwrap_or_default()
+}
