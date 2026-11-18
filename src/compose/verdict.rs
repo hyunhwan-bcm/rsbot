@@ -534,7 +534,8 @@ pub fn _say_with(pool: &[String], memory: &Memory, flat: &str, gaps: &[(&str, &s
 
 /// Python: bot/compose/verdict.py:2114 `_a_report_line(said)`
 pub fn _a_report_line(said: &str) -> bool {
-    caught(|| crate::compose::fallback::is_a_report_reply(said)).unwrap_or(false)
+    // Only the import is under Python's `try`; the reading itself raises through.
+    crate::compose::fallback::is_a_report_reply(said)
 }
 
 /// Python: bot/compose/verdict.py:2129 `_flat(text)`
