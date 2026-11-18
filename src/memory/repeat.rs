@@ -301,11 +301,9 @@ fn topics_said_again(said: &str, memory: &Memory) -> Option<String> {
     None
 }
 
-/// CONTRACT: `counts::answer` is typed `()`; Python returns the store's answer or None. Read as
-/// None until the contract carries the value.
+/// `counts.answer(text, memory)`: the store's answer, or None.
 fn counts_answer(text_: &str, memory: &Memory) -> Option<String> {
-    crate::memory::counts::answer(text_, memory);
-    None
+    crate::memory::counts::answer(text_, memory)
 }
 
 // ---------------------------------------------------------------------------------------------
