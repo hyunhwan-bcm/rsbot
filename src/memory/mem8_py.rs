@@ -256,3 +256,18 @@ pub(crate) fn last_bot(memory: &Memory) -> String {
 pub(crate) fn last_user(memory: &Memory) -> String {
     memory.turns.last().map(|t| t.user.clone()).unwrap_or_default()
 }
+
+/// `for x in value` over a memory value: the items of a list/tuple/set, a dict's keys, a
+/// string's characters. A falsy value gives nothing (`value or []`); an int or other
+/// non-iterable is Python's TypeError, which nothing catches.
+pub(crate) fn py_iter(value: Option<&Value>) -> Vec<Value> {
+    match value {
+        Some(v) if v.truthy() => match v {
+            Value::Dict(d) => d.iter().map(|(k, _)| k.clone()).collect(),
+            Value::Str(s) => s.chars().map(|c| Value::from(c.to_string())).collect(),
+            Value::List(_) | Value::Tuple(_) | Value::Set(_) => v.items().to_vec(),
+            other => panic!("TypeError: {other:?} is not iterable"),
+        },
+        _ => Vec::new(),
+    }
+}
