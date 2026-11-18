@@ -23,3 +23,5 @@ pub mod clothing;
 pub mod d2dup_g7;
 pub mod shopping;
 pub mod work;
+pub mod d2dup_entertainment;
+pub mod entertainment;
