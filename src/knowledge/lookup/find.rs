@@ -1148,11 +1148,14 @@ pub fn _defines(understood: &Understood, forms: &FormLine, _typed: &[String], en
     let purpose = _asks_what_it_is_for(said);
     let mut best: Option<&'static Entry> = None;
     let mut best_rank: Option<i64> = None;
+    let first_forms = _forms(&thing[0]);
     for &item in entries {
         if rejected(reject, item) {
             continue;
         }
-        if !_the_key_names_the_thing(item, &thing) {
+        // A key that names the thing has a word sharing a form with the thing's first word, so
+        // a key with none cannot (a quick test before `_the_key_names_the_thing`).
+        if !meets(&first_forms, &_key_forms(item)) || !_the_key_names_the_thing(item, &thing) {
             continue;
         }
         if !guard_passes(item, understood) {
@@ -1361,7 +1364,32 @@ pub fn _line_rows(
     }
 }
 
-/// `_rows_key(...)`: what the scanned rows depend on (`forms` by content).
+/// `_rows_key(forms, typed, named, frame, framed=False, asked=(), ask_said=())`: the cache key of
+/// a line's rows, as Python builds it (each position's forms sorted).
+pub fn _rows_key(forms: &crate::data::Value, typed: &[String], named: &[String], frame: bool, framed: bool, asked: &[String], ask_said: &[String]) -> crate::data::Value {
+    use crate::data::Value;
+    let strs = |v: &[String]| Value::Tuple(Arc::new(v.iter().map(|w| Value::from(w.as_str())).collect()));
+    let groups: Vec<Value> = forms
+        .items()
+        .iter()
+        .map(|group| {
+            let mut g = group.strs();
+            g.sort();
+            strs(&g)
+        })
+        .collect();
+    Value::Tuple(Arc::new(vec![
+        Value::Tuple(Arc::new(groups)),
+        strs(typed),
+        strs(named),
+        Value::Bool(frame),
+        Value::Bool(framed),
+        strs(asked),
+        strs(ask_said),
+    ]))
+}
+
+/// `_rows_key(...)` as the port keys its rows cache (`forms` by content).
 type RowsKey = (usize, usize, Vec<Vec<String>>, Vec<String>, Vec<String>, bool, bool, Vec<String>, Vec<String>);
 
 /// `_line_rows`' use of `_ROWS_CACHE`: the rows a line scanned before, for the whole knowledge
@@ -1598,7 +1626,7 @@ pub fn _the_words_without_a_colour(clean: &str, words: &[String]) -> Option<Vec<
 }
 
 /// `_the_key_words(entry)`.
-pub fn _the_key_words(entry: &Entry) -> HashSet<String> {
+pub fn _the_key_words(entry: &Entry) -> Arc<HashSet<String>> {
     _key_words(entry)
 }
 
