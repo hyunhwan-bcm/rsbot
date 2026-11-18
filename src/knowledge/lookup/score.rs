@@ -848,22 +848,20 @@ pub fn _key_words(item: &Entry) -> HashSet<String> {
 
 /// `_key_forms(item)`: every form of every key word.
 pub fn _key_forms(item: &Entry) -> Arc<HashSet<String>> {
-    static CACHE: LazyLock<RwLock<HashMap<usize, Arc<HashSet<String>>>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
-    let canonical = item.index != usize::MAX && crate::knowledge::entry::entries().get(item.index).is_some_and(|e| std::ptr::eq(e, item));
+    static EVERY: LazyLock<Vec<Arc<HashSet<String>>>> = LazyLock::new(|| all_entries().iter().map(work_out_key_forms).collect());
+    let canonical = item.index != usize::MAX && all_entries().get(item.index).is_some_and(|e| std::ptr::eq(e, item));
     if canonical {
-        if let Some(got) = CACHE.read().unwrap().get(&item.index) {
-            return got.clone();
-        }
+        return EVERY[item.index].clone();
     }
+    work_out_key_forms(item)
+}
+
+fn work_out_key_forms(item: &Entry) -> Arc<HashSet<String>> {
     let mut forms = HashSet::default();
     for word in _key_words(item) {
         forms.extend(_forms(&word).iter().cloned());
     }
-    let forms = Arc::new(forms);
-    if canonical {
-        CACHE.write().unwrap().insert(item.index, forms.clone());
-    }
-    forms
+    Arc::new(forms)
 }
 
 /// `_two_positions(forms, item)`: key words are said at two positions at least.
