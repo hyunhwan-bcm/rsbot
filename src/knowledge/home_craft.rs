@@ -272,7 +272,7 @@ static _FURNITURE_WORDS: LazyLock<&'static Re> = LazyLock::new(|| rx("_FURNITURE
 
 /// False when the line is the looseness of what a body passes, rather than a wobbly chair.
 pub fn _a_chair_and_not_a_body(understood: &Understood) -> bool {
-    if dup::the_stomach_is_what_it_is_about(understood) {
+    if crate::knowledge::body::the_stomach_is_what_it_is_about(understood) {
         return false;
     }
     let text = sh::clean_or_text(understood).to_lowercase();
@@ -553,13 +553,13 @@ pub fn entries__lambda_4889(u: &Understood) -> bool {
 /// The furniture-repair row stands down when the stomach is what the line is about.
 #[allow(non_snake_case)]
 pub fn entries__lambda_6500(understood: &Understood) -> bool {
-    !dup::the_stomach_is_what_it_is_about(understood)
+    !crate::knowledge::body::the_stomach_is_what_it_is_about(understood)
 }
 
 /// A thing's part that hurts: the part is a thing's, and the line is not the stomach.
 #[allow(non_snake_case)]
 pub fn entries__lambda_6518(understood: &Understood) -> bool {
-    dup::_a_thing_owns_the_part(understood) && !dup::the_stomach_is_what_it_is_about(understood)
+    crate::knowledge::body::_a_thing_owns_the_part(understood) && !crate::knowledge::body::the_stomach_is_what_it_is_about(understood)
 }
 
 /// The night-tariff row stands down for a line that asks where to get something.
@@ -577,7 +577,7 @@ pub fn entries__lambda_7175(u: &Understood) -> bool {
 /// The first-night-box row stands down when the stomach is what the line is about.
 #[allow(non_snake_case)]
 pub fn entries__lambda_8289(understood: &Understood) -> bool {
-    !dup::the_stomach_is_what_it_is_about(understood)
+    !crate::knowledge::body::the_stomach_is_what_it_is_about(understood)
 }
 
 /// The kitchen-bin row stands down for the recycle bin on a computer.

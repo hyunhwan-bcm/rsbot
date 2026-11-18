@@ -2118,7 +2118,7 @@ pub fn _furniture_upstairs(_memory: &Memory, understood: &Understood) -> String 
 
 /// False when the line asks what to cook with a food it names, so this row stands down.
 pub fn _not_a_cook_ask(understood: &Understood) -> bool {
-    !dup::cook_ask(understood)
+    !crate::knowledge::dishes::cook_ask(understood)
 }
 
 /// Keeping a brush usable: between coats, overnight, or after it has gone hard.

@@ -3,7 +3,6 @@
 //! person's own ache, and the replies for the everyday complaints the region rows lead to.
 
 use crate::data::{self, FnRef};
-use crate::knowledge::d1_dup_g4 as dup;
 use crate::knowledge::d1_shared::{self as sh, ShapeFn};
 use crate::knowledge::registry::{GuardFn, ReplyFn};
 use crate::py::re::{self as re, Re};
@@ -677,7 +676,7 @@ pub fn _said_already(opening: &str, memory: &Memory, keep: usize) -> bool {
 /// Swallowed sea water: the pet card when a pet is the one talked about, the 111 card for
 /// sickness or a lot of it, else the mouthful-is-harmless answer.
 pub fn _sea_water_reply(memory: &Memory, understood: &Understood) -> Option<String> {
-    if dup::pets_pet_in_the_talk(memory, understood) {
+    if crate::knowledge::pets::_pet_in_the_talk(memory, understood) {
         if _said_already("ring the vet now", memory, 3) {
             return Some(
                 "Same as before, and it still stands: ring the vet now and say how much salt \
@@ -687,7 +686,7 @@ pub fn _sea_water_reply(memory: &Memory, understood: &Understood) -> Option<Stri
                     .into(),
             );
         }
-        return dup::pets_pet_salt_water(memory, understood);
+        return crate::knowledge::pets::_pet_salt_water(memory, understood);
     }
     let line = understood.clean.to_lowercase();
     if SEA_WATER_ALARM.is_match(&line) {

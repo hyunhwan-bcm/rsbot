@@ -65,69 +65,6 @@ pub fn py_int(s: &str) -> Option<i64> {
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.pets
 
-/// DUP(bot.knowledge.pets::_pet_in_the_talk): whether the talk is about a pet: the line and the
-/// last three user turns, newest first, until one names a pet or a person.
-pub fn pets_pet_in_the_talk(memory: &Memory, understood: &Understood) -> bool {
-    static PET_NAMED: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.pets.PET_NAMED"));
-    static PERSON_NAMED: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.pets.PERSON_NAMED"));
-    let mut said: Vec<String> = vec![understood.clean.clone()];
-    let start = memory.turns.len().saturating_sub(3);
-    said.extend(memory.turns[start..].iter().map(|t| t.user.to_lowercase()));
-    for line in said.iter().rev() {
-        if PET_NAMED.is_match(line) {
-            return true;
-        }
-        if PERSON_NAMED.is_match(line) {
-            return false;
-        }
-    }
-    false
-}
-
-/// DUP(bot.knowledge.pets::_pet_words): the animal the line is about, as ("a cat", "cat",
-/// "cats"); a dog when nothing says otherwise.
-pub fn pets_pet_words(understood: &Understood) -> (&'static str, &'static str, &'static str) {
-    static CAT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(cat|cats|kitten|kittens)\b", 0));
-    static RABBIT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(rabbit|rabbits|bunny|bunnies)\b", 0));
-    let mut text: &str = &understood.clean;
-    let pointed_at: &str = &understood.animal_in_hand;
-    if !pointed_at.is_empty() {
-        if pointed_at.starts_with("cat") || pointed_at.starts_with("kitten") {
-            return ("a cat", "cat", "cats");
-        }
-        if pointed_at.starts_with("rabbit") || pointed_at.starts_with("bunny") {
-            return ("a rabbit", "rabbit", "rabbits");
-        }
-        if pointed_at.starts_with("dog") || pointed_at.starts_with("pupp") {
-            return ("a dog", "dog", "dogs");
-        }
-        text = pointed_at;
-    }
-    if CAT.is_match(text) {
-        return ("a cat", "cat", "cats");
-    }
-    if RABBIT.is_match(text) {
-        return ("a rabbit", "rabbit", "rabbits");
-    }
-    ("a dog", "dog", "dogs")
-}
-
-/// DUP(bot.knowledge.pets::_pet_salt_water): ring the vet about a pet that drank salt water;
-/// None when no pet is in the talk.
-pub fn pets_pet_salt_water(memory: &Memory, understood: &Understood) -> Option<String> {
-    if !pets_pet_in_the_talk(memory, understood) {
-        return None;
-    }
-    let (one, _kind, _they) = pets_pet_words(understood);
-    Some(format!(
-        "Ring the vet now and say how much salt water and when: salty water pulls water out of \
-         the body, and {one} that has had a lot will be sick, wobbly or drowsy within a few \
-         hours. Take the fresh water away so there is none to drink, offer small sips of plain \
-         water once the vet has said so, and do not wait for symptoms before you ring - this \
-         one is much easier treated early."
-    ))
-}
-
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.health
 
@@ -290,61 +227,6 @@ pub fn lookup_a_food_is_being_kept(understood: &Understood) -> bool {
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.wording
-
-/// DUP(bot.knowledge.wording::the_line_said): the line squashed and lower-cased with a space
-/// at each end, or "" for an empty line.
-pub fn wording_the_line_said(understood: &Understood) -> String {
-    let said = text::squash(sh::clean_or_text(understood)).to_lowercase();
-    if said.is_empty() { String::new() } else { format!(" {said} ") }
-}
-
-/// DUP(bot.knowledge.wording::_names_one_of): a phrase (substring) or a word (token) of the
-/// list is in the line.
-pub fn wording_names_one_of<S: AsRef<str>>(said: &str, phrases: &[S]) -> bool {
-    static TOKEN: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z']+", 0));
-    let tokens: HashSet<String> = TOKEN.findall_str(said).into_iter().collect();
-    phrases.iter().any(|p| {
-        let p = p.as_ref();
-        if p.contains(' ') { said.contains(p) } else { tokens.contains(p) }
-    })
-}
-
-/// DUP(bot.knowledge.wording::screens_are_a_childs): the screens in the line are a child's.
-pub fn wording_screens_are_a_childs(understood: &Understood) -> bool {
-    static ONLY_SAID_ABOUT_A_CHILD: LazyLock<Vec<String>> =
-        LazyLock::new(|| data::strs("bot.knowledge.wording._ONLY_SAID_ABOUT_A_CHILD"));
-    static A_CHILD_NAMED: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.wording._A_CHILD_NAMED"));
-    let said = wording_the_line_said(understood);
-    if text::strip(&said).is_empty() {
-        return true;
-    }
-    if sh::any_in(&said, &ONLY_SAID_ABOUT_A_CHILD) {
-        return true;
-    }
-    wording_names_one_of(&said, &A_CHILD_NAMED)
-}
-
-/// DUP(bot.knowledge.wording::screens_are_somebody_elses): the screen time in the line is
-/// another adult's at home, not the person's own or a child's.
-pub fn wording_screens_are_somebody_elses(understood: &Understood) -> bool {
-    static MY_OWN_SCREENS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.wording._MY_OWN_SCREENS"));
-    static THEIR_SCREENS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.wording._THEIR_SCREENS"));
-    static SOMEBODY_AT_HOME: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.wording._SOMEBODY_AT_HOME"));
-    let said = wording_the_line_said(understood);
-    if text::strip(&said).is_empty() {
-        return false;
-    }
-    if MY_OWN_SCREENS.is_match(&said) {
-        return false;
-    }
-    if wording_screens_are_a_childs(understood) {
-        return false;
-    }
-    if THEIR_SCREENS.is_match(&said) {
-        return true;
-    }
-    SOMEBODY_AT_HOME.iter().any(|p| said.contains(&format!("{p} ")))
-}
 
 // ---------------------------------------------------------------------------------------------
 // bot.memory.thread

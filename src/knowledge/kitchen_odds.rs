@@ -2,7 +2,6 @@
 //! the food (the board, the knife, the air fryer basket), and the probe row's guard.
 
 use crate::data::{self, FnRef};
-use crate::knowledge::d1_dup_g3 as dup;
 use crate::knowledge::dishes;
 use crate::knowledge::registry::{GuardFn, ReplyFn};
 use crate::state::Memory;
@@ -63,7 +62,7 @@ pub fn a_dish_has_its_own_heat(understood: &Understood) -> bool {
 
 /// The probe row's guard: not a person's own temperature, and not a dish with its own heat.
 pub fn lambda_464(understood: &Understood) -> bool {
-    !dup::a_persons_temperature(understood) && !a_dish_has_its_own_heat(understood)
+    !crate::knowledge::body::a_persons_temperature(understood) && !a_dish_has_its_own_heat(understood)
 }
 
 fn g_lambda_464(_f: &FnRef, u: &Understood) -> bool {

@@ -236,99 +236,14 @@ pub fn the_bin_is_on_a_machine(understood: &Understood) -> bool {
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.body
 
-static OBJECT_OWNERS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.body.OBJECT_OWNERS"));
-static THING_PARTS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.body.THING_PARTS"));
 static _PERSON_OWNER: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.body._PERSON_OWNER"));
 static _DETERMINERS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.body._DETERMINERS"));
-static HURT_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.body.HURT_WORDS"));
 static _POSSESSIVES: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.body._POSSESSIVES"));
-
-/// DUP(bot.knowledge.body::the_stomach_is_what_it_is_about): the reading says the line is about
-/// the person's stomach.
-pub fn the_stomach_is_what_it_is_about(understood: &Understood) -> bool {
-    understood.body.as_deref() == Some("stomach") || understood.own_output.is_some()
-}
-
-/// DUP(bot.knowledge.body::_owner_word): the thing named by a word that can own a part.
-pub fn _owner_word(word: &str) -> bool {
-    let mut word = sh::strip_punct(word);
-    if word.ends_with("'s") {
-        word = &word[..word.len() - 2];
-    }
-    OBJECT_OWNERS.contains(word) || (word.ends_with('s') && OBJECT_OWNERS.contains(&word[..word.len() - 1]))
-}
-
-/// DUP(bot.knowledge.body::_a_thing_owns_the_part): the line's body word belongs to a thing, not
-/// to a person. (The typed reading's `words` is always a list, so Python's fallback to `clean`
-/// never runs.)
-pub fn _a_thing_owns_the_part(understood: &Understood) -> bool {
-    let words: Vec<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
-    let strip = |w: &String| sh::strip_punct(w).to_string();
-    for (index, word) in words.iter().enumerate() {
-        if !THING_PARTS.contains(sh::strip_punct(word)) {
-            continue;
-        }
-        if index > 0 && _owner_word(&words[index - 1]) {
-            return true;
-        }
-        let window = |a: usize, b: usize| -> &[String] { &words[a.min(words.len())..b.min(words.len())] };
-        let nxt: Vec<String> = window(index + 1, index + 4)
-            .iter()
-            .map(strip)
-            .filter(|w| !w.is_empty() && !_DETERMINERS.contains(w))
-            .collect();
-        if !nxt.is_empty() && !THING_PARTS.contains(&nxt[0]) && _owner_word(&nxt[0]) {
-            return true;
-        }
-        let between: Vec<String> = window(index + 1, index + 5).iter().map(strip).collect();
-        for preposition in ["in", "inside"] {
-            if let Some(cut) = between.iter().position(|w| w == preposition) {
-                if !between[..cut].iter().any(|w| HURT_WORDS.contains(w)) {
-                    let rest: Vec<&String> = between[cut + 1..]
-                        .iter()
-                        .filter(|w| !w.is_empty())
-                        .filter(|w| !_DETERMINERS.contains(*w))
-                        .filter(|w| !_POSSESSIVES.contains(*w))
-                        .collect();
-                    if !rest.is_empty() && _owner_word(rest[0]) {
-                        return true;
-                    }
-                }
-                break;
-            }
-        }
-        let after = window(index + 1, index + 5);
-        if !after.is_empty() && sh::strip_punct(&after[0]) == "of" {
-            let mut rest: Vec<String> =
-                after[1..].iter().map(strip).filter(|w| !w.is_empty() && !_DETERMINERS.contains(w)).collect();
-            while rest.len() > 1 && _POSSESSIVES.contains(&rest[0]) {
-                rest.remove(0);
-            }
-            if !rest.is_empty() && !_PERSON_OWNER.contains(&rest[0]) && !THING_PARTS.contains(&rest[0]) {
-                return true;
-            }
-            if rest.iter().any(|w| _owner_word(w)) {
-                return true;
-            }
-        }
-    }
-    false
-}
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.dishes
 
 static _COOK_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes._COOK_PHRASES"));
-static FOOD_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes.FOOD_WORDS"));
-
-/// DUP(bot.knowledge.dishes::cook_ask): the line asks what to make or eat with a food it names.
-pub fn cook_ask(understood: &Understood) -> bool {
-    let text = sh::or(&understood.norm_text, &understood.clean).to_lowercase();
-    if !_COOK_PHRASES.iter().any(|w| text.contains(w.as_str())) {
-        return false;
-    }
-    FOOD_WORDS.iter().any(|f| text.contains(f.as_str()))
-}
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.travel

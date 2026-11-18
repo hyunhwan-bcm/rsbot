@@ -254,41 +254,6 @@ pub fn says_another_thing(text: &str) -> HashSet<String> {
 }
 
 // ---------------------------------------------------------------------------------------------
-// bot.knowledge.body
-
-static TEMPERATURE_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.body.TEMPERATURE_WORDS"));
-static THING_AFTER_THE_WORD: LazyLock<HashSet<String>> =
-    LazyLock::new(|| data::set("bot.knowledge.body.THING_AFTER_THE_WORD"));
-static BODY_OTHER_PEOPLE: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.body.OTHER_PEOPLE"));
-static WE_OUR_OURS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.body.WE_OUR_OURS"));
-static POSSESSIVE_OF_A_PERSON: LazyLock<HashSet<String>> =
-    LazyLock::new(|| data::set("bot.knowledge.body.POSSESSIVE_OF_A_PERSON"));
-
-/// DUP(bot.knowledge.body::a_persons_temperature): the temperature in the line is somebody's
-/// own (a fever), not an oven's or a probe's.
-pub fn a_persons_temperature(u: &Understood) -> bool {
-    let words: Vec<String> = u.words.iter().map(|w| sh::strip_punct(&w.to_lowercase()).to_string()).collect();
-    if words
-        .windows(2)
-        .any(|p| TEMPERATURE_WORDS.contains(&p[0]) && THING_AFTER_THE_WORD.contains(&p[1]))
-    {
-        return false;
-    }
-    if u.body.as_deref() == Some("temperature") {
-        return true;
-    }
-    if !words.iter().any(|w| TEMPERATURE_WORDS.contains(w)) {
-        return false;
-    }
-    if words.iter().any(|w| BODY_OTHER_PEOPLE.contains(w) || WE_OUR_OURS.contains(w)) {
-        return true;
-    }
-    words
-        .windows(2)
-        .any(|p| POSSESSIVE_OF_A_PERSON.contains(&p[0]) && TEMPERATURE_WORDS.contains(&p[1]))
-}
-
-// ---------------------------------------------------------------------------------------------
 // bot.knowledge.cleaning and bot.compose.fit
 
 static LANDED_ON: LazyLock<&'static crate::py::re::Re> = LazyLock::new(|| data::re("bot.knowledge.cleaning.LANDED_ON"));

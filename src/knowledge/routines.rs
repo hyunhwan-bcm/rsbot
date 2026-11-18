@@ -83,7 +83,7 @@ pub fn lambda_250(understood: &Understood) -> bool {
 /// The screen-time row's guard (`<lambda>:490`): not about money, and the screens are not
 /// somebody else's.
 pub fn lambda_490(reading: &Understood) -> bool {
-    _not_about_money(reading) && !dup::wording_screens_are_somebody_elses(reading)
+    _not_about_money(reading) && !crate::knowledge::wording::screens_are_somebody_elses(reading)
 }
 
 // ---------------------------------------------------------------------------------------------
