@@ -3921,38 +3921,118 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The factories: the closures they build (as `FnRef`s the registry runs) and the import-time fold
+// of the meal ideas into the pantry, whose result is the bundle's `PANTRY`.
 
-    /// Python: bot/knowledge/cooking.py:132 `_baked_keep()` (never called on the trace corpus)
-    pub fn _baked_keep() -> Value {
-        crate::unported!("bot.knowledge.cooking:_baked_keep")
-    }
-
-    /// Python: bot/knowledge/cooking.py:8091 `_bread_rise_answer()` (never called on the trace corpus)
-    pub fn _bread_rise_answer() -> Value {
-        crate::unported!("bot.knowledge.cooking:_bread_rise_answer")
-    }
-
-    /// Python: bot/knowledge/cooking.py:10303 `_fold_meal_ideas()` (never called on the trace corpus)
-    pub fn _fold_meal_ideas() {
-        crate::unported!("bot.knowledge.cooking:_fold_meal_ideas")
-    }
-
-    /// Python: bot/knowledge/cooking.py:12240 `_recipe_only_when_asked_for_this(reply, names=(), no_yeast_ok=False)` (never called on the trace corpus)
-    pub fn _recipe_only_when_asked_for_this(reply: &str, names: &[String], no_yeast_ok: &Value) -> Value {
-        crate::unported!("bot.knowledge.cooking:_recipe_only_when_asked_for_this")
-    }
-
+/// `_baked_keep()`: the keeping answer for the small baked things (`_baked_keep_reply`).
+pub fn _baked_keep() -> crate::data::FnRef {
+    crate::knowledge::built::function("bot.knowledge.cooking:_baked_keep.<locals>.reply:134")
 }
 
+/// `_bread_rise_answer()`: why a loaf is slow, worded for the prove the person is doing.
+pub fn _bread_rise_answer() -> crate::data::FnRef {
+    crate::knowledge::built::function("bot.knowledge.cooking:_bread_rise_answer.<locals>.answer:8098")
+}
+
+/// `_fold_meal_ideas()`: fold the older meal-ideas list into the pantry table, so one table
+/// answers every way of asking. Python mutates `PANTRY` in place at import; this folds the
+/// `meal_ideas` rows into the `pantry` given ({name: (aliases, idea)}, in order).
+pub fn _fold_meal_ideas(
+    pantry: &mut indexmap::IndexMap<String, (Vec<String>, String)>,
+    meal_ideas: &[(Vec<String>, String)],
+    vague_words: &[String],
+) {
+    use crate::knowledge::cooking_b::_fold;
+    let vague: HashSet<String> = vague_words.iter().map(|w| _fold(w)).collect();
+    let names: Vec<String> = pantry.keys().cloned().collect();
+    for name in names {
+        let (aliases, idea) = pantry[&name].clone();
+        let kept: Vec<String> = aliases.iter().filter(|a| !vague.contains(&_fold(a))).cloned().collect();
+        if !kept.is_empty() && kept != aliases {
+            pantry.insert(name, (kept, idea));
+        }
+    }
+    let mut claimed: indexmap::IndexMap<String, String> = indexmap::IndexMap::new();
+    for (name, (aliases, _idea)) in pantry.iter() {
+        claimed.entry(name.clone()).or_insert_with(|| name.clone());
+        for alias in aliases {
+            claimed.entry(_fold(alias)).or_insert_with(|| name.clone());
+        }
+    }
+    for (names, idea) in meal_ideas {
+        let group: Vec<String> = names.iter().filter(|n| vague.contains(&_fold(n))).cloned().collect();
+        let solid: Vec<&String> = names.iter().filter(|n| !vague.contains(&_fold(n))).collect();
+        if !group.is_empty() && solid.iter().all(|n| claimed.contains_key(&_fold(n))) {
+            let key = _fold(&group[0]);
+            pantry.entry(key.clone()).or_insert_with(|| (group.clone(), idea.clone()));
+            for name in names {
+                claimed.entry(_fold(name)).or_insert_with(|| key.clone());
+            }
+            continue;
+        }
+        let mut key: Option<String> = None;
+        for name in names {
+            if vague.contains(&_fold(name)) {
+                continue;
+            }
+            key = claimed.get(&_fold(name)).cloned();
+            break;
+        }
+        let key = match key {
+            None => {
+                let key = _fold(&names[0]);
+                let alone: Vec<String> = names.iter().filter(|n| !claimed.contains_key(&_fold(n)) || **n == names[0]).cloned().collect();
+                pantry.insert(key.clone(), (alone, idea.clone()));
+                key
+            }
+            Some(key) => {
+                let (aliases, short) = pantry.get(&key).cloned().unwrap_or_else(|| panic!("KeyError: {key:?}"));
+                let mut aliases = aliases;
+                aliases.extend(names.iter().filter(|n| !claimed.contains_key(&_fold(n)) && !vague.contains(&_fold(n))).cloned());
+                pantry.insert(key.clone(), (aliases, short));
+                key
+            }
+        };
+        for name in names {
+            claimed.entry(_fold(name)).or_insert_with(|| key.clone());
+        }
+    }
+}
+
+/// `_recipe_only_when_asked_for_this(reply, names=(), no_yeast_ok=False)`: this method, unless
+/// the line is not asking for it, wants a swap, or another way.
+pub fn _recipe_only_when_asked_for_this(reply: &str, names: &[String], no_yeast_ok: bool) -> crate::data::FnRef {
+    let total = crate::knowledge::cooking_b::_recipe_total(reply);
+    crate::knowledge::built::closure(
+        "bot.knowledge.cooking:_recipe_only_when_asked_for_this.<locals>.answer:12250",
+        vec![
+            ("names", crate::knowledge::built::words(names)),
+            ("no_yeast_ok", Value::Bool(no_yeast_ok)),
+            ("reply", Value::from(reply)),
+            ("total", Value::from(total.as_str())),
+        ],
+    )
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    /// Every recipe row's closure is what the factory makes from the row's own reply and names.
+    #[test]
+    fn recipe_rows_rebuild() {
+        data::load();
+        let mut n = 0;
+        for row in crate::knowledge::entries() {
+            let crate::knowledge::entry::Reply::Fn(f) = &row.reply else { continue };
+            if !f.id.starts_with("bot.knowledge.cooking:_recipe_only_when_asked_for_this") {
+                continue;
+            }
+            let ours = _recipe_only_when_asked_for_this(f.cell("reply").unwrap().str(), &f.cell("names").unwrap().strs(), f.cell("no_yeast_ok").unwrap().truthy());
+            assert_eq!(ours.cell("total"), f.cell("total"), "{}", row.id);
+            n += 1;
+        }
+        assert!(n > 50, "{n} recipe rows");
+    }
+}
