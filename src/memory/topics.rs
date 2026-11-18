@@ -2198,6 +2198,997 @@ pub fn attribute_of_the_thing(text_: &str, memory: &Memory) -> Option<String> {
 }
 
 
+
+static PRICE_ASK: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "PRICE_ASK"));
+static ASKS_FOR_ADVICE: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "ASKS_FOR_ADVICE"));
+static CAUSE_OF_THE_COMPLAINT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CAUSE_OF_THE_COMPLAINT"));
+static REFERRING_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "REFERRING_WORDS"));
+static DUMMY_IT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DUMMY_IT"));
+static ASK_MORE: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "ASK_MORE"));
+static STAND_IN: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "STAND_IN"));
+static ABOUT_THE_CHAT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ABOUT_THE_CHAT"));
+static ELIDED_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ELIDED_ASK"));
+static SAME_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SAME_ASK"));
+static COUNTING: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "COUNTING"));
+static THE_TAIL: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "THE_TAIL"));
+static LONG_IT_TAKES: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "LONG_IT_TAKES"));
+static TOPIC_OPENS_WITH: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "TOPIC_OPENS_WITH"));
+static STAY_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "STAY_ASK"));
+static STAY_ONLY: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "STAY_ONLY"));
+static TRIP_FRAME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "TRIP_FRAME"));
+pub static LIVES_THERE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "LIVES_THERE"));
+static POINTING_WORD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "POINTING_WORD"));
+static A_VERDICT: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "A_VERDICT"));
+static A_BARE_MEASURE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_BARE_MEASURE"));
+static ABOUT_A_BARE_THING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ABOUT_A_BARE_THING"));
+static A_FREQUENCY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_FREQUENCY"));
+static PROPERTY_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PROPERTY_ASK"));
+static MONTH_NAMES: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "MONTH_NAMES"));
+static SEASONS: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "SEASONS"));
+static WEATHER_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "WEATHER_WORDS"));
+static ABOUT_NAMED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ABOUT_NAMED"));
+static _ABOUT_TAIL_PRONOUN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_ABOUT_TAIL_PRONOUN"));
+static ABOUT_MOST_WORDS: LazyLock<i64> = LazyLock::new(|| t::int(M, "ABOUT_MOST_WORDS"));
+static DEFINITE_OPEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DEFINITE_OPEN"));
+static ANSWER_OPENING: LazyLock<i64> = LazyLock::new(|| t::int(M, "ANSWER_OPENING"));
+static CONSTRAINT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CONSTRAINT"));
+static CONSTRAINT_FILLER: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "CONSTRAINT_FILLER"));
+static CLAUSE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CLAUSE"));
+static ASIDE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASIDE"));
+static SHIELD: LazyLock<&'static str> = LazyLock::new(|| t::string(M, "SHIELD"));
+
+static ELIDED_LEAD: LazyLock<Re> = LazyLock::new(|| {
+    Re::new(r"^(?:(?:ok|okay|so|and|also|plus|or|then|right|yeah|yes|oh|em|um)\s+)*(?:how|what)\s+about\s+", 0)
+});
+static AN_ASK_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:how|when|where|why|which|who)\b", 0));
+static A_WORD_OF_LETTERS: LazyLock<Re> = LazyLock::new(|| Re::new(r"[A-Za-z']+", 0));
+static A_OR_SOME: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(?:a|an|some)\b", crate::py::re::I));
+
+/// Python's truth of whatever another workstream's function returns (its contract type may still
+/// be `()` while it is a stub).
+trait PyTruth {
+    fn py_truth(&self) -> bool;
+}
+impl PyTruth for () {
+    fn py_truth(&self) -> bool {
+        false
+    }
+}
+impl PyTruth for bool {
+    fn py_truth(&self) -> bool {
+        *self
+    }
+}
+impl PyTruth for String {
+    fn py_truth(&self) -> bool {
+        !self.is_empty()
+    }
+}
+impl PyTruth for Value {
+    fn py_truth(&self) -> bool {
+        self.truthy()
+    }
+}
+impl<T: PyTruth> PyTruth for Option<T> {
+    fn py_truth(&self) -> bool {
+        self.as_ref().is_some_and(PyTruth::py_truth)
+    }
+}
+impl<T> PyTruth for Vec<T> {
+    fn py_truth(&self) -> bool {
+        !self.is_empty()
+    }
+}
+
+/// The words of every alternative of every part of a key (`for part in key: for phrase in
+/// (part if tuple else (part,)): words(phrase)`).
+fn _words_of_parts(parts: &[KeyPart]) -> HashSet<String> {
+    let mut found = HashSet::new();
+    for part in parts {
+        for phrase in lookup::alternatives(part) {
+            found.extend(words(phrase));
+        }
+    }
+    found
+}
+
+/// `word in keyed or stem(word) in keyed or _said(word, keyed)`.
+fn _keyed_word(word: &str, keyed: &HashSet<String>) -> bool {
+    if keyed.contains(word) || keyed.contains(&stem(word)) {
+        return true;
+    }
+    let as_list: Vec<String> = keyed.iter().cloned().collect();
+    _said(word, &as_list)
+}
+
+/// `len(a & b)` for two word sets.
+fn _shared(a: &HashSet<String>, b: &HashSet<String>) -> usize {
+    a.iter().filter(|w| b.contains(*w)).count()
+}
+
+/// `_the_part_a_complaint_is_about(text)`: the body part a line complains about, or None.
+pub fn _the_part_a_complaint_is_about(text_: &str) -> Option<String> {
+    crate::knowledge::body::the_part_that_hurts(text_)
+}
+
+/// `_the_cause_words(text)`: the words after the cause in a complaint, or an empty set.
+pub fn _the_cause_words(text_: &str) -> HashSet<String> {
+    let low = text_.to_lowercase();
+    let Some(found) = CAUSE_OF_THE_COMPLAINT.search(&low) else { return HashSet::new() };
+    words(&low[found.end()..]).into_iter().collect()
+}
+
+/// `_subject_words_to_carry(record, text, memory)`: the topic's words a follow-up carries, with a
+/// complaint's cause left behind.
+pub fn _subject_words_to_carry(record: &Value, text_: &str, memory: &Memory) -> Vec<String> {
+    let topic_text = if is_dict(record) { rget(record, "text") } else { String::new() };
+    let subject_ = key_subject(&topic_text, Some(memory));
+    let part = _the_part_a_complaint_is_about(&topic_text).filter(|p| !p.is_empty());
+    let cause = _the_cause_words(&topic_text);
+    if let Some(part) = part {
+        if !cause.is_empty()
+            && !words(text_).contains(&part)
+            && !_the_part_a_complaint_is_about(text_).is_some_and(|p| !p.is_empty())
+        {
+            let mut kept: Vec<String> = subject_.into_iter().filter(|w| !cause.contains(w) || *w == part).collect();
+            if !kept.contains(&part) {
+                kept.insert(0, part);
+            }
+            return kept;
+        }
+    }
+    subject_
+}
+
+/// `_where_the_topic_lands(topic)`: the entry the topic is about, read past the verb it happens to
+/// share with an entry's ask.
+pub fn _where_the_topic_lands(topic: &str) -> Option<&'static Entry> {
+    let found = _entry(topic)?;
+    let asked = _words_of_parts(&found.ask);
+    if asked.is_empty() {
+        return Some(found);
+    }
+    let all = words(topic);
+    let kept: Vec<String> = all.iter().filter(|w| !asked.contains(&stem(w)) && !asked.contains(*w)).cloned().collect();
+    if kept.len() == all.len() {
+        return Some(found);
+    }
+    let Some(other) = _entry(&kept.join(" ")) else { return Some(found) };
+    if std::ptr::eq(other, found) {
+        return Some(found);
+    }
+    let topic_keys: HashSet<String> = keywords(topic).into_iter().collect();
+    if _shared(&_key_words_of(other), &topic_keys) < 2 {
+        return Some(found);
+    }
+    Some(other)
+}
+
+/// `an_entry_for(text)`: the knowledge entry a line reaches on its own (the exported entry
+/// object), or None.
+pub fn an_entry_for(text_: &str) -> Value {
+    _entry(text_).map(|e| e.raw.clone()).unwrap_or(Value::None)
+}
+
+/// `_the_last_question(memory)`: the last line of the chat that asked something, or "".
+pub fn _the_last_question(memory: &Memory) -> String {
+    for turn in memory.turns.iter().rev() {
+        let said = text::strip(&turn.user).to_string();
+        if said.contains('?') || !crate::understanding::understand(&said, Some(memory)).asks.is_empty() {
+            return said;
+        }
+    }
+    String::new()
+}
+
+/// `how_much_of_the_thing_in_hand(line, memory)`: the last question in the chat, with this
+/// line's count of the thing in hand in it, or "".
+pub fn how_much_of_the_thing_in_hand(line: &str, memory: &Memory) -> String {
+    let said = text::strip(line).to_string();
+    if SAME_ASK.match_(&said).is_none() {
+        return String::new();
+    }
+    let body = SAME_ASK.sub("", &said);
+    let counted = words(&gist(&body));
+    if counted.is_empty() || !counted.iter().all(|w| COUNTING.contains(w) || crate::understanding::pyuni::is_digit(w)) {
+        return String::new();
+    }
+    let asked = _the_last_question(memory);
+    if asked.is_empty() {
+        return String::new();
+    }
+    let mut head = String::new();
+    for m in THE_TAIL.finditer(&asked) {
+        head = asked[..m.end()].to_string();
+    }
+    if head.is_empty() || crate::understanding::understand(&format!("{head} {body}"), Some(memory)).asks.is_empty() {
+        return String::new();
+    }
+    let before = memory.turns.last().map(|t_| t_.user.clone()).unwrap_or_default();
+    let head_words = words(&head);
+    let said_words = words(&said);
+    let thing: Vec<String> =
+        words(&gist(&before)).into_iter().filter(|w| !head_words.contains(w) && !said_words.contains(w)).collect();
+    if thing.is_empty() {
+        return String::new();
+    }
+    let mut all = head_words.clone();
+    all.extend(counted);
+    all.extend(thing);
+    let read = all.join(" ");
+    if read.is_empty() || _entry(&read).is_none() {
+        return String::new();
+    }
+    read
+}
+
+/// `elided_ask(text)`: the line asks about a thing it names with the asking left off.
+pub fn elided_ask(text_: &str) -> bool {
+    let said = text::strip(&text_.to_lowercase()).to_string();
+    if said.is_empty() || words(&said).len() > 5 {
+        return false;
+    }
+    if ELIDED_ASK.match_(&said).is_none() {
+        return false;
+    }
+    let asked = ELIDED_LEAD.sub("", &said);
+    !AN_ASK_WORD.is_match(&asked)
+}
+
+/// `names_nothing(text)`: a line asks something and names nothing it could be about.
+pub fn names_nothing(text_: &str) -> bool {
+    _content_words(text_).is_empty()
+}
+
+/// `_content_words(text)`: the words of a line that could name a thing of its own.
+pub fn _content_words(text_: &str) -> Vec<String> {
+    if ABOUT_THE_CHAT.is_match(&text_.to_lowercase()) {
+        return Vec::new();
+    }
+    words(text_)
+        .into_iter()
+        .filter(|w| !STOPWORDS.contains(w) && !ASK_ONLY.contains(w) && !ASK_MORE.contains(w) && !STAND_IN.contains(w))
+        .collect()
+}
+
+/// `_the_topic_phrase(topic)`: the topic as the phrase a frame can take ("im buying a house" ->
+/// "buying a house"), or "".
+pub fn _the_topic_phrase(topic: &str) -> String {
+    let said = low_squash(topic);
+    let said = text::strip_chars(&said, " .,;:!?");
+    let said = TOPIC_OPENS_WITH.sub("", said);
+    let said = text::strip(&said);
+    if text::split(said).len() >= 2 { said.to_string() } else { String::new() }
+}
+
+/// `_a_length_of_the_job(item)`: the entry is keyed to "how long ... take".
+pub fn _a_length_of_the_job(item: &'static Entry) -> bool {
+    for part in &item.key {
+        let said = _words_of_parts(std::slice::from_ref(part));
+        if ["take", "takes", "taking"].iter().any(|w| said.contains(*w)) && ["how", "long", "time"].iter().any(|w| said.contains(*w)) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `the_city_of(topic)`: the city of the days-per-city table the topic names, or None.
+pub fn the_city_of(topic: &str) -> Option<String> {
+    use crate::knowledge::travel::{_find_in, CITY_DAYS};
+    _find_in(&topic.to_lowercase(), &CITY_DAYS).map(str::to_string)
+}
+
+/// `the_country_of(topic)`: the country of the where-to-go table the topic names, or None.
+pub fn the_country_of(topic: &str) -> Option<String> {
+    use crate::knowledge::travel::{_find_in, WHERE_TO_GO};
+    _find_in(&topic.to_lowercase(), &WHERE_TO_GO).map(str::to_string)
+}
+
+/// `asks_how_long_to_stay(line)`: the line is shaped like an ask for how long.
+pub fn asks_how_long_to_stay(line: &str) -> bool {
+    STAY_ASK.is_match(&line.to_lowercase())
+}
+
+/// `going_there(place, topic)`: the topic says the person is going to the place, not living in
+/// it.
+pub fn going_there(place: &str, topic: &str) -> bool {
+    let said = topic.to_lowercase();
+    for m in LIVES_THERE.finditer(&said) {
+        let after: String = said[m.end()..].chars().take(40).collect();
+        if after.contains(place) {
+            return false;
+        }
+    }
+    TRIP_FRAME.is_match(&said)
+}
+
+/// `a_stay_with_the_place(line, topic)`: the stay-length ask with the place the topic names in
+/// it, or None.
+pub fn a_stay_with_the_place(line: &str, topic: &str) -> Option<String> {
+    use crate::knowledge::travel::{_find_in, CITY_DAYS};
+    let lowered = line.to_lowercase();
+    if !STAY_ASK.is_match(&lowered) {
+        return None;
+    }
+    if words(&lowered).iter().any(|w| !STAY_ONLY.contains(w)) {
+        return None;
+    }
+    if _find_in(&lowered, &CITY_DAYS).is_some() {
+        return None;
+    }
+    let place = the_city_of(topic).filter(|p| !p.is_empty()).or_else(|| the_country_of(topic)).filter(|p| !p.is_empty())?;
+    if !going_there(&place, topic) {
+        return None;
+    }
+    let said = text::strip(text::rstrip_chars(text::strip(&lowered), "?.!"));
+    Some(format!("{said} in {place}"))
+}
+
+/// `_the_ways_of_saying_it(stem_of, line, cands)`: (tried, carried) for each candidate, said the
+/// two ways it can be said.
+pub fn _the_ways_of_saying_it(stem_of: &str, line: &str, cands: &[Vec<String>]) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for cand in cands {
+        let carried = cand.join(" ");
+        out.push((format!("{stem_of} {carried}"), carried));
+    }
+    if POINTING_WORD.is_match(line) {
+        for cand in cands {
+            let carried = cand.join(" ");
+            let put = POINTING_WORD.sub_with(line, 1, |_| carried.clone());
+            out.push((low_squash(&put), carried));
+        }
+    }
+    out
+}
+
+/// `_the_last_answer(memory)`: the bot's last reply, or "".
+pub fn _the_last_answer(memory: &Memory) -> String {
+    memory.turns.iter().rev().map(|t_| t_.bot.clone()).find(|b| !b.is_empty()).unwrap_or_default()
+}
+
+/// `_the_topics_on_the_chat(topic=None, memory=None)`: the topic in hand first, then the ones the
+/// chat has been on, newest first.
+pub fn _the_topics_on_the_chat(topic: &str, memory: &Memory) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for one in records(memory).iter().rev() {
+        let said = rget(one, "text");
+        if !said.is_empty() && !out.contains(&said) {
+            out.push(said);
+        }
+    }
+    if let Some(i) = out.iter().position(|o| o == topic) {
+        out.remove(i);
+    }
+    if !topic.is_empty() {
+        out.insert(0, topic.to_string());
+    }
+    out
+}
+
+/// `_the_thing_a_measure_is_of(line, topic=None, memory=None)`: the bare thing a measure ask
+/// names, when the chat has an answer to be a follow-up on.
+pub fn _the_thing_a_measure_is_of(line: &str, topic: &str, memory: &Memory) -> Option<String> {
+    if _the_last_answer(memory).is_empty() {
+        return None;
+    }
+    if !A_BARE_MEASURE.is_match(&line.to_lowercase()) {
+        return None;
+    }
+    let mut on_the_chat: HashSet<String> = HashSet::new();
+    for one in _the_topics_on_the_chat(topic, memory) {
+        let phrase = _the_topic_phrase(&one);
+        on_the_chat.extend(keywords(if phrase.is_empty() { &one } else { &phrase }));
+    }
+    keywords(line).into_iter().find(|w| !MEASURE_WORDS.contains(w) && !on_the_chat.contains(w))
+}
+
+/// `_with_the_word_before(line, word, thing)`: the line with `word` put in front of the thing it
+/// asks about, or None.
+pub fn _with_the_word_before(line: &str, word: &str, thing: &str) -> Option<String> {
+    for found in A_WORD_OF_LETTERS.finditer(line) {
+        if stem(&found.as_str().to_lowercase()) == thing {
+            let put = format!("{}{} {}", &line[..found.start()], word, &line[found.start()..]);
+            return Some(text::strip(&put).to_string());
+        }
+    }
+    None
+}
+
+/// `_how_they_feel(word)`: the word says how the person feels about the thing.
+pub fn _how_they_feel(word: &str) -> bool {
+    if word.is_empty() {
+        return false;
+    }
+    if A_VERDICT.contains(word) {
+        return true;
+    }
+    forms(word).iter().any(|f| A_VERDICT.contains(f))
+}
+
+/// `_keyed_to(keyed, word)`: a key holds the word, in any of the forms it takes.
+pub fn _keyed_to(keyed: &HashSet<String>, word: &str) -> bool {
+    if keyed.contains(word) || keyed.contains(&stem(word)) {
+        return true;
+    }
+    keyed.iter().any(|key| forms(key).contains(word))
+}
+
+/// `_a_measure_of_the_topic(line, topic=None, memory=None)`: the measure ask widened with a topic
+/// word, or None.
+pub fn _a_measure_of_the_topic(line: &str, topic: &str, memory: &Memory) -> Option<String> {
+    let thing = _the_thing_a_measure_is_of(line, topic, memory)?;
+    let said: HashSet<String> = words(line).into_iter().collect();
+    for one in _the_topics_on_the_chat(topic, memory) {
+        let phrase = _the_topic_phrase(&one);
+        for word in keywords(if phrase.is_empty() { &one } else { &phrase }) {
+            if said.contains(&word) || MEASURE_WORDS.contains(&word) {
+                continue;
+            }
+            let Some(widened) = _with_the_word_before(line, &word, &thing) else { continue };
+            if widened.is_empty() {
+                continue;
+            }
+            let Some(found) = _entry(&widened) else { continue };
+            let keyed = _key_words_of(found);
+            if keyed.contains(&thing) && _keyed_to(&keyed, &word) {
+                return Some(widened);
+            }
+        }
+    }
+    None
+}
+
+/// `carry_the_ask(line, topic, understood=None, memory=None)`: a follow-up that names nothing
+/// takes the topic's own words with it, or None.
+pub fn carry_the_ask(line: &str, topic: &str, understood: &Understood, memory: &Memory) -> Option<String> {
+    let lowered = line.to_lowercase();
+    if ABOUT_THE_CHAT.is_match(&lowered) {
+        return None;
+    }
+    if PROCEED.iter().any(|p| lowered.contains(p.as_str())) {
+        return None;
+    }
+    let elided = elided_ask(line);
+    if !ASK_CUE.is_match(&lowered) && !elided {
+        return None;
+    }
+    if let Some(carried) = _carry_the_words(line, topic) {
+        return Some(carried);
+    }
+    if let Some(doing) = _the_ask_with_its_doing(line, topic, None) {
+        return Some(doing);
+    }
+    if let Some(measured) = _a_measure_of_the_topic(line, topic, memory) {
+        return Some(measured);
+    }
+    if elided && !_the_answer_covers_it(line, memory, Some(understood)) {
+        return _an_elided_ask_situated(line, topic, Some(understood));
+    }
+    None
+}
+
+/// `not memory` for a memory dict: nothing in it at all.
+fn _memory_is_empty(memory: &Memory) -> bool {
+    memory.understood.is_none()
+        && memory.intent_wants.is_none()
+        && !memory.extra_had_intent
+        && memory.asked_now.is_none()
+        && memory.turns.is_empty()
+        && memory.extra.is_empty()
+}
+
+/// `_the_answer_covers_it(line, memory, understood=None)`: the answer just given already has the
+/// step this line narrows.
+pub fn _the_answer_covers_it(line: &str, memory: &Memory, understood: Option<&Understood>) -> bool {
+    if _memory_is_empty(memory) {
+        return false;
+    }
+    let mut asked = vec![line.to_string()];
+    let typed = understood.map(|u| u.text.clone()).unwrap_or_default();
+    if !typed.is_empty() && !asked.contains(&typed) {
+        asked.push(typed);
+    }
+    let put_back: Vec<String> = asked.iter().filter_map(|one| _with_the_article(one)).filter(|p| !p.is_empty()).collect();
+    asked.extend(put_back);
+    asked.iter().any(|one| crate::memory::detail::answers_the_line(one, memory))
+}
+
+/// `_with_the_article(line)`: the line with "the" put back before a bare thing ("what about
+/// ceiling"), or None.
+pub fn _with_the_article(line: &str) -> Option<String> {
+    let found = ABOUT_A_BARE_THING.match_(line)?;
+    let (start, _) = found.name_span("thing")?;
+    Some(format!("{} the {}", found.name_str("open"), &line[start..]))
+}
+
+/// `_only_said_as_a_frequency(topic)`: the words of the topic it says only inside a frequency
+/// phrase.
+pub fn _only_said_as_a_frequency(topic: &str) -> HashSet<String> {
+    let left: HashSet<String> = words(&A_FREQUENCY.sub(" ", topic)).into_iter().collect();
+    words(topic).into_iter().filter(|w| !left.contains(w)).collect()
+}
+
+/// `_asks_a_property_and_nothing_else(text)`: "what temperature", "and how hot".
+pub fn _asks_a_property_and_nothing_else(text_: &str) -> bool {
+    let low = text::strip(text_).to_lowercase();
+    if PROPERTY_ASK.match_(&low).is_none() {
+        return false;
+    }
+    let found = keywords(&low);
+    !found.is_empty() && found.iter().all(|w| MEASURE_WORDS.contains(w))
+}
+
+/// `_carry_the_words(line, topic)`: the line widened with the topic's own words, or None when
+/// they reach no entry.
+pub fn _carry_the_words(line: &str, topic: &str) -> Option<String> {
+    if let Some(long_take) = LONG_IT_TAKES.match_(line) {
+        let phrase = _the_topic_phrase(topic);
+        let tried = if phrase.is_empty() { String::new() } else { format!("{} {} take", long_take.name_str("head"), phrase) };
+        let found = if tried.is_empty() { None } else { _entry(&tried) };
+        if let Some(found) = found {
+            if _a_length_of_the_job(found) && !keeps_away(&tried, &phrase, found) {
+                let keyed = _key_words_of(found);
+                let carried: HashSet<String> = keywords(&phrase).into_iter().collect();
+                if carried.len() >= 2
+                    && carried.iter().all(|w| keyed.contains(w) || keyed.contains(&stem(w)) || forms(w).iter().any(|f| keyed.contains(f)))
+                {
+                    return Some(tried);
+                }
+            }
+        }
+    }
+    let lowered = line.to_lowercase();
+    if (the_city_of(topic).is_some() || the_country_of(topic).is_some()) && STAY_ASK.is_match(&lowered) {
+        return a_stay_with_the_place(line, topic);
+    }
+    let said = words(line);
+    let have: HashSet<String> = said.iter().cloned().collect();
+    let elsewhere = !_the_trip_of_theirs(topic).is_empty() && !_a_sky_ask(line);
+    let lends_no_property = _asks_a_property_and_nothing_else(topic);
+    let known: Vec<String> = keywords(topic)
+        .into_iter()
+        .filter(|w| {
+            !have.contains(w)
+                && !(lends_no_property && MEASURE_WORDS.contains(w))
+                && !(elsewhere && (MONTH_NAMES.contains(w) || SEASONS.contains(w)))
+        })
+        .collect();
+    if known.is_empty() {
+        return None;
+    }
+    let mut anchor = if names_nothing(line) { _where_the_topic_lands(topic) } else { _entry(topic) };
+    let extra: Vec<String> = match anchor {
+        Some(found) => {
+            let keyed = _key_words_of(found);
+            let mut extra: Vec<String> = known.iter().filter(|w| _keyed_word(w, &keyed)).cloned().collect();
+            let frequency = _only_said_as_a_frequency(topic);
+            if !extra.is_empty() && !frequency.is_empty() && extra.iter().all(|w| frequency.contains(w)) {
+                extra.clear();
+            }
+            if extra.is_empty() {
+                anchor = None;
+                known.clone()
+            } else {
+                extra
+            }
+        }
+        None => known.clone(),
+    };
+    if extra.is_empty() {
+        return None;
+    }
+    let stem_of = text::strip(text::rstrip_chars(text::strip(line), "?.!")).to_string();
+    let mut cands: Vec<Vec<String>> = vec![extra.clone()];
+    for one in &extra {
+        for two in &extra {
+            if one != two {
+                cands.push(vec![one.clone(), two.clone()]);
+            }
+        }
+    }
+    for one in &extra {
+        cands.push(vec![one.clone()]);
+    }
+    let mut text_: Option<String> = None;
+    let mut item: Option<&'static Entry> = None;
+    let mut borrowed = String::new();
+    for (tried, carried) in _the_ways_of_saying_it(&stem_of, line, &cands) {
+        borrowed = carried.clone();
+        let Some(found) = _entry(&tried) else { continue };
+        let keyed = _key_words_of(found);
+        if !text::split(&carried).iter().all(|w| _keyed_word(w, &keyed)) {
+            continue;
+        }
+        text_ = Some(tried);
+        item = Some(found);
+        break;
+    }
+    let mut item = item?;
+    let mut text_ = text_.unwrap();
+    let keyed = _key_words_of(item);
+    let borrowed_words = text::split(&borrowed);
+    let lean: Vec<String> = borrowed_words.iter().filter(|w| _keyed_word(w, &keyed)).cloned().collect();
+    if !lean.is_empty() && lean.len() < borrowed_words.len() {
+        let tried = format!("{stem_of} {}", lean.join(" "));
+        if let Some(found) = _entry(&tried) {
+            text_ = tried;
+            item = found;
+            borrowed = lean.join(" ");
+        }
+    }
+    let is_anchor = anchor.is_some_and(|a| std::ptr::eq(a, item));
+    if !_names_it(&said, item) && !names_nothing(line) && !is_anchor {
+        return None;
+    }
+    if let Some(anchor) = anchor.filter(|_| !is_anchor) {
+        if _shared(&_key_words_of(item), &_key_words_of(anchor)) < 2 {
+            return None;
+        }
+    } else if anchor.is_none() {
+        let topic_keys: HashSet<String> = keywords(topic).into_iter().collect();
+        if _shared(&_key_words_of(item), &topic_keys) < 2 && topic_keys.len() > 1 {
+            return None;
+        }
+    }
+    if keeps_away(&text_, &borrowed, item) {
+        return None;
+    }
+    Some(text_)
+}
+
+type SituatedKey = (String, String, Option<String>);
+
+/// `_elided_situated_cache`: the last situated readings (cleared past 32), kept for the life of
+/// the process as in Python.
+static _ELIDED_SITUATED_CACHE: LazyLock<std::sync::Mutex<IndexMap<SituatedKey, String>>> =
+    LazyLock::new(|| std::sync::Mutex::new(IndexMap::new()));
+
+/// `_an_elided_ask_situated(line, topic, understood=None)`: the line read with the situation the
+/// chat is on ("any games kid"), or None.
+pub fn _an_elided_ask_situated(line: &str, topic: &str, understood: Option<&Understood>) -> Option<String> {
+    let said = words(line);
+    let have: HashSet<String> = said.iter().cloned().collect();
+    let known: Vec<String> = keywords(topic).into_iter().filter(|w| !have.contains(w)).collect();
+    if known.is_empty() {
+        return None;
+    }
+    let understood = understood?;
+    let stem_of = text::strip(text::rstrip_chars(text::strip(line), "?.!")).to_string();
+    let first: Vec<String> = known.iter().take(8).cloned().collect();
+    let situation: SituatedKey = (stem_of.clone(), first.join(" "), understood.topic.clone());
+    if let Some(memo) = _ELIDED_SITUATED_CACHE.lock().unwrap().get(&situation) {
+        return if memo.is_empty() { None } else { Some(memo.clone()) };
+    }
+    let mut found: Option<String> = None;
+    for word in &first {
+        let tried = format!("{stem_of} {word}");
+        let Some(item) = _entry(&tried) else { continue };
+        if !_names_it(&said, item) {
+            continue;
+        }
+        if !lookup::about_the_topic(item, understood) {
+            continue;
+        }
+        if keeps_away(&tried, word, item) {
+            continue;
+        }
+        found = Some(tried);
+        break;
+    }
+    let mut cache = _ELIDED_SITUATED_CACHE.lock().unwrap();
+    if cache.len() > 32 {
+        cache.clear();
+    }
+    cache.insert(situation, found.clone().unwrap_or_default());
+    found
+}
+
+/// Python's `str(entry.reply)`: the text, or the repr of a tuple / list of lines, or a
+/// function's repr.
+fn _reply_as_str(item: &Entry) -> String {
+    use crate::knowledge::entry::Reply;
+    let raw = item.raw.attr("reply");
+    match &item.reply {
+        Reply::Text(s) => s.clone(),
+        Reply::Choices(lines) => {
+            let shown: Vec<String> = lines.iter().map(|l| crate::understood::py_str_repr(l)).collect();
+            match raw {
+                Some(Value::List(_)) => format!("[{}]", shown.join(", ")),
+                _ if shown.len() == 1 => format!("({},)", shown[0]),
+                _ => format!("({})", shown.join(", ")),
+            }
+        }
+        // `<function name at 0x...>`: never the opening of a reply anyone was given
+        Reply::Fn(f) => format!("<function {}>", f.name().rsplit(':').next().unwrap_or("")),
+    }
+}
+
+/// `_the_same_answer_again(item, memory)`: the entry's answer is the answer the person already
+/// has, or opens as it does.
+pub fn _the_same_answer_again(item: &'static Entry, memory: &Memory) -> bool {
+    let reply = low_squash(&_reply_as_str(item));
+    if reply.is_empty() {
+        return false;
+    }
+    let n = *ANSWER_OPENING as isize;
+    let opening = text::slice(&reply, 0, Some(n));
+    let start = memory.turns.len().saturating_sub(2);
+    for turn in &memory.turns[start..] {
+        let said = low_squash(&turn.bot);
+        if !said.is_empty() && (said.contains(&opening) || reply.contains(&text::slice(&said, 0, Some(n)))) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `the_thing_the_subject_brings(understood, memory)`: the widened line for a line that asks
+/// about a thing of the subject ("shoes for running"), or None.
+pub fn the_thing_the_subject_brings(understood: &Understood, memory: &Memory) -> Option<String> {
+    let clean_or_text = if understood.clean.is_empty() { &understood.text } else { &understood.clean };
+    let text_or_clean = if understood.text.is_empty() { &understood.clean } else { &understood.text };
+    let text_ = low_squash(clean_or_text);
+    let raw = low_squash(text_or_clean);
+    let mut lines = vec![text_.clone(), raw];
+    if let Some(turn) = memory.turns.last() {
+        let typed = low_squash(&turn.user);
+        if !typed.is_empty() {
+            lines.insert(0, typed);
+        }
+    }
+    let mut hit = None;
+    for said_as in &lines {
+        if let Some(found) = ABOUT_NAMED.match_(said_as) {
+            hit = Some((said_as.clone(), found.name_str("thing").to_string(), found.end()));
+            break;
+        }
+    }
+    let (said_as, thing_said, end) = hit?;
+    let thing = _ABOUT_TAIL_PRONOUN.sub("", text::strip(&thing_said));
+    let thing = text::strip(&thing).to_string();
+    if thing.is_empty() || text::split(&thing).len() as i64 > *ABOUT_MOST_WORDS {
+        return None;
+    }
+    let typed = _ABOUT_TAIL_PRONOUN.sub("", text::strip(&said_as[end..]));
+    if DEFINITE_OPEN.match_(&thing).is_some() || DEFINITE_OPEN.match_(&typed).is_some() {
+        return None;
+    }
+    let kind = if typed.is_empty() { thing.clone() } else { typed.clone() };
+    if !A_OR_SOME.is_match(&kind) {
+        let last = text::split(&kind).last().cloned().unwrap_or_default();
+        if !(last.ends_with('s') && !last.ends_with("ss") && text::len(&last) > 3) {
+            return None;
+        }
+    }
+    let thing_words: Vec<String> =
+        words(&thing).into_iter().filter(|w| !STOPWORDS.contains(w) && !ASK_ONLY.contains(w) && text::len(w) > 2).collect();
+    if thing_words.is_empty() {
+        return None;
+    }
+    let record = carried_topic(memory, &text_)?.clone();
+    let mut spoke_of: HashSet<String> = HashSet::new();
+    let start = memory.turns.len().saturating_sub(2);
+    for turn in &memory.turns[start..] {
+        spoke_of.extend(words(&turn.bot).iter().map(|w| stem(w)));
+    }
+    if thing_words.iter().any(|w| spoke_of.contains(&stem(w))) {
+        return None;
+    }
+    let subject_words: Vec<String> =
+        key_subject(&rget(&record, "text"), Some(memory)).into_iter().filter(|w| !thing_words.contains(w)).collect();
+    if subject_words.is_empty() {
+        return None;
+    }
+    for subject_ in &subject_words {
+        for candidate in [format!("{thing} for {subject_}"), format!("{thing} {subject_}")] {
+            let Some(item) = _entry(&candidate) else { continue };
+            let keyed = _key_words_of(item);
+            let named = thing_words.iter().any(|w| _keyed_word(w, &keyed));
+            let about_the_subject = subject_words.iter().any(|w| _keyed_word(w, &keyed));
+            if !(named && about_the_subject) {
+                continue;
+            }
+            if let Some(anchor) = _entry(&rget(&record, "text")) {
+                if !std::ptr::eq(anchor, item) && _the_same_answer_again(item, memory) {
+                    continue;
+                }
+            }
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+/// `follows_on(understood, text)`: the engine read the line as carrying on, and the line itself
+/// points back at something.
+pub fn follows_on(understood: &Understood, text_: &str) -> bool {
+    let said = DUMMY_IT.sub(" ", text_);
+    if !words(&said).iter().any(|w| REFERRING_WORDS.contains(w)) {
+        return false;
+    }
+    if understood.followup {
+        return true;
+    }
+    understood.reference.followup
+}
+
+/// `keeps_away(line, topic, item)`: the entry the widened line reaches keeps itself away from a
+/// word of the topic.
+pub fn keeps_away(line: &str, topic: &str, item: &'static Entry) -> bool {
+    keeps_away_from(line, topic, Some(item))
+}
+
+/// `keeps_away(line, topic, item=None)` with the entry left to be looked up from the line.
+pub fn keeps_away_from(line: &str, topic: &str, item: Option<&'static Entry>) -> bool {
+    let item = match item {
+        Some(i) => Some(i),
+        None => _entry(line),
+    };
+    let Some(item) = item else { return false };
+    let said = words(topic);
+    item.avoid.iter().any(|phrase| _kept_away_from(phrase, &said))
+}
+
+/// `_kept_away_from(phrase, said)`: the entry's avoidance phrase is one the topic says.
+pub fn _kept_away_from(phrase: &str, said: &[String]) -> bool {
+    let phrase_words = words(phrase);
+    if !phrase_words.iter().any(|w| STOPWORDS.contains(w)) {
+        return _said(phrase, said);
+    }
+    let wanted: Vec<String> = phrase_words.iter().map(|w| stem(w)).collect();
+    let have: Vec<String> = said.iter().map(|w| stem(w)).collect();
+    if wanted.is_empty() || !wanted.iter().all(|w| have.contains(w)) {
+        return false;
+    }
+    _said(phrase, said)
+}
+
+/// `_names_it(found, item)`: the line itself says a word of the entry key.
+pub fn _names_it(found: &[String], item: &'static Entry) -> bool {
+    let asks = |w: &String| ASK_PART.contains(w) || ASKS_FOR_ADVICE.contains(w);
+    let content: HashSet<&String> = found.iter().filter(|w| !STOPWORDS.contains(*w)).collect();
+    let asked_only = content.iter().all(|w| asks(w));
+    for part in &item.key {
+        for phrase in lookup::alternatives(part) {
+            let named: HashSet<String> = words(phrase).into_iter().filter(|w| !STOPWORDS.contains(w)).collect();
+            if !named.is_empty() && named.iter().all(asks) && !asked_only {
+                continue;
+            }
+            if _said(phrase, found) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// `_key_words_of(item)`: every word an entry's key says it is about.
+pub fn _key_words_of(item: &'static Entry) -> HashSet<String> {
+    _words_of_parts(&item.key)
+}
+
+/// `_names_it_as_written(found, item)`: the line says a word of the entry's key as it is written,
+/// not a form of it.
+pub fn _names_it_as_written(found: &[String], item: &'static Entry) -> bool {
+    let have: HashSet<String> = found.iter().map(|w| w.to_lowercase()).collect();
+    for part in &item.key {
+        for phrase in lookup::alternatives(part) {
+            if !_said(phrase, found) {
+                continue;
+            }
+            if words(phrase).iter().any(|w| have.contains(&w.to_lowercase())) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// `_asked_only(found, item)`: the only parts of the entry key the line matches are asking words.
+pub fn _asked_only(found: &[String], item: &'static Entry) -> bool {
+    let mut named = false;
+    for part in &item.key {
+        for phrase in lookup::alternatives(part) {
+            if !_said(phrase, found) {
+                continue;
+            }
+            if words(phrase).iter().all(|w| ASK_PART.contains(w) || PRICE_ASK.contains(w)) {
+                continue;
+            }
+            named = true;
+        }
+    }
+    !named
+}
+
+/// `_a_sky_ask(line)`: a line asking about the weather.
+pub fn _a_sky_ask(line: &str) -> bool {
+    words(line).iter().any(|w| WEATHER_WORDS.contains(w))
+}
+
+/// `_the_step_they_report(line)`: the line reports a step it has taken rather than asking about
+/// the topic. A reading that fails counts as no report, as Python's `except` has it.
+pub fn _the_step_they_report(line: &str) -> bool {
+    crate::runtime::guarded(|| {
+        crate::memory::already::the_step_they_took(line, None).py_truth() || crate::memory::repeat::_tried(line)
+    })
+    .unwrap_or(false)
+}
+
+/// `widen(line, subject_words, topic_text)`: the line with the whole of the topic's subject on the
+/// end, when that reaches an entry.
+pub fn widen(line: &str, subject_words: &[String], topic_text: &str) -> Option<String> {
+    if a_placeholder_pronoun(line) {
+        return None;
+    }
+    if _the_step_they_report(line) {
+        return None;
+    }
+    let topic_entry = _entry(topic_text);
+    let have = words(line);
+    let elsewhere = !_the_trip_of_theirs(topic_text).is_empty() && !_a_sky_ask(line);
+    let extra: Vec<String> = subject_words
+        .iter()
+        .filter(|w| !have.contains(w) && !(elsewhere && (MONTH_NAMES.contains(*w) || SEASONS.contains(*w))))
+        .cloned()
+        .collect();
+    if extra.is_empty() {
+        return None;
+    }
+    let text_ = format!("{line} {}", extra.join(" "));
+    let item = _entry(&text_)?;
+    if topic_entry.is_some_and(|t_| std::ptr::eq(t_, item)) {
+        return None;
+    }
+    if !_names_it(&have, item) {
+        return None;
+    }
+    if _asked_only(&have, item) && !_names_it_as_written(&extra, item) {
+        return None;
+    }
+    if keeps_away(&text_, topic_text, item) {
+        return None;
+    }
+    Some(text_)
+}
+
+/// `adds_only_a_constraint(line)`: the limit the line names, when the line is made of nothing but
+/// that limit.
+pub fn adds_only_a_constraint(line: &str) -> Option<String> {
+    let m = CONSTRAINT.search(line)?;
+    let rest = words(&format!("{} {}", &line[..m.start()], &line[m.end()..]));
+    if rest.iter().any(|w| !CONSTRAINT_FILLER.contains(w) && !crate::understanding::pyuni::is_digit(w)) {
+        return None;
+    }
+    Some(m.as_str().to_string())
+}
+
+/// `_constrains_the_ask(line, topic_text)`: the question just answered, asked again with this
+/// line's limit on the end.
+pub fn _constrains_the_ask(line: &str, topic_text: &str) -> Option<String> {
+    adds_only_a_constraint(line)?;
+    let asked = text::strip(topic_text);
+    if asked.is_empty() {
+        return None;
+    }
+    let mine = _entry(asked);
+    let text_ = format!("{asked} {}", text::strip(line));
+    let item = _entry(&text_)?;
+    if mine.is_some_and(|m| !std::ptr::eq(m, item)) {
+        return None;
+    }
+    Some(text_)
+}
+
+/// `_clauses_of(sentence)`: the clauses of a sentence, with a bracketed aside kept whole.
+pub fn _clauses_of(sentence: &str) -> Vec<String> {
+    let shield: &str = &SHIELD;
+    let shielded = ASIDE.sub_fn(sentence, |m| m.as_str().replace(',', shield));
+    CLAUSE.split(&shielded).into_iter().map(|piece| piece.replace(shield, ",")).collect()
+}
+
+
 // Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
 // define yet, with signatures from the generated contract. Port them in place (move a
 // function up into the file when you port it).
@@ -2210,241 +3201,6 @@ mod skeleton_stubs {
     use crate::runtime::Candidate;
     use crate::state::{Memory, Turn};
     use crate::understood::Understood;
-
-    /// Python: bot/memory/topics.py:2708 `_the_part_a_complaint_is_about(text)`
-    pub fn _the_part_a_complaint_is_about(text: &str) {
-        crate::unported!("bot.memory.topics:_the_part_a_complaint_is_about")
-    }
-
-    /// Python: bot/memory/topics.py:2724 `_the_cause_words(text)`
-    pub fn _the_cause_words(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.topics:_the_cause_words")
-    }
-
-    /// Python: bot/memory/topics.py:2732 `_subject_words_to_carry(record, text, memory)`
-    pub fn _subject_words_to_carry(record: &Value, text: &str, memory: &Memory) -> Vec<String> {
-        crate::unported!("bot.memory.topics:_subject_words_to_carry")
-    }
-
-    /// Python: bot/memory/topics.py:2800 `_where_the_topic_lands(topic)`
-    pub fn _where_the_topic_lands(topic: &str) -> &'static Entry {
-        crate::unported!("bot.memory.topics:_where_the_topic_lands")
-    }
-
-    /// Python: bot/memory/topics.py:2833 `an_entry_for(text)` (never called on the trace corpus)
-    pub fn an_entry_for(text: &str) -> Value {
-        crate::unported!("bot.memory.topics:an_entry_for")
-    }
-
-    /// Python: bot/memory/topics.py:2943 `_the_last_question(memory)` (never called on the trace corpus)
-    pub fn _the_last_question(memory: &Memory) -> Value {
-        crate::unported!("bot.memory.topics:_the_last_question")
-    }
-
-    /// Python: bot/memory/topics.py:2952 `how_much_of_the_thing_in_hand(line, memory)`
-    pub fn how_much_of_the_thing_in_hand(line: &str, memory: &Memory) -> String {
-        crate::unported!("bot.memory.topics:how_much_of_the_thing_in_hand")
-    }
-
-    /// Python: bot/memory/topics.py:2996 `elided_ask(text)`
-    pub fn elided_ask(text: &str) -> bool {
-        crate::unported!("bot.memory.topics:elided_ask")
-    }
-
-    /// Python: bot/memory/topics.py:3016 `names_nothing(text)`
-    pub fn names_nothing(text: &str) -> bool {
-        crate::unported!("bot.memory.topics:names_nothing")
-    }
-
-    /// Python: bot/memory/topics.py:3026 `_content_words(text)`
-    pub fn _content_words(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.topics:_content_words")
-    }
-
-    /// Python: bot/memory/topics.py:3053 `_the_topic_phrase(topic)`
-    pub fn _the_topic_phrase(topic: &str) -> String {
-        crate::unported!("bot.memory.topics:_the_topic_phrase")
-    }
-
-    /// Python: bot/memory/topics.py:3060 `_a_length_of_the_job(item)` (never called on the trace corpus)
-    pub fn _a_length_of_the_job(item: &'static Entry) -> bool {
-        crate::unported!("bot.memory.topics:_a_length_of_the_job")
-    }
-
-    /// Python: bot/memory/topics.py:3098 `the_city_of(topic)`
-    pub fn the_city_of(topic: &str) {
-        crate::unported!("bot.memory.topics:the_city_of")
-    }
-
-    /// Python: bot/memory/topics.py:3104 `the_country_of(topic)`
-    pub fn the_country_of(topic: &str) {
-        crate::unported!("bot.memory.topics:the_country_of")
-    }
-
-    /// Python: bot/memory/topics.py:3115 `asks_how_long_to_stay(line)`
-    pub fn asks_how_long_to_stay(line: &str) -> bool {
-        crate::unported!("bot.memory.topics:asks_how_long_to_stay")
-    }
-
-    /// Python: bot/memory/topics.py:3120 `going_there(place, topic)`
-    pub fn going_there(place: &str, topic: &str) -> bool {
-        crate::unported!("bot.memory.topics:going_there")
-    }
-
-    /// Python: bot/memory/topics.py:3136 `a_stay_with_the_place(line, topic)`
-    pub fn a_stay_with_the_place(line: &str, topic: &str) {
-        crate::unported!("bot.memory.topics:a_stay_with_the_place")
-    }
-
-    /// Python: bot/memory/topics.py:3161 `_the_ways_of_saying_it(stem_of, line, cands)`
-    pub fn _the_ways_of_saying_it(stem_of: &str, line: &str, cands: &Value) -> Option<Vec<String>> {
-        crate::unported!("bot.memory.topics:_the_ways_of_saying_it")
-    }
-
-    /// Python: bot/memory/topics.py:3196 `_the_last_answer(memory)`
-    pub fn _the_last_answer(memory: &Memory) -> String {
-        crate::unported!("bot.memory.topics:_the_last_answer")
-    }
-
-    /// Python: bot/memory/topics.py:3206 `_the_topics_on_the_chat(topic=None, memory=None)`
-    pub fn _the_topics_on_the_chat(topic: &str, memory: &Memory) -> Vec<String> {
-        crate::unported!("bot.memory.topics:_the_topics_on_the_chat")
-    }
-
-    /// Python: bot/memory/topics.py:3221 `_the_thing_a_measure_is_of(line, topic=None, memory=None)`
-    pub fn _the_thing_a_measure_is_of(line: &str, topic: &str, memory: &Memory) {
-        crate::unported!("bot.memory.topics:_the_thing_a_measure_is_of")
-    }
-
-    /// Python: bot/memory/topics.py:3238 `_with_the_word_before(line, word, thing)`
-    pub fn _with_the_word_before(line: &str, word: &str, thing: &str) -> String {
-        crate::unported!("bot.memory.topics:_with_the_word_before")
-    }
-
-    /// Python: bot/memory/topics.py:3247 `_how_they_feel(word)`
-    pub fn _how_they_feel(word: &str) -> bool {
-        crate::unported!("bot.memory.topics:_how_they_feel")
-    }
-
-    /// Python: bot/memory/topics.py:3265 `_keyed_to(keyed, word)` (never called on the trace corpus)
-    pub fn _keyed_to(keyed: &Value, word: &str) -> bool {
-        crate::unported!("bot.memory.topics:_keyed_to")
-    }
-
-    /// Python: bot/memory/topics.py:3273 `_a_measure_of_the_topic(line, topic=None, memory=None)`
-    pub fn _a_measure_of_the_topic(line: &str, topic: &str, memory: &Memory) {
-        crate::unported!("bot.memory.topics:_a_measure_of_the_topic")
-    }
-
-    /// Python: bot/memory/topics.py:3301 `carry_the_ask(line, topic, understood=None, memory=None)`
-    pub fn carry_the_ask(line: &str, topic: &str, understood: &Understood, memory: &Memory) -> Option<String> {
-        crate::unported!("bot.memory.topics:carry_the_ask")
-    }
-
-    /// Python: bot/memory/topics.py:3420 `_the_answer_covers_it(line, memory, understood=None)`
-    pub fn _the_answer_covers_it(line: &str, memory: &Memory, understood: &Understood) -> bool {
-        crate::unported!("bot.memory.topics:_the_answer_covers_it")
-    }
-
-    /// Python: bot/memory/topics.py:3456 `_with_the_article(line)` (never called on the trace corpus)
-    pub fn _with_the_article(line: &str) -> Option<String> {
-        crate::unported!("bot.memory.topics:_with_the_article")
-    }
-
-    /// Python: bot/memory/topics.py:3474 `_only_said_as_a_frequency(topic)`
-    pub fn _only_said_as_a_frequency(topic: &str) -> Vec<String> {
-        crate::unported!("bot.memory.topics:_only_said_as_a_frequency")
-    }
-
-    /// Python: bot/memory/topics.py:3484 `_asks_a_property_and_nothing_else(text)`
-    pub fn _asks_a_property_and_nothing_else(text: &str) -> bool {
-        crate::unported!("bot.memory.topics:_asks_a_property_and_nothing_else")
-    }
-
-    /// Python: bot/memory/topics.py:3498 `_carry_the_words(line, topic)`
-    pub fn _carry_the_words(line: &str, topic: &str) -> Option<String> {
-        crate::unported!("bot.memory.topics:_carry_the_words")
-    }
-
-    /// Python: bot/memory/topics.py:3669 `_an_elided_ask_situated(line, topic, understood=None)`
-    pub fn _an_elided_ask_situated(line: &str, topic: &str, understood: &Understood) {
-        crate::unported!("bot.memory.topics:_an_elided_ask_situated")
-    }
-
-    /// Python: bot/memory/topics.py:3741 `_the_same_answer_again(item, memory)` (never called on the trace corpus)
-    pub fn _the_same_answer_again(item: &'static Entry, memory: &Memory) -> bool {
-        crate::unported!("bot.memory.topics:_the_same_answer_again")
-    }
-
-    /// Python: bot/memory/topics.py:3754 `the_thing_the_subject_brings(understood, memory)`
-    pub fn the_thing_the_subject_brings(understood: &Understood, memory: &Memory) {
-        crate::unported!("bot.memory.topics:the_thing_the_subject_brings")
-    }
-
-    /// Python: bot/memory/topics.py:3850 `follows_on(understood, text)`
-    pub fn follows_on(understood: &Understood, text: &str) -> bool {
-        crate::unported!("bot.memory.topics:follows_on")
-    }
-
-    /// Python: bot/memory/topics.py:3865 `keeps_away(line, topic, item=None)`
-    pub fn keeps_away(line: &str, topic: &str, item: &'static Entry) -> bool {
-        crate::unported!("bot.memory.topics:keeps_away")
-    }
-
-    /// Python: bot/memory/topics.py:3880 `_kept_away_from(phrase, said)`
-    pub fn _kept_away_from(phrase: &str, said: &[String]) -> bool {
-        crate::unported!("bot.memory.topics:_kept_away_from")
-    }
-
-    /// Python: bot/memory/topics.py:3897 `_names_it(found, item)`
-    pub fn _names_it(found: &[String], item: &'static Entry) -> bool {
-        crate::unported!("bot.memory.topics:_names_it")
-    }
-
-    /// Python: bot/memory/topics.py:3923 `_key_words_of(item)`
-    pub fn _key_words_of(item: &'static Entry) -> Vec<String> {
-        crate::unported!("bot.memory.topics:_key_words_of")
-    }
-
-    /// Python: bot/memory/topics.py:3933 `_names_it_as_written(found, item)` (never called on the trace corpus)
-    pub fn _names_it_as_written(found: &Value, item: &'static Entry) -> bool {
-        crate::unported!("bot.memory.topics:_names_it_as_written")
-    }
-
-    /// Python: bot/memory/topics.py:3952 `_asked_only(found, item)`
-    pub fn _asked_only(found: &[String], item: &'static Entry) -> bool {
-        crate::unported!("bot.memory.topics:_asked_only")
-    }
-
-    /// Python: bot/memory/topics.py:3971 `_a_sky_ask(line)`
-    pub fn _a_sky_ask(line: &str) -> bool {
-        crate::unported!("bot.memory.topics:_a_sky_ask")
-    }
-
-    /// Python: bot/memory/topics.py:3979 `_the_step_they_report(line)`
-    pub fn _the_step_they_report(line: &str) -> bool {
-        crate::unported!("bot.memory.topics:_the_step_they_report")
-    }
-
-    /// Python: bot/memory/topics.py:3995 `widen(line, subject_words, topic_text)`
-    pub fn widen(line: &str, subject_words: &[String], topic_text: &str) -> Option<String> {
-        crate::unported!("bot.memory.topics:widen")
-    }
-
-    /// Python: bot/memory/topics.py:4057 `adds_only_a_constraint(line)`
-    pub fn adds_only_a_constraint(line: &str) {
-        crate::unported!("bot.memory.topics:adds_only_a_constraint")
-    }
-
-    /// Python: bot/memory/topics.py:4069 `_constrains_the_ask(line, topic_text)`
-    pub fn _constrains_the_ask(line: &str, topic_text: &str) {
-        crate::unported!("bot.memory.topics:_constrains_the_ask")
-    }
-
-    /// Python: bot/memory/topics.py:4195 `_clauses_of(sentence)` (never called on the trace corpus)
-    pub fn _clauses_of(sentence: &str) -> Vec<String> {
-        crate::unported!("bot.memory.topics:_clauses_of")
-    }
 
     /// Python: bot/memory/topics.py:4248 `remember_answer(memory, reply, keys)`
     pub fn remember_answer(memory: &mut Memory, reply: &str, keys: &[String]) {
