@@ -88,3 +88,36 @@ pub fn only_a_container<S: AsRef<str>>(understood: &Understood, names: &[S]) -> 
     let found: Vec<&str> = names.iter().map(|n| n.as_ref()).filter(|one| text.contains(&format!(" {one} "))).collect();
     !found.is_empty() && found.iter().all(|one| CONTAINERS.contains(*one))
 }
+
+/// Python's `fmt % args` for `%s` (and `%%`) placeholders, in order.
+pub fn pct(fmt: &str, args: &[&str]) -> String {
+    let mut out = String::with_capacity(fmt.len() + 32);
+    let mut args = args.iter();
+    let mut chars = fmt.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '%' {
+            match chars.peek() {
+                Some('s') => {
+                    chars.next();
+                    out.push_str(args.next().copied().unwrap_or(""));
+                    continue;
+                }
+                Some('%') => {
+                    chars.next();
+                    out.push('%');
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        out.push(c);
+    }
+    out
+}
+
+/// Python's `str.isdigit()` for one character: decimal digits and the superscript digits
+/// (not fractions or roman numerals, which Python counts as numeric but not digits).
+pub fn is_digit_char(c: char) -> bool {
+    c.is_ascii_digit()
+        || (c.is_numeric() && !('\u{00BC}'..='\u{00BE}').contains(&c) && !('\u{2150}'..='\u{218F}').contains(&c))
+}
