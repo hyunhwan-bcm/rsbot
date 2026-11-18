@@ -267,6 +267,69 @@ pub mod pyv {
         }
     }
 
+    /// `template.format(**names)`: every `{name}` replaced in one pass (a value is never read
+    /// again for fields), `{{` and `}}` are the braces. A field with no value is a KeyError.
+    pub fn format(template: &str, names: &[(&str, &str)]) -> String {
+        let mut out = String::with_capacity(template.len());
+        let mut chars = template.chars().peekable();
+        while let Some(c) = chars.next() {
+            match c {
+                '{' if chars.peek() == Some(&'{') => {
+                    chars.next();
+                    out.push('{');
+                }
+                '}' if chars.peek() == Some(&'}') => {
+                    chars.next();
+                    out.push('}');
+                }
+                '{' => {
+                    let mut field = String::new();
+                    for c in chars.by_ref() {
+                        if c == '}' {
+                            break;
+                        }
+                        field.push(c);
+                    }
+                    match names.iter().find(|(name, _)| *name == field) {
+                        Some((_, value)) => out.push_str(value),
+                        None => panic!("KeyError: {field:?}"),
+                    }
+                }
+                c => out.push(c),
+            }
+        }
+        out
+    }
+
+    /// A memory for reading a line on its own (`{"turns": [], "aside": True}` and the facts the
+    /// person stated). Python hands the reader the store's own `user`, `others` and `facts_log`
+    /// objects, so what the reader writes into them lands in the chat: `shared_back` puts them
+    /// back.
+    pub fn a_fresh_memory(memory: &crate::state::Memory) -> crate::state::Memory {
+        let mut fresh = crate::state::Memory::new();
+        fresh.set("aside", true);
+        for key in SHARED_FACTS {
+            if let Some(value) = memory.get(key) {
+                fresh.set(key, value.clone());
+            }
+        }
+        fresh
+    }
+
+    /// The fact keys `a_fresh_memory` shares with the chat.
+    pub const SHARED_FACTS: [&str; 3] = ["user", "others", "facts_log"];
+
+    /// The shared fact objects, written into by a reader on the fresh memory, back in the chat.
+    pub fn shared_back(memory: &mut crate::state::Memory, fresh: &crate::state::Memory) {
+        for key in SHARED_FACTS {
+            if memory.has(key) {
+                if let Some(value) = fresh.get(key) {
+                    memory.set(key, value.clone());
+                }
+            }
+        }
+    }
+
     /// `try: f() except Exception: None`: a panic (Python's exception) is caught.
     pub fn attempt<T>(f: impl FnOnce() -> T) -> Option<T> {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).ok()
