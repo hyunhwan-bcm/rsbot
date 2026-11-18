@@ -121,3 +121,30 @@ pub fn deed_of(clean: &str) -> Option<String> {
 pub fn owns_the_deed(reading: &Understood) -> bool {
     deed_of(crate::knowledge::d1_shared::clean_or_text(reading)).is_some()
 }
+
+// ---------------------------------------------------------------------------------------------
+// bot/compose/draft.py: the sample subject line of the email-shape card.
+
+static SUBJECT_EXAMPLES: LazyLock<Vec<(&'static Re, String)>> = LazyLock::new(|| {
+    data::get("bot.compose.draft.SUBJECT_EXAMPLES")
+        .items()
+        .iter()
+        .filter_map(|row| {
+            let row = row.items();
+            Some((row.first()?.as_re()?, row.get(1)?.as_str()?.to_string()))
+        })
+        .collect()
+});
+
+/// DUP(bot.compose.draft::example_subject): the sample subject line for the email-shape card,
+/// in the world the line names (a trade, a school, a surgery, a landlord, work, money); the
+/// invoice when it names none.
+pub fn example_subject(understood: &Understood) -> String {
+    let line = crate::knowledge::d1_shared::clean_or_text(understood);
+    for (pattern, example) in SUBJECT_EXAMPLES.iter() {
+        if pattern.is_match(line) {
+            return example.clone();
+        }
+    }
+    "Invoice 2144 - payment due".to_string()
+}
