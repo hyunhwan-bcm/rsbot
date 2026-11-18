@@ -6219,9 +6219,11 @@ strs_static!(_TURN_ONLY);
 static TRIPS_THE_JOURNEY_ASK: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.trips.THE_JOURNEY_ASK"));
 static REPEAT_A_PAY_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.repeat.A_PAY_WORD"));
 static COMPOSER_UNKNOWN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.fallback.UNKNOWN"));
-/// `pets.DOG_FEED_AMOUNT_ENTRY`, the module's own object (its domain is not the canonical row's).
-static DOG_FEED_AMOUNT_ENTRY: LazyLock<&'static Entry> =
-    LazyLock::new(|| Box::leak(Box::new(Entry::from_value(usize::MAX, data::get("bot.knowledge.pets.DOG_FEED_AMOUNT_ENTRY")))));
+/// `pets.DOG_FEED_AMOUNT_ENTRY`: the row of `pets.ENTRIES` itself, which is the object
+/// `knowledge.entries()` holds and writes the domain on in place, so it is the canonical row.
+static DOG_FEED_AMOUNT_ENTRY: LazyLock<&'static Entry> = LazyLock::new(|| {
+    knowledge::entry::canonical(&data::get("bot.knowledge.pets.DOG_FEED_AMOUNT_ENTRY")).expect("pets.DOG_FEED_AMOUNT_ENTRY is a row of pets.ENTRIES")
+});
 /// `cooking.DISHES` as (id, text).
 static COOKING_DISHES: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
     data::get("bot.knowledge.cooking.DISHES")
