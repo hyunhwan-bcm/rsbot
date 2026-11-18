@@ -13007,7 +13007,7 @@ pub fn _a_remark_about_a_length(answer: &str) -> bool {
 }
 
 /// One move of an answer: the move, its length in seconds, and its sentence number.
-type Move = (String, Option<i64>, usize);
+pub type Move = (String, Option<i64>, usize);
 
 /// Python: bot/memory/store_replies.py:12398 `_moves(answer)`
 ///
