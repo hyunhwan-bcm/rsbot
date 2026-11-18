@@ -287,3 +287,21 @@
 {"fn": "_a_feeling_about_what_they_said", "args": [null, "im scared for him"], "kwargs": {}, "memory": [0, {"turns": [{"user": "my dad is in hospital with pneumonia", "bot": "Oh no, I'm sorry to hear that.", "module": null}]}], "result": "It is all right to be frightened for your dad. You do not have to be the calm one all the time.", "raised": null, "after": {}}
 {"fn": "_a_feeling_about_what_they_said", "args": [null, "so scared"], "kwargs": {}, "memory": [0, {"turns": [{"user": "my brother is in hospital after the crash", "bot": "That sounds frightening.", "module": null}]}], "result": "That is a lot to be carrying, and being frightened for your brother does not make you any less help to him.", "raised": null, "after": {}}
 {"fn": "_a_feeling_about_what_they_said", "args": [null, "im worried"], "kwargs": {}, "memory": [0, {"turns": [{"user": "what should i cook tonight", "bot": "Pasta.", "module": null}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_with_the_name", "args": ["your mum is called an", "my mum is called ann"], "kwargs": {}, "memory": null, "result": "your mum is called an", "raised": null, "after": null}
+{"fn": "_with_the_name", "args": ["your dog is called max", "my dog is called Max, he is 4"], "kwargs": {}, "memory": null, "result": "your dog is called Max", "raised": null, "after": null}
+{"fn": "_as_repaired", "args": ["ann"], "kwargs": {}, "memory": null, "result": "ann", "raised": null, "after": null}
+{"fn": "_summary_words", "args": ["You're veggie and you've got 2 kids, I'm 41"], "kwargs": {}, "memory": null, "result": ["41", "got", "kid", "two", "vegetarian"], "raised": null, "after": null}
+{"fn": "_already_said", "args": [["vegetarian", "41"], "you're vegetarian; you're 41"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_already_said", "args": [["allergic", "nuts"], "you're allergic to nuts"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_a_fact_of_its_own", "args": ["i burned the roast again"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_fact_of_its_own", "args": ["honestly i know"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_naming_words", "args": ["what are the best things to see in lisbon"], "kwargs": {}, "memory": null, "result": ["best", "things", "see", "lisbon"], "raised": null, "after": null}
+{"fn": "_detail_they_left_out", "args": [null, "how much was it"], "kwargs": {}, "memory": [0, {"turns": [{"user": "i went to a gig last night", "bot": "Nice!", "module": "chat"}]}], "result": "You haven't said - how much was it?", "raised": null, "after": {}}
+{"fn": "_detail_they_left_out", "args": [null, "which area"], "kwargs": {}, "memory": [0, {"turns": [{"user": "we moved house last month", "bot": "Big change.", "module": "chat"}]}], "result": "You haven't said - which area?", "raised": null, "after": {}}
+{"fn": "_detail_they_left_out", "args": [null, "how much"], "kwargs": {}, "memory": [0, {"turns": [{"user": "i want to save for a house", "bot": "Good plan.", "module": "chat"}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_detail_they_left_out", "args": [null, "what's the pay"], "kwargs": {}, "memory": [0, {"turns": [{"user": "my sister got a new job", "bot": "Lovely.", "module": "chat"}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_the_answer_already_gives", "args": ["time", null], "kwargs": {}, "memory": [1, {"turns": []}], "result": false, "raised": null, "after": {}}
+{"fn": "_the_budget_on_the_answer", "args": ["i have 2 hours of meetings today", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "how do i cook a steak", "bot": "Fry it for 3 minutes a side.", "module": "answers"}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_the_budget_on_the_answer", "args": ["what about 20 minutes?", null], "kwargs": {}, "memory": [1, {"turns": []}], "result": null, "raised": null, "after": {}}
+{"fn": "_quote", "args": ["short one.", 90], "kwargs": {}, "memory": null, "result": "\"short one\"", "raised": null, "after": null}
+{"fn": "_reads_as_the_invitation", "args": ["did you see it", null], "kwargs": {}, "memory": [1, {"turns": []}], "result": false, "raised": null, "after": {}}
