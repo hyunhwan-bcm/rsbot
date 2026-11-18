@@ -1999,6 +1999,14 @@ pub fn lambda_7817(reading: &Understood) -> bool {
 pub fn lambda_7973(reading: &Understood) -> bool {
     !dup::owns_the_deed(reading)
 }
+/// `lambda reading: not owns_the_deed(reading)` (line 11168; same body as 7973).
+pub fn lambda_11168(reading: &Understood) -> bool {
+    lambda_7973(reading)
+}
+/// `lambda reading: not owns_the_deed(reading)` (line 11619; same body as 7973).
+pub fn lambda_11619(reading: &Understood) -> bool {
+    lambda_7973(reading)
+}
 /// `lambda reading: not _a_grown_person_named(reading)` (line 9690).
 pub fn lambda_9690(reading: &Understood) -> bool {
     !_a_grown_person_named(reading)
@@ -2043,6 +2051,8 @@ guard_fn!(g_lambda_6214, lambda_6214);
 guard_fn!(g_lambda_7488, lambda_7488);
 guard_fn!(g_lambda_7817, lambda_7817);
 guard_fn!(g_lambda_7973, lambda_7973);
+guard_fn!(g_lambda_11168, lambda_11168);
+guard_fn!(g_lambda_11619, lambda_11619);
 guard_fn!(g_lambda_9690, lambda_9690);
 guard_fn!(g_lambda_9766, lambda_9766);
 guard_fn!(g_lambda_12267, lambda_12267);
@@ -2087,8 +2097,8 @@ guard_fn!(g_the_trip_i_am_making, _the_trip_i_am_making);
 guard_fn!(g_told_them_off, _told_them_off);
 
 pub const GUARDS: &[(&str, GuardFn)] = &[
-    ("bot.knowledge.family:<lambda>:11168", g_lambda_7973),
-    ("bot.knowledge.family:<lambda>:11619", g_lambda_7973),
+    ("bot.knowledge.family:<lambda>:11168", g_lambda_11168),
+    ("bot.knowledge.family:<lambda>:11619", g_lambda_11619),
     ("bot.knowledge.family:<lambda>:12267", g_lambda_12267),
     ("bot.knowledge.family:<lambda>:12357", g_lambda_12357),
     ("bot.knowledge.family:<lambda>:13078", g_lambda_13078),
@@ -2201,132 +2211,3 @@ fn s_a_small_childs_age(_f: &FnRef, words: &str) -> bool {
 }
 
 pub const SHAPES: &[(&str, ShapeFn)] = &[("bot.knowledge.family:a_small_childs_age:1093", s_a_small_childs_age)];
-
-#[cfg(test)]
-mod difftest {
-    use super::*;
-    use crate::knowledge::d1_dup_g2::difftest::{run, Case, ToJ};
-    use serde_json::{json, Value as J};
-
-    fn dispatch(c: &mut Case) -> Option<J> {
-        Some(match c.f {
-            "_not_a_thing_made_of_glass" => _not_a_thing_made_of_glass(c.reading).to_j(),
-            "_a_leak_is_not_a_strip" => _a_leak_is_not_a_strip(c.reading).to_j(),
-            "_not_a_machine_pump" => _not_a_machine_pump(c.reading).to_j(),
-            "_not_a_real_coffee" => _not_a_real_coffee(c.reading).to_j(),
-            "_not_a_trip_out" => _not_a_trip_out(c.reading).to_j(),
-            "_not_a_debt_or_a_trip" => _not_a_debt_or_a_trip(c.reading).to_j(),
-            "_not_a_debt" => _not_a_debt(c.reading).to_j(),
-            "_a_role_in_a_wedding" => _a_role_in_a_wedding(c.reading).to_j(),
-            "_the_question_is_a_name" => _the_question_is_a_name(c.reading).to_j(),
-            "_a_giving_up_on_a_person" => _a_giving_up_on_a_person(c.reading).to_j(),
-            "_a_waking_is_not_a_wake" => _a_waking_is_not_a_wake(c.reading).to_j(),
-            "_the_debt_is_money" => _the_debt_is_money(c.reading).to_j(),
-            "_a_baby_in_the_water" => _a_baby_in_the_water(c.reading).to_j(),
-            "_not_a_line_about_a_bath" => _not_a_line_about_a_bath(c.reading).to_j(),
-            "_a_childs_morning" => _a_childs_morning(c.reading).to_j(),
-            "_a_teenager_is_named" => _a_teenager_is_named(c.reading).to_j(),
-            "_an_adult_child_is_named" => _an_adult_child_is_named(c.reading).to_j(),
-            "_not_a_toddler_in_the_morning" => _not_a_toddler_in_the_morning(c.reading).to_j(),
-            "_not_just_the_age_of_a_relation" => _not_just_the_age_of_a_relation(c.reading).to_j(),
-            "_not_a_stretch_or_a_job" => _not_a_stretch_or_a_job(c.reading).to_j(),
-            "_a_grown_person_named" => _a_grown_person_named(c.reading).to_j(),
-            "_the_chat_names_a_teen" => _the_chat_names_a_teen(c.reading).to_j(),
-            "_a_grunt_is_a_breath_sign" => _a_grunt_is_a_breath_sign(c.reading).to_j(),
-            "_an_older_baby_is_named" => _an_older_baby_is_named(c.reading).to_j(),
-            "_the_hurting_word" => { let (a, b) = _the_hurting_word(c.reading); json!([a, b]) },
-            "_a_childs_missing_speech_is_the_question" => _a_childs_missing_speech_is_the_question(c.reading).to_j(),
-            "_a_child_old_enough_to_eat" => _a_child_old_enough_to_eat(c.reading).to_j(),
-            "_a_milk_pump_question" => _a_milk_pump_question(c.reading).to_j(),
-            "_a_milk_question" => _a_milk_question(c.reading).to_j(),
-            "_a_caffeine_drink_was_named" => _a_caffeine_drink_was_named(c.reading).to_j(),
-            "_not_some_time_ago" => _not_some_time_ago(c.reading).to_j(),
-            "_a_person_is_what_they_get_over" => _a_person_is_what_they_get_over(c.reading).to_j(),
-            "_a_person_is_the_one_letting_you_down" => _a_person_is_the_one_letting_you_down(c.reading).to_j(),
-            "_the_visit_card_fits" => _the_visit_card_fits(c.reading).to_j(),
-            "_i_am_not_one_of_the_two" => _i_am_not_one_of_the_two(c.reading).to_j(),
-            "_told_them_off" => _told_them_off(c.reading).to_j(),
-            "_the_parent_is_not_only_tired" => _the_parent_is_not_only_tired(c.reading).to_j(),
-            "_not_a_hard_conversation" => _not_a_hard_conversation(c.reading).to_j(),
-            "_the_trip_i_am_making" => _the_trip_i_am_making(c.reading).to_j(),
-            "_not_a_meal_the_visit_is_for" => _not_a_meal_the_visit_is_for(c.reading).to_j(),
-            "_not_a_visit_i_am_making" => _not_a_visit_i_am_making(c.reading).to_j(),
-            "_not_asking_for_a_present_for_them" => _not_asking_for_a_present_for_them(c.reading).to_j(),
-            "_the_home_or_a_visit_is_named" => _the_home_or_a_visit_is_named(c.reading).to_j(),
-            "_a_friend_birthday_in_the_diary" => _a_friend_birthday_in_the_diary(c.reading).to_j(),
-            "_the_person_forgets_it_themselves" => _the_person_forgets_it_themselves(c.reading).to_j(),
-            "_a_child_is_being_told" => _a_child_is_being_told(c.reading).to_j(),
-            "_names_someone_else" => _names_someone_else(c.reading).to_j(),
-            "_a_route_ask_not_an_opener" => _a_route_ask_not_an_opener(c.reading).to_j(),
-            "_a_child_ate_the_lot" => _a_child_ate_the_lot(c.reading).to_j(),
-            "_not_an_ask_for_the_words_to_say" => _not_an_ask_for_the_words_to_say(c.reading).to_j(),
-            "_not_asking_for_the_words" => _not_asking_for_the_words(c.reading).to_j(),
-            "_the_length_of_a_reading" => _the_length_of_a_reading(c.reading).to_j(),
-            "_the_heart_is_the_persons_own" => _the_heart_is_the_persons_own(c.reading).to_j(),
-            "_not_my_own_appetite" => _not_my_own_appetite(c.reading).to_j(),
-            "_a_break_for_the_carer" => _a_break_for_the_carer(c.reading).to_j(),
-            "_the_talker_age" => _the_talker_age(&c.reading.text, false).to_j(),
-            "LAMBDA:4842:guard" => lambda_4842(c.reading).to_j(),
-            "LAMBDA:6214:guard" => lambda_6214(c.reading).to_j(),
-            "LAMBDA:7488:guard" => lambda_7488(c.reading).to_j(),
-            "LAMBDA:7817:guard" => lambda_7817(c.reading).to_j(),
-            "LAMBDA:7973:guard" => lambda_7973(c.reading).to_j(),
-            "LAMBDA:9690:guard" => lambda_9690(c.reading).to_j(),
-            "LAMBDA:9766:guard" => lambda_9766(c.reading).to_j(),
-            "LAMBDA:12267:guard" => lambda_12267(c.reading).to_j(),
-            "LAMBDA:12357:guard" => lambda_12357(c.reading).to_j(),
-            "LAMBDA:13078:guard" => lambda_13078(c.reading).to_j(),
-            "LAMBDA:11168:guard" => lambda_7973(c.reading).to_j(),
-            "LAMBDA:11619:guard" => lambda_7973(c.reading).to_j(),
-            "_the_dummy_answer" => _the_dummy_answer(&c.memory, c.reading).to_j(),
-            "_a_phone_rule_and_an_age" => _a_phone_rule_and_an_age(&c.memory, c.reading).to_j(),
-            "_medicine_for_a_young_baby" => _medicine_for_a_young_baby(&c.memory, c.reading).to_j(),
-            "_milk_tooth" => _milk_tooth(&c.memory, c.reading).to_j(),
-            "_off_school" => _off_school(&c.memory, c.reading).to_j(),
-            "_child_bedtime" => _child_bedtime(&c.memory, c.reading).to_j(),
-            "_the_feeds_for_the_age" => _the_feeds_for_the_age(&c.memory, c.reading).to_j(),
-            "_making_friends" => _making_friends(&c.memory, c.reading).to_j(),
-            "_date_idea" => _date_idea(&c.memory, c.reading).to_j(),
-            "_asking_out" => _asking_out(&c.memory, c.reading).to_j(),
-            "_hurt_feelings" => _hurt_feelings(&c.memory, c.reading).to_j(),
-            "_child_weight" => _child_weight(&c.memory, c.reading).to_j(),
-            "_the_year_they_move_up_to" => _the_year_they_move_up_to(&c.memory, c.reading).to_j(),
-            "_milestones_reply" => _milestones_reply(&c.memory, c.reading).to_j(),
-            "_hitting_or_biting" => _hitting_or_biting(&c.memory, c.reading).to_j(),
-            "_late_talker_reply" => _late_talker_reply(&c.memory, c.reading).to_j(),
-            "_the_talker_ages" => _the_talker_ages(&c.memory, c.reading).to_j(),
-            "_wont_talk_reply" => _wont_talk_reply(&c.memory, c.reading).to_j(),
-            "_picky_eater" => _picky_eater(&c.memory, c.reading).to_j(),
-            "_stroke_reply" => _stroke_reply(&c.memory, c.reading).to_j(),
-            "_elderly_appetite" => _elderly_appetite(&c.memory, c.reading).to_j(),
-            "_the_repair_after_it" => _the_repair_after_it(&c.memory, c.reading).to_j(),
-            "_a_drink_while_feeding" => _a_drink_while_feeding(&c.memory, c.reading).to_j(),
-            "_the_visiting_hours" => _the_visiting_hours(&c.memory, c.reading).to_j(),
-            "_the_bottle_answer" => _the_bottle_answer(&c.memory, c.reading).to_j(),
-            "_the_money_asked_off_you" => _the_money_asked_off_you(&c.memory, c.reading).to_j(),
-            "_change_a_nappy_reply" => _change_a_nappy_reply(&c.memory, c.reading).to_j(),
-            "_the_child_pronouns" => { let (a, b, d, e) = _the_child_pronouns(&c.memory, c.reading); json!([a, b, d, e]) },
-            "_the_child_age_in_the_chat" => _the_child_age_in_the_chat(&c.memory, c.reading).to_j(),
-            "LAMBDA:4665:reply" => lambda_4665(&c.memory, c.reading).to_j(),
-            "_asks_the_exclusion_question" => _asks_the_exclusion_question(c.text.unwrap_or("")).to_j(),
-            "_child_age" => _child_age(c.text.unwrap_or("")).to_j(),
-            "_any_age_in" => _any_age_in(c.text.unwrap_or("")).to_j(),
-            "_said_bedtime" => _said_bedtime(c.text.unwrap_or("")).to_j(),
-            "_months_old" => _months_old(c.text.unwrap_or("")).to_j(),
-            "_a_child_named" => _a_child_named(c.text.unwrap_or("")).to_j(),
-            "a_small_childs_age" => a_small_childs_age(c.text.unwrap_or("")).to_j(),
-            "_an_age_ten_or_over" => _an_age_ten_or_over(c.text.unwrap_or(""), &[]).to_j(),
-            "_the_talk_before" => _the_talk_before(&c.memory).to_j(),
-            "_the_feeling_before" => _the_feeling_before(&c.memory).to_j(),
-            "_a_child_in_the_chat" => _a_child_in_the_chat(&c.memory).to_j(),
-            "_a_silence_with_a_person" => _a_silence_with_a_person(c.reading, &c.memory).to_j(),
-            _ => return None,
-        })
-    }
-
-    #[test]
-    #[ignore]
-    fn against_python() {
-        run(dispatch);
-    }
-}

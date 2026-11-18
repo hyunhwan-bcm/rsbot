@@ -57,11 +57,11 @@ pub fn topics_context(memory: &Memory, n: usize) -> Option<Vec<String>> {
         if !matches!(r, Value::Dict(_)) {
             return None; // r.get on a non-dict raises
         }
-        // r.get("text", "") keeps a non-str text as it is; only truthy ones are kept
-        match r.get("text") {
-            Some(Value::Str(s)) if !s.is_empty() => out.push(s.to_string()),
-            Some(v) if v.truthy() => out.push(String::new()), // non-str text: str() of it is not kept by callers
-            _ => {}
+        // only truthy texts are kept; the store only ever writes a str there
+        if let Some(Value::Str(s)) = r.get("text") {
+            if !s.is_empty() {
+                out.push(s.to_string());
+            }
         }
     }
     Some(out)
@@ -103,15 +103,236 @@ fn topics_room_limit(text_: &str) -> String {
     }
 }
 
-/// DUP(bot.memory.topics::gist), PARTIAL: the short noun phrase a line is about. Only the empty
-/// line is answered exactly (""); the full reader (switchers, the wish and lead strippers,
-/// `keywords`) is the memory workstream's, and a non-empty line reads as "" here until it is
-/// ported. Single-turn replies never carry a topic record, so they only ever pass "".
-pub fn topics_gist(text_: &str) -> String {
-    if text::squash(text_).is_empty() {
+fn topics(name: &str) -> &'static Value {
+    data::get(&format!("bot.memory.topics.{name}"))
+}
+fn topics_re(name: &str) -> &'static Re {
+    topics(name).as_re().unwrap_or_else(|| panic!("bot.memory.topics.{name} is not a regex"))
+}
+
+static WORD: LazyLock<&'static Re> = LazyLock::new(|| topics_re("WORD"));
+static STOPWORDS: LazyLock<HashSet<String>> = LazyLock::new(|| topics("STOPWORDS").str_set());
+static ASK_ONLY: LazyLock<HashSet<String>> = LazyLock::new(|| topics("ASK_ONLY").str_set());
+static TIME_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| topics("_TIME_WORDS").str_set());
+static A_FIGURE: LazyLock<HashSet<String>> = LazyLock::new(|| topics("_A_FIGURE").str_set());
+static DATE_OCCASIONS: LazyLock<HashSet<String>> = LazyLock::new(|| topics("_DATE_OCCASIONS").str_set());
+static DATE_FILLER: LazyLock<HashSet<String>> = LazyLock::new(|| topics("_DATE_FILLER").str_set());
+static MAX_SUBJECT: LazyLock<usize> = LazyLock::new(|| topics("_MAX_SUBJECT").as_int().unwrap_or(4) as usize);
+/// `sorted(SWITCHERS, key=len, reverse=True)` (stable: equal lengths keep their order).
+static SWITCHERS: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let mut v = topics("SWITCHERS").strs();
+    v.sort_by(|a, b| b.chars().count().cmp(&a.chars().count()));
+    v
+});
+/// `sorted(lexicon.HANDOFF_LEADS, key=len, reverse=True)`.
+static HANDOFF_LEADS: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let mut v = data::strs("bot.understanding.lexicon.HANDOFF_LEADS");
+    v.sort_by(|a, b| b.chars().count().cmp(&a.chars().count()));
+    v
+});
+/// `_the_people()`: facts.RELATIONS in the forms keywords keeps.
+static THE_PEOPLE: LazyLock<HashSet<String>> = LazyLock::new(|| {
+    data::strs("bot.memory.facts.RELATIONS").iter().flat_map(|w| [w.clone(), topics_stem(w)]).collect()
+});
+static CORRECTION_LEAD: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_CORRECTION_LEAD"));
+static PHRASAL_RE: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_PHRASAL_RE"));
+static RELATION: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_RELATION"));
+static FRAME_ASK: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_FRAME_ASK"));
+static WITHOUT_CLAUSE: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_WITHOUT_CLAUSE"));
+static CONSIDERING: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_CONSIDERING"));
+static BUYING_A_STATE: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_BUYING_A_STATE"));
+static WISH_RE: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_WISH_RE"));
+static LEAD: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_LEAD"));
+static LEAD_QUESTION: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_LEAD_QUESTION"));
+static HANDOFF_THROAT: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_HANDOFF_THROAT"));
+static MAKING_A_THING: LazyLock<&'static Re> = LazyLock::new(|| topics_re("_MAKING_A_THING"));
+static AND_OR_BUT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:and|but)\b|[,;]", 0));
+static A_TIME_SPLIT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:for|tonight|today|tomorrow|yesterday|this|next)\b", 0));
+static COMMA_OR_SEMI: LazyLock<Re> = LazyLock::new(|| Re::new(r"[,;]", 0));
+
+/// DUP(bot.memory.topics::words): the words of a line, apostrophe forms folded.
+pub fn topics_words(text_: &str) -> Vec<String> {
+    let lowered = text_.to_lowercase().replace('\u{2019}', "'");
+    WORD.findall_str(&lowered)
+        .into_iter()
+        .map(|w| {
+            let w = w.strip_suffix("'s").map(str::to_string).unwrap_or(w);
+            w.replace('\'', "")
+        })
+        .filter(|w| !w.is_empty())
+        .collect()
+}
+
+/// DUP(bot.memory.topics::stem).
+pub fn topics_stem(word: &str) -> String {
+    let n = word.chars().count();
+    let chars: Vec<char> = word.chars().collect();
+    if n > 4 && word.ends_with("ies") {
+        return format!("{}y", chars[..n - 3].iter().collect::<String>());
+    }
+    if n > 3 && word.ends_with("es") && "sxzh".contains(chars[n - 3]) {
+        return chars[..n - 2].iter().collect();
+    }
+    if n > 3 && word.ends_with('s') && !word.ends_with("ss") {
+        return chars[..n - 1].iter().collect();
+    }
+    word.to_string()
+}
+
+/// DUP(bot.memory.topics::keywords): the content words of a line, stemmed, first seen first.
+pub fn topics_keywords(text_: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for word in topics_words(text_) {
+        if STOPWORDS.contains(&word) || word.chars().count() < 3 || text::is_digit(&word) {
+            continue;
+        }
+        let key = topics_stem(&word);
+        if !out.contains(&key) {
+            out.push(key);
+        }
+    }
+    out
+}
+
+/// DUP(bot.memory.topics::_strip_considering).
+fn topics_strip_considering(source: &str) -> String {
+    let mut source = source.to_string();
+    loop {
+        let stripped = CONSIDERING.sub("", &source);
+        if stripped == source {
+            return source;
+        }
+        source = stripped;
+    }
+}
+
+/// DUP(bot.memory.topics::_only_a_handoff).
+fn topics_only_a_handoff(head: &str) -> bool {
+    let t = text::squash(&head.to_lowercase());
+    let t = text::strip_chars(&t, " ,.;:!?-");
+    let t = HANDOFF_THROAT.sub("", t);
+    let t = text::strip_chars(&t, " ,.;:!?-");
+    HANDOFF_LEADS
+        .iter()
+        .any(|lead| t == lead || (t.starts_with(lead.as_str()) && topics_keywords(&t[lead.len()..]).is_empty()))
+}
+
+/// DUP(bot.memory.topics::_a_word_of_a_date).
+fn topics_a_word_of_a_date(word: &str) -> bool {
+    let forms = [word.to_string(), topics_stem(word)];
+    forms.iter().any(|f| DATE_OCCASIONS.contains(f))
+        || forms.iter().any(|f| TIME_WORDS.contains(f))
+        || DATE_FILLER.contains(word)
+        || forms.iter().any(|f| A_FIGURE.contains(f))
+        || forms.iter().any(|f| THE_PEOPLE.contains(f))
+}
+
+/// DUP(bot.memory.topics::_only_a_date).
+fn topics_only_a_date(clause: &str) -> bool {
+    let kept = topics_keywords(clause);
+    if kept.is_empty() || !kept.iter().any(|w| DATE_OCCASIONS.contains(&topics_stem(w))) {
+        return false;
+    }
+    kept.iter().all(|w| topics_a_word_of_a_date(w))
+}
+
+/// DUP(bot.memory.topics::_the_thing_after_a_date).
+fn topics_the_thing_after_a_date(text_: &str) -> String {
+    let Some(m) = AND_OR_BUT.search(text_) else {
+        return String::new();
+    };
+    let (head, tail) = (&text_[..m.start()], &text_[m.end()..]);
+    if !topics_only_a_date(head) || topics_keywords(tail).is_empty() {
         return String::new();
     }
-    String::new() // PARTIAL: see the doc comment
+    if MAKING_A_THING.is_match(tail) { tail.to_string() } else { String::new() }
+}
+
+/// DUP(bot.memory.topics::gist): the short noun phrase a line is really about ("birthday
+/// cake", "kitchen tap", "turkey").
+pub fn topics_gist(text_: &str) -> String {
+    let mut source = text::squash(&text_.to_lowercase());
+    source = CORRECTION_LEAD.sub("", &source);
+    for switcher in SWITCHERS.iter() {
+        if source.starts_with(switcher.as_str()) {
+            source = text::lstrip_chars(&source[switcher.len()..], " ,.!-").to_string();
+            break;
+        }
+    }
+    let dated = topics_the_thing_after_a_date(&source);
+    if !dated.is_empty() {
+        source = dated;
+    }
+    source = text::squash(&PHRASAL_RE.sub(" ", &source));
+    source = RELATION.split(&source).into_iter().next().unwrap_or_default();
+    let whole = source.clone();
+    if FRAME_ASK.is_match(&source) {
+        let trimmed = WITHOUT_CLAUSE.sub("", &source);
+        let trimmed = text::strip_chars(&trimmed, " ,.;:!?");
+        if !trimmed.is_empty() && !topics_keywords(trimmed).is_empty() {
+            source = trimmed.to_string();
+        }
+    }
+    source = topics_strip_considering(&source);
+    let buying = BUYING_A_STATE.match_(&source).is_some();
+    let mut wished = false;
+    for _ in 0..(if buying { 0 } else { 3 }) {
+        let stripped = WISH_RE.sub("", &source);
+        if stripped == source || text::strip_chars(&stripped, " ,.;:!?").is_empty() {
+            break;
+        }
+        source = stripped;
+        wished = true;
+    }
+    let before_split = source.clone();
+    let segments = A_TIME_SPLIT.split(&source);
+    source = segments.first().cloned().unwrap_or_default();
+    if !wished && !buying {
+        source = LEAD.sub("", text::strip_chars(&source, " ,.;:!?"));
+        loop {
+            let trimmed = LEAD_QUESTION.sub("", &source);
+            if trimmed == source || text::strip(&trimmed).is_empty() {
+                break;
+            }
+            source = trimmed;
+        }
+    }
+    source = topics_strip_considering(&source);
+    let (head, sep, after_handoff) = text::partition(&source, ",");
+    source = if !sep.is_empty() && !text::strip(after_handoff).is_empty() && topics_only_a_handoff(head) {
+        after_handoff.to_string()
+    } else {
+        COMMA_OR_SEMI.split(&source).into_iter().next().unwrap_or_default()
+    };
+    let mut kept: Vec<String> = topics_keywords(&source).into_iter().filter(|w| !ASK_ONLY.contains(w)).collect();
+    while kept.last().map(|w| TIME_WORDS.contains(w)).unwrap_or(false) {
+        kept.pop();
+    }
+    if !kept.is_empty() && kept.iter().all(|w| A_FIGURE.contains(w)) {
+        for part in segments.iter().skip(1) {
+            let later: Vec<String> = topics_keywords(part)
+                .into_iter()
+                .filter(|w| !ASK_ONLY.contains(w) && !TIME_WORDS.contains(w))
+                .collect();
+            if !later.is_empty() && !later.iter().all(|w| A_FIGURE.contains(w)) {
+                kept = later;
+                break;
+            }
+        }
+    }
+    if kept.is_empty() && wished {
+        for source in [&before_split, &whole] {
+            kept = topics_keywords(source).into_iter().filter(|w| !ASK_ONLY.contains(w) && !TIME_WORDS.contains(w)).collect();
+            if !kept.is_empty() {
+                break;
+            }
+        }
+    }
+    if kept.is_empty() {
+        return String::new();
+    }
+    kept.truncate(*MAX_SUBJECT);
+    kept.join(" ")
 }
 
 /// DUP(bot.memory.topics::_names_nothing).
@@ -443,177 +664,4 @@ pub fn cooking_refused_foods(text_: &str, families: bool) -> HashSet<String> {
         }
     }
     refused
-}
-
-// ---------------------------------------------------------------------------------------------
-// Differential checks against PyBot's own functions (development aid; run with
-// `G2_DIFF_DIR=<dir> cargo test --release --lib <module>::difftest -- --ignored --nocapture`,
-// on cases written by the group's diff generator).
-
-#[cfg(test)]
-pub mod difftest {
-    use crate::data::Value;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
-    use serde_json::{json, Value as J};
-    use std::collections::BTreeMap;
-    use std::io::BufRead;
-
-    pub trait ToJ {
-        fn to_j(&self) -> J;
-    }
-    impl ToJ for bool {
-        fn to_j(&self) -> J {
-            json!(self)
-        }
-    }
-    impl ToJ for f64 {
-        fn to_j(&self) -> J {
-            json!(self)
-        }
-    }
-    impl ToJ for i64 {
-        fn to_j(&self) -> J {
-            json!(self)
-        }
-    }
-    impl ToJ for String {
-        fn to_j(&self) -> J {
-            json!(self)
-        }
-    }
-    impl ToJ for &str {
-        fn to_j(&self) -> J {
-            json!(self)
-        }
-    }
-    impl<T: ToJ> ToJ for Option<T> {
-        fn to_j(&self) -> J {
-            match self {
-                Some(x) => x.to_j(),
-                None => J::Null,
-            }
-        }
-    }
-    impl<T: ToJ> ToJ for Vec<T> {
-        fn to_j(&self) -> J {
-            J::Array(self.iter().map(ToJ::to_j).collect())
-        }
-    }
-
-    /// One case: the function, the reading, the memory, the text argument.
-    pub struct Case<'a> {
-        pub f: &'a str,
-        pub reading: &'a Understood,
-        pub memory: Memory,
-        pub text: Option<&'a str>,
-    }
-
-    fn memory_of(m: &J, reading: &Understood, wants: Option<&str>) -> Memory {
-        let mut mem = Memory::new();
-        let mut r = reading.clone();
-        if let Some(w) = wants {
-            r.wants = Some(w.to_string());
-            mem.intent_wants = Some(w.to_string());
-        }
-        mem.understood = Some(r);
-        if let Some(o) = m.as_object() {
-            for (k, v) in o {
-                match k.as_str() {
-                    "turns" => {
-                        for t in v.as_array().unwrap() {
-                            mem.turns.push(Turn {
-                                user: t["user"].as_str().unwrap_or("").to_string(),
-                                bot: t["bot"].as_str().unwrap_or("").to_string(),
-                                module: None,
-                            })
-                        }
-                    }
-                    "intent_wants" => mem.intent_wants = v.as_str().map(str::to_string),
-                    _ => {
-                        mem.extra.insert(k.clone(), Value::from_plain(v));
-                    }
-                }
-            }
-        }
-        mem
-    }
-
-    /// Run every case in `$G2_DIFF_DIR` through `dispatch` and report the functions that differ.
-    pub fn run(dispatch: impl Fn(&mut Case) -> Option<J>) {
-        let Ok(dir) = std::env::var("G2_DIFF_DIR") else {
-            eprintln!("G2_DIFF_DIR not set");
-            return;
-        };
-        let readings: Vec<Option<Understood>> = std::io::BufReader::new(std::fs::File::open(format!("{dir}/readings.jsonl")).unwrap())
-            .lines()
-            .map(|l| serde_json::from_str(&l.unwrap()).ok())
-            .collect();
-        let memories: Vec<J> = std::io::BufReader::new(std::fs::File::open(format!("{dir}/memories.jsonl")).unwrap())
-            .lines()
-            .map(|l| serde_json::from_str(&l.unwrap()).unwrap())
-            .collect();
-        let only = std::env::var("G2_FN").ok();
-        let mut stats: BTreeMap<String, (usize, usize, usize, Vec<String>)> = BTreeMap::new();
-        crate::runtime::quiet_panics();
-        for line in std::io::BufReader::new(std::fs::File::open(format!("{dir}/cases.jsonl")).unwrap()).lines() {
-            let c: J = serde_json::from_str(&line.unwrap()).unwrap();
-            let f = c["f"].as_str().unwrap();
-            if let Some(o) = &only {
-                if f != o {
-                    continue;
-                }
-            }
-            let st = stats.entry(f.to_string()).or_default();
-            let Some(Some(reading)) = readings.get(c["r"].as_u64().unwrap() as usize) else {
-                st.2 += 1;
-                continue;
-            };
-            let memory = match c["m"].as_u64() {
-                Some(i) => memory_of(&memories[i as usize], reading, c["w"].as_str()),
-                None => memory_of(&J::Null, reading, None),
-            };
-            let text = c["t"].as_str();
-            let mut case = Case { f, reading, memory, text };
-            let got = crate::runtime::guarded(|| dispatch(&mut case));
-            let raised = !c["raised"].is_null();
-            let want = &c["want"];
-            let ok = match &got {
-                None => raised,                              // panicked
-                Some(None) => {
-                    st.2 += 1;
-                    continue;
-                } // not dispatched
-                Some(Some(g)) => (raised && g.is_null()) || (!raised && g == want),
-            };
-            if ok {
-                st.0 += 1;
-            } else {
-                st.1 += 1;
-                if st.3.len() < 3 {
-                    st.3.push(format!(
-                        "text {:?} mem {} t {:?}\n      rust {}\n      py   {} {}",
-                        reading.text,
-                        c["m"],
-                        text,
-                        got.map(|g| g.unwrap().to_string()).unwrap_or("PANIC".into()),
-                        want,
-                        if raised { c["raised"].to_string() } else { String::new() }
-                    ));
-                }
-            }
-        }
-        let (mut ok, mut bad) = (0, 0);
-        for (f, (o, b, skipped, ex)) in &stats {
-            ok += o;
-            bad += b;
-            if *b > 0 || *skipped > 0 {
-                println!("{f}: {o} ok, {b} differ, {skipped} skipped");
-                for e in ex {
-                    println!("    {e}");
-                }
-            }
-        }
-        println!("functions {}; cases {ok} ok / {bad} differ", stats.len());
-    }
 }

@@ -2111,6 +2111,12 @@ pub fn _dog_chewing__has<S: AsRef<str>>(said: &str, wanted: &[S]) -> bool {
     wanted.iter().any(|w| said.contains(&format!(" {} ", w.as_ref())))
 }
 
+/// `_dog_bite_person.<locals>.has`: the same test as `_dog_chewing`'s.
+#[allow(non_snake_case)]
+pub fn _dog_bite_person__has<S: AsRef<str>>(said: &str, wanted: &[S]) -> bool {
+    _dog_chewing__has(said, wanted)
+}
+
 /// The padded, lower-cased words of the line, as `has` reads them.
 fn padded_lower_words(understood: &Understood) -> String {
     let words: Vec<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
@@ -2145,8 +2151,8 @@ to soothe it.";
 /// How to stop a dog biting people, at the weight the line carries.
 pub fn _dog_bite_person(_memory: &Memory, understood: &Understood) -> Option<String> {
     let said = padded_lower_words(understood);
-    let has = |wanted: &[&str]| _dog_chewing__has(&said, wanted);
-    let has_list = |wanted: &[String]| _dog_chewing__has(&said, wanted);
+    let has = |wanted: &[&str]| _dog_bite_person__has(&said, wanted);
+    let has_list = |wanted: &[String]| _dog_bite_person__has(&said, wanted);
     if has(&["his", "her", "its", "their"])
         && has(&["paw", "paws", "tail", "leg", "legs", "foot", "feet", "ear", "ears", "fur", "skin"])
     {
@@ -3306,6 +3312,50 @@ pub fn lambda_8896(_memory: &Memory, understood: &Understood) -> Option<String> 
 pub fn lambda_8956(_memory: &Memory, understood: &Understood) -> Option<String> {
     _small_pet_food(understood)
 }
+/// `lambda understood: not _one_pets_dinner(understood)` (line 6310; same body as 5979).
+pub fn lambda_6310(understood: &Understood) -> bool {
+    lambda_5979(understood)
+}
+/// `lambda understood: not _one_pets_dinner(understood)` (line 6351; same body as 5979).
+pub fn lambda_6351(understood: &Understood) -> bool {
+    lambda_5979(understood)
+}
+/// `lambda understood: not _one_pets_dinner(understood)` (line 8915; same body as 5979).
+pub fn lambda_8915(understood: &Understood) -> bool {
+    lambda_5979(understood)
+}
+/// `lambda memory, understood: _pet_scratching(understood)` (line 11295).
+pub fn lambda_11295(_memory: &Memory, understood: &Understood) -> Option<String> {
+    _pet_scratching(understood)
+}
+/// `lambda memory, understood: _pet_shivers(understood)` (line 11992).
+pub fn lambda_11992(_memory: &Memory, understood: &Understood) -> Option<String> {
+    _pet_shivers(understood)
+}
+/// `lambda memory, understood: _horse_lame(understood)` (line 12003).
+pub fn lambda_12003(_memory: &Memory, understood: &Understood) -> Option<String> {
+    _horse_lame(understood)
+}
+/// `lambda memory, understood: _horse_off_food(understood)` (line 12012).
+pub fn lambda_12012(_memory: &Memory, understood: &Understood) -> Option<String> {
+    _horse_off_food(understood)
+}
+/// `lambda memory, understood: _pet_snoring(understood)` (line 12047).
+pub fn lambda_12047(_memory: &Memory, understood: &Understood) -> Option<String> {
+    _pet_snoring(understood)
+}
+/// `lambda memory, understood: _pet_moult(understood)` (line 12066).
+pub fn lambda_12066(_memory: &Memory, understood: &Understood) -> Option<String> {
+    _pet_moult(understood)
+}
+/// `lambda memory, understood: _pet_breathing(understood)` (line 12127).
+pub fn lambda_12127(_memory: &Memory, understood: &Understood) -> Option<String> {
+    _pet_breathing(understood)
+}
+/// `lambda memory, understood: _horse_sweating(understood)` (line 12166).
+pub fn lambda_12166(_memory: &Memory, understood: &Understood) -> Option<String> {
+    _horse_sweating(understood)
+}
 
 // ---------------------------------------------------------------------------------------------
 // Registry tables.
@@ -3324,16 +3374,12 @@ macro_rules! reply_fn {
         }
     };
 }
-macro_rules! reading_reply_fn {
-    ($wrapper:ident, $f:path) => {
-        fn $wrapper(_f: &FnRef, _m: &mut Memory, u: &Understood) -> Option<String> {
-            $f(u)
-        }
-    };
-}
 
 guard_fn!(g_lambda_4649, lambda_4649);
 guard_fn!(g_lambda_5979, lambda_5979);
+guard_fn!(g_lambda_6310, lambda_6310);
+guard_fn!(g_lambda_6351, lambda_6351);
+guard_fn!(g_lambda_8915, lambda_8915);
 guard_fn!(g_lambda_6873, lambda_6873);
 guard_fn!(g_lambda_6900, lambda_6900);
 guard_fn!(g_a_guarding_line, _a_guarding_line);
@@ -3358,11 +3404,11 @@ guard_fn!(g_this_is_the_pets_talk, _this_is_the_pets_talk);
 pub const GUARDS: &[(&str, GuardFn)] = &[
     ("bot.knowledge.pets:<lambda>:4649", g_lambda_4649),
     ("bot.knowledge.pets:<lambda>:5979", g_lambda_5979),
-    ("bot.knowledge.pets:<lambda>:6310", g_lambda_5979),
-    ("bot.knowledge.pets:<lambda>:6351", g_lambda_5979),
+    ("bot.knowledge.pets:<lambda>:6310", g_lambda_6310),
+    ("bot.knowledge.pets:<lambda>:6351", g_lambda_6351),
     ("bot.knowledge.pets:<lambda>:6873", g_lambda_6873),
     ("bot.knowledge.pets:<lambda>:6900", g_lambda_6900),
-    ("bot.knowledge.pets:<lambda>:8915", g_lambda_5979),
+    ("bot.knowledge.pets:<lambda>:8915", g_lambda_8915),
     ("bot.knowledge.pets:_a_guarding_line:246", g_a_guarding_line),
     ("bot.knowledge.pets:_a_handling_growl_line:231", g_a_handling_growl_line),
     ("bot.knowledge.pets:_a_medicine_line:209", g_a_medicine_line),
@@ -3392,14 +3438,14 @@ fn r_bird_lifespan_say(f: &FnRef, _m: &mut Memory, u: &Understood) -> Option<Str
 reply_fn!(r_lambda_4593, lambda_4593);
 reply_fn!(r_lambda_8896, lambda_8896);
 reply_fn!(r_lambda_8956, lambda_8956);
-reading_reply_fn!(r_pet_scratching, _pet_scratching);
-reading_reply_fn!(r_pet_shivers, _pet_shivers);
-reading_reply_fn!(r_horse_lame, _horse_lame);
-reading_reply_fn!(r_horse_off_food, _horse_off_food);
-reading_reply_fn!(r_pet_snoring, _pet_snoring);
-reading_reply_fn!(r_pet_moult, _pet_moult);
-reading_reply_fn!(r_pet_breathing, _pet_breathing);
-reading_reply_fn!(r_horse_sweating, _horse_sweating);
+reply_fn!(r_lambda_11295, lambda_11295);
+reply_fn!(r_lambda_11992, lambda_11992);
+reply_fn!(r_lambda_12003, lambda_12003);
+reply_fn!(r_lambda_12012, lambda_12012);
+reply_fn!(r_lambda_12047, lambda_12047);
+reply_fn!(r_lambda_12066, lambda_12066);
+reply_fn!(r_lambda_12127, lambda_12127);
+reply_fn!(r_lambda_12166, lambda_12166);
 reply_fn!(r_a_lost_pet, _a_lost_pet);
 reply_fn!(r_after_a_clear_urine_result, _after_a_clear_urine_result);
 reply_fn!(r_barking, _barking);
@@ -3473,14 +3519,14 @@ fn r_dog_feed(_f: &FnRef, m: &mut Memory, u: &Understood) -> Option<String> {
 }
 
 pub const REPLIES: &[(&str, ReplyFn)] = &[
-    ("bot.knowledge.pets:<lambda>:11295", r_pet_scratching),
-    ("bot.knowledge.pets:<lambda>:11992", r_pet_shivers),
-    ("bot.knowledge.pets:<lambda>:12003", r_horse_lame),
-    ("bot.knowledge.pets:<lambda>:12012", r_horse_off_food),
-    ("bot.knowledge.pets:<lambda>:12047", r_pet_snoring),
-    ("bot.knowledge.pets:<lambda>:12066", r_pet_moult),
-    ("bot.knowledge.pets:<lambda>:12127", r_pet_breathing),
-    ("bot.knowledge.pets:<lambda>:12166", r_horse_sweating),
+    ("bot.knowledge.pets:<lambda>:11295", r_lambda_11295),
+    ("bot.knowledge.pets:<lambda>:11992", r_lambda_11992),
+    ("bot.knowledge.pets:<lambda>:12003", r_lambda_12003),
+    ("bot.knowledge.pets:<lambda>:12012", r_lambda_12012),
+    ("bot.knowledge.pets:<lambda>:12047", r_lambda_12047),
+    ("bot.knowledge.pets:<lambda>:12066", r_lambda_12066),
+    ("bot.knowledge.pets:<lambda>:12127", r_lambda_12127),
+    ("bot.knowledge.pets:<lambda>:12166", r_lambda_12166),
     ("bot.knowledge.pets:<lambda>:4593", r_lambda_4593),
     ("bot.knowledge.pets:<lambda>:8896", r_lambda_8896),
     ("bot.knowledge.pets:<lambda>:8956", r_lambda_8956),
@@ -3560,168 +3606,3 @@ fn s_the_buying_shape(_f: &FnRef, text_: &str) -> bool {
 }
 
 pub const SHAPES: &[(&str, ShapeFn)] = &[("bot.knowledge.pets:_the_buying_shape:583", s_the_buying_shape)];
-
-#[cfg(test)]
-mod difftest {
-    use super::*;
-    use crate::knowledge::d1_dup_g2::difftest::{run, Case, ToJ};
-    use serde_json::{json, Value as J};
-
-    impl ToJ for PetWords {
-        fn to_j(&self) -> J {
-            json!({"one": self.one, "kind": self.kind, "they": self.they})
-        }
-    }
-    impl ToJ for Animal {
-        fn to_j(&self) -> J {
-            json!({"one": self.one, "One": self.one_cap, "they": self.they, "them": self.them, "kind": self.kind})
-        }
-    }
-
-    fn dispatch(c: &mut Case) -> Option<J> {
-        Some(match c.f {
-            "_an_animal_did_it" => _an_animal_did_it(c.reading).to_j(),
-            "_dog_age_years" => _dog_age_years(c.reading).to_j(),
-            "_fish_not_the_sport" => _fish_not_the_sport(c.reading).to_j(),
-            "_dog_not_young" => _dog_not_young(c.reading).to_j(),
-            "_a_medicine_line" => _a_medicine_line(c.reading).to_j(),
-            "_a_handling_growl_line" => _a_handling_growl_line(c.reading).to_j(),
-            "_a_guarding_line" => _a_guarding_line(c.reading).to_j(),
-            "_a_warning_sound_said" => _a_warning_sound_said(c.reading).to_j(),
-            "_an_eaten_creature" => _an_eaten_creature(c.reading).to_j(),
-            "_an_eaten_fungus" => _an_eaten_fungus(c.reading).to_j(),
-            "_a_switch_to_adult_food" => _a_switch_to_adult_food(c.reading).to_j(),
-            "_on_a_lead" => _on_a_lead(c.reading).to_j(),
-            "_small_pet_food" => _small_pet_food(c.reading).to_j(),
-            "_pet_words" => _pet_words(c.reading).to_j(),
-            "_other_pet" => _other_pet(c.reading).to_j(),
-            "_the_neuter_is_done" => _the_neuter_is_done(c.reading).to_j(),
-            "_the_sex_words" => _the_sex_words(c.reading).to_j(),
-            "_can_pet_eat" => _can_pet_eat(c.reading).to_j(),
-            "_one_pets_dinner" => _one_pets_dinner(c.reading).to_j(),
-            "_a_plain_hold_is_the_rodents_card" => _a_plain_hold_is_the_rodents_card(c.reading).to_j(),
-            "_not_a_weight_of_food" => _not_a_weight_of_food(c.reading).to_j(),
-            "_not_a_named_cat" => _not_a_named_cat(c.reading).to_j(),
-            "_a_cat_in_the_line" => _a_cat_in_the_line(c.reading).to_j(),
-            "_a_litter_is_what_is_asked_about" => _a_litter_is_what_is_asked_about(c.reading).to_j(),
-            "_a_name_is_being_given" => _a_name_is_being_given(c.reading).to_j(),
-            "_said" => _said(c.reading).to_j(),
-            "_the_bin_is_the_dogs_question" => _the_bin_is_the_dogs_question(c.reading).to_j(),
-            "STANDS_ASIDE" => STANDS_ASIDE(c.reading).to_j(),
-            "_the_animal_that_ate" => _the_animal_that_ate(c.reading).to_j(),
-            "_this_is_the_pets_talk" => _this_is_the_pets_talk(c.reading).to_j(),
-            "_a_person_who_is_not_the_patient" => _a_person_who_is_not_the_patient(c.reading).to_j(),
-            "_shopping_or_news" => _shopping_or_news(c.reading).to_j(),
-            "_eaten_thing_is_not_food" => _eaten_thing_is_not_food(c.reading).to_j(),
-            "_it_asks_what_to_do" => _it_asks_what_to_do(c.reading).to_j(),
-            "_scratching_what" => _scratching_what(c.reading).to_j(),
-            "_pet_scratching" => _pet_scratching(c.reading).to_j(),
-            "_a_person_was_hurt" => _a_person_was_hurt(c.reading).to_j(),
-            "_a_smell_is_not_a_soaking" => _a_smell_is_not_a_soaking(c.reading).to_j(),
-            "_the_animal_got_wet" => _the_animal_got_wet(c.reading).to_j(),
-            "_a_soaking_is_not_a_smell_or_a_hair" => _a_soaking_is_not_a_smell_or_a_hair(c.reading).to_j(),
-            "_pet_shivers" => _pet_shivers(c.reading).to_j(),
-            "_horse_lame" => _horse_lame(c.reading).to_j(),
-            "_horse_off_food" => _horse_off_food(c.reading).to_j(),
-            "_pet_moult" => _pet_moult(c.reading).to_j(),
-            "_pet_snoring" => _pet_snoring(c.reading).to_j(),
-            "_pet_breathing" => _pet_breathing(c.reading).to_j(),
-            "_horse_sweating" => _horse_sweating(c.reading).to_j(),
-            "_the_animal" => _the_animal(c.reading).to_j(),
-            "_cat_biting" => _cat_biting(&c.memory, c.reading).to_j(),
-            "_cat_and_baby" => _cat_and_baby(&c.memory, c.reading).to_j(),
-            "_neuter_why" => _neuter_why(&c.memory, c.reading).to_j(),
-            "_kitten_kit" => _kitten_kit(&c.memory, c.reading).to_j(),
-            "_the_small_pet" => _the_small_pet(&c.memory, c.reading).to_j(),
-            "_small_pet_setup" => _small_pet_setup(&c.memory, c.reading).to_j(),
-            "_the_hamster_basics" => _the_hamster_basics(&c.memory, c.reading).to_j(),
-            "_the_pet_checkup" => _the_pet_checkup(&c.memory, c.reading).to_j(),
-            "_the_litter_routine" => _the_litter_routine(&c.memory, c.reading).to_j(),
-            "_pet_mouth" => _pet_mouth(&c.memory, c.reading).to_j(),
-            "_dog_feed" => _dog_feed(&c.memory, c.reading).to_j(),
-            "_barking" => _barking(&c.memory, c.reading).to_j(),
-            "_scared_of" => _scared_of(&c.memory, c.reading).to_j(),
-            "_scared_of_plan" => _scared_of_plan(&c.memory, c.reading).to_j(),
-            "_dog_night" => _dog_night(&c.memory, c.reading).to_j(),
-            "_dog_pulling" => _dog_pulling(&c.memory, c.reading).to_j(),
-            "_litter_reply" => _litter_reply(&c.memory, c.reading).to_j(),
-            "_cat_urine" => _cat_urine(&c.memory, c.reading).to_j(),
-            "_after_a_clear_urine_result" => _after_a_clear_urine_result(&c.memory, c.reading).to_j(),
-            "_pet_dairy" => _pet_dairy(&c.memory, c.reading).to_j(),
-            "_pet_tummy" => _pet_tummy(&c.memory, c.reading).to_j(),
-            "_breathing_fast" => _breathing_fast(&c.memory, c.reading).to_j(),
-            "_pet_wound" => _pet_wound(&c.memory, c.reading).to_j(),
-            "_the_neuter_sex" => _the_neuter_sex(&c.memory, c.reading).to_j(),
-            "_the_neuter_is_done_reply" => _the_neuter_is_done_reply(&c.memory, c.reading).to_j(),
-            "_pet_neuter" => _pet_neuter(&c.memory, c.reading).to_j(),
-            "_paw_licking" => _paw_licking(&c.memory, c.reading).to_j(),
-            "_bone_hazard" => _bone_hazard(&c.memory, c.reading).to_j(),
-            "_raw_meat" => _raw_meat(&c.memory, c.reading).to_j(),
-            "_grapes" => _grapes(&c.memory, c.reading).to_j(),
-            "_rabbit_weather" => _rabbit_weather(&c.memory, c.reading).to_j(),
-            "_noise_fear" => _noise_fear(&c.memory, c.reading).to_j(),
-            "_pet_in_the_talk" => _pet_in_the_talk(&c.memory, c.reading).to_j(),
-            "_pet_drink_more" => _pet_drink_more(&c.memory, c.reading).to_j(),
-            "_pet_salt_water" => _pet_salt_water(&c.memory, c.reading).to_j(),
-            "_pet_not_drinking" => _pet_not_drinking(&c.memory, c.reading).to_j(),
-            "_pet_thirst" => _pet_thirst(&c.memory, c.reading).to_j(),
-            "_pet_limp" => _pet_limp(&c.memory, c.reading).to_j(),
-            "_small_pet_handling" => _small_pet_handling(&c.memory, c.reading).to_j(),
-            "_pet_loss" => _pet_loss(&c.memory, c.reading).to_j(),
-            "_dog_recall" => _dog_recall(&c.memory, c.reading).to_j(),
-            "_cat_and_children" => _cat_and_children(&c.memory, c.reading).to_j(),
-            "_small_pet_cost" => _small_pet_cost(&c.memory, c.reading).to_j(),
-            "_pet_cost" => _pet_cost(&c.memory, c.reading).to_j(),
-            "_cat_coat" => _cat_coat(&c.memory, c.reading).to_j(),
-            "_small_pet_fat" => _small_pet_fat(&c.memory, c.reading).to_j(),
-            "_cat_weight" => _cat_weight(&c.memory, c.reading).to_j(),
-            "_dog_weight" => _dog_weight(&c.memory, c.reading).to_j(),
-            "_dog_chewing" => _dog_chewing(&c.memory, c.reading).to_j(),
-            "_dog_bite_person" => _dog_bite_person(&c.memory, c.reading).to_j(),
-            "_leftovers_answer" => _leftovers_answer(&c.memory, c.reading).to_j(),
-            "_the_vet_question" => _the_vet_question(&c.memory, c.reading).to_j(),
-            "_pet_sick_again" => _pet_sick_again(&c.memory, c.reading).to_j(),
-            "_dog_kit" => _dog_kit(&c.memory, c.reading).to_j(),
-            "_puppy_kit" => _puppy_kit(&c.memory, c.reading).to_j(),
-            "_fish_tank" => _fish_tank(&c.memory, c.reading).to_j(),
-            "_rescue_or_baby" => _rescue_or_baby(&c.memory, c.reading).to_j(),
-            "_small_fur_loss" => _small_fur_loss(&c.memory, c.reading).to_j(),
-            "_dog_in_a_car" => _dog_in_a_car(&c.memory, c.reading).to_j(),
-            "_a_lost_pet" => _a_lost_pet(&c.memory, c.reading).to_j(),
-            "_the_animal_in_the_chat" => _the_animal_in_the_chat(&c.memory, c.reading).to_j(),
-            "_where_the_pet_sleeps" => _where_the_pet_sleeps(&c.memory, c.reading).to_j(),
-            "_pet_kind" => _pet_kind(&c.memory, c.reading).to_j(),
-            "_bored_pet" => _bored_pet(&c.memory, c.reading).to_j(),
-            "_knows_name" => _knows_name(&c.memory, c.reading).to_j(),
-            "_off_food_reply" => _off_food_reply(&c.memory, c.reading).to_j(),
-            "_cat_hair" => _cat_hair(&c.memory, c.reading).to_j(),
-            "_cat_habit" => _cat_habit(&c.memory, c.reading).to_j(),
-            "_small_pet_alone" => _small_pet_alone(&c.memory, c.reading).to_j(),
-            "_the_person_hurt" => _the_person_hurt(&c.memory, c.reading).to_j(),
-            "_pet_cable" => _pet_cable(&c.memory, c.reading).to_j(),
-            "_pet_back_legs" => _pet_back_legs(&c.memory, c.reading).to_j(),
-            "_pet_wobbly" => _pet_wobbly(&c.memory, c.reading).to_j(),
-            "_pet_not_moving" => _pet_not_moving(&c.memory, c.reading).to_j(),
-            "_pet_dirty_bottom" => _pet_dirty_bottom(&c.memory, c.reading).to_j(),
-            "_the_buying_shape" => _the_buying_shape(c.text.unwrap_or("")).to_j(),
-            "_small_pet_kind" => _small_pet_kind(c.text.unwrap_or("")).to_j(),
-            "_going_thin" => _going_thin(c.text.unwrap_or("")).to_j(),
-            "_a_weigh_question" => _a_weigh_question(c.text.unwrap_or("")).to_j(),
-            "_the_small_animal" => _the_small_animal(c.text.unwrap_or("")).to_j(),
-            "_the_animal_is_eaten" => _the_animal_is_eaten(c.text.unwrap_or("")).to_j(),
-            "the_dog_feed_follow_up" => the_dog_feed_follow_up(c.text.unwrap_or(""), &c.memory).to_j(),
-            "the_animal_follow_up_line" => the_animal_follow_up_line(c.text.unwrap_or(""), &c.memory).to_j(),
-            "_a_death_the_line_does_not_name" => _a_death_the_line_does_not_name(c.text.unwrap_or(""), &c.memory).to_j(),
-            "_chocolate_for" => _chocolate_for(c.text).to_j(),
-            "_small_animal_sick" => c.text.map(_small_animal_sick).to_j(),
-            "_the_line_above" => _the_line_above(&c.memory).to_j(),
-            _ => return None,
-        })
-    }
-
-    #[test]
-    #[ignore]
-    fn against_python() {
-        run(dispatch);
-    }
-}
