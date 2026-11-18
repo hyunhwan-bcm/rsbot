@@ -4,7 +4,7 @@
 //! sentence handed back. A fallback band (-960): it stands down wherever the composer or the
 //! greeting band below it has a line of its own, and after heavy news.
 
-use crate::data::{self, Value};
+use crate::data;
 use crate::py::re::{self as pyre, Re};
 use crate::py::text;
 use crate::runtime::guarded;
@@ -184,8 +184,7 @@ pub fn _the_thing_said(thing: &str) -> String {
 /// Python: bot/modules/their_taste.py:285 `_pick(pool, memory, said)`: one line of the pool,
 /// seeded by the person's line and never the one just given (the composer's `pick`).
 pub fn _pick(pool: &[String], memory: &Memory, said: &str) -> String {
-    let memory = Value::from_plain(&serde_json::Value::Object(memory.to_plain()));
-    crate::compose::pick(pool, &memory, said)
+    crate::compose::pick(pool, memory, said)
 }
 
 /// Python: bot/modules/their_taste.py:295 `_the_reply(kind, thing, memory)`

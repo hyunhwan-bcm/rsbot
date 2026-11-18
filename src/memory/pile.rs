@@ -58,6 +58,5 @@ pub fn reply_for(text: &str, memory: &Memory) -> Option<String> {
     if !reads_the_pile(text, memory) {
         return None;
     }
-    let memory_value = Value::from_plain(&serde_json::Value::Object(memory.to_plain()));
-    Some(crate::compose::pick(&A_PILE_TOO_BIG, &memory_value, text))
+    Some(crate::compose::pick(&A_PILE_TOO_BIG, memory, text))
 }

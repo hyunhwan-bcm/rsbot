@@ -7,7 +7,6 @@
 //! the bundle holds the later one, as the functions do at run time).
 #![allow(non_upper_case_globals, clippy::all)]
 
-use crate::compose::fallback::memory_value;
 use crate::data;
 use crate::py::re::{Match, Re};
 use crate::py::text;
@@ -59,7 +58,7 @@ static ANOTHER_FRAME: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.mem
 
 /// `from . import pick`: one of the options, never the reply just given.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// `re.split(r"(?<=[.!?])\s+", s)`.

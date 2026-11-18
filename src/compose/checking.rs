@@ -117,11 +117,9 @@ fn says_word(word: &str, text_: &str) -> bool {
 
 /// `compose.pick(options, read, said)`: `pick` is handed the reading (or `{}`) as its memory.
 fn pick(options: &[String], read: Option<&Understood>, said: &str) -> String {
-    let read_value = match read {
-        Some(read) => Value::from_plain(&serde_json::to_value(read).unwrap_or(serde_json::Value::Null)),
-        None => Value::dict(),
-    };
-    crate::compose::pick(options, &read_value, said)
+    // A reading holds no "turns", so `pick` reads it as a memory with no conversation in it.
+    let _ = read;
+    crate::compose::pick(options, &crate::state::Memory::new(), said)
 }
 
 /// Python: bot/compose/checking.py:76 `_a_named_country_in(text)`

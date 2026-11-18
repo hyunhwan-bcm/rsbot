@@ -664,7 +664,7 @@ pub fn hands_it_back(reply: &str) -> bool {
 
 /// `compose.pick(options, memory, seed_text)`: its contract takes the memory as a `Value`.
 pub fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &mem_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 // ---------------------------------------------------------------------------------------------

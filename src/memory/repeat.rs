@@ -14,7 +14,7 @@
 #![allow(non_snake_case)]
 
 use crate::data::{self, Value};
-use crate::memory::narrow::{self, memory_value, py_format, py_str, py_str_or_empty, py_try, re_cached};
+use crate::memory::narrow::{self, py_format, py_str, py_str_or_empty, py_try, re_cached};
 use crate::memory::topics;
 use crate::py::re::{self as pyre, Match, Re};
 use crate::py::text;
@@ -270,7 +270,7 @@ fn repeated_lines(memory: &Memory) -> Vec<String> {
 
 /// `pick(options, memory, seed_text)` from the composer.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// `limits.names_a_limit(clean)`: whether the line names something a person cannot do.

@@ -4447,8 +4447,8 @@ pub fn _a_verdict_on_their_plan(clean: &str, memory: &Memory, past_a_question: b
     if !plan.is_empty() || !plan_line.is_empty() {
         let wish = [plan.as_str(), plan_line.as_str()].iter().filter(|p| !p.is_empty()).copied().collect::<Vec<_>>().join(" ");
         if !JUDGE_A_TARGET.is_match(&wish) && (JUDGE_ACT_AT_SOMEONE.is_match(&wish) || JUDGE_TAKING.is_match(&wish)) {
-            let said_back = if plan_line.is_empty() { Value::None } else { crate::compose::harm::reply_for(&plan_line, memory) };
-            return Some(if said_back.truthy() { vec![said_back.str().to_string()] } else { JUDGE_WISH_ANGRY.clone() });
+            let said_back = if plan_line.is_empty() { None } else { crate::compose::harm::reply_for(&plan_line, memory) };
+            return Some(match said_back.filter(|s| !s.is_empty()) { Some(s) => vec![s], None => JUDGE_WISH_ANGRY.clone() });
         }
         if JUDGE_WISHES_HARM.is_match(&wish) || JUDGE_TAKING_SOMETHING.is_match(&wish) || JUDGE_LYING.is_match(&wish) || JUDGE_NOT_A_PLAN_TO_BLESS.is_match(&wish) {
             return None;
@@ -6080,6 +6080,7 @@ regexes!(THE_OUTCOME_ASK, WHO_IS_ILL);
 pools!(SAFETY_WORDS, OUTCOME_LINES);
 
 /// The memory as the plain Python dict `compose.pick` takes in its contract.
+#[allow(dead_code)]
 pub(crate) fn memory_value(memory: &Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
 }
@@ -6112,7 +6113,7 @@ pub fn an_outcome_asked_about_someone(text_: &str, memory: &Memory) -> Option<St
     if !WHO_IS_ILL.is_match(&parts.join(" ")) {
         return None;
     }
-    Some(crate::compose::pick(&OUTCOME_LINES, &memory_value(memory), &clean))
+    Some(crate::compose::pick(&OUTCOME_LINES, memory, &clean))
 }
 
 /// Python: bot/compose/fallback.py:12174 `is_a_hedge(said)`

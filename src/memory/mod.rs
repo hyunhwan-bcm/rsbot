@@ -237,7 +237,7 @@ pub mod pyv {
 
     /// `compose.pick(options, memory, seed_text=text)`.
     pub fn pick(options: &[String], memory: &crate::state::Memory, seed_text: &str) -> String {
-        crate::compose::pick(options, &memory_value(memory), seed_text)
+        crate::compose::pick(options, memory, seed_text)
     }
 
     /// What another file's function gave back, read for its truth whatever its contract type

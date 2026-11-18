@@ -237,11 +237,9 @@ static A_BREAK: LazyLock<Re> = LazyLock::new(|| rx("[,;:]|\\s[-\u{2013}\u{2014}]
 static FENCE_IN_FRONT: LazyLock<Re> = LazyLock::new(|| rx_i(r"^(?:but )?(?:if|once|when|whenever) [^,]{0,70}, "));
 static A_STOP_IN_FRONT: LazyLock<Re> = LazyLock::new(|| rx_i(r"^(?:stop|don't|dont|do not) [^,]{0,40}?,? (?:and|but) "));
 
-/// `pick(options, memory, seed_text)` from `bot/compose/__init__.py`. Its contract takes the
-/// memory as a plain value; this is the one place that hands it over.
+/// `pick(options, memory, seed_text)` from `bot/compose/__init__.py`.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    let plain = Value::from_plain(&serde_json::Value::Object(memory.to_plain()));
-    crate::compose::pick(options, &plain, seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// `str(x or "")` for an optional turn field.

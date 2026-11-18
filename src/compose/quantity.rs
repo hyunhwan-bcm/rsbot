@@ -99,7 +99,7 @@ static BY_A_SECOND: LazyLock<Re> = LazyLock::new(|| {
 
 /// `compose.pick(options, memory, seed_text)`, through the one wrapper this file has.
 fn pick(options: &[String], memory: &Memory, clean: &str) -> String {
-    crate::compose::pick(options, &crate::compose::fallback::memory_value(memory), clean)
+    crate::compose::pick(options, memory, clean)
 }
 
 /// `s[:1].upper() + s[1:]`.

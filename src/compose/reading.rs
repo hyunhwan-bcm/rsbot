@@ -127,12 +127,15 @@ static A_CLAUSE_BREAK: LazyLock<Re> = LazyLock::new(|| Re::new(r"[.;:!?]| - |\ba
 static YEARS_OLD: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:years?|yrs?|months?)\s+old\b", 0));
 
 /// The memory `compose.pick` is handed: `{"turns": [{key: text}]}`.
-fn one_turn(key: &str, text_: &str) -> Value {
-    let mut turn = Value::dict();
-    turn.set_key(key, text_);
-    let mut memory = Value::dict();
-    memory.set_key("turns", Value::List(Arc::new(vec![turn])));
-    memory
+fn one_turn(key: &str, text_: &str) -> crate::state::Memory {
+    // The key that is not given reads as "" in every place `pick` looks, as None does in Python.
+    let mut turn = crate::state::Turn::default();
+    match key {
+        "user" => turn.user = text_.to_string(),
+        "bot" => turn.bot = text_.to_string(),
+        other => panic!("one_turn: no turn key {other:?}"),
+    }
+    crate::state::Memory { turns: vec![turn], ..crate::state::Memory::new() }
 }
 
 /// `_verdict.pick(options, {"turns": [{key: text}]}, seed)` (verdict's `pick` is compose's).

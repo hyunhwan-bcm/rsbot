@@ -306,11 +306,9 @@ pub fn _known(kind: &str, part: &str) -> Vec<String> {
 
 /// `compose.pick(options, read, said)`: the memory `pick` is handed is the reading itself.
 fn pick(options: &[String], read: Option<&Understood>, said: &str) -> String {
-    let read_value = match read {
-        Some(read) => Value::from_plain(&serde_json::to_value(read).unwrap_or(serde_json::Value::Null)),
-        None => Value::dict(),
-    };
-    crate::compose::pick(options, &read_value, said)
+    // A reading holds no "turns", so `pick` reads it as a memory with no conversation in it.
+    let _ = read;
+    crate::compose::pick(options, &crate::state::Memory::new(), said)
 }
 
 /// Python: bot/compose/what_i_do_know.py:779 `reply_for(text, memory=None, reply="")`

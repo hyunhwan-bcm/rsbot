@@ -3,7 +3,7 @@
 //! down as it is said so the turns after it are read in it.
 #![allow(non_snake_case, clippy::all)]
 
-use super::chat::{attempt, dyn_re, mem_value, py, truthy};
+use super::chat::{attempt, dyn_re, py, truthy};
 use crate::data::{self, Value};
 use crate::py::re::Re;
 use crate::py::text;
@@ -445,7 +445,7 @@ pub fn _answered_by_the_knowledge_base(text_: &str, memory: &Memory) -> bool {
 
 /// Python: bot/modules/grief.py:916 `_pick(options, memory, seed_text="")`
 pub fn _pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    match attempt(|| crate::compose::pick(options, &mem_value(memory), seed_text)) {
+    match attempt(|| crate::compose::pick(options, memory, seed_text)) {
         Some(line) => line,
         None => options.first().cloned().unwrap_or_else(|| panic!("IndexError: list index out of range")),
     }
