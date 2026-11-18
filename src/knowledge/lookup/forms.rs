@@ -343,7 +343,15 @@ pub fn _typo_forms(word: &str, vocabulary: &HashMap<String, usize>) -> HashSet<S
 }
 
 /// `_wanted(phrase)`: the forms of each word of a phrase.
+/// `_wanted(phrase)`: the forms of each word of a phrase.
 pub fn _wanted(phrase: &str) -> Arc<Vec<Forms>> {
+    if let Some(info) = static_phrase(phrase) {
+        return info.wanted.clone();
+    }
+    cached_wanted(phrase)
+}
+
+fn cached_wanted(phrase: &str) -> Arc<Vec<Forms>> {
     static CACHE: LazyLock<RwLock<HashMap<String, Arc<Vec<Forms>>>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(got) = CACHE.read().unwrap().get(phrase) {
         return got.clone();
@@ -360,7 +368,15 @@ pub fn _wanted(phrase: &str) -> Arc<Vec<Forms>> {
 }
 
 /// `_wanted_bare(phrase)`: the phrase's forms without its articles, when that leaves enough.
+/// `_wanted_bare(phrase)`: the phrase's forms without its articles, when that leaves enough.
 pub fn _wanted_bare(phrase: &str) -> Option<Arc<Vec<Forms>>> {
+    if let Some(info) = static_phrase(phrase) {
+        return info.bare.clone();
+    }
+    cached_wanted_bare(phrase)
+}
+
+fn cached_wanted_bare(phrase: &str) -> Option<Arc<Vec<Forms>>> {
     static CACHE: LazyLock<RwLock<HashMap<String, Option<Arc<Vec<Forms>>>>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(got) = CACHE.read().unwrap().get(phrase) {
         return got.clone();
@@ -412,7 +428,15 @@ pub fn _phrase_span_bare(forms: &[Forms], wanted: &[Forms]) -> Vec<usize> {
 }
 
 /// `_shape(phrase)`: the phrase's words and what saying it is worth.
+/// `_shape(phrase)`: the phrase's words and what saying it is worth.
 pub fn _shape(phrase: &str) -> (Arc<[String]>, i64) {
+    if let Some(info) = static_phrase(phrase) {
+        return info.shape.clone();
+    }
+    cached_shape(phrase)
+}
+
+fn cached_shape(phrase: &str) -> (Arc<[String]>, i64) {
     static CACHE: LazyLock<RwLock<HashMap<String, (Arc<[String]>, i64)>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(got) = CACHE.read().unwrap().get(phrase) {
         return got.clone();
@@ -578,7 +602,15 @@ static _ONE_SPELLING_EITHER_WAY: LazyLock<HashMap<String, Vec<String>>> = LazyLo
 });
 
 /// `_the_same_words(phrase)`: the phrase in its other spellings ("won't" / "will not").
+/// `_the_same_words(phrase)`: the phrase in its other spellings ("won't" / "will not").
 pub fn _the_same_words(phrase: &str) -> Arc<Vec<String>> {
+    if let Some(info) = static_phrase(phrase) {
+        return info.same.clone();
+    }
+    cached_same_words(phrase)
+}
+
+fn cached_same_words(phrase: &str) -> Arc<Vec<String>> {
     static CACHE: LazyLock<RwLock<HashMap<String, Arc<Vec<String>>>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
     if let Some(got) = CACHE.read().unwrap().get(phrase) {
         return got.clone();
@@ -704,17 +736,17 @@ pub fn _phrase_found(forms: &FormLine, phrase: &str) -> bool {
 }
 
 /// `_part_forms(part)`: every form any alternative of the part is said in.
+/// `_part_forms(part)`: every form any alternative of the part is said in.
 pub fn _part_forms(part: Part) -> Arc<HashSet<String>> {
-    static CACHE: LazyLock<RwLock<HashMap<PartKey, (Vec<String>, Arc<HashSet<String>>)>>> = LazyLock::new(|| RwLock::new(HashMap::default()));
-    let alternatives = part.alternatives();
-    let key = part.key();
-    if let Some((alts, got)) = CACHE.read().unwrap().get(&key) {
-        if alts.len() == alternatives.len() && alts.iter().zip(&alternatives).all(|(a, b)| a == b) {
-            return got.clone();
-        }
+    if let Some(got) = STATIC_PARTS.get(&part.key()) {
+        return got.clone();
     }
+    cached_part_forms(part)
+}
+
+fn cached_part_forms(part: Part) -> Arc<HashSet<String>> {
     let mut every = HashSet::default();
-    for alternative in &alternatives {
+    for alternative in part.alternatives() {
         if text::strip(alternative).is_empty() {
             continue;
         }
@@ -722,9 +754,7 @@ pub fn _part_forms(part: Part) -> Arc<HashSet<String>> {
             every.extend(word_forms.iter().cloned());
         }
     }
-    let every = Arc::new(every);
-    CACHE.write().unwrap().insert(key, (alternatives.iter().map(|s| s.to_string()).collect(), every.clone()));
-    every
+    Arc::new(every)
 }
 
 /// `_part_matches(part, forms, seen=None)`: every alternative of the part the line says, as
@@ -798,4 +828,67 @@ pub fn _part_score(part: Part, forms: &FormLine, seen: Option<&SeenRef>) -> i64 
 /// `_only_the_frame(words)`: every word is the ask's frame ("how", "what", ...).
 pub fn _only_the_frame(words: &[String]) -> bool {
     !words.is_empty() && words.iter().all(|w| ASK_FRAME.contains(w))
+}
+
+/// What the matcher works out about one phrase (`_wanted`, `_wanted_bare`, `_the_same_words`,
+/// `_shape`), worked out once for every phrase the knowledge base holds.
+pub struct PhraseInfo {
+    pub wanted: Arc<Vec<Forms>>,
+    pub bare: Option<Arc<Vec<Forms>>>,
+    pub same: Arc<Vec<String>>,
+    pub shape: (Arc<[String]>, i64),
+}
+
+/// Every phrase and part the knowledge base and the matcher's own tables hold, by where it lives.
+/// They live for the whole run, so an address in the table is that phrase and no other (Python's
+/// caches are keyed by the phrase, or by `id(part)` for a part).
+fn static_phrases() -> (Vec<&'static str>, Vec<Part<'static>>) {
+    let mut phrases: Vec<&'static str> = Vec::new();
+    let mut parts: Vec<Part<'static>> = Vec::new();
+    for item in all_entries() {
+        for part in item.key.iter().chain(item.ask.iter()) {
+            parts.push(part.into());
+            phrases.extend(alternatives(part).iter().map(String::as_str));
+        }
+        for word in &item.avoid {
+            parts.push(Part::Str(word));
+            phrases.push(word);
+        }
+    }
+    for table in [&*WANTING, &*WANT_KNOWING, &*PLAN_WORDS] {
+        parts.push(Part::Tuple(table));
+        for word in table.iter() {
+            parts.push(Part::Str(word));
+            phrases.push(word);
+        }
+    }
+    (phrases, parts)
+}
+
+static STATIC_PHRASES: LazyLock<HashMap<(usize, usize), PhraseInfo>> = LazyLock::new(|| {
+    let (phrases, _) = static_phrases();
+    let mut m: HashMap<(usize, usize), PhraseInfo> = HashMap::default();
+    for phrase in phrases {
+        m.entry((phrase.as_ptr() as usize, phrase.len())).or_insert_with(|| PhraseInfo {
+            wanted: cached_wanted(phrase),
+            bare: cached_wanted_bare(phrase),
+            same: cached_same_words(phrase),
+            shape: cached_shape(phrase),
+        });
+    }
+    m
+});
+
+static STATIC_PARTS: LazyLock<HashMap<PartKey, Arc<HashSet<String>>>> = LazyLock::new(|| {
+    let (_, parts) = static_phrases();
+    let mut m: HashMap<PartKey, Arc<HashSet<String>>> = HashMap::default();
+    for part in parts {
+        m.entry(part.key()).or_insert_with(|| cached_part_forms(part));
+    }
+    m
+});
+
+/// The worked-out phrase, when the phrase is one the knowledge base holds.
+fn static_phrase(phrase: &str) -> Option<&'static PhraseInfo> {
+    STATIC_PHRASES.get(&(phrase.as_ptr() as usize, phrase.len()))
 }
