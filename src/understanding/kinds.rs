@@ -169,7 +169,6 @@ static A_PERSON_NAMED: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "A
 static A_POSSESSED_HEART: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_POSSESSED_HEART"));
 static A_REPORTED_VERB: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_REPORTED_VERB"));
 static A_SAID_BY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_SAID_BY"));
-static A_SAID_BY_ANYONE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_SAID_BY_ANYONE"));
 static A_SUGGESTED_CLAUSE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_SUGGESTED_CLAUSE"));
 static A_THING_NOT_A_CLAIM: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "A_THING_NOT_A_CLAIM"));
 static A_TOLD_TO: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_TOLD_TO"));
@@ -328,7 +327,6 @@ static ITSELF_WHEN_TAIL: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, 
 static JOIN_OPENERS: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "JOIN_OPENERS"));
 static KEEPING_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "KEEPING_ASK"));
 static KEEPS_BUSY_SHAPE: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "KEEPS_BUSY_SHAPE"));
-static KIN: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "KIN"));
 static LABEL_ON_A_PERSON: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "LABEL_ON_A_PERSON"));
 static LAUGH: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "LAUGH"));
 static LAUGHED_OFF_AFTER: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "LAUGHED_OFF_AFTER"));
@@ -568,7 +566,6 @@ static _A_BARE_LIVE: LazyLock<Vec<(String, &'static Re)>> = LazyLock::new(|| t::
 const _A_BARE_LIVE_WORDS: i64 = 9;
 static _A_BARE_RECORD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_A_BARE_RECORD"));
 static _A_BARE_TAIL: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_A_BARE_TAIL"));
-static _A_CLASS_OF_THING: LazyLock<Vec<String>> = LazyLock::new(|| t::strs(M, "_A_CLASS_OF_THING"));  // l, 0 items
 static _A_DEFINITION: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_A_DEFINITION"));
 static _A_DETERMINER: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_A_DETERMINER"));
 static _A_DID_YOU_SEE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_A_DID_YOU_SEE"));
@@ -677,9 +674,6 @@ fn any_in(words: &HashSet<&str>, set: &HashSet<String>) -> bool {
 }
 fn any_of(words: &HashSet<&str>, list: &[&str]) -> bool {
     list.iter().any(|w| words.contains(w))
-}
-fn strings(v: &[&str]) -> Vec<String> {
-    v.iter().map(|s| s.to_string()).collect()
 }
 
 /// `_asks_for_help(text)`: "can you help me with ...".

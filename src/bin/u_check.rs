@@ -78,6 +78,38 @@ fn main() {
             }
             println!("norm ok {ok} bad {bad} {fields:?}");
         }
+        "kinds" => {
+            // u_check kinds LINES.jsonl [show]: classify(Python's line) against Python's read
+            let show: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(5);
+            let (mut ok, mut bad, mut shown) = (0, 0, 0);
+            let mut fields: std::collections::BTreeMap<String, usize> = Default::default();
+            for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
+                let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+                let l: rsbot::understanding::normalize::Line = serde_json::from_value(v["line"].clone()).unwrap();
+                let got = rsbot::runtime::guarded(|| rsbot::understanding::kinds::classify(&l));
+                let got = got.map(|r| serde_json::to_value(r).unwrap()).unwrap_or(serde_json::Value::Null);
+                let want = &v["read"];
+                let mut same = true;
+                match (got.as_object(), want.as_object()) {
+                    (Some(g), Some(w)) => {
+                        for (k, wv) in w {
+                            if g.get(k) != Some(wv) {
+                                same = false;
+                                *fields.entry(k.clone()).or_default() += 1;
+                                if shown < show { println!("-- {k} {:?}\n   rust {}\n   py   {}", l.norm_text, g.get(k).map(|x| x.to_string()).unwrap_or_default(), wv); shown += 1; }
+                            }
+                        }
+                    }
+                    _ => {
+                        same = false;
+                        *fields.entry("(panic)".into()).or_default() += 1;
+                        if shown < show { println!("-- panic {:?}", l.norm_text); shown += 1; }
+                    }
+                }
+                if same { ok += 1 } else { bad += 1 }
+            }
+            println!("kinds ok {ok} bad {bad} {fields:?}");
+        }
         x => panic!("unknown check {x}"),
     }
 }
