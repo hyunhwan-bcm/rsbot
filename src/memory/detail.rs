@@ -1446,3 +1446,25 @@ pub fn a_report_about_the_thing(text: &str, memory: &Memory) -> String {
     }
     _capital(&best)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Values from CPython.
+    #[test]
+    fn details_as_python_reads_them() {
+        let read = |s: &str| the_detail(s);
+        assert_eq!(read("its on the bedroom ones mainly").as_deref(), Some("on the bedroom ones mainly"));
+        assert_eq!(read("with two kids").as_deref(), Some("with two kids"));
+        assert_eq!(read("its been about three weeks now").as_deref(), Some("for about three weeks now"));
+        assert_eq!(read("in the end i called someone"), None);
+        assert_eq!(read("like keys and names").as_deref(), Some("keys and names"));
+        assert_eq!(read("we only have 3 days"), None);
+        assert_eq!(read("its 2kg").as_deref(), Some("2kg"));
+        assert_eq!(read("it catches at the top").as_deref(), Some("at the top"));
+        assert_eq!(read("im thirsty"), None);
+        assert_eq!(_clauses("unscrew it (bowl down, then pull), and rinse; dry it"), ["unscrew it (bowl down", "then pull)", "and rinse", "dry it"]);
+        assert_eq!(["dropping", "drops", "stopped", "running"].map(_report_stem), ["drop", "drop", "stop", "run"]);
+    }
+}

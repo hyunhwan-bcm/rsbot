@@ -1383,3 +1383,19 @@ fn a_detail(line: &str, trip: &Trip, memory: &Memory) -> Option<String> {
 pub fn _a_detail(line: &str, trip: &Value, memory: &Memory) -> Option<String> {
     a_detail(line, &trip_of(trip), memory)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Values from CPython.
+    #[test]
+    fn places_as_python_says_them() {
+        assert_eq!(["the isle of wight", "new york", "3 hills"].map(_cap), ["The Isle of Wight", "New York", "3 Hills"]);
+        assert_eq!(
+            ["my sisters", "my parents house", "my mum's", "my brothers tonight"].map(_as_a_visit),
+            ["your sister's", "your parents' house", "your mum's", "your brother's"]
+        );
+        assert_eq!(_yours("my mum and our kids"), "your mum and your kids");
+    }
+}

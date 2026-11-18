@@ -2282,3 +2282,38 @@ pub fn _called(name: &str) -> String {
 pub fn _every_line(memory: &Memory) -> &[Turn] {
     &memory.turns
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn told(who: &str, age: i64, turns: &str, held: &str) -> Told {
+        Told { who: who.into(), age: Value::Int(age), turns: turns.into(), to_come: Value::None, held: held.into() }
+    }
+
+    // Values from CPython.
+    #[test]
+    fn sentences_as_python_says_them() {
+        let none = Value::None;
+        assert_eq!(_one_age("son", &Value::Int(7), "", &none, &none), "Your son is 7.");
+        assert_eq!(_one_age("kids", &Value::Int(4), "in june", &Value::Int(5), &none), "Your kids are 4, and turns 5 in june.");
+        assert_eq!(_one_age("", &Value::Int(3), "", &none, &none), "They are 3.");
+        assert_eq!(_one_age("son", &Value::Int(7), "next month", &Value::Int(8), &Value::from("ada")), "Ada is 7, and turns 8 next month.");
+        assert_eq!(_one_age("she", &Value::Int(4), "next month", &none, &none), "She turns 4 next month.");
+        assert_eq!(_ages_sentence(&[told("kids", 4, "", ""), told("kids", 7, "", "")]), "Your kids are 4 and 7.");
+        assert_eq!(_ages_sentence(&[told("daughter", 4, "", "Ada"), told("son", 7, "", "sam")]), "Ada is 4 and Sam is 7.");
+        let many: Vec<String> = ["daughter", "baby", "boy", "y", "kids", "person"].iter().map(|w| _the_many(w)).collect();
+        assert_eq!(many, ["daughters", "babies", "boys", "ys", "kids", "people"]);
+        let words = |w: &[&str]| w.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(_a_list_of_words(&words(&["a sister", "a brother", "a dog"])), "a sister, a brother and a dog");
+        assert_eq!(_a_or_any(&words(&["brothers", "sisters"])), "any brothers or sisters");
+        assert_eq!(_a_or_any(&words(&["brother"])), "a brother");
+        assert_eq!(_a_plural_list(&words(&["brothers", "sisters", "cousins"])), "brothers, sisters or cousins");
+        assert_eq!(_called("biscuit"), "Biscuit");
+        assert_eq!(_called("mr patel"), "Mr Patel");
+        assert_eq!(_called("j.r. smith"), "J R Smith");
+        assert_eq!(["mother", "sons", "kids", "mums"].map(_canon_relation), ["mum", "son", "child", "mums"]);
+        assert_eq!(_relations_of("mum and dad"), ["mum", "dad"]);
+        assert_eq!(["stepmum", "granddad", "partner", "mother-in-law", "kid"].map(_gender_of), ["she", "he", "", "she", ""]);
+    }
+}

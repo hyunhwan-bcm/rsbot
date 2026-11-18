@@ -1030,3 +1030,15 @@ pub fn _enough_against(
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Values from CPython.
+    #[test]
+    fn figures_as_python_reads_them() {
+        assert_eq!(["2,000", "twice", "1.5", ""].map(_a_value), [2000.0, 2.0, 1.5, 0.0]);
+        assert_eq!([2.0, 1.5, 100.0].map(_the_number), ["2", "1.5", "100"]);
+    }
+}

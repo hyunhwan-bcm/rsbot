@@ -1854,3 +1854,42 @@ pub fn a_price_in_an_answer(text: &str, memory: &Memory) -> String {
     let months = ceil_div(price, rate);
     format!("£{} at £{} a month is {}.", commas(price), commas(rate), _months(months))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Values from CPython (harness/pycall.py style, clock pinned to 2026-11-17).
+    #[test]
+    fn figures_as_python_says_them() {
+        assert_eq!(_months(1), "1 month");
+        assert_eq!(_months(12), "12 months, about 1 year");
+        assert_eq!(_months(25), "25 months, about 2 years and 1 month");
+        assert_eq!(_months(1300), "1,300 months, about 108 years and 4 months");
+        assert_eq!(_a_sum("i want to save £2,000"), Some(2000));
+        assert_eq!(_a_sum("save 2k"), Some(2000));
+        assert_eq!(_a_sum("save 5 pounds"), None);
+        assert_eq!(_a_sum("i need to save 3000"), Some(3000));
+        assert_eq!(_a_sum("save 200 on my insurance"), None);
+        assert_eq!(_a_sum("by 2024 i want 150"), Some(150));
+        assert_eq!(_the_length_at_that_rate(1250, 50, "week", 0), "At £50 a week, £1,250 takes 25 weeks (about 6 months).");
+        assert_eq!(_the_length_at_that_rate(1200, 100, "year", 200), "At £100 a year, the £1,200 still to find takes 12 years.");
+        assert_eq!(_the_length_at_that_rate(1000, 100, "fortnight", 0), "At £100 a fortnight, £1,000 takes 10 fortnights (about 5 months).");
+        assert_eq!(_in_the_money_readers_words("easter"), "april");
+        assert_eq!(_in_the_money_readers_words("the end of autumn"), "the end of november");
+        assert_eq!(_in_the_money_readers_words("the end of the year"), "the end of the year");
+        assert_eq!(_in_the_money_readers_words("the end of easter"), "the end of april");
+        assert_eq!(a_rate_put_right("actually i can do 300 now ive paid the car off", ""), 300);
+        assert_eq!(a_rate_put_right("no, 250 a month", ""), 250);
+        assert_eq!(a_rate_put_right("actually its more like 300 now", "i can put by 250 a month"), 300);
+        assert_eq!(a_rate_put_right("actually its 150", ""), 150);
+        if std::env::var("RSBOT_TODAY").as_deref() == Ok("2026-11-17") {
+            assert_eq!(
+                _a_date_on_a_rate(1000, 200, "june"),
+                "£1,000 at £200 a month takes 5 months and June is 7 months away, so that rate gets you there. Set the standing order for the day after payday and it looks after itself \u{2014} a bonus or a refund just brings the date forward."
+            );
+            assert!(_a_date_on_a_rate(3000, 200, "the end of june").contains("the end of june is 7 months away, so it does not get you there \u{2014} that would take about £430 a month. At £200 a month you have £1,400"));
+            assert!(_a_date_on_a_rate(3000, 200, "december").contains("December is 1 month away"));
+        }
+    }
+}
