@@ -1,0 +1,3669 @@
+[
+{
+"fn": "particles.a_thing_without_its_tail",
+"args": [
+"your dress taken up"
+],
+"want": "your dress"
+},
+{
+"fn": "particles.a_thing_without_its_tail",
+"args": [
+"my car being washed"
+],
+"want": "my car being"
+},
+{
+"fn": "particles.a_thing_without_its_tail",
+"args": [
+"taken up"
+],
+"want": "taken"
+},
+{
+"fn": "particles.a_thing_without_its_tail",
+"args": [
+"the hedge cut back."
+],
+"want": "the hedge"
+},
+{
+"fn": "particles.a_thing_without_its_tail",
+"args": [
+""
+],
+"want": ""
+},
+{
+"fn": "particles.a_job_word",
+"args": [
+"taken"
+],
+"want": true
+},
+{
+"fn": "particles.a_job_word",
+"args": [
+"Up!"
+],
+"want": true
+},
+{
+"fn": "particles.a_job_word",
+"args": [
+"dress"
+],
+"want": false
+},
+{
+"fn": "particles.a_job_word",
+"args": [
+"(washing)"
+],
+"want": true
+},
+{
+"fn": "particles.a_job_word",
+"args": [
+""
+],
+"want": false
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"how many weeks"
+],
+"want": [
+"week"
+]
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"how much a month"
+],
+"want": [
+"money"
+]
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"how much"
+],
+"want": [
+"money"
+]
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"how many was it"
+],
+"want": null
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"how long"
+],
+"want": [
+"week",
+"day",
+"month",
+"year",
+"hour",
+"minute",
+"second"
+]
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"and how long will the drive take"
+],
+"want": null
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"so how many minutes and hours"
+],
+"want": [
+"minute",
+"hour"
+]
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"how much water"
+],
+"want": null
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"what time"
+],
+"want": null
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"how far in miles"
+],
+"want": [
+"mile"
+]
+},
+{
+"fn": "memory_store._the_unit_asked",
+"args": [
+"how much per week roughly"
+],
+"want": [
+"money"
+]
+},
+{
+"fn": "memory_store._budget_sign",
+"args": [
+"ive got £60 to spend",
+"60"
+],
+"want": "£"
+},
+{
+"fn": "memory_store._budget_sign",
+"args": [
+"i have $1,200 or so",
+"1,200"
+],
+"want": "$"
+},
+{
+"fn": "memory_store._budget_sign",
+"args": [
+"60 pounds",
+"60"
+],
+"want": ""
+},
+{
+"fn": "memory_store._budget_sign",
+"args": [
+"its € 45 all in",
+"45"
+],
+"want": "€"
+},
+{
+"fn": "memory_store._budget_sign",
+"args": [
+"£60",
+""
+],
+"want": ""
+},
+{
+"fn": "memory_store._names_this",
+"args": [
+"Peanuts",
+"peanut"
+],
+"want": true
+},
+{
+"fn": "memory_store._names_this",
+"args": [
+"nut",
+"nuts"
+],
+"want": true
+},
+{
+"fn": "memory_store._names_this",
+"args": [
+"nuts",
+"nuts"
+],
+"want": true
+},
+{
+"fn": "memory_store._names_this",
+"args": [
+"tree nuts",
+"nuts"
+],
+"want": false
+},
+{
+"fn": "memory_store._names_this",
+"args": [
+"glass",
+"glas"
+],
+"want": true
+},
+{
+"fn": "memory_store._plan_names",
+"args": [
+"Lisbon in may",
+"lisbon"
+],
+"want": true
+},
+{
+"fn": "memory_store._plan_names",
+"args": [
+"my exams in june",
+"exam"
+],
+"want": true
+},
+{
+"fn": "memory_store._plan_names",
+"args": [
+"the gym tomorrow",
+"gyms"
+],
+"want": true
+},
+{
+"fn": "memory_store._plan_names",
+"args": [
+"Rome",
+"paris"
+],
+"want": false
+},
+{
+"fn": "memory_store._without_a_lead_in",
+"args": [
+"and also oh fred is 5"
+],
+"want": "fred is 5"
+},
+{
+"fn": "memory_store._without_a_lead_in",
+"args": [
+"no, sorry, he is 6"
+],
+"want": "he is 6"
+},
+{
+"fn": "memory_store._without_a_lead_in",
+"args": [
+"well well well well well ok"
+],
+"want": "well ok"
+},
+{
+"fn": "memory_store._without_a_lead_in",
+"args": [
+"fred is 5"
+],
+"want": "fred is 5"
+},
+{
+"fn": "memory_store._without_a_lead_in",
+"args": [
+"   "
+],
+"want": ""
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"what did i say her birthday was"
+],
+"want": [
+"when is her birthday",
+"birthday",
+"her"
+]
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"what did i say my dog was called"
+],
+"want": [
+"what is my dog called",
+"name",
+"my"
+]
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"how old did i say she was"
+],
+"want": null
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"How old did I say my son was?"
+],
+"want": null
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"what did i say about the cake"
+],
+"want": null
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"what did we tell you his name is?"
+],
+"want": [
+"what is his name",
+"name",
+"his"
+]
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"what did i say my budget was"
+],
+"want": [
+"what is my budget",
+"budget",
+"my"
+]
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"when did i say our  address is"
+],
+"want": [
+"what is our address",
+"address",
+"our"
+]
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"and what did i call the time"
+],
+"want": null
+},
+{
+"fn": "memory_store._the_ask_behind_the_recall",
+"args": [
+"what did i say his age was"
+],
+"want": [
+"what is his age",
+"age",
+"his"
+]
+},
+{
+"fn": "memory_store._a_fact_word",
+"args": [
+"what did i say about my job"
+],
+"want": true
+},
+{
+"fn": "memory_store._a_fact_word",
+"args": [
+"remember what i said about the boiler"
+],
+"want": false
+},
+{
+"fn": "memory_store._a_fact_word",
+"args": [
+"about"
+],
+"want": false
+},
+{
+"fn": "memory_store._a_fact_word",
+"args": [
+"what about my Dog and cat"
+],
+"want": true
+},
+{
+"fn": "memory_store._names_nothing_in_a_recall",
+"args": [
+" about it"
+],
+"want": true
+},
+{
+"fn": "memory_store._names_nothing_in_a_recall",
+"args": [
+" about the boiler"
+],
+"want": false
+},
+{
+"fn": "memory_store._names_nothing_in_a_recall",
+"args": [
+""
+],
+"want": true
+},
+{
+"fn": "memory_store._names_nothing_in_a_recall",
+"args": [
+" that's what i said"
+],
+"want": false
+},
+{
+"fn": "memory_store._asks_about_someone_else",
+"args": [
+"is he allergic to peanuts"
+],
+"want": true
+},
+{
+"fn": "memory_store._asks_about_someone_else",
+"args": [
+"Does  my mum eat meat she is vegetarian"
+],
+"want": true
+},
+{
+"fn": "memory_store._asks_about_someone_else",
+"args": [
+"is it expensive"
+],
+"want": false
+},
+{
+"fn": "memory_store._asks_about_someone_else",
+"args": [
+"my son is 5"
+],
+"want": false
+},
+{
+"fn": "memory_store._asks_about_someone_else",
+"args": [
+"...can they come"
+],
+"want": true
+},
+{
+"fn": "memory_store._another_animal_is_named",
+"args": [
+"no my OTHER cat is called max"
+],
+"want": true
+},
+{
+"fn": "memory_store._another_animal_is_named",
+"args": [
+"no the cat is called max"
+],
+"want": false
+},
+{
+"fn": "memory_store._another_animal_is_named",
+"args": [
+"we also have a cat"
+],
+"want": true
+},
+{
+"fn": "memory_store._the_money_figures",
+"args": [
+"Repair it if the phone is under four years old: £50 to £120 at a local shop, or 40 pounds if you do it."
+],
+"want": []
+},
+{
+"fn": "memory_store._the_money_figures",
+"args": [
+"If it happens again pay £20; otherwise nothing."
+],
+"want": []
+},
+{
+"fn": "memory_store._the_money_figures",
+"args": [
+"About 10 to 15 percent, or 20% when the service was good."
+],
+"want": []
+},
+{
+"fn": "memory_store._the_money_figures",
+"args": [
+"Nothing to pay."
+],
+"want": []
+},
+{
+"fn": "memory_store._the_money_figures",
+"args": [
+"It costs £60 to £120, and £15 whenever you call them out."
+],
+"want": []
+},
+{
+"fn": "memory_store._the_figures_in",
+"args": [
+"Eight to ten weeks is a realistic build. Run three times a week for 20 minutes at a time.",
+[
+"week"
+]
+],
+"want": [
+[
+"Eight to ten weeks",
+true
+]
+]
+},
+{
+"fn": "memory_store._the_figures_in",
+"args": [
+"The 5 to 6 minute egg is runny; boil for about 7 minutes.",
+[
+"minute"
+]
+],
+"want": [
+[
+"about 7 minutes",
+true
+]
+]
+},
+{
+"fn": "memory_store._the_figures_in",
+"args": [
+"Give it a week, then another 2 weeks 3 days if it is slow.",
+[
+"week",
+"day"
+]
+],
+"want": [
+[
+"another 2 weeks 3",
+true
+]
+]
+},
+{
+"fn": "memory_store._the_figures_in",
+"args": [
+"For the first two days rest it; after 6 weeks it is healed.",
+[
+"day",
+"week"
+]
+],
+"want": [
+[
+"6 weeks",
+true
+]
+]
+},
+{
+"fn": "memory_store._the_figures_in",
+"args": [
+"It is £50 to £120 at a shop.",
+[
+"money"
+]
+],
+"want": [
+[
+"£50 to £120",
+true
+]
+]
+},
+{
+"fn": "memory_store._the_figures_in",
+"args": [
+"Around 3 months per year, or up to 12 months.",
+[
+"month"
+]
+],
+"want": [
+[
+"up to 12 months",
+true
+]
+]
+},
+{
+"fn": "memory_store._a_figure_of_those_units",
+"args": [
+"£4,000 at £300 a month is 14 months",
+[
+"month"
+]
+],
+"want": true
+},
+{
+"fn": "memory_store._a_figure_of_those_units",
+"args": [
+"no length here",
+[
+"week"
+]
+],
+"want": false
+},
+{
+"fn": "memory_store._a_figure_of_those_units",
+"args": [
+"it is 20% off",
+[
+"money"
+]
+],
+"want": true
+},
+{
+"fn": "memory_store._a_figure_of_those_units",
+"args": [
+"ten to twelve Weeks",
+[
+"week"
+]
+],
+"want": false
+},
+{
+"fn": "memory_store._a_figure_of_those_units",
+"args": [
+"about a week",
+[
+"week"
+]
+],
+"want": true
+},
+{
+"fn": "memory_store._a_person",
+"args": [
+"my wife"
+],
+"want": true
+},
+{
+"fn": "memory_store._a_person",
+"args": [
+"the sisters"
+],
+"want": true
+},
+{
+"fn": "memory_store._a_person",
+"args": [
+"peanuts"
+],
+"want": false
+},
+{
+"fn": "memory_store._a_person",
+"args": [
+null
+],
+"want": false
+},
+{
+"fn": "memory_store._a_person",
+"args": [
+"Mum's"
+],
+"want": false
+},
+{
+"fn": "memory_store._the_clause",
+"args": [
+"one. two 5 weeks; three",
+9,
+16
+],
+"want": " two 5 weeks"
+},
+{
+"fn": "memory_store._the_clause",
+"args": [
+"no marks 5 weeks here",
+9,
+16
+],
+"want": "no marks 5 weeks here"
+},
+{
+"fn": "memory_store._the_clause",
+"args": [
+"a: b. c 5 weeks",
+8,
+15
+],
+"want": " c 5 weeks"
+},
+{
+"fn": "bulky._group",
+"args": [
+"the old carpet tiles"
+],
+"want": [
+"floor",
+"carpet"
+]
+},
+{
+"fn": "bulky._group",
+"args": [
+"My Sofa and my fridge"
+],
+"want": [
+"furniture",
+"sofa"
+]
+},
+{
+"fn": "bulky._group",
+"args": [
+"a shed"
+],
+"want": [
+"garden",
+"shed"
+]
+},
+{
+"fn": "bulky._group",
+"args": [
+"nothing here"
+],
+"want": [
+"",
+""
+]
+},
+{
+"fn": "bulky._reply",
+"args": [
+"floor",
+"carpet"
+],
+"want": "Roll the carpet up and cut it into lengths you can lift, then take it to the recycling centre - most tips take carpet in the general waste skip. If it will not fit in a car, book a bulky waste collection with your council; most charge twenty to forty pounds for a doorstep pickup. Check your council's site for the fee and the booking, because I can't see your council's charges from here."
+},
+{
+"fn": "bulky._reply",
+"args": [
+"furniture",
+"sofa"
+],
+"want": "Take the sofa apart if it will come apart, then book a bulky waste collection with your council - most charge twenty to forty pounds - or take it to the recycling centre. If it is still usable, a charity or a local reuse group may collect it; the British Heart Foundation collects furniture in many areas. Check your council's site for the fee and the collection, because I can't see your council's charges from here."
+},
+{
+"fn": "bulky._reply",
+"args": [
+"electrical",
+"fridge"
+],
+"want": "Anything with a plug or a battery is electrical waste, so it cannot go in the bin: a shop that sells the same kind of thing has to take it back, and the recycling centre has an electricals point. A fridge is also a bulky collection if you cannot move it - ask the shop delivering a new one to take the old one. Check your council's site for the fee, because I can't see your council's charges from here."
+},
+{
+"fn": "bulky._reply",
+"args": [
+"garden",
+"shed"
+],
+"want": "Dismantle the shed as far as it will come apart and take it to the recycling centre, or book a bulky waste collection with your council; most charge twenty to forty pounds. The metal goes in the scrap metal skip and the rest in general waste, and green garden waste goes in the council's green bin. Check your council's site for the fee and any permit, because I can't see your council's charges from here."
+},
+{
+"fn": "bulky._reply",
+"args": [
+"",
+"thing"
+],
+"want": "Dismantle the thing as far as it will come apart and take it to the recycling centre, or book a bulky waste collection with your council; most charge twenty to forty pounds. The metal goes in the scrap metal skip and the rest in general waste, and green garden waste goes in the council's green bin. Check your council's site for the fee and any permit, because I can't see your council's charges from here."
+},
+{
+"fn": "bulky.respond",
+"args": [
+"what do i do with my old carpet",
+{}
+],
+"want": "Roll the carpet up and cut it into lengths you can lift, then take it to the recycling centre - most tips take carpet in the general waste skip. If it will not fit in a car, book a bulky waste collection with your council; most charge twenty to forty pounds for a doorstep pickup. Check your council's site for the fee and the booking, because I can't see your council's charges from here."
+},
+{
+"fn": "bulky.respond",
+"args": [
+"we are having the carpet replaced",
+{}
+],
+"want": "Good. What are you doing with the old one - tip or a council collection?"
+},
+{
+"fn": "bulky.respond",
+"args": [
+"how do i get rid of an old fridge",
+{}
+],
+"want": "Anything with a plug or a battery is electrical waste, so it cannot go in the bin: a shop that sells the same kind of thing has to take it back, and the recycling centre has an electricals point. A fridge is also a bulky collection if you cannot move it - ask the shop delivering a new one to take the old one. Check your council's site for the fee, because I can't see your council's charges from here."
+},
+{
+"fn": "bulky.respond",
+"args": [
+"how do i get rid of asbestos sheets",
+{}
+],
+"want": null
+},
+{
+"fn": "bulky.respond",
+"args": [
+"we are getting the boiler replaced",
+{}
+],
+"want": null
+},
+{
+"fn": "bulky.respond",
+"args": [
+"where can i take the sofa",
+{}
+],
+"want": null
+},
+{
+"fn": "bulky.respond",
+"args": [
+"how do i get rid of it",
+{
+"turns": [
+{
+"user": "my mattress is ruined",
+"bot": "ok"
+}
+]
+}
+],
+"want": "Take the mattress apart if it will come apart, then book a bulky waste collection with your council - most charge twenty to forty pounds - or take it to the recycling centre. If it is still usable, a charity or a local reuse group may collect it; the British Heart Foundation collects furniture in many areas. Check your council's site for the fee and the collection, because I can't see your council's charges from here."
+},
+{
+"fn": "bulky.respond",
+"args": [
+"can i recycle a broken trampoline",
+{}
+],
+"want": "Dismantle the trampoline as far as it will come apart and take it to the recycling centre, or book a bulky waste collection with your council; most charge twenty to forty pounds. The metal goes in the scrap metal skip and the rest in general waste, and green garden waste goes in the council's green bin. Check your council's site for the fee and any permit, because I can't see your council's charges from here."
+},
+{
+"fn": "bulky.respond",
+"args": [
+"how do i clean and get rid of the smell in a sofa",
+{}
+],
+"want": null
+},
+{
+"fn": "a_figure_of_a_dish.respond",
+"args": [
+"how many calories in my lasagne",
+{}
+],
+"want": "The recipe and the portion are what set that, not a general figure: the weights on your own recipe card or the label on the pack, divided by how many it served. Tell me what went in and how many it made, and I will work the sum out with you."
+},
+{
+"fn": "a_figure_of_a_dish.respond",
+"args": [
+"how much sugar is in a banana",
+{}
+],
+"want": null
+},
+{
+"fn": "a_figure_of_a_dish.respond",
+"args": [
+"How many grams of protein per portion?",
+{}
+],
+"want": "The recipe and the portion are what set that, not a general figure: the weights on your own recipe card or the label on the pack, divided by how many it served. Tell me what went in and how many it made, and I will work the sum out with you."
+},
+{
+"fn": "a_figure_of_a_dish.respond",
+"args": [
+"",
+{}
+],
+"want": null
+},
+{
+"fn": "a_figure_of_a_dish.respond",
+"args": [
+"how many carbs for the stew i made",
+{}
+],
+"want": "The recipe and the portion are what set that, not a general figure: the weights on your own recipe card or the label on the pack, divided by how many it served. Tell me what went in and how many it made, and I will work the sum out with you."
+},
+{
+"fn": "record_due._the_record",
+"args": [
+"where is my asos parcel"
+],
+"want": "parcel"
+},
+{
+"fn": "record_due._the_record",
+"args": [
+"my order of the words"
+],
+"want": null
+},
+{
+"fn": "record_due._the_record",
+"args": [
+"has my library book come back"
+],
+"want": "library book"
+},
+{
+"fn": "record_due._the_record",
+"args": [
+"my ordering"
+],
+"want": null
+},
+{
+"fn": "record_due._the_record",
+"args": [
+"our tracking and my delivery that came"
+],
+"want": "tracking"
+},
+{
+"fn": "record_due.respond",
+"args": [
+"where is my parcel",
+{}
+],
+"want": "The tracking link in the confirmation email or the shop's app has the last scan, and if it has not moved for a day or two it is the shop to chase - they open the case with the courier, not you. I can't see the tracking from here."
+},
+{
+"fn": "record_due.respond",
+"args": [
+"my parcel still hasnt moved in three days",
+{}
+],
+"want": "That's a pain. The tracking link in the order email has the last scan and the day it was due; if that day has gone or it has not moved for a day or two, the shop chases the courier - they open the case, not you."
+},
+{
+"fn": "record_due.respond",
+"args": [
+"my order never turned up again",
+{}
+],
+"want": "Again? That's a pain. The tracking in the order email has the last scan; if it has not moved for a day or two, the shop is the one to chase the courier, and they can refund or replace it."
+},
+{
+"fn": "record_due.respond",
+"args": [
+"when is my library book due",
+{}
+],
+"want": "Your library account has the due date: sign in with the card number and PIN to see the loans and renew them, and the desk or the number on the card can do it in a minute."
+},
+{
+"fn": "record_due.respond",
+"args": [
+"my library book is late",
+{}
+],
+"want": "Ugh, the late ones are a pain. Renew it in your library account first: the card number and PIN do it if nothing is reserved, and that stops the clock. If it is already overdue, take it back and the desk will tell you what is owed - I can't see the fine from here."
+},
+{
+"fn": "record_due.respond",
+"args": [
+"i have lost my library card",
+{}
+],
+"want": "Tell the library as soon as you can: the desk or the number on their site can cancel the card or mark the book lost, and tell you what a replacement costs. I can't see the charge from here."
+},
+{
+"fn": "record_due.respond",
+"args": [
+"is my library card expired",
+{}
+],
+"want": "Your library account has the expiry date: sign in with the card number and PIN, or ring the branch and they can renew the card in a minute - usually free if nothing is owed on it."
+},
+{
+"fn": "record_due.respond",
+"args": [
+"can you pick up my parcel from the shop",
+{}
+],
+"want": null
+},
+{
+"fn": "record_due.respond",
+"args": [
+"how do i return my order",
+{}
+],
+"want": null
+},
+{
+"fn": "record_due.respond",
+"args": [
+"i like my parcel",
+{}
+],
+"want": null
+},
+{
+"fn": "record_due.respond",
+"args": [
+"where is my parcel",
+{
+"turns": [
+{
+"user": "x",
+"bot": "The tracking link in the confirmation email or the shop's app has the last scan, and if it has not moved for a day or two it is the shop to chase - they open the case with the courier, not you. I can't see the tracking from here."
+}
+]
+}
+],
+"want": "The tracking link in the order email shows where a parcel is and the day it is due, and if that day has gone the shop chases the courier for you; no window on it from this end."
+},
+{
+"fn": "live_source.respond",
+"args": [
+"when is the next bank holiday",
+{}
+],
+"want": "In England and Wales the bank holidays are 1 January, Good Friday, Easter Monday, the first and last Mondays in May, the last Monday in August, then 25 and 26 December - so only the Easter ones and this year's May and August Mondays need looking up. Scotland adds 2 January and 30 November and has no Easter Monday, and Northern Ireland adds 17 March and 12 July; gov.uk's bank-holidays page has the exact date for each nation."
+},
+{
+"fn": "live_source.respond",
+"args": [
+"what are the term dates for my sons school?",
+{}
+],
+"want": "A school year in England is three terms with a week's half term in October, February and May, two weeks at Christmas and about six weeks in summer, with the summer break starting in the second half of July. Which week is which is the council's or the school's to publish, because it differs by area - and Scotland and private schools run to their own calendar."
+},
+{
+"fn": "live_source.respond",
+"args": [
+"how long is the wait at a&e",
+{}
+],
+"want": "A&E is for the things that cannot wait, and everything else moves quicker at urgent care or a minor injuries unit. Ring 111 - it knows which of them near you is quietest tonight and what the A&E wait is - because that changes by the hour and I can't see it."
+},
+{
+"fn": "live_source.respond",
+"args": [
+"is the queue at the airport bad today?",
+{}
+],
+"want": "Most airlines want you there two hours before a short-haul flight and three before a long-haul one, and security is the queue that eats the time - the airport's own site and the boards in the terminal show that wait live, and the airline's app has the gate."
+},
+{
+"fn": "live_source.respond",
+"args": [
+"did i win the lottery",
+{}
+],
+"want": "Lotto draws on Wednesday and Saturday evenings and EuroMillions on Tuesday and Friday, so a result that is not up yet usually is not in yet. Your numbers are on the ticket: the app or the terminal in the shop that sold it checks a ticket in a second."
+},
+{
+"fn": "live_source.respond",
+"args": [
+"have my premium bonds won this month?",
+{}
+],
+"want": "Premium Bonds are drawn at the start of each month and the Postcode Lottery through the month, and both check your numbers for you: NS&I's own site or app for the Bonds, the Postcode Lottery's site with your postcode. I can't see either draw from here."
+},
+{
+"fn": "live_source.respond",
+"args": [
+"has my raffle ticket come up",
+{}
+],
+"want": "There is no page to look a local draw up on: the organiser keeps the numbers, and a work or club sweepstake is called out on the night or pinned up afterwards. The seller or the organiser is the person who can check a ticket, not me."
+},
+{
+"fn": "live_source.respond",
+"args": [
+"when is the bin collection on a bank holiday",
+{}
+],
+"want": null
+},
+{
+"fn": "live_source.respond",
+"args": [
+"bank holiday",
+{}
+],
+"want": null
+},
+{
+"fn": "live_source.respond",
+"args": [
+"ok so when do the school holidays start",
+{}
+],
+"want": "A school year in England is three terms with a week's half term in October, February and May, two weeks at Christmas and about six weeks in summer, with the summer break starting in the second half of July. Which week is which is the council's or the school's to publish, because it differs by area - and Scotland and private schools run to their own calendar."
+},
+{
+"fn": "live_source.respond",
+"args": [
+"what should we do in the school holidays",
+{}
+],
+"want": null
+},
+{
+"fn": "live_source.respond",
+"args": [
+"did my ticket win",
+{}
+],
+"want": "It depends on the kind of ticket - the national draws check in the Lotto app or at a shop terminal, and a raffle or a sweepstake is the organiser's to call. Your numbers are printed on it, which is the only part I could not see for you."
+},
+{
+"fn": "live_source._without_lead_in",
+"args": [
+"ok so and when is it"
+],
+"want": "when is it"
+},
+{
+"fn": "live_source._without_lead_in",
+"args": [
+"well"
+],
+"want": "well"
+},
+{
+"fn": "live_source._without_lead_in",
+"args": [
+"oh ok"
+],
+"want": "ok"
+},
+{
+"fn": "live_source._without_lead_in",
+"args": [
+"when is it"
+],
+"want": "when is it"
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"i got a letter about an overpayment of benefits",
+{}
+],
+"want": "I can't read the letter from here, but the answer is on the page: the date they want a reply by, the amount and the period it covers, and the reference. Ask for the breakdown in writing, answer in writing before that date, and keep a copy; if it is a decision, the letter says how to challenge it and by when. Tell me the amount and the dates on it and I'll help you check it."
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"i recieved a bill for 80 pounds from the council tax",
+{}
+],
+"want": "A bill is worth checking before you pay it: the dates it covers, what it says you are being charged for, and the reference. Ask for the breakdown in writing, and if it is wrong say so in writing before the date on it; keep a copy. Tell me the dates it covers and I'll help you check it."
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"my tax bill still hasnt arrived",
+{}
+],
+"want": "If it should have arrived, the sender's own account page or phone line is where to check it was sent and to which address - ask them to confirm the date it went out, and note who you spoke to and when. When it comes, the reply-by date and the reference are the two things to look for first."
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"i need to write a letter about my rent",
+{}
+],
+"want": null
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"i got a letter from my nan",
+{}
+],
+"want": null
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"a letter came about my rent arrears yesterday for 300 pounds",
+{}
+],
+"want": "I can't read the letter from here, but the answer is on the page: the date they want a reply by, the amount and the period it covers, and the reference. Ask for the breakdown in writing, answer in writing before that date, and keep a copy; if it is a decision, the letter says how to challenge it and by when. Tell me the reference and I'll help you check it."
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"we had a notice about the debt today",
+{}
+],
+"want": "I can't read the letter from here, but the answer is on the page: the date they want a reply by, the amount and the period it covers, and the reference. Ask for the breakdown in writing, answer in writing before that date, and keep a copy; if it is a decision, the letter says how to challenge it and by when. Tell me the amount on it and I'll help you check it."
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"im still waiting for the letter about my pension",
+{}
+],
+"want": "If it should have arrived, the sender's own account page or phone line is where to check it was sent and to which address - ask them to confirm the date it went out, and note who you spoke to and when. When it comes, the reply-by date and the reference are the two things to look for first."
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"",
+{}
+],
+"want": null
+},
+{
+"fn": "a_letter_about_money.respond",
+"args": [
+"the bill came about the mortgage",
+{}
+],
+"want": "A bill is worth checking before you pay it: the dates it covers, what it says you are being charged for, and the reference. Ask for the breakdown in writing, and if it is wrong say so in writing before the date on it; keep a copy. Tell me the amount and the dates on it and I'll help you check it."
+},
+{
+"fn": "a_letter_about_money._ask_for_what_is_missing",
+"args": [
+"Tell me the amount and the dates on it and I'll help you check it.",
+"bill for 80 pounds",
+"bill"
+],
+"want": "Tell me the dates it covers and I'll help you check it."
+},
+{
+"fn": "a_letter_about_money._ask_for_what_is_missing",
+"args": [
+"What is it for, and how much? Tell me the amount and the dates on it and I'll help you check it.",
+"came today",
+"bill"
+],
+"want": "What is it for, and how much? Tell me the amount on it and I'll help you check it."
+},
+{
+"fn": "a_letter_about_money._ask_for_what_is_missing",
+"args": [
+"What does it say the amount is? What is it for, and how much?",
+"80 pounds on monday",
+"letter"
+],
+"want": "What is the reference on it? What is it for, and what is the reference?"
+},
+{
+"fn": "a_letter_about_money._ask_for_what_is_missing",
+"args": [
+"What is it for, and how much?",
+"nothing",
+"bill"
+],
+"want": "What is it for, and how much?"
+},
+{
+"fn": "judge_ask.reads_it",
+"args": [
+"do you judge people"
+],
+"want": true
+},
+{
+"fn": "judge_ask.reads_it",
+"args": [
+"do you judge people by their past"
+],
+"want": true
+},
+{
+"fn": "judge_ask.reads_it",
+"args": [
+"dont judge the cake by its look"
+],
+"want": false
+},
+{
+"fn": "judge_ask.reads_it",
+"args": [
+"my mum would judge me"
+],
+"want": false
+},
+{
+"fn": "judge_ask.reads_it",
+"args": [
+"would you judge someone for that"
+],
+"want": true
+},
+{
+"fn": "judge_ask.reads_it",
+"args": [
+"judging by the weather do you judge people"
+],
+"want": false
+},
+{
+"fn": "judge_ask.reads_it",
+"args": [
+"do you judge a person by their past"
+],
+"want": true
+},
+{
+"fn": "judge_ask.reads_it",
+"args": [
+""
+],
+"want": false
+},
+{
+"fn": "judge_ask._says_nothing",
+"args": [
+""
+],
+"want": true
+},
+{
+"fn": "judge_ask._says_nothing",
+"args": [
+"Got it. Is there anything you'd like a hand with?"
+],
+"want": true
+},
+{
+"fn": "judge_ask._says_nothing",
+"args": [
+"I try not to."
+],
+"want": false
+},
+{
+"fn": "judge_ask._says_nothing",
+"args": [
+"Noted: fine"
+],
+"want": true
+},
+{
+"fn": "what_they_said._details",
+"args": [
+"what did the vet say about the dog's leg"
+],
+"want": [
+"dog's",
+"leg",
+"vet"
+]
+},
+{
+"fn": "what_they_said._details",
+"args": [
+"I told them"
+],
+"want": []
+},
+{
+"fn": "what_they_said._details",
+"args": [
+""
+],
+"want": []
+},
+{
+"fn": "what_they_said._the_kind_of_answer",
+"args": [
+"what did they quote me"
+],
+"want": "figure"
+},
+{
+"fn": "what_they_said._the_kind_of_answer",
+"args": [
+"what did the vet say"
+],
+"want": ""
+},
+{
+"fn": "what_they_said._the_kind_of_answer",
+"args": [
+"how much did she charge"
+],
+"want": "figure"
+},
+{
+"fn": "what_they_said._the_reported_clause",
+"args": [
+"i told the garage about the noise and they said bring it in tuesday."
+],
+"want": "bring it in tuesday"
+},
+{
+"fn": "what_they_said._the_reported_clause",
+"args": [
+"i told my boss i was quitting"
+],
+"want": ""
+},
+{
+"fn": "what_they_said._the_reported_clause",
+"args": [
+"the vet asked for 60"
+],
+"want": "60"
+},
+{
+"fn": "what_they_said._the_reported_clause",
+"args": [
+"she said what time is it"
+],
+"want": ""
+},
+{
+"fn": "what_they_said._the_reported_clause",
+"args": [
+"they said that it would be fine, probably, and then went on and on and on and on and on and on about it forever"
+],
+"want": ""
+},
+{
+"fn": "what_they_said._the_reported_clause",
+"args": [
+"nothing reported here"
+],
+"want": ""
+},
+{
+"fn": "what_they_said._the_reported_clause",
+"args": [
+"mum reckoned ..."
+],
+"want": ""
+},
+{
+"fn": "what_they_said._the_figure_the_line_gave",
+"args": [
+"we got quoted 400 for the fence"
+],
+"want": "400"
+},
+{
+"fn": "what_they_said._the_figure_the_line_gave",
+"args": [
+"the car is 3 years old and they said bring it in tuesday"
+],
+"want": ""
+},
+{
+"fn": "what_they_said._the_figure_the_line_gave",
+"args": [
+"they said £400 or £450"
+],
+"want": ""
+},
+{
+"fn": "what_they_said._the_figure_the_line_gave",
+"args": [
+"it was 3 grand for 2 doors"
+],
+"want": "3 grand"
+},
+{
+"fn": "what_they_said._the_figure_the_line_gave",
+"args": [
+"no figure"
+],
+"want": ""
+},
+{
+"fn": "what_they_said._the_figure_the_line_gave",
+"args": [
+"they wanted 20 and 30"
+],
+"want": ""
+},
+{
+"fn": "words._quoted",
+"args": [
+"Ask once: 'I'm sorting my budget, when can you pay me back?' and leave it."
+],
+"want": "'I'm sorting my budget, when can you pay me back?'"
+},
+{
+"fn": "words._quoted",
+"args": [
+"Send a 'saw this and thought of you' or a photo."
+],
+"want": ""
+},
+{
+"fn": "words._quoted",
+"args": [
+"Say \"Hi - the boiler has stopped working, please let me know.\" to them."
+],
+"want": "\"Hi - the boiler has stopped working, please let me know.\""
+},
+{
+"fn": "words._quoted",
+"args": [
+"Just say 'no'."
+],
+"want": ""
+},
+{
+"fn": "words._quoted",
+"args": [
+"Try “I missed hearing from you on my birthday” first."
+],
+"want": "“I missed hearing from you on my birthday”"
+},
+{
+"fn": "words._quoted",
+"args": [
+"a note like 'thinking of you today, hope it goes well.' works"
+],
+"want": "'thinking of you today, hope it goes well.'"
+},
+{
+"fn": "words._quoted",
+"args": [
+"nothing quoted"
+],
+"want": ""
+},
+{
+"fn": "words._names_its_own",
+"args": [
+"what should i say to him"
+],
+"want": false
+},
+{
+"fn": "words._names_its_own",
+"args": [
+"how do i say sorry"
+],
+"want": true
+},
+{
+"fn": "words._names_its_own",
+"args": [
+"how do i say it without a row"
+],
+"want": true
+},
+{
+"fn": "words._names_its_own",
+"args": [
+"what do i text my boss please"
+],
+"want": false
+},
+{
+"fn": "words._names_its_own",
+"args": [
+"how should i put this"
+],
+"want": false
+},
+{
+"fn": "words._names_its_own",
+"args": [
+"what should i say"
+],
+"want": false
+},
+{
+"fn": "words._names_its_own",
+"args": [
+"how do i bring it up"
+],
+"want": true
+},
+{
+"fn": "words._names_its_own",
+"args": [
+"no ask here"
+],
+"want": true
+},
+{
+"fn": "words._names_its_own",
+"args": [
+"how do i word it, then, out loud"
+],
+"want": false
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"my dad was an alcoholic",
+{}
+],
+"want": "my dad was an alcoholic"
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"the prison was built in 1800",
+{}
+],
+"want": ""
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"we are getting a divorce",
+{}
+],
+"want": ""
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"i went to prison years ago but i have a job now",
+{}
+],
+"want": ""
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"i was homeless for a while",
+{}
+],
+"want": "i was homeless for a while"
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"was your dad an alcoholic?",
+{}
+],
+"want": ""
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"my mum's partner was abusive back then",
+{}
+],
+"want": "my mum's partner was abusive back then"
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"i saw a documentary about prison when i was young",
+{}
+],
+"want": ""
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"my wife had a miscarriage last year",
+{}
+],
+"want": ""
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"i was in a bad crash years back",
+{}
+],
+"want": "i was in a bad crash years back"
+},
+{
+"fn": "hardpast._the_hard_thing",
+"args": [
+"my dad was an alcoholic",
+{
+"understood": {
+"kind": "question"
+}
+}
+],
+"want": ""
+},
+{
+"fn": "how_long_a_stay._the_opening",
+"args": [
+"Ten minutes. Then rest."
+],
+"want": "Ten minutes. "
+},
+{
+"fn": "how_long_a_stay._the_opening",
+"args": [
+"no end here"
+],
+"want": "no end here"
+},
+{
+"fn": "how_long_a_stay._the_opening",
+"args": [
+"Really? Yes"
+],
+"want": "Really? "
+},
+{
+"fn": "how_long_a_stay._a_subject_of_its_own",
+"args": [
+"how long will it take"
+],
+"want": false
+},
+{
+"fn": "how_long_a_stay._a_subject_of_its_own",
+"args": [
+"how long does the drive take"
+],
+"want": true
+},
+{
+"fn": "how_long_a_stay._a_subject_of_its_own",
+"args": [
+"how many days is the visit 3"
+],
+"want": true
+},
+{
+"fn": "how_long_a_stay._a_subject_of_its_own",
+"args": [
+"how long should she stay"
+],
+"want": false
+},
+{
+"fn": "how_long_a_stay._the_length_said",
+"args": [
+{
+"turns": [
+{
+"user": "my mum is coming to stay for four days",
+"bot": "ok"
+}
+]
+}
+],
+"want": "four days"
+},
+{
+"fn": "how_long_a_stay._the_length_said",
+"args": [
+{
+"turns": [
+{
+"user": "my sister is visiting us for the weekend",
+"bot": "ok"
+}
+]
+}
+],
+"want": "for the weekend"
+},
+{
+"fn": "how_long_a_stay._the_length_said",
+"args": [
+{
+"turns": [
+{
+"user": "he is staying with us a fortnight",
+"bot": "ok"
+}
+]
+}
+],
+"want": "a fortnight"
+},
+{
+"fn": "how_long_a_stay._the_length_said",
+"args": [
+{
+"turns": [
+{
+"user": "my mum is coming next week",
+"bot": "ok"
+}
+]
+}
+],
+"want": ""
+},
+{
+"fn": "how_long_a_stay._the_length_said",
+"args": [
+{
+"turns": []
+}
+],
+"want": ""
+},
+{
+"fn": "familyask.the_relation",
+"args": [
+"do you have a mum and dad"
+],
+"want": "mum"
+},
+{
+"fn": "familyask.the_relation",
+"args": [
+"how are your parents"
+],
+"want": "parents"
+},
+{
+"fn": "familyask.the_relation",
+"args": [
+"how many brothers and sisters do you have"
+],
+"want": "brothers"
+},
+{
+"fn": "familyask.the_relation",
+"args": [
+"whats your favourite colour"
+],
+"want": null
+},
+{
+"fn": "familyask.the_relation",
+"args": [
+"is your mum, or your nan, alive"
+],
+"want": "mum"
+},
+{
+"fn": "familyask.the_class",
+"args": [
+"do you have a mum"
+],
+"want": "parent"
+},
+{
+"fn": "familyask.the_class",
+"args": [
+"do you have any kids"
+],
+"want": "child"
+},
+{
+"fn": "familyask.the_class",
+"args": [
+"how is your family"
+],
+"want": "family"
+},
+{
+"fn": "familyask.the_class",
+"args": [
+"hello"
+],
+"want": null
+},
+{
+"fn": "familyask.is_a_family_ask",
+"args": [
+"do you have a mum and dad"
+],
+"want": true
+},
+{
+"fn": "familyask.is_a_family_ask",
+"args": [
+"your mum"
+],
+"want": false
+},
+{
+"fn": "familyask.is_a_family_ask",
+"args": [
+"how was your family christmas?"
+],
+"want": true
+},
+{
+"fn": "familyask.is_a_family_ask",
+"args": [
+"is my mum like your mum"
+],
+"want": false
+},
+{
+"fn": "familyask.is_a_family_ask",
+"args": [
+""
+],
+"want": false
+},
+{
+"fn": "familyask.is_a_family_ask",
+"args": [
+"have you got any brothers"
+],
+"want": true
+},
+{
+"fn": "familyask.is_a_family_ask",
+"args": [
+"would you rather have a brother or a sister"
+],
+"want": false
+},
+{
+"fn": "thing_i_did_with._thing",
+"args": [
+"what coat did i order"
+],
+"want": "coat"
+},
+{
+"fn": "thing_i_did_with._thing",
+"args": [
+"which coat was it i ordered"
+],
+"want": "coat"
+},
+{
+"fn": "thing_i_did_with._thing",
+"args": [
+"what size coat did i order"
+],
+"want": "coat"
+},
+{
+"fn": "thing_i_did_with._thing",
+"args": [
+"which one was it i ordered"
+],
+"want": ""
+},
+{
+"fn": "thing_i_did_with._thing",
+"args": [
+"what did i say"
+],
+"want": ""
+},
+{
+"fn": "thing_i_did_with._thing",
+"args": [
+"and which colour paint was it that i bought?"
+],
+"want": "paint"
+},
+{
+"fn": "thing_i_did_with._thing",
+"args": [
+"what size did i order"
+],
+"want": ""
+},
+{
+"fn": "thing_i_did_with._did",
+"args": [
+"what coat did i order"
+],
+"want": "order"
+},
+{
+"fn": "thing_i_did_with._did",
+"args": [
+"which coat was it that i ordered"
+],
+"want": "ordered"
+},
+{
+"fn": "thing_i_did_with._did",
+"args": [
+"hello"
+],
+"want": ""
+},
+{
+"fn": "thing_i_did_with._stem",
+"args": [
+"coats"
+],
+"want": "coat"
+},
+{
+"fn": "thing_i_did_with._stem",
+"args": [
+"ordering"
+],
+"want": "order"
+},
+{
+"fn": "thing_i_did_with._stem",
+"args": [
+"ordered"
+],
+"want": "order"
+},
+{
+"fn": "thing_i_did_with._stem",
+"args": [
+"boxes"
+],
+"want": "boxe"
+},
+{
+"fn": "thing_i_did_with._stem",
+"args": [
+"bus"
+],
+"want": "bus"
+},
+{
+"fn": "thing_i_did_with._stem",
+"args": [
+"'dress'"
+],
+"want": "dres"
+},
+{
+"fn": "thing_i_did_with._stem",
+"args": [
+"glasses"
+],
+"want": "glass"
+},
+{
+"fn": "a_fact_asked_again._the_date_in",
+"args": [
+"flying on the 12th of june"
+],
+"want": "the 12th of june"
+},
+{
+"fn": "a_fact_asked_again._the_date_in",
+"args": [
+"dentist on june 3rd"
+],
+"want": "june 3rd"
+},
+{
+"fn": "a_fact_asked_again._the_date_in",
+"args": [
+"going next friday"
+],
+"want": "next friday"
+},
+{
+"fn": "a_fact_asked_again._the_date_in",
+"args": [
+"the 4th"
+],
+"want": "the 4th"
+},
+{
+"fn": "a_fact_asked_again._the_date_in",
+"args": [
+"rome in May"
+],
+"want": "May"
+},
+{
+"fn": "a_fact_asked_again._the_date_in",
+"args": [
+"no date"
+],
+"want": null
+},
+{
+"fn": "a_fact_asked_again._the_noun_asked",
+"args": [
+"what was my goal again"
+],
+"want": "goal"
+},
+{
+"fn": "a_fact_asked_again._the_noun_asked",
+"args": [
+"what were my aims again"
+],
+"want": "aim"
+},
+{
+"fn": "a_fact_asked_again._the_noun_asked",
+"args": [
+"what am i saving for again"
+],
+"want": "plan"
+},
+{
+"fn": "a_fact_asked_again._the_noun_asked",
+"args": [
+"whats the Plan and target again"
+],
+"want": "target"
+},
+{
+"fn": "a_fact_asked_again._a_name",
+"args": [
+"Ford fiesta by june"
+],
+"want": true
+},
+{
+"fn": "a_fact_asked_again._a_name",
+"args": [
+"ford fiesta"
+],
+"want": false
+},
+{
+"fn": "a_fact_asked_again._a_name",
+"args": [
+"Get to 12"
+],
+"want": false
+},
+{
+"fn": "a_fact_asked_again._a_name",
+"args": [
+"May is the month"
+],
+"want": true
+},
+{
+"fn": "a_fact_asked_again._a_name",
+"args": [
+""
+],
+"want": false
+},
+{
+"fn": "a_fact_asked_again.respond",
+"args": [
+"when is it again",
+{
+"user": {
+"plans": [
+"flying on the 12th of june"
+]
+}
+}
+],
+"want": null
+},
+{
+"fn": "a_fact_asked_again.respond",
+"args": [
+"what was my goal again",
+{
+"user": {
+"plan": "I want to Get to 12 stone."
+}
+}
+],
+"want": "You said your goal is to get to 12 stone."
+},
+{
+"fn": "a_fact_asked_again.respond",
+"args": [
+"what was my target again",
+{
+"user": {
+"plans": [
+"Ford Fiesta by june",
+"SAVE 300"
+]
+}
+}
+],
+"want": "You said your target is to SAVE 300."
+},
+{
+"fn": "a_fact_asked_again.respond",
+"args": [
+"what do i keep him away from again",
+{
+"others": [
+{
+"who": "son",
+"allergies": [
+"nuts"
+]
+},
+{
+"who": "",
+"allergies": [
+"",
+"eggs"
+]
+}
+]
+}
+],
+"want": null
+},
+{
+"fn": "a_fact_asked_again.respond",
+"args": [
+"should i eat less again",
+{
+"user": {
+"plan": "x"
+}
+}
+],
+"want": null
+},
+{
+"fn": "a_fact_asked_again.respond",
+"args": [
+"what was my goal",
+{
+"user": {
+"plan": "x"
+}
+}
+],
+"want": null
+},
+{
+"fn": "a_fact_asked_again.respond",
+"args": [
+"what day is it again",
+{
+"user": {
+"plans": [
+"a on monday",
+"b on tuesday"
+]
+}
+}
+],
+"want": null
+},
+{
+"fn": "a_fact_asked_again.respond",
+"args": [
+"what was my aim again",
+{
+"user": {
+"plan": "to Run a 5k"
+}
+}
+],
+"want": "You said your aim is to run a 5k."
+},
+{
+"fn": "a_job_that_is_not_a_diy_job._the_job",
+"args": [
+"how do i remove a chimney breast"
+],
+"want": [
+"a builder with a structural engineer",
+"whether it is carrying anything above it is an engineer's call, and that call decides how the rest of the job is done"
+]
+},
+{
+"fn": "a_job_that_is_not_a_diy_job._the_job",
+"args": [
+"can i fit a gas hob myself"
+],
+"want": [
+"a Gas Safe registered engineer",
+"on gas the work belongs to somebody on the register, and the number is one anyone can look up before they start"
+]
+},
+{
+"fn": "a_job_that_is_not_a_diy_job._the_job",
+"args": [
+"how do i fell a tree"
+],
+"want": [
+"a tree surgeon",
+"a tree goes where it leans once the last cut is made, and a bad one takes a fence, a roof or a person with it"
+]
+},
+{
+"fn": "a_job_that_is_not_a_diy_job._the_job",
+"args": [
+"how do i paint a door"
+],
+"want": null
+},
+{
+"fn": "a_job_that_is_not_a_diy_job._the_job",
+"args": [
+"can i replace a broken skylight"
+],
+"want": [
+"a roofer",
+"it is scaffold and two people, and the water from a job that fails costs more than the job"
+]
+},
+{
+"fn": "a_job_that_is_not_a_diy_job._has",
+"args": [
+"have a go at it",
+[
+"a go at it",
+"diy"
+]
+],
+"want": true
+},
+{
+"fn": "a_job_that_is_not_a_diy_job._has",
+"args": [
+"training",
+[
+"rain"
+]
+],
+"want": false
+},
+{
+"fn": "a_job_that_is_not_a_diy_job._has",
+"args": [
+"need a2",
+[
+"need a"
+]
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_and_the_page",
+"args": [
+"i nearly died when i saw the bill"
+],
+"want": true
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_and_the_page",
+"args": [
+"i read the invoice and nearly died"
+],
+"want": true
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_and_the_page",
+"args": [
+"i paid the bill and nearly died on the motorway"
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_and_the_page",
+"args": [
+"the bill took my breath away"
+],
+"want": true
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_and_the_page",
+"args": [
+"i nearly died"
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_and_the_page",
+"args": [
+""
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_and_the_page",
+"args": [
+"im holding the gas bill"
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_and_the_page",
+"args": [
+"i havent seen the bill yet but i will faint"
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._a_complaint_added_after_the_ending",
+"args": [
+"i nearly fainted when i saw the bill and now i feel sick"
+],
+"want": true
+},
+{
+"fn": "a_shock_at_a_bill._a_complaint_added_after_the_ending",
+"args": [
+"i nearly died when i saw the bill"
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._a_complaint_added_after_the_ending",
+"args": [
+"i nearly died when i saw the bill and my knee hurts"
+],
+"want": true
+},
+{
+"fn": "a_shock_at_a_bill._a_complaint_added_after_the_ending",
+"args": [
+"i nearly fell over at the bill, my chest is still tight"
+],
+"want": true
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_is_somebody_elses",
+"args": [
+"my mum nearly died when she saw the bill"
+],
+"want": true
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_is_somebody_elses",
+"args": [
+"i nearly died when i saw the bill"
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._the_ending_is_somebody_elses",
+"args": [
+"the bill"
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._a_kind_word_in_front_of_the_page",
+"args": [
+"i nearly died when i saw the vet bill"
+],
+"want": "vet"
+},
+{
+"fn": "a_shock_at_a_bill._a_kind_word_in_front_of_the_page",
+"args": [
+"i nearly died when i saw the big bill"
+],
+"want": ""
+},
+{
+"fn": "a_shock_at_a_bill._a_kind_word_in_front_of_the_page",
+"args": [
+"i saw my bank statement"
+],
+"want": ""
+},
+{
+"fn": "a_shock_at_a_bill._a_kind_word_in_front_of_the_page",
+"args": [
+"when the awful dentist invoice arrived i nearly died"
+],
+"want": "dentist"
+},
+{
+"fn": "a_shock_at_a_bill._a_kind_word_in_front_of_the_page",
+"args": [
+"no page"
+],
+"want": ""
+},
+{
+"fn": "a_shock_at_a_bill._a_bill_of_another_kind",
+"args": [
+"i nearly died when i saw the council tax bill"
+],
+"want": true
+},
+{
+"fn": "a_shock_at_a_bill._a_bill_of_another_kind",
+"args": [
+"i nearly died when i saw the bill"
+],
+"want": false
+},
+{
+"fn": "a_shock_at_a_bill._a_bill_of_another_kind",
+"args": [
+"i fainted at the vet bill"
+],
+"want": true
+},
+{
+"fn": "a_shock_at_a_bill._ask_for_what_is_missing",
+"args": [
+{},
+"i nearly died when i saw the bill"
+],
+"want": "A bill is worth checking before you pay it: the dates it covers, what it says you are being charged for, and the reference. Ask for the breakdown in writing, and if it is wrong say so in writing before the date on it, keeping a copy. What is it for, and how much?"
+},
+{
+"fn": "a_shock_at_a_bill._ask_for_what_is_missing",
+"args": [
+{},
+"i nearly died when i saw the bill for £400"
+],
+"want": "That is worth checking before you pay it: the dates it covers, what it says you are being charged for, and the reference. Ask for the breakdown in writing, and if it is wrong say so in writing before the date on it, keeping a copy. What is the reference on it?"
+},
+{
+"fn": "a_shock_at_a_bill._ask_for_what_is_missing",
+"args": [
+{},
+"i havent opened the bill yet"
+],
+"want": "A bill is worth checking before you pay it: the dates it covers, what it says you are being charged for, and the reference. Ask for the breakdown in writing, and if it is wrong say so in writing before the date on it, keeping a copy. What is it for, and how much?"
+},
+{
+"fn": "a_figure_beside_the_state.a_figure_of_heat",
+"args": [
+"its 20 degrees and im freezing"
+],
+"want": true
+},
+{
+"fn": "a_figure_beside_the_state.a_figure_of_heat",
+"args": [
+"its -3 outside"
+],
+"want": true
+},
+{
+"fn": "a_figure_beside_the_state.a_figure_of_heat",
+"args": [
+"minus 3 and windy"
+],
+"want": true
+},
+{
+"fn": "a_figure_beside_the_state.a_figure_of_heat",
+"args": [
+"at 180 for an hour"
+],
+"want": false
+},
+{
+"fn": "a_figure_beside_the_state.a_figure_of_heat",
+"args": [
+"20c in here"
+],
+"want": true
+},
+{
+"fn": "a_figure_beside_the_state.without_the_figure",
+"args": [
+"its 20 degrees and im freezing"
+],
+"want": "im freezing"
+},
+{
+"fn": "a_figure_beside_the_state.without_the_figure",
+"args": [
+"im freezing, its -3 outside"
+],
+"want": "im freezing"
+},
+{
+"fn": "a_figure_beside_the_state.without_the_figure",
+"args": [
+"its -3 outside and im freezing"
+],
+"want": "im freezing"
+},
+{
+"fn": "a_figure_beside_the_state.without_the_figure",
+"args": [
+"only 16 degrees here today so im cold"
+],
+"want": "today so im cold"
+},
+{
+"fn": "a_figure_beside_the_state.without_the_figure",
+"args": [
+"its about minus 5 degrees"
+],
+"want": ""
+},
+{
+"fn": "a_figure_beside_the_state.without_the_figure",
+"args": [
+"im boiling and its only twenty degrees celsius"
+],
+"want": "im boiling celsius"
+},
+{
+"fn": "keeping._seed",
+"args": [
+"how long have you got"
+],
+"want": 163707420263721
+},
+{
+"fn": "keeping._seed",
+"args": [
+""
+],
+"want": 239941098298987
+},
+{
+"fn": "keeping._seed",
+"args": [
+"am i boring you — really?"
+],
+"want": 50877565302381
+},
+{
+"fn": "keeping._rotate",
+"args": [
+[
+"a",
+"b",
+"c",
+"d"
+],
+"how long have you got"
+],
+"want": [
+"b",
+"c",
+"d",
+"a"
+]
+},
+{
+"fn": "keeping._rotate",
+"args": [
+[
+"a"
+],
+"x"
+],
+"want": [
+"a"
+]
+},
+{
+"fn": "keeping._rotate",
+"args": [
+[
+"a",
+"b",
+"c"
+],
+"am i keeping you tail"
+],
+"want": [
+"a",
+"b",
+"c"
+]
+},
+{
+"fn": "keeping._pick",
+"args": [
+[
+"",
+"Where were we?",
+"What were you in the middle of?"
+],
+"how long can we talk tail"
+],
+"want": ""
+},
+{
+"fn": "keeping._pick",
+"args": [
+[
+"a",
+"b"
+],
+"z"
+],
+"want": "b"
+},
+{
+"fn": "keeping.respond",
+"args": [
+"how long have you got",
+{
+"understood": {
+"about_bot_kind": "while"
+}
+}
+],
+"want": "No limit I can see: there's nowhere else I need to be, so take the time you need. If you'd rather pick it up later, that's fine too. Where were we?"
+},
+{
+"fn": "keeping.respond",
+"args": [
+"how many messages can i send you",
+{
+"understood": {
+"about_bot_kind": "while"
+}
+}
+],
+"want": "No limit on messages: as many as you want, long or short."
+},
+{
+"fn": "keeping.respond",
+"args": [
+"am i boring you",
+{
+"understood": {
+"about_bot_kind": "keeping"
+}
+}
+],
+"want": "No, and I'd say so if it got hard to follow. Keep going."
+},
+{
+"fn": "keeping.respond",
+"args": [
+"am i boring you",
+{
+"understood": {
+"about_bot_kind": "keeping"
+},
+"turns": [
+{
+"user": "x",
+"bot": "You're fine. I'm reading all of it, and I'll ask if I lose the thread."
+}
+]
+}
+],
+"want": "No, and I'd say so if it got hard to follow. Keep going."
+},
+{
+"fn": "keeping.respond",
+"args": [
+"am i boring you",
+{
+"understood": {
+"about_bot_kind": "other"
+}
+}
+],
+"want": null
+},
+{
+"fn": "keeping.respond",
+"args": [
+"am i boring you",
+{}
+],
+"want": null
+},
+{
+"fn": "the_wait_about_a_body.is_generic",
+"args": [
+"That sounds rough. Do you want to talk?"
+],
+"want": true
+},
+{
+"fn": "the_wait_about_a_body.is_generic",
+"args": [
+"Same as before: I'm listening"
+],
+"want": true
+},
+{
+"fn": "the_wait_about_a_body.is_generic",
+"args": [
+"Noted: fine"
+],
+"want": true
+},
+{
+"fn": "the_wait_about_a_body.is_generic",
+"args": [
+"A real answer."
+],
+"want": false
+},
+{
+"fn": "the_wait_about_a_body.is_generic",
+"args": [
+""
+],
+"want": false
+},
+{
+"fn": "the_wait_about_a_body.is_generic",
+"args": [
+"I’m sorry — that’s frustrating"
+],
+"want": true
+},
+{
+"fn": "the_wait_about_a_body._words",
+"args": [
+"Got it — My sister's MS, our worry!"
+],
+"want": [
+"got",
+"it",
+"your",
+"sister's",
+"ms",
+"our",
+"worry"
+]
+},
+{
+"fn": "the_wait_about_a_body._words",
+"args": [
+""
+],
+"want": []
+},
+{
+"fn": "the_wait_about_a_body.said_back",
+"args": [
+"Got it - your sister might have ms.",
+"my sister might have ms"
+],
+"want": true
+},
+{
+"fn": "the_wait_about_a_body.said_back",
+"args": [
+"Got it - your sister might have ms. When do you hear?",
+"my sister might have ms"
+],
+"want": false
+},
+{
+"fn": "the_wait_about_a_body.said_back",
+"args": [
+"Noted: your dog",
+"My dog!"
+],
+"want": true
+},
+{
+"fn": "the_wait_about_a_body.said_back",
+"args": [
+"Your sister might have ms",
+"my sister might have ms"
+],
+"want": false
+},
+{
+"fn": "the_wait_about_a_body.said_back",
+"args": [
+"got it, ",
+""
+],
+"want": false
+},
+{
+"fn": "a_question_about_somebody._flat",
+"args": [
+"  How OLD is  he’s  "
+],
+"want": "how old is he's"
+},
+{
+"fn": "a_question_about_somebody._flat",
+"args": [
+""
+],
+"want": ""
+},
+{
+"fn": "a_question_about_somebody.about_somebody_unnamed",
+"args": [
+"how old is he",
+{}
+],
+"want": true
+},
+{
+"fn": "a_question_about_somebody.about_somebody_unnamed",
+"args": [
+"how old is my son",
+{}
+],
+"want": false
+},
+{
+"fn": "a_question_about_somebody.about_somebody_unnamed",
+"args": [
+"what do they do",
+{}
+],
+"want": false
+},
+{
+"fn": "a_question_about_somebody.about_somebody_unnamed",
+"args": [
+"whats their name?",
+{}
+],
+"want": true
+},
+{
+"fn": "a_question_about_somebody.about_somebody_unnamed",
+"args": [
+"how old is he",
+{
+"turns": [
+{
+"user": "my son is here",
+"bot": "ok"
+}
+]
+}
+],
+"want": false
+},
+{
+"fn": "a_question_about_somebody.about_somebody_unnamed",
+"args": [
+"where does she live",
+{}
+],
+"want": true
+},
+{
+"fn": "a_question_about_somebody.about_somebody_unnamed",
+"args": [
+"how do you know if they like you",
+{}
+],
+"want": false
+},
+{
+"fn": "a_question_about_somebody.about_somebody_unnamed",
+"args": [
+"he is old",
+{}
+],
+"want": false
+},
+{
+"fn": "a_question_about_somebody.about_somebody_unnamed",
+"args": [
+"is that woman his mum",
+{}
+],
+"want": false
+},
+{
+"fn": "dreams._settled",
+"args": [
+"i dreamt my dad died",
+[
+"a",
+"b"
+]
+],
+"want": "b"
+},
+{
+"fn": "dreams._settled",
+"args": [
+"",
+[
+"a",
+"b",
+"c"
+]
+],
+"want": "a"
+},
+{
+"fn": "dreams._settled",
+"args": [
+"café dream",
+[
+"a",
+"b",
+"c"
+]
+],
+"want": "b"
+},
+{
+"fn": "trip_date_said_again._the_first_clause",
+"args": [
+"actually we fly in september, my sister moved her holiday"
+],
+"want": "actually we fly in september"
+},
+{
+"fn": "trip_date_said_again._the_first_clause",
+"args": [
+"no, june"
+],
+"want": ""
+},
+{
+"fn": "trip_date_said_again._the_first_clause",
+"args": [
+"one"
+],
+"want": ""
+},
+{
+"fn": "trip_date_said_again._the_first_clause",
+"args": [
+""
+],
+"want": ""
+},
+{
+"fn": "a_day_somebody_else_keeps.respond",
+"args": [
+"what time does my sons school finish",
+{}
+],
+"want": null
+},
+{
+"fn": "a_day_somebody_else_keeps.respond",
+"args": [
+"when do my classes start",
+{}
+],
+"want": "A class time is set by whoever runs the course and it can move week to week - a new tutor, a session off, a room change - so the timetable you were given is the starting point rather than the answer. The provider's app, email or the notice on the door carries this week's; tell me the times and what you're fitting around them and I'll plan it with you."
+},
+{
+"fn": "a_day_somebody_else_keeps.respond",
+"args": [
+"what time does my daughters bus get home",
+{}
+],
+"want": null
+},
+{
+"fn": "a_day_somebody_else_keeps.respond",
+"args": [
+"my son wont eat vegetables",
+{}
+],
+"want": null
+},
+{
+"fn": "a_day_somebody_else_keeps.respond",
+"args": [
+"when does our swimming lesson end?",
+{
+"turns": [
+{
+"user": "a",
+"bot": "b"
+}
+]
+}
+],
+"want": "A class time is set by whoever runs the course and it can move week to week - a new tutor, a session off, a room change - so the timetable you were given is the starting point rather than the answer. The provider's app, email or the notice on the door carries this week's; tell me the times and what you're fitting around them and I'll plan it with you."
+},
+{
+"fn": "a_day_somebody_else_keeps.respond",
+"args": [
+"",
+{}
+],
+"want": null
+},
+{
+"fn": "a_day_somebody_else_keeps.respond",
+"args": [
+"what time does my kids swimming finish",
+{}
+],
+"want": "Those hours belong to the school or club, so I can't know this week's, but a school day holds steady through a term apart from the last day of it and any inset day - and those are on the school's own calendar. Tell me the finish time and the trip and the rest is arithmetic I can do with you."
+},
+{
+"fn": "a_day_somebody_else_keeps._choose",
+"args": [
+[
+"a",
+"b",
+"c"
+],
+{
+"turns": [
+{
+"user": "x",
+"bot": " b "
+},
+{
+"user": "y",
+"bot": "b"
+}
+]
+},
+"When?"
+],
+"want": "a"
+},
+{
+"fn": "a_day_somebody_else_keeps._choose",
+"args": [
+[
+"a"
+],
+{
+"turns": [
+{
+"bot": "a"
+}
+]
+},
+""
+],
+"want": "a"
+},
+{
+"fn": "a_day_somebody_else_keeps._choose",
+"args": [
+[
+"a",
+"b",
+"c",
+"d"
+],
+{},
+"what time does school finish"
+],
+"want": "c"
+},
+{
+"fn": "safety_phrases._both_here",
+"args": [
+[
+"a",
+"b"
+],
+[
+"c"
+]
+],
+"want": "(?=.*(?:a|b))(?=.*(?:c))"
+},
+{
+"fn": "safety_phrases._both_here",
+"args": [
+[
+"x"
+]
+],
+"want": "(?=.*(?:x))"
+},
+{
+"fn": "the_kind_one_line_up._answered_by_the_fallback",
+"args": [
+{
+"turns": [
+{
+"user": "x",
+"bot": "y",
+"module": "greeting"
+}
+]
+}
+],
+"want": true
+},
+{
+"fn": "the_kind_one_line_up._answered_by_the_fallback",
+"args": [
+{
+"turns": [
+{
+"user": "x",
+"bot": "y",
+"module": "answers"
+}
+]
+}
+],
+"want": false
+},
+{
+"fn": "the_kind_one_line_up._answered_by_the_fallback",
+"args": [
+{
+"turns": [
+{
+"user": "x",
+"bot": "y",
+"module": null
+}
+]
+}
+],
+"want": false
+},
+{
+"fn": "the_kind_one_line_up._answered_by_the_fallback",
+"args": [
+{}
+],
+"want": false
+},
+{
+"fn": "first_line_open._has_a_turn_behind_it",
+"args": [
+{
+"turns": [
+{
+"user": "x",
+"bot": " "
+}
+]
+}
+],
+"want": false
+},
+{
+"fn": "first_line_open._has_a_turn_behind_it",
+"args": [
+{
+"turns": [
+{
+"user": "x",
+"bot": "hello"
+}
+]
+}
+],
+"want": true
+},
+{
+"fn": "first_line_open._has_a_turn_behind_it",
+"args": [
+{}
+],
+"want": false
+},
+{
+"fn": "doubt._the_question",
+"args": [
+"the bank was closed",
+"bank"
+],
+"want": "I'm not sure which bank you mean - a word or two about it and I'll answer the right one."
+},
+{
+"fn": "doubt._the_question",
+"args": [
+"",
+"seal"
+],
+"want": "I'm not sure which seal you mean - a word or two about it and I'll answer the right one."
+},
+{
+"fn": "doubt._the_question",
+"args": [
+"café seal",
+"seal"
+],
+"want": "I'm not sure which seal you mean - a word or two about it and I'll answer the right one."
+},
+{
+"fn": "confusing._said_back",
+"args": [
+"my payslip"
+],
+"want": "your payslip"
+},
+{
+"fn": "confusing._said_back",
+"args": [
+"our letter to me"
+],
+"want": "your letter to you"
+},
+{
+"fn": "confusing._said_back",
+"args": [
+" mine "
+],
+"want": "yours"
+},
+{
+"fn": "confusing._said_back",
+"args": [
+""
+],
+"want": ""
+},
+{
+"fn": "name_taken_back._note",
+"args": [
+"  Thats NOT my   name "
+],
+"want": "thats not my name"
+},
+{
+"fn": "name_taken_back.respond",
+"args": [
+"thats not my name",
+{
+"name_taken_back": {
+"name": "",
+"said": "thats not my name"
+}
+}
+],
+"want": "My mistake. What should I call you?"
+},
+{
+"fn": "name_taken_back.respond",
+"args": [
+"thats not my name",
+{
+"name_taken_back": {
+"name": "x",
+"said": "other"
+}
+}
+],
+"want": null
+},
+{
+"fn": "name_taken_back.respond",
+"args": [
+"hello",
+{}
+],
+"want": null
+},
+{
+"fn": "the_shape_of_the_answer._the_reply_is_only_a_placeholder",
+"args": [
+""
+],
+"want": false
+},
+{
+"fn": "the_shape_of_the_answer._the_reply_is_only_a_placeholder",
+"args": [
+"A real answer about boilers."
+],
+"want": false
+},
+{
+"fn": "talkto._a_route_is_named",
+"args": [
+""
+],
+"want": false
+},
+{
+"fn": "talkto._a_route_is_named",
+"args": [
+"Citizens Advice covers this free, and a call beats searching."
+],
+"want": true
+},
+{
+"fn": "talkto._a_route_is_named",
+"args": [
+"A real answer."
+],
+"want": false
+},
+{
+"fn": "their_pastime._a_thing_nobody_is_into",
+"args": [
+"drugs"
+],
+"want": true
+},
+{
+"fn": "their_pastime._a_thing_nobody_is_into",
+"args": [
+"another woman lately"
+],
+"want": true
+},
+{
+"fn": "their_pastime._a_thing_nobody_is_into",
+"args": [
+"baking"
+],
+"want": false
+},
+{
+"fn": "their_pastime._a_thing_nobody_is_into",
+"args": [
+"trouble at school"
+],
+"want": true
+},
+{
+"fn": "their_pastime._a_thing_nobody_is_into",
+"args": [
+"hill-walking"
+],
+"want": false
+},
+{
+"fn": "their_pastime._a_plural_thing",
+"args": [
+"dinosaurs"
+],
+"want": true
+},
+{
+"fn": "their_pastime._a_plural_thing",
+"args": [
+"baking"
+],
+"want": false
+},
+{
+"fn": "their_pastime._a_plural_thing",
+"args": [
+"chess"
+],
+"want": false
+},
+{
+"fn": "their_pastime._a_plural_thing",
+"args": [
+"bowls"
+],
+"want": false
+},
+{
+"fn": "their_pastime._a_plural_thing",
+"args": [
+"cats"
+],
+"want": true
+},
+{
+"fn": "their_pastime._a_plural_thing",
+"args": [
+"the bus"
+],
+"want": false
+},
+{
+"fn": "their_pastime._a_plural_thing",
+"args": [
+""
+],
+"want": false
+},
+{
+"fn": "their_pastime._it_word",
+"args": [
+"trains"
+],
+"want": "them"
+},
+{
+"fn": "their_pastime._it_word",
+"args": [
+"tennis"
+],
+"want": "it"
+},
+{
+"fn": "their_pastime._watched",
+"args": [
+"football"
+],
+"want": true
+},
+{
+"fn": "their_pastime._watched",
+"args": [
+"knitting"
+],
+"want": false
+},
+{
+"fn": "their_pastime._watched",
+"args": [
+"amateur dramatics"
+],
+"want": false
+},
+{
+"fn": "their_pastime._watched",
+"args": [
+"five a side"
+],
+"want": false
+},
+{
+"fn": "their_pastime._does_pool",
+"args": [
+"football"
+],
+"want": [
+"How long {has} {they} been doing that?",
+"How often {do} {they} do it?",
+"Do you ever go and watch?",
+"What is {their} favourite bit of it?"
+]
+},
+{
+"fn": "their_pastime._does_pool",
+"args": [
+"knitting"
+],
+"want": [
+"How long {has} {they} been doing that?",
+"How often {do} {they} do it?",
+"What is {their} favourite bit of it?"
+]
+},
+{
+"fn": "their_pastime._is_a_placeholder",
+"args": [
+"  Noted - thanks"
+],
+"want": true
+},
+{
+"fn": "their_pastime._is_a_placeholder",
+"args": [
+"Got it. Is there anything"
+],
+"want": true
+},
+{
+"fn": "their_pastime._is_a_placeholder",
+"args": [
+"A real answer"
+],
+"want": false
+},
+{
+"fn": "their_pastime._starts_a_sentence",
+"args": [
+"is she staying"
+],
+"want": "Is she staying"
+},
+{
+"fn": "their_pastime._starts_a_sentence",
+"args": [
+""
+],
+"want": ""
+},
+{
+"fn": "where_it_answers._content",
+"args": [
+"Is there a lift at the station?"
+],
+"want": [
+"lift",
+"station"
+]
+},
+{
+"fn": "where_it_answers._content",
+"args": [
+"can i keep the old sofa",
+[
+"keep",
+"old"
+]
+],
+"want": [
+"sofa"
+]
+},
+{
+"fn": "where_it_answers._content",
+"args": [
+""
+],
+"want": []
+},
+{
+"fn": "said_fact_back._nothing_to_give",
+"args": [
+"I'm not sure about that one, sorry — I'd rather not guess."
+],
+"want": true
+},
+{
+"fn": "said_fact_back._nothing_to_give",
+"args": [
+"Your sister is vegan."
+],
+"want": false
+}
+]

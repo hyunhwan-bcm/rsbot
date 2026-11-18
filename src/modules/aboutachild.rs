@@ -1,24 +1,27 @@
-//! Port of `bot/modules/aboutachild.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/modules/aboutachild.py`: a question about the child the store keeps, answered from the child's own row (`bot/memory/aboutthem.py`).
+#![allow(unused_variables, unused_imports, non_snake_case, non_upper_case_globals, dead_code, clippy::all)]
 
+use super::mod4::*;
 use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
+use crate::py::re::{self as pyre, Match, Re};
+use crate::py::text;
 use crate::state::{Memory, Turn};
-use crate::understood::Understood;
-use std::sync::LazyLock;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, LazyLock};
 
-/// Python: bot/modules/aboutachild.py:23 `TAKES_AS_IT_COMES(text, memory)` (never called on the trace corpus)
+/// Python: bot/modules/aboutachild.py `TAKES_AS_IT_COMES(text, memory)`
+///
+/// This line is the one to answer as it comes: it asks about the child the store keeps.
 pub fn TAKES_AS_IT_COMES(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.modules.aboutachild:TAKES_AS_IT_COMES")
+    ret_true(crate::memory::aboutthem::with_the_age(text, memory))
 }
 
-/// Python: bot/modules/aboutachild.py:28 `respond(text, memory)` - a runtime hook; its signature is the runtime's.
+/// Python: bot/modules/aboutachild.py `respond(text, memory)` - a runtime hook; its signature is the runtime's.
 pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.modules.aboutachild:respond")
+    let written = or_none(crate::memory::aboutthem::with_the_age(text, memory))?;
+    // `seen = copy.deepcopy(memory)`
+    let mut seen = memory.clone();
+    seen.understood = Some(crate::understanding::understand(&written, Some(&seen)));
+    let reply = or_none(super::answers::_answer(&written, &mut seen))?; // its own reader, one answer
+    nz(text::strip(&reply).to_string())
 }
-

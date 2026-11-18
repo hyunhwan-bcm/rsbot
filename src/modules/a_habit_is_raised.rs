@@ -1,19 +1,27 @@
-//! Port of `bot/modules/a_habit_is_raised.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/modules/a_habit_is_raised.py`: the sentence to raise somebody's habit with, when only a fallback line would answer (`bot/compose/habit.py`).
+#![allow(unused_variables, unused_imports, non_snake_case, non_upper_case_globals, dead_code, clippy::all)]
 
+use super::mod4::*;
 use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
+use crate::py::re::{self as pyre, Match, Re};
+use crate::py::text;
 use crate::state::{Memory, Turn};
-use crate::understood::Understood;
-use std::sync::LazyLock;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, LazyLock};
 
-/// Python: bot/modules/a_habit_is_raised.py:28 `respond(text, memory)` - a runtime hook; its signature is the runtime's.
+use crate::compose::{fallback, fallback_chain, habit};
+
+/// Python: bot/modules/a_habit_is_raised.py `respond(text, memory)` - a runtime hook; its signature is the runtime's.
+///
+/// The sentence to raise it with, or None when this is not that shape.
 pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.modules.a_habit_is_raised:respond")
+    let raised = or_none(habit::answer_for(text, memory))?;
+    let said = or_none(fallback_chain::reply_for(text, memory, true))?;
+    let neutral = Value::Tuple(Arc::new(vec![data::get("bot.compose.fallback.NEUTRAL").clone()]));
+    if !(ret_true(fallback::_is_a_hedge(&said)) || ret_true(fallback::_in_a_pool(&said, &neutral)) || ret_true(crate::memory::ack::reads_as_a_receipt(&said))) {
+        // Something with an answer of its own is already speaking for this line, and the words
+        // to raise a habit with are not it.
+        return None;
+    }
+    Some(raised)
 }
-
