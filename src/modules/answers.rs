@@ -5574,167 +5574,589 @@ pub fn _next_usable(item: &Entry, reading: &Understood, memory: &Memory) -> Opti
     knowledge::lookup::find(reading, Some(&kept), None, false)
 }
 
-// ==== ported code ends; the stubs below are the functions not yet ported ====
+re_static!(CONTINUED, THEIR_EAT, COOK_WORD, SAID_WORD, EAT_VERB, MEAT_FREE, A_TASTE_OF_THEIRS, COMPLAINT, DETAIL_LINE, THEIR_OWN_ASK);
+set_static!(TONING_WORDS, JOINING_WORDS, TONE_DESCRIPTORS, DIET_WORDS, NOT_THE_THING, WRITE_OBJECT, HEALTH_DOMAINS, LENGTH_SAID, _AN_ANSWER);
+strs_static!(REWORD_ASKS, CHECK_ASKS, DETAIL_FRAMES);
+static TONE_WORDS: LazyLock<Vec<(String, Vec<String>)>> =
+    LazyLock::new(|| g("TONE_WORDS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect());
+static DEMANDS: LazyLock<Vec<(&'static Re, String)>> = LazyLock::new(|| {
+    g("DEMANDS").items().iter().map(|p| (p.items()[0].as_re().expect("DEMANDS holds regexes"), p.items()[1].str().to_string())).collect()
+});
+static HARD_TO_SAY: LazyLock<Vec<(&'static Re, String, String)>> = LazyLock::new(|| {
+    g("HARD_TO_SAY")
+        .items()
+        .iter()
+        .map(|p| {
+            let it = p.items();
+            (it[0].as_re().expect("HARD_TO_SAY holds regexes"), it[1].str().to_string(), it[2].str().to_string())
+        })
+        .collect()
+});
+static CIRCUMSTANCE: LazyLock<Vec<HashSet<String>>> =
+    LazyLock::new(|| g("CIRCUMSTANCE").items().iter().map(|f| f.str_set()).collect());
+static RELATIONS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.memory.facts.RELATIONS"));
+static MEANT_LOOK_BACK_FAR: LazyLock<usize> = LazyLock::new(|| data::get("bot.memory.meant.LOOK_BACK_FAR").as_int().unwrap_or(7) as usize);
+static MEANT_NOT_TO_REPEAT: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.meant.NOT_TO_REPEAT"));
+static MEANT_CONDOLENCE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.meant.CONDOLENCE"));
+static MEANT_RECEIPT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.meant.RECEIPT"));
+static REPEAT_HEDGE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.repeat.HEDGE"));
 
 /// Python: bot/modules/answers.py:7485 `_without_names(reading)`
+/// The same reading with a place word the line uses as a name taken out.
 pub fn _without_names(reading: &Understood) -> Understood {
-    crate::unported!("bot.modules.answers:_without_names")
+    if reading.person_names.is_empty() {
+        return reading.clone();
+    }
+    let drop: HashSet<&str> = reading.person_names.iter().map(String::as_str).collect();
+    let mut narrowed = reading.clone();
+    narrowed.words = reading.words.iter().filter(|w| !drop.contains(w.to_lowercase().as_str())).cloned().collect();
+    if !reading.clean.is_empty() {
+        narrowed.clean = text::split_ref(&reading.clean)
+            .into_iter()
+            .filter(|w| !drop.contains(text::strip_chars(&w.to_lowercase(), ".,!?;:")))
+            .collect::<Vec<_>>()
+            .join(" ");
+    }
+    narrowed
 }
 
-/// Python: bot/modules/answers.py:7570 `_only_the_tone(rest)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:7570 `_only_the_tone(rest)`
+/// True when what follows the instruction is the tone again, not text to rewrite.
 pub fn _only_the_tone(rest: &str) -> bool {
-    crate::unported!("bot.modules.answers:_only_the_tone")
+    let low = rest.to_lowercase();
+    let words: Vec<String> = text::split_ref(&low)
+        .iter()
+        .map(|w| text::strip_chars(w, ".,!?;:'\"").to_string())
+        .filter(|w| !w.is_empty() && !JOINING_WORDS.contains(w))
+        .collect();
+    if words.is_empty() {
+        return true;
+    }
+    for word in &words {
+        if TONE_DESCRIPTORS.contains(word) || CONTINUED.is_match(word) {
+            continue;
+        }
+        if TONING_WORDS.iter().any(|stem| word.contains(stem.as_str())) {
+            continue;
+        }
+        return false;
+    }
+    true
 }
 
 /// Python: bot/modules/answers.py:7604 `_reword_ask(text)`
-pub fn _reword_ask(text: &str) {
-    crate::unported!("bot.modules.answers:_reword_ask")
+/// The text the line wants rewritten, or None when the line is not a rewrite request.
+pub fn _reword_ask(text_: &str) -> Option<String> {
+    let flat = _flat(text_);
+    let lowered = text::squash(&text_.to_lowercase());
+    let asked = REWORD_ASKS.iter().any(|p| flat.contains(p.as_str()));
+    let tone = TONE_WORDS.iter().any(|(_, words)| words.iter().any(|w| flat.contains(w.as_str())));
+    if !(asked && (tone || lowered.contains(':'))) {
+        return None;
+    }
+    let (head, sep, tail) = text::rpartition(&lowered, ":");
+    if !sep.is_empty() && text::split_ref(tail).len() >= 2 && REWORD_ASKS.iter().any(|p| _flat(head).contains(p.as_str())) {
+        return Some(text::strip_chars(tail, " .\"'").to_string());
+    }
+    let (mut at, mut found) = (text::len(&flat) as isize + 1, String::new());
+    for phrase in REWORD_ASKS.iter() {
+        let where_ = text::find(&flat, phrase);
+        if where_ >= 0 && (where_ < at || (where_ == at && text::len(phrase) > text::len(&found))) {
+            at = where_;
+            found = phrase.clone();
+        }
+    }
+    let mut rest = if !found.is_empty() { text::slice(&flat, at + text::len(&found) as isize, None) } else { flat.clone() };
+    rest = inline_re!(r"\bso (it|that) (sounds?|reads?) (more |less )?.*$").sub("", &rest);
+    rest = inline_re!(r"\bso (it|that) does ?n[o']?t sound .*$").sub("", &rest);
+    rest = inline_re!(
+        r"^\s*(a bit |abit |a little |alittle )?(sound|sounds|read|look)?\s*(less|more|softer|warmer|friendlier|nicer|politer|politelier|formal|professional|casual|shorter|briefer|blunt|harsh|rude|angry|aggressive|gentle|tactful|diplomatic|kind)\b\s*(angry|harsh|blunt|rude|aggressive|formal|polite)?"
+    )
+    .sub("", &rest);
+    for _ in 0..3 {
+        rest = inline_re!(r"^\s*(a bit|a little|please|thanks|thank you|for me|mate)\b[ ,]*").sub("", &rest);
+    }
+    let rest = text::strip_chars(&rest, " .,:;\"'").to_string();
+    if text::split_ref(&rest).len() < 3 || _only_the_tone(&rest) {
+        return Some(String::new());
+    }
+    Some(rest)
 }
 
-/// Python: bot/modules/answers.py:7647 `_tone_of(text)` (never called on the trace corpus)
-pub fn _tone_of(text: &str) -> Value {
-    crate::unported!("bot.modules.answers:_tone_of")
+/// Python: bot/modules/answers.py:7647 `_tone_of(text)`
+pub fn _tone_of(text_: &str) -> HashSet<String> {
+    let flat = _flat(text_);
+    let mut tones = HashSet::new();
+    for (tone, words) in TONE_WORDS.iter() {
+        if words.iter().any(|w| flat.contains(w.as_str())) {
+            tones.insert(tone.clone());
+        }
+    }
+    if flat.contains("less formal") {
+        tones.insert("casual".to_string());
+    }
+    if CHECK_ASKS.iter().any(|p| flat.contains(p.as_str())) && tones.is_empty() {
+        tones.insert("check".to_string());
+    }
+    tones
 }
 
-/// Python: bot/modules/answers.py:7660 `_softened(sentence, tones)` (never called on the trace corpus)
-pub fn _softened(sentence: &str, tones: &Value) -> Value {
-    crate::unported!("bot.modules.answers:_softened")
+/// Python: bot/modules/answers.py:7660 `_softened(sentence, tones)`
+/// The sentence with its demands asked instead, no shout in it, and the tone asked for.
+pub fn _softened(sentence: &str, tones: &HashSet<String>) -> String {
+    let mut out = text::strip(sentence).to_string();
+    for (pattern, better) in DEMANDS.iter() {
+        out = pattern.sub(better, &out);
+    }
+    out = out.replace('!', ".");
+    out = inline_re!(r"\bnow\b(?=\s*(?:[.,;!?]|$|or\b|and\b))").sub("", &out);
+    out = text::strip_chars(&inline_re!(r"\s+").sub(" ", &out), " ,;").to_string();
+    out = inline_re!(r"\bi\b").sub("I", &out);
+    for (bare, proper) in [
+        ("cant", "can't"),
+        ("dont", "don't"),
+        ("wont", "won't"),
+        ("doesnt", "doesn't"),
+        ("didnt", "didn't"),
+        ("couldnt", "couldn't"),
+        ("wouldnt", "wouldn't"),
+        ("isnt", "isn't"),
+        ("im", "I'm"),
+        ("ive", "I've"),
+        ("ill", "I'll"),
+    ] {
+        out = Re::new(&format!(r"\b{bare}\b"), 0).sub(proper, &out);
+    }
+    if out.chars().next().is_some_and(crate::understanding::pyuni::ch_lower) {
+        out = up1(&out);
+    }
+    if tones.contains("formal") {
+        for (short, long) in [
+            ("I'm", "I am"),
+            ("I've", "I have"),
+            ("I'd", "I would"),
+            ("I'll", "I will"),
+            ("don't", "do not"),
+            ("doesn't", "does not"),
+            ("can't", "cannot"),
+            ("won't", "will not"),
+            ("it's", "it is"),
+            ("couldn't", "could not"),
+            ("wouldn't", "would not"),
+        ] {
+            out = Re::new(&crate::py::re::escape(short), 0).sub(long, &out);
+            out = out.replace(&up1(short), &up1(long));
+        }
+    }
+    if tones.contains("casual") {
+        for (long, short) in [("I would", "I'd"), ("I am", "I'm"), ("do not", "don't"), ("cannot", "can't"), ("will not", "won't")] {
+            out = out.replace(long, short);
+        }
+    }
+    for name in [
+        "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "January", "February", "March", "April", "May",
+        "June", "July", "August", "September", "October", "November", "December",
+    ] {
+        out = Re::new(&format!(r"\b{}\b", name.to_lowercase()), 0).sub(name, &out);
+    }
+    out = inline_re!(r"\b(Hi|Hello|Dear|Hey|Thanks|Thank you|Morning|Afternoon)\s+([a-z])")
+        .sub_fn(&out, |m| format!("{} {}", m.str(1), m.str(2).to_uppercase()));
+    if !out.is_empty() && !out.ends_with(['.', '?', '!']) {
+        out.push('.');
+    }
+    out
 }
 
-/// Python: bot/modules/answers.py:7714 `_last_rewrite(memory)` (never called on the trace corpus)
-pub fn _last_rewrite(memory: &Memory) -> Value {
-    crate::unported!("bot.modules.answers:_last_rewrite")
+/// Python: bot/modules/answers.py:7714 `_last_rewrite(memory)`
+/// The text and tones of the rewrite before this turn, or None.
+pub fn _last_rewrite(memory: &Memory) -> Option<(String, HashSet<String>)> {
+    for turn in last_turns(memory, 4).iter().rev() {
+        if let Some(asked) = _reword_ask(&turn.user).filter(|a| !a.is_empty()) {
+            return Some((asked, _tone_of(&turn.user)));
+        }
+    }
+    None
 }
 
-/// Python: bot/modules/answers.py:7747 `_hard_to_say(asked)` (never called on the trace corpus)
-pub fn _hard_to_say(asked: &str) -> Value {
-    crate::unported!("bot.modules.answers:_hard_to_say")
+/// Python: bot/modules/answers.py:7747 `_hard_to_say(asked)`
+/// A known hard sentence, said properly, or None.
+pub fn _hard_to_say(asked: &str) -> Option<(String, String)> {
+    let flat = text::squash(&asked.to_lowercase());
+    HARD_TO_SAY.iter().find(|(pattern, _, _)| pattern.is_match(&flat)).map(|(_, s, t)| (s.clone(), t.clone()))
 }
 
-/// Python: bot/modules/answers.py:7756 `_rewritten(asked, tones, from_followup=False)` (never called on the trace corpus)
-pub fn _rewritten(asked: &str, tones: &Value, from_followup: &Value) -> String {
-    crate::unported!("bot.modules.answers:_rewritten")
+/// Python: bot/modules/answers.py:7756 `_rewritten(asked, tones, from_followup=False)`
+/// The rewrite, phrased as the answer: the sentence, then what to leave in or out.
+pub fn _rewritten(asked: &str, tones: &HashSet<String>, from_followup: bool) -> String {
+    let mut body = _softened(asked, tones);
+    let known = if from_followup { None } else { _hard_to_say(asked) };
+    if let Some((sentence, tail)) = known {
+        if tones.contains("warm") || tones.contains("short") {
+            return format!("Softer, same point: \"{sentence}\" {tail}");
+        }
+    }
+    if tones.len() == 1 && tones.contains("check") {
+        return format!(
+            "Reads all right: \"{body}\" Nothing needs fixing: it is short, it says what you want, and it leaves them an easy way to say yes. Add the date you need an answer by if there is one."
+        );
+    }
+    let polite = tones.contains("warm") || tones.contains("formal");
+    let mut asking = inline_re!(
+        r"\b(want|need|give|send|pay|refund|back|fix|sort|complain|explain|ask|book|change|cancel|return|replace|stop|reply|respond|could|would|can)\b"
+    )
+    .is_match(&body.to_lowercase());
+    if inline_re!(r"\bneed to (tell|say|let)\b").is_match(&body.to_lowercase()) {
+        asking = false;
+    }
+    if polite && asking && !body.to_lowercase().contains("please") && !body.ends_with('?') {
+        body = match body.strip_suffix('.') {
+            Some(head) => format!("{head}, please."),
+            None => format!("{body}?"),
+        };
+    }
+    if tones.contains("short") {
+        body = inline_re!(r"\b(just|really|actually|basically|obviously|literally)\b ?").sub("", &body);
+        body = text::strip(&inline_re!(r"\s+").sub(" ", &body)).to_string();
+    }
+    let mut tail = "Ask for what you want and a date, and leave out the anger: a short, specific message gets answered more often than a hot one.";
+    if !asking {
+        tail = "Say it plainly, name the date, and stop there: the calmer and shorter it is, the better it lands.";
+    }
+    if tones.contains("formal") {
+        tail = "Formal but human works best: the request, the date, and one line of reason, with no apology for asking.";
+    } else if tones.contains("casual") {
+        tail = "Keep it short and say it as you would out loud; the subject still has to be clear.";
+    } else if tones.contains("short") {
+        tail = "Cut everything that is not the request: the ask and the date are the whole message.";
+    }
+    format!("Softer, same point: \"{body}\" {tail}")
 }
 
-/// Python: bot/modules/answers.py:7845 `_asks_about_a_food(low)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:7845 `_asks_about_a_food(low)`
+/// Whether a question about someone puts a thing to eat after the verb ("can he eat cake").
 pub fn _asks_about_a_food(low: &str) -> bool {
-    crate::unported!("bot.modules.answers:_asks_about_a_food")
+    let Some(found) = EAT_VERB.search(low) else { return false };
+    let words: Vec<String> = text::split_ref(&low[found.end()..])
+        .iter()
+        .map(|w| text::strip_chars(w, ".,!?;:'\"").to_string())
+        .filter(|w| !w.is_empty() && !NOT_THE_THING.contains(w))
+        .collect();
+    match words.first() {
+        None => false,
+        Some(w) => !DIET_WORDS.contains(w),
+    }
 }
 
 /// Python: bot/modules/answers.py:7857 `_someones_else_diet(text, memory, understood)`
-pub fn _someones_else_diet(text: &str, memory: &Memory, understood: &Understood) -> bool {
-    crate::unported!("bot.modules.answers:_someones_else_diet")
+/// True when the line is about what someone other than the person eats.
+pub fn _someones_else_diet(text_: &str, memory: &Memory, understood: Option<&Understood>) -> bool {
+    let low = text::squash(&text_.to_lowercase());
+    if low.is_empty() || COOK_WORD.is_match(&low) {
+        return false;
+    }
+    let Some(understood) = understood.filter(|_| THEIR_EAT.is_match(&low)) else { return false };
+    if !_names_someone_else(&low) {
+        return false;
+    }
+    if !memory.get("others").is_some_and(Value::truthy) {
+        return false;
+    }
+    if understood.kind != "question" && _a_guest_restriction(text_, memory, understood) {
+        return false;
+    }
+    if understood.kind == "question" {
+        if SAID_WORD.is_match(&low) {
+            return true;
+        }
+        if _asks_about_a_food(&low) {
+            return false;
+        }
+        return !_about_them_alone(&low);
+    }
+    if MEAT_FREE.is_match(&low) {
+        return false;
+    }
+    true
 }
 
-/// Python: bot/modules/answers.py:7895 `_a_guest_restriction(text, memory, understood)` (never called on the trace corpus)
-pub fn _a_guest_restriction(text: &str, memory: &Memory, understood: &Understood) -> bool {
-    crate::unported!("bot.modules.answers:_a_guest_restriction")
+/// Python: bot/modules/answers.py:7895 `_a_guest_restriction(text, memory, understood)`
+/// Whether the kitchen has a cooking answer for the diet this line names for someone else.
+pub fn _a_guest_restriction(text_: &str, memory: &Memory, understood: &Understood) -> bool {
+    let _ = text_;
+    knowledge::dishes::has_a_diet_reply(memory, understood) || knowledge::dishes::has_a_veggie_reply(memory, understood)
 }
 
 /// Python: bot/modules/answers.py:7921 `_names_someone_else(low)`
+/// Whether the line names or points at a person other than the speaker.
 pub fn _names_someone_else(low: &str) -> bool {
-    crate::unported!("bot.modules.answers:_names_someone_else")
+    for relation in RELATIONS.iter() {
+        if Re::new(&format!(r"\b{relation}\b"), 0).is_match(low) {
+            return true;
+        }
+    }
+    inline_re!(r"\b(?:he|she|they|him|her|them|his|their)\b").is_match(low)
 }
 
 /// Python: bot/modules/answers.py:7939 `_a_writing_job(understood)`
-pub fn _a_writing_job(understood: &Understood) -> bool {
-    crate::unported!("bot.modules.answers:_a_writing_job")
+/// True when the line asks for the words by naming the thing to write itself.
+pub fn _a_writing_job(understood: Option<&Understood>) -> bool {
+    let Some(understood) = understood else { return false };
+    let norm = &understood.norm;
+    for (at, word) in norm.iter().enumerate() {
+        if !matches!(word.as_str(), "thank" | "thanks" | "thankyou" | "thank you" | "thx" | "ta") {
+            continue;
+        }
+        let rest: Vec<&String> = norm[at + 1..].iter().filter(|w| *w != "you").collect();
+        if rest.first().is_some_and(|w| WRITE_OBJECT.contains(*w)) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Python: bot/modules/answers.py:7963 `_asks_about_their_taste(text)`
-pub fn _asks_about_their_taste(text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_asks_about_their_taste")
+/// Whether the line asks what somebody else likes or hates.
+pub fn _asks_about_their_taste(text_: &str) -> bool {
+    A_TASTE_OF_THEIRS.is_match(&text::squash(&text_.to_lowercase()))
 }
 
-/// Python: bot/modules/answers.py:7968 `_about_them_alone(low)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:7968 `_about_them_alone(low)`
+/// "what can she eat" asks for the person; "my mum" is the guest, not the speaker.
 pub fn _about_them_alone(low: &str) -> bool {
-    crate::unported!("bot.modules.answers:_about_them_alone")
+    let theirs = RELATIONS.join("|");
+    if Re::new(&format!(r"\b(?:my|our)\s+(?:{theirs})\b"), 0).is_match(low) {
+        return false;
+    }
+    inline_re!(r"\b(?:i|im|i'm|me|my|we|us|our)\b").is_match(low)
 }
 
 /// Python: bot/modules/answers.py:7982 `_health_entries()`
-pub fn _health_entries() -> Value {
-    crate::unported!("bot.modules.answers:_health_entries")
+/// The answers about a person's own body, read once.
+pub fn _health_entries() -> &'static [&'static Entry] {
+    static HEALTH: LazyLock<Vec<&'static Entry>> =
+        LazyLock::new(|| knowledge::entry::entries().iter().filter(|one| HEALTH_DOMAINS.contains(&one.domain)).collect());
+    &HEALTH
 }
 
-/// Python: bot/modules/answers.py:7990 `_names_a_typed_word(item, text)` (never called on the trace corpus)
-pub fn _names_a_typed_word(item: &'static Entry, text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_names_a_typed_word")
+/// Python: bot/modules/answers.py:7990 `_names_a_typed_word(item, text)`
+/// True when the entry is about a word the person actually typed.
+pub fn _names_a_typed_word(item: &Entry, text_: &str) -> bool {
+    let keys = _key_words(item);
+    text::split_ref(&_flat(text_)).iter().any(|w| keys.contains(&text::strip_chars(w, ".,!?;:").to_lowercase()))
 }
 
 /// Python: bot/modules/answers.py:8018 `_circumstances(text)`
-pub fn _circumstances(text: &str) -> Vec<String> {
-    crate::unported!("bot.modules.answers:_circumstances")
+/// The circumstance family of every circumstance word in a line, and nothing else.
+pub fn _circumstances(text_: &str) -> HashSet<String> {
+    let words: HashSet<String> = az_words(&text_.to_lowercase()).iter().map(|w| text::strip_chars(w, "'").to_string()).collect();
+    let mut found = HashSet::new();
+    for family in CIRCUMSTANCE.iter() {
+        if !words.is_disjoint(family) {
+            found.extend(family.iter().cloned());
+        }
+    }
+    found
 }
 
-/// Python: bot/modules/answers.py:8041 `_detail_frame(part)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:8041 `_detail_frame(part)`
 pub fn _detail_frame(part: &str) -> String {
-    crate::unported!("bot.modules.answers:_detail_frame")
+    py_format(&DETAIL_FRAMES[text::len(part) % DETAIL_FRAMES.len()], &[("part", part)])
 }
 
 /// Python: bot/modules/answers.py:8045 `_a_figure_the_answer_has(text, memory)`
-pub fn _a_figure_the_answer_has(text: &str, memory: &Memory) {
-    crate::unported!("bot.modules.answers:_a_figure_the_answer_has")
+/// The sentence of the last answer that carries a figure this line names, or None.
+pub fn _a_figure_the_answer_has(text_: &str, memory: &Memory) -> Option<String> {
+    py_try(|| memory::detail::the_fact_the_answer_has(text_, memory).py()).flatten()
 }
 
 /// Python: bot/modules/answers.py:8054 `_a_detail_answered(text, memory)`
-pub fn _a_detail_answered(text: &str, memory: &Memory) {
-    crate::unported!("bot.modules.answers:_a_detail_answered")
+/// The sentence of the last answer that speaks to this detail, or None.
+pub fn _a_detail_answered(text_: &str, memory: &Memory) -> Option<String> {
+    if !DETAIL_LINE.is_match(text_) {
+        return None;
+    }
+    let reply = memory::last_bot(memory);
+    if reply.is_empty() {
+        return None;
+    }
+    let want = _circumstances(text_);
+    let mut known_first: Option<String> = None;
+    let said: HashSet<String> =
+        memory::topics::keywords(text_).iter().filter(|w| text::len(w) > 2).map(|w| memory::topics::stem(w)).collect();
+    let (mut best, mut best_score) = (String::new(), 0usize);
+    let sentences: Vec<String> =
+        inline_re!(r"(?<=[.!?])\s+").split(&reply).iter().map(|p| text::strip(p).to_string()).filter(|p| !p.is_empty()).collect();
+    for (index, sentence) in sentences.iter().enumerate() {
+        if text::split_ref(sentence).len() < 6 {
+            continue;
+        }
+        if index == 0 && known_first.is_none() && memory::topics::already_said(memory, Some(sentence), 3) {
+            known_first = Some(sentence.clone());
+        }
+        let shared = want.intersection(&_circumstances(sentence)).count();
+        if shared == 0 {
+            continue;
+        }
+        let there: HashSet<String> =
+            memory::topics::keywords(sentence).iter().filter(|w| text::len(w) > 2).map(|w| memory::topics::stem(w)).collect();
+        let score = 2 * shared + said.intersection(&there).count();
+        if score > best_score {
+            best = sentence.clone();
+            best_score = score;
+            let _known = memory::topics::already_said(memory, Some(sentence), 3);
+        }
+    }
+    if !best.is_empty() && known_first.as_deref() == Some(best.as_str()) {
+        return None;
+    }
+    if best.is_empty() {
+        return None;
+    }
+    if text::split_ref(&best).len() * 2 >= text::split_ref(&reply).len() {
+        return None;
+    }
+    let part = if first_is_upper(&best) { low1(&best) } else { best };
+    Some(_detail_frame(&part))
 }
 
 /// Python: bot/modules/answers.py:8102 `_a_complaint_answered(text, understood, memory)`
-pub fn _a_complaint_answered(text: &str, understood: &Understood, memory: &mut Memory) {
-    crate::unported!("bot.modules.answers:_a_complaint_answered")
+/// The help a report of a sore or a trouble did not spell out, or None.
+pub fn _a_complaint_answered(text_: &str, understood: &Understood, memory: &mut Memory) -> Option<String> {
+    if !COMPLAINT.is_match(&_flat(text_)) {
+        return None;
+    }
+    if compose::trouble::reads_as_trouble(&_flat(text_), Some(&understood.words), "").py().is_some() {
+        return None;
+    }
+    if find_plain(understood).is_some() {
+        return None;
+    }
+    let mut again = understood.clone();
+    let base = if !understood.clean.is_empty() { understood.clean.clone() } else { _flat(text_) };
+    again.clean = format!("what can i do about {base}");
+    again.words = az_words(&again.clean.to_lowercase()).into_iter().filter(|w| !w.is_empty()).collect();
+    let (item, reply) = _offer_with(
+        &mut |_: &mut Memory, reject: Reject| reader_entry(knowledge::lookup::find(&again, Some(_health_entries()), reject, false)),
+        memory,
+        &again,
+    );
+    let item = item?;
+    let reply = reply.filter(|r| !text::strip(r).is_empty())?;
+    if !_names_a_typed_word(item, text_) {
+        return None;
+    }
+    let keys: Vec<String> = _key_words(item).into_iter().collect();
+    memory::topics::remember_answer(memory, &reply, &keys);
+    _remember_answer(memory, Some(item), &reply, &[]);
+    Some(reply)
 }
 
 /// Python: bot/modules/answers.py:8134 `_a_dish_was_offered(memory)`
+/// Whether the meal being planned has already been answered with food.
 pub fn _a_dish_was_offered(memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_a_dish_was_offered")
+    if !memory.get("meal").is_some_and(Value::is_dict) {
+        return false;
+    }
+    memory.turns.last().is_some_and(|t| t.module.as_deref() == Some("answers"))
 }
 
 /// Python: bot/modules/answers.py:8147 `observe(text, memory)` - a runtime hook; its signature is the runtime's.
-pub fn observe(text: &str, memory: &mut Memory) {
-    crate::unported!("bot.modules.answers:observe")
+/// Keep what the line says about the meal it is planning, for the next short line to narrow.
+pub fn observe(text_: &str, memory: &mut Memory) {
+    let understood = match memory.understood.clone() {
+        Some(u) => u,
+        None => understanding::understand(text_, Some(&*memory)),
+    };
+    let _ = py_try(|| memory::a_year_of_birth::observe(text_, memory));
+    let Some(plan) = py_try(|| knowledge::cooking_more::remembered(&understood, memory)) else { return };
+    if let Some(plan) = plan.filter(|p| !p.is_empty()) {
+        memory.set("meal", knowledge::cooking_more::context_value(&plan));
+    }
 }
 
 /// Python: bot/modules/answers.py:8178 `_asks_only_the_length(text)`
-pub fn _asks_only_the_length(text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_asks_only_the_length")
+/// Is every word of this line the length ask or a word pointing back at the answer?
+pub fn _asks_only_the_length(text_: &str) -> bool {
+    let words: Vec<String> = text::split_ref(text_)
+        .iter()
+        .map(|w| inline_re!(r"[^a-z']").sub("", &w.to_lowercase()))
+        .filter(|w| !w.is_empty())
+        .collect();
+    if words.is_empty() || !words.iter().any(|w| w == "long" || w == "many" || w == "much") {
+        return false;
+    }
+    words.iter().all(|w| LENGTH_SAID.contains(w))
 }
 
 /// Python: bot/modules/answers.py:8187 `TAKES_AS_IT_COMES(text, memory=None)`
-pub fn TAKES_AS_IT_COMES(text: &str, memory: &mut Memory) -> bool {
-    crate::unported!("bot.modules.answers:TAKES_AS_IT_COMES")
+/// A request for less is answered with the answer they already have, cut down.
+pub fn TAKES_AS_IT_COMES(text_: &str, memory: &mut Memory) -> bool {
+    memory::repeat::asks_for_less(text_) && memory::repeat::shorter_for(text_, memory).py_truth()
 }
 
-/// Python: bot/modules/answers.py:8201 `claims_instead(text, memory=None)` (never called on the trace corpus)
-pub fn claims_instead(text: &str, memory: &mut Memory) -> Option<bool> {
-    crate::unported!("bot.modules.answers:claims_instead")
+/// Python: bot/modules/answers.py:8201 `claims_instead(text, memory=None)` (also bound as `CLAIMS_INSTEAD`)
+/// The arbiter's `CLAIMS_INSTEAD`: a line asking how to answer somebody else's question.
+pub fn claims_instead(text_: &str, memory: &mut Memory) -> Option<bool> {
+    if !ANSWERING_A_QUOTED_ASK.is_match(text_) {
+        return Some(false);
+    }
+    if WHO_IS_THE_BOT.is_match(text_) {
+        return Some(false);
+    }
+    Some(py_try(|| respond(text_, memory).is_some()).unwrap_or(false))
 }
 
 /// Python: bot/modules/answers.py:8224 `_a_limit_on_the_plan(text, memory)`
-pub fn _a_limit_on_the_plan(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_a_limit_on_the_plan")
+/// True when the line is only a limit on the plan, which the composer answers itself.
+pub fn _a_limit_on_the_plan(text_: &str, memory: &Memory) -> bool {
+    py_try(|| memory::facts::a_limit_on_the_plan(text_).py_truth() && memory::ack::a_limit_reply(text_, memory).py_truth()).unwrap_or(false)
 }
 
 /// Python: bot/modules/answers.py:8250 `_a_bare_thanks(understood)`
+/// True when the line is a thank you and nothing else.
 pub fn _a_bare_thanks(understood: Option<&Understood>) -> bool {
-    crate::unported!("bot.modules.answers:_a_bare_thanks")
+    understood.is_some_and(|u| u.kind == "thanks") && !_a_writing_job(understood)
 }
 
 /// Python: bot/modules/answers.py:8265 `_a_judgement_of_the_figure_on_the_table(text, memory)`
-pub fn _a_judgement_of_the_figure_on_the_table(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_a_judgement_of_the_figure_on_the_table")
+/// True when the line is only a doubt about a figure, and the reading can answer it.
+pub fn _a_judgement_of_the_figure_on_the_table(text_: &str, memory: &Memory) -> bool {
+    py_try(|| compose::reading::judges_the_figure_on_the_table(text_, memory)).unwrap_or(false)
 }
 
-/// Python: bot/modules/answers.py:8282 `_the_bot_has_something_to_go_over(memory)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:8282 `_the_bot_has_something_to_go_over(memory)`
+/// True when one of the bot's last lines explains something the ask could be pointing at.
 pub fn _the_bot_has_something_to_go_over(memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_the_bot_has_something_to_go_over")
+    for turn in last_turns(memory, *MEANT_LOOK_BACK_FAR).iter().rev() {
+        let said = text::strip(&turn.bot);
+        if said.is_empty() {
+            continue;
+        }
+        let module = turn.module.clone().unwrap_or_default();
+        if MEANT_NOT_TO_REPEAT.contains(&module) {
+            break;
+        }
+        let asked = text::strip(&turn.user);
+        if REPEAT_HEDGE.is_match(said) || MEANT_CONDOLENCE.match_(said).is_some() || MEANT_RECEIPT.is_match(said) {
+            continue;
+        }
+        if _AN_ANSWER.contains(&module) || memory::meant::_thick_enough(said, asked) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Python: bot/modules/answers.py:8315 `_the_line_asks_what_this_one_meant(memory)`
+/// True when this turn asks what the bot's own last answer meant.
 pub fn _the_line_asks_what_this_one_meant(memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_the_line_asks_what_this_one_meant")
+    if !memory.understood.as_ref().is_some_and(|u| u.asks_what_was_meant) {
+        return false;
+    }
+    _the_bot_has_something_to_go_over(memory)
 }
+
+// ==== ported code ends; the stubs below are the functions not yet ported ====
 
 /// Python: bot/modules/answers.py:8331 `respond(text, memory)` - a runtime hook; its signature is the runtime's.
 pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
