@@ -4674,4 +4674,39 @@ mod tests {
         }
         eprintln!("arbiter readings against the reference: {ok} same, {bad} different, {raised} raised");
     }
+
+    /// The small modules' pure readings against PyBot's (`scratch/mod3/small_ref.py`). Run with
+    /// `SMALL_REF=<reference jsonl>`.
+    #[test]
+    #[ignore]
+    fn small_module_readings_against_the_reference() {
+        use crate::modules::{a_limit_over_the_answer as l, a_return_brings_back_the_advice as r, their_taste as t};
+        let Ok(reference) = std::env::var("SMALL_REF") else { return };
+        let (mut ok, mut bad) = (0, 0);
+        for line in std::fs::read_to_string(&reference).unwrap().lines() {
+            let want: J = serde_json::from_str(line).unwrap();
+            let a = want["args"].as_array().unwrap();
+            let s = |i: usize| a[i].as_str().unwrap().to_string();
+            let got = match (want["m"].as_str().unwrap(), want["f"].as_str().unwrap()) {
+                ("their_taste", "_said_plainly") => json!(t::_said_plainly(&s(0))),
+                ("their_taste", "_a_taste") => t::_a_taste(&s(0)).map(|(kind, thing)| json!([kind, thing])).unwrap_or(J::Null),
+                ("their_taste", "_the_thing_said") => json!(t::_the_thing_said(&s(0))),
+                ("a_limit_over_the_answer", "_clean") => json!(l::_clean(&s(0))),
+                ("a_limit_over_the_answer", "_a_limit") => l::_a_limit(&s(0)).map(|kind| json!(kind.kind)).unwrap_or(J::Null),
+                ("a_limit_over_the_answer", "_the_move") => json!(l::_the_move(&s(0))),
+                ("a_return_brings_back_the_advice", "_the_advice") => json!(r::_the_advice(&s(0))),
+                ("a_return_brings_back_the_advice", "_has_substance") => json!(r::_has_substance(&s(0))),
+                (m, f) => panic!("no dispatch for {m}.{f}"),
+            };
+            if got == want["out"] {
+                ok += 1;
+            } else {
+                bad += 1;
+                if bad <= 20 {
+                    eprintln!("{} {} {:?}\n   rust: {got}\n   py:   {}", want["m"], want["f"], a, want["out"]);
+                }
+            }
+        }
+        eprintln!("small module readings against the reference: {ok} same, {bad} different");
+    }
 }

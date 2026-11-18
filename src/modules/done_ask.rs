@@ -215,3 +215,37 @@ pub fn observe(text: &str, memory: &mut Memory) {
     reading.clean = filled;
     memory.understood = Some(reading);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A memory of one earlier turn, the chat's topic, and this line's reading.
+    fn chat(said: &str, bot: &str, module: &str, topic: &str, topics: &[&str], line: &str) -> Memory {
+        let mut plain = serde_json::json!({
+            "turns": [{"user": said, "bot": bot, "module": module}],
+            "topic": {"text": topic},
+            "understood": {"clean": line},
+        });
+        if !topics.is_empty() {
+            plain["topics"] = serde_json::json!(topics.iter().map(|t| serde_json::json!({"text": t})).collect::<Vec<_>>());
+        }
+        Memory::from_plain(plain.as_object().unwrap())
+    }
+
+    /// Expected values from `harness/pycall.py bot.modules.done_ask the_done_state_of_the_thing_in_hand`.
+    #[test]
+    fn the_dish_in_hand_fills_a_doneness_ask() {
+        let cases = [
+            (chat("im cooking a roast chicken for six on sunday", "About 20 minutes per 500g plus 20 minutes at 190C.", "answers", "im cooking a roast chicken for six on sunday", &[], "and how do i know its cooked"), "and how do i know its cooked", ""),
+            (chat("im doing a slow roast shoulder of lamb", "Low and slow.", "answers", "im doing a slow roast shoulder of lamb", &[], "how will i know when its done"), "how will i know when its done", "lamb how will i know when its done"),
+            (chat("we are out all day", "Nice.", "chat", "we are out all day", &[], "is it ready yet"), "is it ready yet", ""),
+            (chat("im baking salmon", "12 to 15 minutes at 200C.", "answers", "my car needs a service", &["im baking salmon", "my car needs a service"], "is it cooked"), "is it cooked", ""),
+            (chat("making rice", "One to one and a half.", "answers", "making rice", &[], "how do i tell when the rice is done"), "how do i tell when the rice is done", ""),
+            (chat("im making a sponge cake", "25 minutes at 180C.", "answers", "im making a sponge cake", &[], "when is it ready"), "when is it ready", ""),
+        ];
+        for (memory, line, want) in cases {
+            assert_eq!(the_done_state_of_the_thing_in_hand(line, &memory), want, "{line}");
+        }
+    }
+}
