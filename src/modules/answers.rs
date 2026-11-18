@@ -1028,6 +1028,7 @@ pub fn memory_value(memory: &Memory) -> Value {
 /// Python: bot/modules/answers.py:1061 `_the_part_named(text, memory=None, with_quality=False)`
 /// The word a follow-up names as the part of the thing it asks about ("the biting"), or "".
 pub fn _the_part_named(text_: &str, memory: Option<&Memory>, with_quality: bool) -> String {
+    let empty = Memory::new();
     if memory::returns::a_bare_return(text_, memory) {
         return String::new();
     }

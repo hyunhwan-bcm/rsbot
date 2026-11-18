@@ -18,7 +18,8 @@ use crate::understood::Understood;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
-res!("returns"; OPENERS, STORE_FRAME, ASK_OPENS, QUANTITY_ASK, A_NUMBER);
+// ASK_OPENS is defined in PyBot and never read.
+res!("returns"; OPENERS, STORE_FRAME, QUANTITY_ASK, A_NUMBER);
 sets!("returns"; POINTER, NOTHING_NAMED);
 inline_re! {
     ASK_AFTER_THE_THING = r"\s+(?=(?:what|which|where|when|who|why|how|should|can|could|do|does|is|are|will|would)\b)", re::I;

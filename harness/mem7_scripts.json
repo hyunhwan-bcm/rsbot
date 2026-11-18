@@ -1,43 +1,427 @@
 {
-"healing": [
- ["my back hurts", "how long will it take to heal"],
- ["my knee hurts", "how long does it take to get better", "and what should i do"],
- ["my shoulder hurts", "how long does it take to heal", "how long will it last"],
- ["i cut my finger", "how long will it take to heal", "how long will it take to heal"],
- ["i have a headache", "what should i do", "how long will it take to go away"],
- ["ive got a cough", "how long will it last"],
- ["i twisted my ankle", "how long till it heals"],
- ["i burnt my hand", "how long before it clears up", "should i cover it"],
- ["im learning to drive", "how long will it take to get better"],
- ["i have a cold", "how long does a cold last", "how long will this take to go"],
- ["my wrist is sore", "how long does a broken wrist take to heal"],
- ["i sprained my wrist", "how long to heal", "how long to heal", "how long to heal"],
- ["ive got a sore throat", "how long will it be like this"],
- ["i pulled a muscle in my leg", "how long will it keep me off my feet"]
-],
-"change": [
- ["im vegetarian", "ive changed my diet"],
- ["i want to lose a bit of weight", "ive changed my diet"],
- ["im vegetarian", "i want to change my diet"],
- ["i dont eat meat", "should i change my diet"],
- ["im vegan", "i changed my diet a month ago", "am i vegan"],
- ["ive changed my diet to vegan"],
- ["how do i change my diet"],
- ["i dont want to change my diet"],
- ["my diet has changed"],
- ["im thinking of changing my diet"],
- ["i eat no dairy", "my diet is different now"]
-],
-"times": [
- ["i get up at six thirty", "what time do i get up"],
- ["i get up at 6", "what time do i get up", "actually 7", "when do i get up"],
- ["my shift starts at eight", "and ends at four", "what time is my shift", "when do i finish"],
- ["i start work at 9", "no wait, half nine", "when do i start work"],
- ["i usually go to bed around eleven", "when do i go to bed", "what time do i need to leave for the airport"],
- ["i get home about six", "what time am i home"],
- ["i leave at 7:15", "make it seven", "what time do i leave"],
- ["my shift ends at four", "what time is my shift", "what time does the post office open"],
- ["i finish work at five", "it starts at nine", "when does my shift start"],
- ["i met my friend at six", "what time do i get up for work"]
-]
+ "healing": [
+  [
+   "my back hurts",
+   "how long will it take to heal"
+  ],
+  [
+   "my knee hurts",
+   "how long does it take to get better",
+   "and what should i do"
+  ],
+  [
+   "my shoulder hurts",
+   "how long does it take to heal",
+   "how long will it last"
+  ],
+  [
+   "i cut my finger",
+   "how long will it take to heal",
+   "how long will it take to heal"
+  ],
+  [
+   "i have a headache",
+   "what should i do",
+   "how long will it take to go away"
+  ],
+  [
+   "ive got a cough",
+   "how long will it last"
+  ],
+  [
+   "i twisted my ankle",
+   "how long till it heals"
+  ],
+  [
+   "i burnt my hand",
+   "how long before it clears up",
+   "should i cover it"
+  ],
+  [
+   "im learning to drive",
+   "how long will it take to get better"
+  ],
+  [
+   "i have a cold",
+   "how long does a cold last",
+   "how long will this take to go"
+  ],
+  [
+   "my wrist is sore",
+   "how long does a broken wrist take to heal"
+  ],
+  [
+   "i sprained my wrist",
+   "how long to heal",
+   "how long to heal",
+   "how long to heal"
+  ],
+  [
+   "ive got a sore throat",
+   "how long will it be like this"
+  ],
+  [
+   "i pulled a muscle in my leg",
+   "how long will it keep me off my feet"
+  ]
+ ],
+ "change": [
+  [
+   "im vegetarian",
+   "ive changed my diet"
+  ],
+  [
+   "i want to lose a bit of weight",
+   "ive changed my diet"
+  ],
+  [
+   "im vegetarian",
+   "i want to change my diet"
+  ],
+  [
+   "i dont eat meat",
+   "should i change my diet"
+  ],
+  [
+   "im vegan",
+   "i changed my diet a month ago",
+   "am i vegan"
+  ],
+  [
+   "ive changed my diet to vegan"
+  ],
+  [
+   "how do i change my diet"
+  ],
+  [
+   "i dont want to change my diet"
+  ],
+  [
+   "my diet has changed"
+  ],
+  [
+   "im thinking of changing my diet"
+  ],
+  [
+   "i eat no dairy",
+   "my diet is different now"
+  ]
+ ],
+ "times": [
+  [
+   "i get up at six thirty",
+   "what time do i get up"
+  ],
+  [
+   "i get up at 6",
+   "what time do i get up",
+   "actually 7",
+   "when do i get up"
+  ],
+  [
+   "my shift starts at eight",
+   "and ends at four",
+   "what time is my shift",
+   "when do i finish"
+  ],
+  [
+   "i start work at 9",
+   "no wait, half nine",
+   "when do i start work"
+  ],
+  [
+   "i usually go to bed around eleven",
+   "when do i go to bed",
+   "what time do i need to leave for the airport"
+  ],
+  [
+   "i get home about six",
+   "what time am i home"
+  ],
+  [
+   "i leave at 7:15",
+   "make it seven",
+   "what time do i leave"
+  ],
+  [
+   "my shift ends at four",
+   "what time is my shift",
+   "what time does the post office open"
+  ],
+  [
+   "i finish work at five",
+   "it starts at nine",
+   "when does my shift start"
+  ],
+  [
+   "i met my friend at six",
+   "what time do i get up for work"
+  ]
+ ],
+ "places": [
+  [
+   "my sister lives in perth",
+   "no, york",
+   "where does my sister live"
+  ],
+  [
+   "my sister is called priya",
+   "she lives in bristol",
+   "where does she live"
+  ],
+  [
+   "my parents moved to spain last year",
+   "where do they live"
+  ],
+  [
+   "my dad moved to bristol last year",
+   "no, she lives in leeds",
+   "wheres my dad"
+  ],
+  [
+   "my brother lives in cork",
+   "does he live in cork",
+   "not perth, york",
+   "where does my brother live"
+  ],
+  [
+   "my friend jane lives in leeds",
+   "where does jane live",
+   "wheres my phone"
+  ],
+  [
+   "my sister lives in perth",
+   "sorry, in york",
+   "where is my sister living"
+  ],
+  [
+   "my mum lives in london",
+   "no, seven",
+   "no, she"
+  ]
+ ],
+ "people": [
+  [
+   "my son is 4",
+   "what should i get him for his birthday"
+  ],
+  [
+   "my grandson is 3",
+   "what should i get him"
+  ],
+  [
+   "theyre 4 in august",
+   "what should i get them"
+  ],
+  [
+   "my son is 4",
+   "my dad is 72",
+   "what should i get him"
+  ],
+  [
+   "my nephew is 5 in june",
+   "what can i get them"
+  ],
+  [
+   "my son starts school in september",
+   "what should i get him"
+  ],
+  [
+   "my son starts school",
+   "what should i get my mum"
+  ],
+  [
+   "the twins are 5",
+   "what should i get them for christmas"
+  ],
+  [
+   "my daughter is 20",
+   "what should i get her"
+  ]
+ ],
+ "asleep": [
+  [
+   "i feel knackered all the time",
+   "i go to bed at about 11",
+   "and wake at 6"
+  ],
+  [
+   "i go to bed at 11 and wake at 6.30"
+  ],
+  [
+   "i go to bed at midnight",
+   "i get up at 7"
+  ],
+  [
+   "i go to bed at half eleven",
+   "up at 6"
+  ],
+  [
+   "my son goes to bed at 8",
+   "and wakes at 6"
+  ],
+  [
+   "i go to bed at 10",
+   "i wake at 3"
+  ],
+  [
+   "what time should i go to bed to wake at 6"
+  ],
+  [
+   "i go to bed at 10pm and wake at 9am"
+  ],
+  [
+   "i sleep at eleven",
+   "wake at seven"
+  ],
+  [
+   "i go to bed at 11",
+   "i wake at 6 every night and cant get back"
+  ]
+ ],
+ "back_again": [
+  [
+   "i have a headache",
+   "its back"
+  ],
+  [
+   "how do i get rid of slugs",
+   "the slugs are back"
+  ],
+  [
+   "my boiler is making a banging noise",
+   "the banging is back"
+  ],
+  [
+   "i think ive got a cold",
+   "its come back"
+  ],
+  [
+   "my car is at the garage",
+   "my car is back"
+  ],
+  [
+   "my mum is visiting",
+   "my mum is back"
+  ],
+  [
+   "i have a headache",
+   "my knee is back"
+  ],
+  [
+   "how do i get rid of aphids",
+   "theyre back again"
+  ],
+  [
+   "my back hurts",
+   "back again"
+  ],
+  [
+   "i have a cough",
+   "is it back?"
+  ]
+ ],
+ "measure": [
+  [
+   "how much water should i drink a day",
+   "and how much"
+  ],
+  [
+   "how often should i walk my dog",
+   "and how often"
+  ],
+  [
+   "how long do i roast a chicken for",
+   "and how long"
+  ],
+  [
+   "how much coffee is too much",
+   "how much again"
+  ],
+  [
+   "how many eggs in a cake",
+   "and how many"
+  ],
+  [
+   "how hot should the oven be for bread",
+   "and how hot"
+  ],
+  [
+   "i lost my mum",
+   "and how long"
+  ]
+ ],
+ "outfit": [
+  [
+   "my sister is getting married in june",
+   "im not sure what to wear",
+   "and what about shoes"
+  ],
+  [
+   "i have an interview on monday",
+   "what should i wear",
+   "will black be alright"
+  ],
+  [
+   "my uncle died last week",
+   "im not sure what to wear"
+  ],
+  [
+   "we had a party last night",
+   "what should i wear tomorrow"
+  ],
+  [
+   "my sisters wedding is in june",
+   "what should i wear for a run tomorrow"
+  ],
+  [
+   "i have a wedding in july",
+   "is a white dress ok"
+  ],
+  [
+   "im going to a wedding",
+   "what should i put on the cake"
+  ],
+  [
+   "i start my new job on monday",
+   "should i wear a suit"
+  ]
+ ],
+ "returns": [
+  [
+   "im going to lisbon in may",
+   "my son starts school in september",
+   "back to lisbon, what should i see"
+  ],
+  [
+   "my washing machine broke",
+   "i need to fix my bike",
+   "so about the washing machine, what should i get"
+  ],
+  [
+   "im painting the front room",
+   "my dog is ill",
+   "back to the paint, how much will i need"
+  ],
+  [
+   "im buying a house",
+   "my cat is sick",
+   "back to the house, what should we offer"
+  ],
+  [
+   "im going to lisbon",
+   "back to lisbon"
+  ],
+  [
+   "about 20 minutes"
+  ],
+  [
+   "my boiler broke",
+   "about the boiler"
+  ],
+  [
+   "i want to lose weight",
+   "back to weight how long will it take"
+  ]
+ ]
 }

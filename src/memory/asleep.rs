@@ -8,7 +8,7 @@
 //! gives under two hours or over fourteen is not a night's sleep.
 #![allow(non_snake_case, clippy::all)]
 
-use crate::data::{self, Value};
+use crate::data;
 use crate::memory::mem7::{self, lists, res};
 use crate::py::re::{self, Match, Re};
 use crate::py::text as pt;

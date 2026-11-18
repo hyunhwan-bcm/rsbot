@@ -10,10 +10,8 @@ use crate::data::Value;
 use crate::memory::mem7::{self, lists, res};
 use crate::memory::{history, topics};
 use crate::py::random;
-use crate::py::re::Re;
 use crate::py::text as pt;
 use crate::state::Memory;
-use std::sync::LazyLock;
 
 res!("back_again"; AFTER_BACK, PRONOUN_BACK, VERB_BACK, BARE_BACK, A_PERSON_OR_PET, AWAY_FROM_HOME, A_SYMPTOM);
 lists!("back_again"; DETERMINERS, NAMED, UNNAMED);

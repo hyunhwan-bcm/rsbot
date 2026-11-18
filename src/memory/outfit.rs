@@ -6,7 +6,6 @@
 //! is about what to wear and names no occasion of its own.
 #![allow(non_snake_case, clippy::all)]
 
-use crate::data::Value;
 use crate::memory::mem7::{self, inline_re, res, values};
 use crate::py::re::{self, Re};
 use crate::py::text as pt;
