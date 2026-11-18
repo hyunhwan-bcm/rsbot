@@ -2653,7 +2653,7 @@ pub fn _reply_for(text_: &str, memory: &mut Memory, understood: Option<&Understo
     if fallback::_is_presence_check(&clean) {
         return choose!(PRESENT, memory, clean);
     }
-    if fallback::_a_declined_plan(&plain, false) && !truthy(crate::compose::draft::drafter(memory, &clean, &[])) {
+    if fallback::_a_declined_plan(&plain, false) && !truthy(crate::compose::draft::drafter(memory, &clean, &[] as &[String])) {
         if fallback::_a_hard_week(memory) {
             return choose!(DECLINED_PLAN_GENTLE, memory, clean);
         }
