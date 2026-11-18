@@ -16,6 +16,11 @@ check. Write readable, idiomatic Rust that a reviewer can compare with the Pytho
 pub fn extract(text: &str, memory: Option<&Memory>) -> Value { crate::unported!("bot.memory.facts:extract") }
 ```
 
+- In a file that was already partly ported, the missing stubs sit at the bottom inside
+  `mod skeleton_stubs { ... }` (re-exported with `pub use self::skeleton_stubs::*`). When you
+  port one, move it up into the file and delete the stub; delete the empty module at the end.
+- Some files hold a placeholder from before the skeleton (e.g. `modules::arbiter::choose`
+  returning 0): a placeholder is not a port, replace it.
 - **Port every stub in your files** by reading the original Python (with its comments) and
   writing the full logic: every branch, not only the ones the test corpus reaches. Done means
   `grep -c 'unported!' <your files>` is 0.
@@ -90,14 +95,20 @@ deep-copies memory for every module; in Rust that is `memory.clone()` (cheap).
 
 ```sh
 cargo build --profile fast        # iteration build (target/fast/); --release for benchmarks
-# every stage of every turn of 4,577 conversations, fed PyBot's own inputs:
-./target/fast/turn_check ../data/export/turn_oracle.jsonl.gz --module <name> --show 5
-./target/fast/turn_check ../data/export/turn_oracle.jsonl.gz --e2e          # whole conversations
+# every stage of every turn, fed PyBot's own inputs (memory, RNG state) at that stage:
+./target/fast/turn_check ../data/export/turn_oracle/conversations.jsonl.gz --module <name> --show 5
+./target/fast/turn_check ../data/export/turn_oracle/conversations.jsonl.gz --e2e   # whole conversations
 ./target/fast/oracle_check understood gold                                 # first-turn reading
 ./target/fast/entry_check gold --module bot.knowledge.cooking              # entry guards/replies
 # any Python function on any input, to compare with your port:
 python3 ../harness/pycall.py bot.memory.facts extract '["i have a dog called rex"]'
 ```
+
+Turn oracles in `../data/export/turn_oracle/` (recorded with the clock pinned to 2026-11-17 and
+`random.seed(0)` per conversation), written in this order as they finish: `conversations`
+(2,379 SmolTalkBench-topic conversations, 9,348 turns), `single` (the 2,198 benchmark prompts),
+`synthetic` (3,000 conversations aimed at knowledge entries), `extra` (4,500 conversations from
+other chat datasets, 10,494 turns). A file is complete when gzip can read it to the end.
 
 The corpus does not reach every branch; a branch it does not reach must still be ported by
 careful reading. Add `#[cfg(test)]` tests with expected values from `pycall.py` for logic the
