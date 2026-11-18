@@ -4451,3 +4451,227 @@ mod hooks {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    //! The arbiter's own readings checked against PyBot's on the lines and candidates of a turn
+    //! oracle (`scratch/mod3/arbiter_ref.py` writes the reference). Run with
+    //! `ARBITER_REF=<reference jsonl> ARBITER_INPUT=<oracle .gz>`.
+    use super::*;
+    use serde_json::{json, Value as J};
+    use std::io::BufRead;
+
+    /// Each oracle record's post-observer memory and its candidates, by record index.
+    fn records(path: &str) -> HashMap<usize, (Memory, Vec<Candidate>)> {
+        let reader = std::io::BufReader::new(flate2::read::GzDecoder::new(std::fs::File::open(path).unwrap()));
+        let mut out = HashMap::new();
+        for (idx, line) in reader.lines().enumerate() {
+            let Ok(line) = line else { break };
+            let Ok(rec) = serde_json::from_str::<J>(&line) else { break };
+            let mut mem = rec["mem_in"].as_object().cloned().unwrap_or_default();
+            for o in rec["observe"].as_array().unwrap() {
+                for (k, v) in o["diff"]["set"].as_object().unwrap() {
+                    mem.insert(k.clone(), v.clone());
+                }
+                for k in o["diff"]["del"].as_array().unwrap() {
+                    mem.shift_remove(k.as_str().unwrap());
+                }
+            }
+            let cands: Vec<Candidate> = rec["respond"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|r| r["reply"].as_str().map(|s| !text::strip(s).is_empty()).unwrap_or(false))
+                .map(|r| {
+                    let def = crate::modules::registry().iter().find(|d| d.name == r["module"].as_str().unwrap()).unwrap();
+                    Candidate { module: def.name, priority: def.priority, reply: r["reply"].as_str().unwrap().to_string() }
+                })
+                .collect();
+            if cands.len() >= 2 {
+                out.insert(idx, (Memory::from_plain(&mem), cands));
+            }
+        }
+        out
+    }
+
+    fn sorted(set: impl IntoIterator<Item = String>) -> J {
+        let mut v: Vec<String> = set.into_iter().collect();
+        v.sort();
+        json!(v)
+    }
+
+    fn strs(v: &J) -> Vec<String> {
+        v.as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_string()).collect()
+    }
+
+    fn set(v: &J) -> Set {
+        strs(v).into_iter().collect()
+    }
+
+    fn num(x: f64) -> J {
+        if x.fract() == 0.0 && x.abs() < 1e15 { json!(x as i64) } else { json!(x) }
+    }
+
+    fn cand(c: &Candidate) -> J {
+        json!({"module": c.module, "priority": num(c.priority), "reply": c.reply})
+    }
+
+    fn opt(i: Option<usize>) -> J {
+        i.map(|i| json!(i)).unwrap_or(J::Null)
+    }
+
+    fn run(f: &str, a: &[J], mem: &Mem, cands: &[Candidate]) -> J {
+        let s = |i: usize| a[i].as_str().unwrap_or("").to_string();
+        let idx = |i: usize| a[i].as_u64().unwrap() as usize;
+        let list = |i: usize| a[i].as_array().unwrap().iter().map(|x| x.as_u64().unwrap() as usize).collect::<Vec<usize>>();
+        match f {
+            "_the_ask_after_the_facts" => json!(_the_ask_after_the_facts(&s(0))),
+            "_a_refusal" => json!(_a_refusal(&s(0))),
+            "_a_line_asking_for_plainer_words" => json!(_a_line_asking_for_plainer_words(&s(0))),
+            "_a_report_and_no_ask" => json!(_a_report_and_no_ask(&s(0))),
+            "_the_words_the_report_names" => json!(_the_words_the_report_names(&s(0))),
+            "_names_a_figure" => json!(_names_a_figure(&s(0))),
+            "_the_store_reads_an_explain_again_ask" => json!(_the_store_reads_an_explain_again_ask(&s(0))),
+            "_subject_words" => sorted(_subject_words(&s(0))),
+            "_the_subject_words" => sorted(_the_subject_words(&s(0))),
+            "_the_ask_clause" => json!(_the_ask_clause(&s(0))),
+            "_content" => json!(_content(&s(0))),
+            "_the_numbers_in" => {
+                let mut v = _the_numbers_in(&s(0));
+                v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                json!(v)
+            }
+            "_label" => json!(_label(&s(0))),
+            "_read_topic" => sorted(_read_topic(&s(0))),
+            "_amends_a_detail" => sorted(_amends_a_detail(&s(0), mem)),
+            "_the_lines_own_words" => sorted(_the_lines_own_words(&s(0), mem)),
+            "_said_before" => sorted(_said_before(mem, &s(1))),
+            "_carried_words" => sorted(_carried_words(mem)),
+            "_about" => {
+                let (own, carried, words, clean) = _about(&s(0), mem);
+                json!([sorted(own), sorted(carried), sorted(words), clean])
+            }
+            "_line_topics" => sorted(_line_topics(mem)),
+            "_named_topics" => sorted(_named_topics(mem)),
+            "_only_acknowledges" => json!(_only_acknowledges(mem)),
+            "_a_presence_check" => json!(_a_presence_check(mem)),
+            "_a_bare_yes_no" => json!(_a_bare_yes_no(mem)),
+            "_an_answer_behind_the_ask" => json!(_an_answer_behind_the_ask(mem)),
+            "_the_figures_they_gave" => sorted(_the_figures_they_gave(mem)),
+            "_the_word_the_line_added" => json!(_the_word_the_line_added(&s(0), &s(1))),
+            "_the_answer_written_out" => json!(_the_answer_written_out(mem)),
+            "_announces_a_repeat" => json!(_announces_a_repeat(&s(0))),
+            "_points_back" => json!(_points_back(&s(0))),
+            "_the_quoted_repeat" => json!(_the_quoted_repeat(&s(0))),
+            "_asks_it_back" => json!(_asks_it_back(&s(0))),
+            "_a_condolence" => json!(_a_condolence(&s(0))),
+            "_places_the_figure" => json!(_places_the_figure(&s(0))),
+            "_explains_the_method" => json!(_explains_the_method(&s(0))),
+            "_says_what_they_already_said" => json!(_says_what_they_already_said(&s(0))),
+            "_a_clause_was_cut_in_half" => json!(_a_clause_was_cut_in_half(&s(0))),
+            "_asks" => json!(_asks(&s(0))),
+            "_echoes" => json!(_echoes(&s(0), &s(1), a[2].as_bool().unwrap())),
+            "_the_answer_again_with_a_tail" => json!(_the_answer_again_with_a_tail(&s(0), &s(1))),
+            "_says_nothing_new" => json!(_says_nothing_new(&s(0), &s(1))),
+            "_says_the_answer_again" => json!(_says_the_answer_again(&s(0), &s(1))),
+            "_says_the_same_thing_again" => json!(_says_the_same_thing_again(&s(0), &s(1))),
+            "_only_says_the_line_back" => json!(_only_says_the_line_back(&s(0), &s(1))),
+            "_says_the_subject" => json!(_says_the_subject(&s(0), &s(1))),
+            "_about_the_line" => json!(_about_the_line(&s(0), &set(&a[1]), &s(2))),
+            "_says_only_the_line" => json!(_says_only_the_line(&s(0), &set(&a[1]))),
+            "_is_advice_about" => json!(_is_advice_about(&s(0), &strs(&a[1]))),
+            "_how_much_it_names" => json!(_how_much_it_names(&s(0), &strs(&a[1]))),
+            "_names_what_they_said" => json!(_names_what_they_said(&s(0), &s(1), mem)),
+            "_names_a_word_of" => json!(_names_a_word_of(&s(0), &set(&a[1]))),
+            "_names_the_answers_figure" => json!(_names_the_answers_figure(&s(0), mem)),
+            "_about_the_news" => json!(_about_the_news(&s(0), mem)),
+            "_offers_the_food" => json!(_offers_the_food(&s(0), &set(&a[1]))),
+            "_says_back_one_of" => json!(_says_back_one_of(&s(0), &set(&a[1]))),
+            "_names_the_thing" => json!(_names_the_thing(&s(0), &s(1), &set(&a[2]))),
+            "_names_the_word" => json!(_names_the_word(&s(0), &s(1))),
+            "_one_word" => json!(_one_word(&s(0), &s(1))),
+            "_the_same_plain_word" => json!(_the_same_plain_word(&s(0), &s(1))),
+            "_the_same_word" => json!(_the_same_word(&s(0), &s(1))),
+            "_shares_a_stem" => json!(_shares_a_stem(&s(0), &s(1))),
+            "_the_forms_of" => sorted(_the_forms_of(&s(0))),
+            "_a_card_besides" => json!(_a_card_besides(cands, idx(1))),
+            "_a_fresh_answer_besides" => json!(_a_fresh_answer_besides(cands, idx(1), &s(2))),
+            "_a_card_names_the_line" => json!(_a_card_names_the_line(cands, idx(1), &s(2), mem)),
+            "_every_real_answer_offers" => json!(_every_real_answer_offers(&s(0), cands, idx(2))),
+            "_real_answers_besides" => json!(_real_answers_besides(cands, &s(1)).iter().map(|&i| cand(&cands[i])).collect::<Vec<_>>()),
+            "_the_candidates_that_answer_the_ask" => {
+                _the_candidates_that_answer_the_ask(&s(0), cands, &list(2)).map(|v| json!(v)).unwrap_or(J::Null)
+            }
+            "_the_candidates_with_a_figure" => json!(_the_candidates_with_a_figure(&s(0), mem, cands, &list(3))),
+            "_the_advice_over_a_definition" => opt(_the_advice_over_a_definition(cands, &list(1), &s(2), idx(3))),
+            "_the_answer_that_names_what_the_line_added" => opt(_the_answer_that_names_what_the_line_added(cands, &list(1), &s(2), &s(3))),
+            "_the_cause_asked_for" => opt(_the_cause_asked_for(cands, &list(1), &s(2), idx(3))),
+            "_the_verdict_back" => opt(_the_verdict_back(cands, &s(1), mem)),
+            "_the_verdict_turn" => opt(_the_verdict_turn(cands, &set(&a[1]))),
+            "_a_lead_line" => opt(_a_lead_line(cands, &strs(&a[1]), &s(2))),
+            "_a_shorter_said_again" => opt(_a_shorter_said_again(cands, &s(1))),
+            "_a_whole_line_module_spoke" => json!(_a_whole_line_module_spoke(cands)),
+            "_a_knowledge_entry_has_it" => json!(_a_knowledge_entry_has_it(cands)),
+            "_seed" => json!(_seed(cands)),
+            "_the_candidates_that_hand_the_detail_back" => json!(_the_candidates_that_hand_the_detail_back(&set(&a[0]), cands, &list(2))),
+            "_match" => json!(_match(&s(0), &set(&a[1]), &set(&a[2]), &set(&a[3]), &s(4))),
+            "_declares_topics" => json!(_declares_topics(&s(0))),
+            "_declares_instead" => json!(_declares_instead(&s(0))),
+            "_declared" => sorted(_declared(&s(0))),
+            other => panic!("no dispatch for {other}"),
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn arbiter_readings_against_the_reference() {
+        let (Ok(reference), Ok(input)) = (std::env::var("ARBITER_REF"), std::env::var("ARBITER_INPUT")) else { return };
+        crate::runtime::quiet_panics();
+        let recs = records(&input);
+        let (mut ok, mut bad, mut raised) = (0, 0, 0);
+        let mut per: std::collections::BTreeMap<String, (usize, usize)> = Default::default();
+        let mut shown = 0;
+        for line in std::fs::read_to_string(&reference).unwrap().lines() {
+            let want: J = serde_json::from_str(line).unwrap();
+            let idx = want["rec"].as_u64().unwrap() as usize;
+            let Some((memory, cands)) = recs.get(&idx) else { continue };
+            let f = want["f"].as_str().unwrap();
+            let args = want["args"].as_array().unwrap();
+            let mem: Mem = RefCell::new(memory.clone());
+            let got = guarded(|| run(f, args, &mem, cands));
+            let entry = per.entry(f.to_string()).or_default();
+            match got {
+                None => {
+                    raised += 1;
+                    entry.1 += 1;
+                    if !want["err"].is_null() {
+                        continue;
+                    }
+                    if shown < 30 {
+                        shown += 1;
+                        eprintln!("#{idx} {f} {args:?}\n   rust raised {:?}\n   py: {}", crate::runtime::take_last_panic(), want["out"]);
+                    }
+                }
+                Some(got) => {
+                    if got == want["out"] && want["err"].is_null() {
+                        ok += 1;
+                        entry.0 += 1;
+                    } else {
+                        bad += 1;
+                        entry.1 += 1;
+                        if shown < 30 {
+                            shown += 1;
+                            eprintln!("#{idx} {f} {}\n   rust: {got}\n   py:   {} {}", J::Array(args.clone()).to_string().chars().take(300).collect::<String>(), want["out"], want["err"]);
+                        }
+                    }
+                }
+            }
+        }
+        for (f, (good, wrong)) in &per {
+            if *wrong > 0 {
+                eprintln!("  {f}: {good} same, {wrong} different");
+            }
+        }
+        eprintln!("arbiter readings against the reference: {ok} same, {bad} different, {raised} raised");
+    }
+}
