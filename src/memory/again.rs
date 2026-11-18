@@ -958,7 +958,7 @@ pub fn a_thing_of_the_answer(reply: &str, text: &str, memory: &Memory) -> Value 
     if !_names_something_the_answer_says(text, &mine) {
         return Value::None;
     }
-    if crate::memory::returned::the_next_step(reply).truthy() {
+    if crate::memory::returned::the_next_step(reply).is_some() {
         return Value::None;
     }
     Value::from(_framed_as_a_repeat(reply, &mine, memory, 1, text))
