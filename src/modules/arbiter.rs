@@ -4342,9 +4342,10 @@ mod lanes {
         &SOFT
     }
 
-    /// `fit.gives(reply, want, text)`: True, False, or None when the words cannot tell.
+    /// `fit.gives(reply, want, text)`: True, False, or None when the words cannot tell. Read by
+    /// attribute in Python, so it is the reading `bot/modules/on_record.py` rebinds at import.
     pub fn fit_gives(reply: &str, want: &str, text: &str) -> Option<bool> {
-        crate::compose::fit::gives(reply, want, Some(text))
+        crate::modules::on_record::gives(reply, want, Some(text))
     }
 
     /// `_reading.reply_to_a_bare_doubt(text, memory)`.

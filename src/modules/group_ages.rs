@@ -1,29 +1,43 @@
-//! Port of `bot/modules/group_ages.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/modules/group_ages.py`: the ages of a group the chat holds, kept and said back (`bot/memory/groupages.py`).
+#![allow(unused_variables, unused_imports, non_snake_case, non_upper_case_globals, dead_code, clippy::all)]
 
+use super::mod4::*;
 use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
+use crate::py::re::{self as pyre, Match, Re};
+use crate::py::text;
 use crate::state::{Memory, Turn};
-use crate::understood::Understood;
-use std::sync::LazyLock;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, LazyLock};
 
-/// Python: bot/modules/group_ages.py:37 `observe(text, memory)` - a runtime hook; its signature is the runtime's.
+use crate::memory::groupages;
+
+/// Python: bot/modules/group_ages.py `observe(text, memory)` - a runtime hook; its signature is the runtime's.
+///
+/// Keep the list a line gives (bot/memory/groupages.py).
 pub fn observe(text: &str, memory: &mut Memory) {
-    crate::unported!("bot.modules.group_ages:observe")
+    // an observer must never lose a turn
+    let _ = py_try(|| {
+        groupages::watch(text, memory);
+    });
 }
 
-/// Python: bot/modules/group_ages.py:45 `respond(text, memory)` - a runtime hook; its signature is the runtime's.
+/// Python: bot/modules/group_ages.py `respond(text, memory)` - a runtime hook; its signature is the runtime's.
+///
+/// The ages the chat holds, said back, or None for every other line.
 pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.modules.group_ages:respond")
+    // a reading that fails answers the line as it did before
+    or_on_raise(|| or_none(groupages::reply_for(text, memory)), None)
 }
 
-/// Python: bot/modules/group_ages.py:55 `TAKES_AS_IT_COMES(text, memory)` (never called on the trace corpus)
+/// Python: bot/modules/group_ages.py `TAKES_AS_IT_COMES(text, memory)`
+///
+/// Only on an ask about a list the chat holds, and nowhere else. (The reader's own value is
+/// handed back as it is: None stays None.)
 pub fn TAKES_AS_IT_COMES(text: &str, memory: &Memory) -> Option<bool> {
-    crate::unported!("bot.modules.group_ages:TAKES_AS_IT_COMES")
+    // a hook that raises claims nothing
+    match py_try(|| groupages::asks_for_the_list(text, memory).val()) {
+        Ok(Value::None) => None,
+        Ok(read) => Some(read.truthy()),
+        Err(()) => Some(false),
+    }
 }
-
