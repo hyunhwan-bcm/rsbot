@@ -1,0 +1,300 @@
+//! PyBot's module-level data, exported from Python by `harness/export_data.py`.
+//!
+//! The port hand-writes PyBot's logic and reads its data (word lists, reply pools, regexes,
+//! the 8k knowledge entries) from this bundle, keyed by the Python name:
+//! `data::strs("bot.knowledge.lookup.RING_AS_A_CALL")`. Each ported module keeps the values it
+//! needs in `LazyLock` statics, so a name is looked up once.
+//!
+//! The bundle is `data/export/bundle.json` next to the crate, or the file named by
+//! `RSBOT_DATA`.
+
+use crate::py::re::Re;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, LazyLock};
+
+/// A Python value as exported: enough structure to rebuild any table the bot reads.
+#[derive(Clone, Debug)]
+pub enum Value {
+    None,
+    Bool(bool),
+    Int(i64),
+    Float(f64),
+    Str(Arc<str>),
+    List(Arc<Vec<Value>>),
+    Tuple(Arc<Vec<Value>>),
+    Set(Arc<Vec<Value>>),
+    Dict(Arc<Vec<(Value, Value)>>),
+    Re(Arc<Re>),
+    /// A function: which one, and what a closure captured.
+    Fn(Arc<FnRef>),
+    Obj(Arc<str>, Arc<Vec<(String, Value)>>),
+    Module(Arc<str>),
+    Opaque(Arc<str>),
+}
+
+/// A Python function in the data: its id ("module:qualname:line"), the values a closure
+/// captured (by variable name) and its default arguments. A knowledge entry's guard or reply
+/// that is a function is one of these; `crate::knowledge::registry` runs the Rust port of it.
+#[derive(Clone, Debug)]
+pub struct FnRef {
+    pub id: String,
+    pub cells: Vec<(String, Value)>,
+    pub defaults: Vec<Value>,
+}
+
+impl FnRef {
+    /// "module:qualname" without the line number.
+    pub fn name(&self) -> &str {
+        self.id.rsplit_once(':').map(|(a, _)| a).unwrap_or(&self.id)
+    }
+    /// A captured variable's value.
+    pub fn cell(&self, name: &str) -> Option<&Value> {
+        self.cells.iter().find(|(k, _)| k == name).map(|(_, v)| v)
+    }
+}
+
+static EMPTY: Vec<Value> = Vec::new();
+
+impl Value {
+    pub fn is_none(&self) -> bool {
+        matches!(self, Value::None)
+    }
+    /// Python truthiness.
+    pub fn truthy(&self) -> bool {
+        match self {
+            Value::None => false,
+            Value::Bool(b) => *b,
+            Value::Int(i) => *i != 0,
+            Value::Float(f) => *f != 0.0,
+            Value::Str(s) => !s.is_empty(),
+            Value::List(v) | Value::Tuple(v) | Value::Set(v) => !v.is_empty(),
+            Value::Dict(d) => !d.is_empty(),
+            _ => true,
+        }
+    }
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Value::Str(s) => Some(s),
+            _ => None,
+        }
+    }
+    /// The string, or "" for anything else.
+    pub fn str(&self) -> &str {
+        self.as_str().unwrap_or("")
+    }
+    pub fn as_int(&self) -> Option<i64> {
+        match self {
+            Value::Int(i) => Some(*i),
+            Value::Bool(b) => Some(*b as i64),
+            _ => None,
+        }
+    }
+    pub fn as_f64(&self) -> Option<f64> {
+        match self {
+            Value::Int(i) => Some(*i as f64),
+            Value::Float(f) => Some(*f),
+            _ => None,
+        }
+    }
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Value::Bool(b) => Some(*b),
+            _ => None,
+        }
+    }
+    /// Items of a list, tuple or set (sets in sorted order); empty for anything else.
+    pub fn items(&self) -> &[Value] {
+        match self {
+            Value::List(v) | Value::Tuple(v) | Value::Set(v) => v,
+            _ => &EMPTY,
+        }
+    }
+    /// The strings in a list, tuple or set.
+    pub fn strs(&self) -> Vec<String> {
+        self.items().iter().filter_map(|v| v.as_str().map(str::to_string)).collect()
+    }
+    pub fn str_set(&self) -> HashSet<String> {
+        self.items().iter().filter_map(|v| v.as_str().map(str::to_string)).collect()
+    }
+    pub fn pairs(&self) -> &[(Value, Value)] {
+        match self {
+            Value::Dict(d) => d,
+            _ => &[],
+        }
+    }
+    /// A dict's value for a string key.
+    pub fn get(&self, key: &str) -> Option<&Value> {
+        self.pairs().iter().find(|(k, _)| k.as_str() == Some(key)).map(|(_, v)| v)
+    }
+    /// An object's attribute (an exported class instance, e.g. a knowledge Entry).
+    pub fn attr(&self, name: &str) -> Option<&Value> {
+        match self {
+            Value::Obj(_, attrs) => attrs.iter().find(|(k, _)| k == name).map(|(_, v)| v),
+            _ => None,
+        }
+    }
+    pub fn class(&self) -> Option<&str> {
+        match self {
+            Value::Obj(c, _) => Some(c),
+            _ => None,
+        }
+    }
+    pub fn as_re(&self) -> Option<&Re> {
+        match self {
+            Value::Re(r) => Some(r),
+            _ => None,
+        }
+    }
+    pub fn as_fn(&self) -> Option<&FnRef> {
+        match self {
+            Value::Fn(f) => Some(f),
+            _ => None,
+        }
+    }
+    /// A `{str: str}` dict as a map.
+    pub fn str_map(&self) -> HashMap<String, String> {
+        self.pairs()
+            .iter()
+            .filter_map(|(k, v)| Some((k.as_str()?.to_string(), v.as_str()?.to_string())))
+            .collect()
+    }
+    /// A `{str: [str]}` dict (or tuple values) as a map.
+    pub fn str_list_map(&self) -> HashMap<String, Vec<String>> {
+        self.pairs().iter().filter_map(|(k, v)| Some((k.as_str()?.to_string(), v.strs()))).collect()
+    }
+
+    /// A value from plain JSON (lists for any sequence, objects for str-keyed dicts), as the
+    /// oracle files hold readings and memory.
+    pub fn from_plain(j: &serde_json::Value) -> Value {
+        use serde_json::Value as J;
+        match j {
+            J::Null => Value::None,
+            J::Bool(b) => Value::Bool(*b),
+            J::Number(n) => match n.as_i64() {
+                Some(i) => Value::Int(i),
+                None => Value::Float(n.as_f64().unwrap_or(0.0)),
+            },
+            J::String(s) => Value::Str(Arc::from(s.as_str())),
+            J::Array(a) => Value::List(Arc::new(a.iter().map(Value::from_plain).collect())),
+            J::Object(o) => Value::Dict(Arc::new(
+                o.iter().map(|(k, v)| (Value::Str(Arc::from(k.as_str())), Value::from_plain(v))).collect(),
+            )),
+        }
+    }
+
+    fn from_json(j: &serde_json::Value) -> Value {
+        use serde_json::Value as J;
+        match j {
+            J::Null => Value::None,
+            J::Bool(b) => Value::Bool(*b),
+            J::Number(n) => match n.as_i64() {
+                Some(i) => Value::Int(i),
+                None => Value::Float(n.as_f64().unwrap_or(0.0)),
+            },
+            J::String(s) => Value::Str(Arc::from(s.as_str())),
+            J::Array(a) => Value::List(Arc::new(a.iter().map(Value::from_json).collect())),
+            J::Object(o) => {
+                let (tag, body) = o.iter().next().expect("tagged value");
+                match tag.as_str() {
+                    "l" => Value::List(Arc::new(body.as_array().unwrap().iter().map(Value::from_json).collect())),
+                    "t" => Value::Tuple(Arc::new(body.as_array().unwrap().iter().map(Value::from_json).collect())),
+                    "s" => Value::Set(Arc::new(body.as_array().unwrap().iter().map(Value::from_json).collect())),
+                    "d" => Value::Dict(Arc::new(
+                        body.as_array()
+                            .unwrap()
+                            .iter()
+                            .map(|kv| (Value::from_json(&kv[0]), Value::from_json(&kv[1])))
+                            .collect(),
+                    )),
+                    "re" => Value::Re(Arc::new(Re::new(body.as_str().unwrap(), o["flags"].as_u64().unwrap() as u32))),
+                    "fn" => Value::Fn(Arc::new(FnRef {
+                        id: body.as_str().unwrap().to_string(),
+                        cells: o
+                            .get("cells")
+                            .and_then(|c| c.as_object())
+                            .map(|c| c.iter().map(|(k, v)| (k.clone(), Value::from_json(v))).collect())
+                            .unwrap_or_default(),
+                        defaults: o
+                            .get("defaults")
+                            .and_then(|d| d.as_array())
+                            .map(|d| d.iter().map(Value::from_json).collect())
+                            .unwrap_or_default(),
+                    })),
+                    "obj" => Value::Obj(
+                        Arc::from(body.as_str().unwrap()),
+                        Arc::new(
+                            o["attrs"]
+                                .as_object()
+                                .unwrap()
+                                .iter()
+                                .map(|(k, v)| (k.clone(), Value::from_json(v)))
+                                .collect(),
+                        ),
+                    ),
+                    "mod" => Value::Module(Arc::from(body.as_str().unwrap())),
+                    "float" => Value::Float(body.as_str().unwrap().parse().unwrap_or(f64::NAN)),
+                    _ => Value::Opaque(Arc::from(tag.as_str())),
+                }
+            }
+        }
+    }
+}
+
+/// Where the bundle is read from.
+pub fn bundle_path() -> String {
+    std::env::var("RSBOT_DATA").unwrap_or_else(|_| concat!(env!("CARGO_MANIFEST_DIR"), "/../data/export/bundle.json").to_string())
+}
+
+static BUNDLE: LazyLock<HashMap<String, Value>> = LazyLock::new(|| {
+    let path = bundle_path();
+    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("cannot read PyBot data bundle {path}: {e}"));
+    let j: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(&bytes).expect("bundle is JSON");
+    j.iter().map(|(k, v)| (k.clone(), Value::from_json(v))).collect()
+});
+
+/// Load the bundle now (so the first reply does not pay for it).
+pub fn load() -> usize {
+    BUNDLE.len()
+}
+
+/// A module global by its Python name, e.g. "bot.modules.answers.REFERRING".
+pub fn get(name: &str) -> &'static Value {
+    BUNDLE.get(name).unwrap_or_else(|| panic!("PyBot data has no global {name}"))
+}
+
+/// A module global if it exists.
+pub fn try_get(name: &str) -> Option<&'static Value> {
+    BUNDLE.get(name)
+}
+
+/// A tuple / list / set of strings, in order.
+pub fn strs(name: &str) -> Vec<String> {
+    get(name).strs()
+}
+
+/// A set (or any collection) of strings, for membership tests.
+pub fn set(name: &str) -> HashSet<String> {
+    get(name).str_set()
+}
+
+/// A compiled regex global (`re.compile(...)` at module level).
+pub fn re(name: &str) -> &'static Re {
+    get(name).as_re().unwrap_or_else(|| panic!("{name} is not a regex"))
+}
+
+/// A string global.
+pub fn string(name: &str) -> String {
+    get(name).str().to_string()
+}
+
+/// A `{str: str}` dict global.
+pub fn str_map(name: &str) -> HashMap<String, String> {
+    get(name).str_map()
+}
+
+/// Every global whose name starts with `prefix` (e.g. one module's).
+pub fn names_with_prefix(prefix: &str) -> Vec<&'static str> {
+    let mut v: Vec<&'static str> = BUNDLE.keys().filter(|k| k.starts_with(prefix)).map(String::as_str).collect();
+    v.sort();
+    v
+}
