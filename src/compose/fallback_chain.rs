@@ -1016,12 +1016,31 @@ fn as_py_int(v: Option<&Value>) -> Option<String> {
 /// Python's `str(value)` for the plain values memory holds.
 pub fn py_str(v: Option<&Value>) -> String {
     match v {
-        None | Some(Value::None) => "None".into(),
-        Some(Value::Bool(b)) => if *b { "True" } else { "False" }.into(),
-        Some(Value::Int(i)) => i.to_string(),
-        Some(Value::Float(f)) => text::float_repr(*f),
         Some(Value::Str(s)) => s.to_string(),
-        Some(other) => format!("{:?}", other.to_plain()),
+        Some(other) => py_repr(other),
+        None => "None".into(),
+    }
+}
+
+/// Python's `repr(value)`.
+pub fn py_repr(v: &Value) -> String {
+    let join = |items: &[Value]| items.iter().map(py_repr).collect::<Vec<_>>().join(", ");
+    match v {
+        Value::None => "None".into(),
+        Value::Bool(b) => if *b { "True" } else { "False" }.into(),
+        Value::Int(i) => i.to_string(),
+        Value::Float(f) => text::float_repr(*f),
+        Value::Str(s) => crate::understood::py_str_repr(s),
+        Value::List(items) => format!("[{}]", join(items)),
+        Value::Tuple(items) if items.len() == 1 => format!("({},)", py_repr(&items[0])),
+        Value::Tuple(items) => format!("({})", join(items)),
+        Value::Set(items) if items.is_empty() => "set()".into(),
+        Value::Set(items) => format!("{{{}}}", join(items)),
+        Value::Dict(pairs) => {
+            let parts: Vec<String> = pairs.iter().map(|(k, x)| format!("{}: {}", py_repr(k), py_repr(x))).collect();
+            format!("{{{}}}", parts.join(", "))
+        }
+        other => format!("{:?}", other.to_plain()),
     }
 }
 
