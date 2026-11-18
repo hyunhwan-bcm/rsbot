@@ -190,6 +190,11 @@ impl PyTruth for bool {
         *self
     }
 }
+impl PyTruth for String {
+    fn py_truth(&self) -> bool {
+        !self.is_empty()
+    }
+}
 impl<T: PyTruth> PyTruth for Option<T> {
     fn py_truth(&self) -> bool {
         self.as_ref().is_some_and(PyTruth::py_truth)
@@ -484,8 +489,7 @@ pub fn _said_the_food(memory: &Memory, food: &str) -> bool {
 
 /// `_last_reply(memory)`: the bot's last reply (`holds.last_reply`).
 pub fn _last_reply(memory: &Memory) -> String {
-    let v = crate::memory::holds::last_reply(memory);
-    vstr(Some(&v))
+    crate::memory::holds::last_reply(memory)
 }
 
 /// `the_thing_named(memory)`: the thing the last few lines named as theirs.
