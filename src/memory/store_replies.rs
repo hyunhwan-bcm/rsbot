@@ -10950,104 +10950,529 @@ pub fn _say_back(line: &str, memory: &Memory) -> String {
 
 strset!(REFLEXIVE);
 
-/// Python: bot/memory/store_replies.py:10306 `_recall_reply(memory, low, text='', spoken=False)` (never called on the trace corpus)
-pub fn _recall_reply(memory: &mut Memory, low: &str, text: &str, spoken: bool) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_recall_reply")
+static ABOUT_TAIL: LazyLock<Re> = LazyLock::new(|| Re::new(r"\babout\b(.*)$", 0));
+static ABOUT_TAIL_I: LazyLock<Re> = LazyLock::new(|| Re::new(r"\babout\b(.*)$", crate::py::re::I));
+static SAID_TAIL: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:say|said|tell you|told you|mention)\b(.*)$", 0));
+static TO_SOMEONE: LazyLock<Re> = LazyLock::new(|| Re::new(r"to\s+(?!me\b|you\b)", 0));
+static MY_AT_THE_FRONT: LazyLock<Re> = LazyLock::new(|| Re::new(r"^my\b", 0));
+static RECALL_LIVING: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.recall.LIVING"));
+strset!(JUDGING, A_ROLE);
+rx!(PRONOUN_ASK);
+
+/// Python: bot/memory/store_replies.py:10306 `_recall_reply(memory, low, text="", spoken=False)`
+///
+/// The line they are asking about: "what did i say about the cake?", "and about it?".
+pub fn _recall_reply(memory: &mut Memory, low: &str, text_: &str, spoken: bool) -> Option<String> {
+    use crate::memory::topics::content;
+    // "what did i say was hurting" asks about a complaint the store holds.
+    if let Some(hurt) = some_str(crate::memory::whathurts::what_is_hurting_reply(memory, low)) {
+        return Some(hurt);
+    }
+    let about = ABOUT_TAIL.search(low);
+    let part = if about.is_some() { None } else { _which_thing_was_it(low, memory) };
+    let mut thing = if let Some(a) = &about {
+        a.str(1).to_string()
+    } else if let Some(p) = &part {
+        // "and which knee was it" names the thing the detail is about.
+        p.clone()
+    } else {
+        SAID_TAIL.search(low).map(|m| m.str(1).to_string()).unwrap_or_default()
+    };
+    // The named-back form is said in their words, not in the normalised line.
+    let shown = match ABOUT_TAIL_I.search(text_) {
+        Some(mine) => text::strip_chars(mine.str(1), " ?!.,").to_string(),
+        None => text::strip_chars(&thing, " ?!.,").to_string(),
+    };
+    thing = text::strip_chars(&RECALL_TAIL_WORDS.sub("", &thing), " ?!.,").to_string();
+    if REFLEXIVE.contains(&thing.to_lowercase()) {
+        // "what did i tell you about myself" is the whole picture, not a thing they said.
+        return None;
+    }
+    if content(&thing).is_empty() {
+        // "what's the noise again?" names the thing instead of saying "about it".
+        if let Some(named) = THING_AGAIN.match_(low) {
+            thing = named.str(1).to_string();
+        } else {
+            let source = if text_.is_empty() { low } else { text_ };
+            if let Some(reminded_thing) = some_str(crate::memory::reminded::the_thing(source, memory)) {
+                thing = reminded_thing;
+            }
+        }
+    }
+    // "what did i say to her?" is what they said to someone else, not to the bot.
+    if TO_SOMEONE.match_(&thing).is_some() {
+        return None;
+    }
+    // "for a living" is the job said as a phrase, not a thing a line is about.
+    if RECALL_LIVING.is_match(&thing) {
+        return None;
+    }
+    let words = content(&thing);
+    if words.is_empty() || ["it", "that", "this", "them", "that one"].contains(&thing.as_str()) {
+        let real = _last_real(memory);
+        if !real.is_empty() {
+            return Some(_recall_quote(&real, Some(memory), false));
+        }
+        if let Some(record) = crate::memory::topics::current(memory).cloned() {
+            let said = record.get("text").filter(|t| t.truthy()).map(py_str);
+            if let Some(said) = said {
+                if !_about_this_chat_m(&said, None) {
+                    return Some(_recall_quote(&said, Some(memory), crate::memory::corrected::_asks(&said)));
+                }
+            }
+        }
+        return Some(pick(&["You haven't told me anything about that yet.", "Nothing comes to mind \u{2014} you haven't said."], memory, ""));
+    }
+    // A line about the telling is not the thing told; it is kept apart rather than dropped.
+    let (mut hits, mut asked, mut fixed, mut claims): (Vec<String>, Vec<String>, Vec<String>, Vec<String>) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    let lines: Vec<String> = memory.turns.iter().map(|t| t.user.clone()).collect();
+    for line in &lines {
+        if line.is_empty() || _about_this_chat_m(line, None) {
+            continue;
+        }
+        let seen = _seen(line);
+        let question = crate::memory::corrected::_asks(line);
+        // A word of the ask finds the line by the kind it names as well as by the word.
+        let mut all = true;
+        for word in &words {
+            if _alike(word, &seen) {
+                continue;
+            }
+            if !question && _about_kind(word, line, Some(&mut *memory), false) {
+                continue;
+            }
+            all = false;
+            break;
+        }
+        if all {
+            // "sorry, Naples not Rome" names Rome in order to replace it.
+            if crate::memory::corrected::_asks(line) {
+                asked.push(line.clone());
+            } else if _corrects(line) {
+                fixed.push(line.clone());
+            } else if A_CLAIM_OF_TELLING.match_(&fold(line)).is_some() {
+                claims.push(line.clone());
+            } else {
+                hits.push(line.clone());
+            }
+        }
+    }
+    if hits.is_empty() && !claims.is_empty() {
+        hits = claims;
+    }
+    if !hits.is_empty() {
+        // A line that asks about the thing does not tell us the thing.
+        let stated: Vec<String> = hits.iter().filter(|l| !ASKS_IN_LINE.is_match(l)).cloned().collect();
+        if !stated.is_empty() {
+            hits = stated;
+        }
+        let last = hits.last().unwrap().clone();
+        if !spoken {
+            let put_right = _put_right_after_it(&last, memory);
+            if !put_right.is_empty() {
+                return Some(put_right);
+            }
+            let moved = _a_figure_put_right(&last, memory);
+            if !moved.is_empty() {
+                return Some(moved);
+            }
+            let narrowed = _a_narrowing_put_after(&last, memory);
+            if !narrowed.is_empty() {
+                return Some(narrowed);
+            }
+        }
+        return Some(if spoken { _say_back(&last, memory) } else { _recall_quote(&last, Some(memory), false) });
+    }
+    // The only line about it was a question, which they still said.
+    if let Some(a) = asked.last() {
+        return Some(_recall_quote(a, Some(memory), true));
+    }
+    if let Some(f) = fixed.last() {
+        return Some(_recall_quote(f, Some(memory), false));
+    }
+    // A recall ask carries its own judgement: the judging words are dropped when nothing is found.
+    let naming: Vec<String> = words.iter().filter(|w| !JUDGING.contains(*w) && !A_ROLE.contains(*w)).cloned().collect();
+    if !naming.is_empty() && naming != words {
+        let (mut naming_hits, mut naming_asked): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
+        for turn in recent_turns(memory, 8) {
+            let line = &turn.user;
+            if line.is_empty() || _about_this_chat_m(line, None) {
+                continue;
+            }
+            let seen = _seen(line);
+            if naming.iter().all(|w| _alike(w, &seen)) {
+                if crate::memory::corrected::_asks(line) {
+                    naming_asked.push(line.clone());
+                } else {
+                    naming_hits.push(line.clone());
+                }
+            }
+        }
+        if let Some(h) = naming_hits.last() {
+            return Some(_recall_quote(h, Some(memory), false));
+        }
+        if let Some(a) = naming_asked.last() {
+            return Some(_recall_quote(a, Some(memory), true));
+        }
+    }
+    // The only word left is the ask's own judgement and the thing is a pronoun.
+    if naming.is_empty() && PRONOUN_ASK.is_match(&thing) {
+        let real = _last_real(memory);
+        // A greeting is not a thing that could be wrong.
+        if !real.is_empty() && content(&real).len() > 1 {
+            return Some(_recall_quote(&real, Some(memory), false));
+        }
+    }
+    if about.is_none() {
+        return None;
+    }
+    // The thing is named back in the second person.
+    let said = text::strip(&MY_AT_THE_FRONT.sub("your", &shown)).to_string();
+    Some(pick(
+        &["You haven't said anything to me about ".to_string() + &said + " yet.", "You haven't mentioned ".to_string() + &said + " \u{2014} say it and I'll keep it."],
+        memory,
+        "",
+    ))
 }
 
-/// Python: bot/memory/store_replies.py:10487 `_tagged(line)` (never called on the trace corpus)
-pub fn _tagged(line: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_tagged")
+/// `TAGS`: (the ask's own word for a thing, what a line that stands for it says).
+static TAGS: LazyLock<Vec<(String, &'static Re)>> =
+    LazyLock::new(|| g("TAGS").items().iter().map(|p| (p.items()[0].str().to_string(), p.items()[1].as_re().unwrap())).collect());
+
+/// Python: bot/memory/store_replies.py:10484 `_tagged(line)`
+///
+/// The words a line stands for without saying them: the ask's own word for that thing.
+pub fn _tagged(line: &str) -> HashSet<String> {
+    TAGS.iter().filter(|(_, p)| p.is_match(line)).map(|(c, _)| c.clone()).collect()
 }
 
-/// Python: bot/memory/store_replies.py:10574 `_a_stay_in_a_place(text)` (never called on the trace corpus)
-pub fn _a_stay_in_a_place(text: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_stay_in_a_place")
+rx!(SAYS_A_STAY, SAYS_A_JOB, SAYS_FOOD);
+strset!(NOT_A_PLACE_IN);
+static FACTS_NOT_PLACES: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.facts.NOT_PLACES"));
+static FACTS_PLACE_VERBS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.facts.PLACE_VERBS"));
+static PLACE_LOWER: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.facts.PLACE_LOWER"));
+/// `KINDS`: (kind, the words that name it), in order.
+static KINDS: LazyLock<Vec<(String, HashSet<String>)>> =
+    LazyLock::new(|| g("KINDS").items().iter().map(|p| (p.items()[0].str().to_string(), p.items()[1].str_set())).collect());
+static SAYS_THE_KIND: LazyLock<HashMap<String, &'static Re>> =
+    LazyLock::new(|| g("SAYS_THE_KIND").pairs().iter().map(|(k, v)| (k.str().to_string(), v.as_re().unwrap())).collect());
+
+/// Python: bot/memory/store_replies.py:10575 `_a_stay_in_a_place(text)`
+///
+/// True when the line says a stretch of time somewhere they are going.
+pub fn _a_stay_in_a_place(text_: &str) -> bool {
+    SAYS_A_STAY.finditer(text_).iter().any(|found| {
+        let word = found.name_str("place").to_lowercase();
+        !FACTS_NOT_PLACES.contains(&word) && !NOT_A_PLACE_IN.contains(&word)
+    })
 }
 
-/// Python: bot/memory/store_replies.py:10598 `_kind(thing)` (never called on the trace corpus)
-pub fn _kind(thing: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_kind")
+/// Python: bot/memory/store_replies.py:10598 `_kind(thing)`
+///
+/// The kind of thing an ask names, or "" when the word is a thing of its own. (The earlier
+/// `_kind(item)` at line 770 is shadowed by this one in the module.)
+pub fn _kind(thing: &str) -> String {
+    KINDS.iter().find(|(_, words)| words.contains(thing)).map(|(k, _)| k.clone()).unwrap_or_default()
 }
 
-/// Python: bot/memory/store_replies.py:10605 `_says_where_they_live(text)` (never called on the trace corpus)
-pub fn _says_where_they_live(text: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_says_where_they_live")
+/// Python: bot/memory/store_replies.py:10605 `_says_where_they_live(text)`
+///
+/// True when the line says where they live, in whatever words: "we moved to york last year".
+pub fn _says_where_they_live(text_: &str) -> bool {
+    if text::strip(text_).is_empty() {
+        return false;
+    }
+    // A line this cannot read names no home.
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::memory::facts::extract(text_, false).val())) {
+        Ok(found) => found.get("home").map(Value::truthy).unwrap_or(false),
+        Err(_) => false,
+    }
 }
 
-/// Python: bot/memory/store_replies.py:10620 `_a_place_they_go(text)` (never called on the trace corpus)
-pub fn _a_place_they_go(text: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_a_place_they_go")
+/// Python: bot/memory/store_replies.py:10620 `_a_place_they_go(text)`
+///
+/// The place a line says they are going to, or "": "im going to lisbon in may".
+pub fn _a_place_they_go(text_: &str) -> String {
+    let Some(found) = PLACE_LOWER.search(text_) else { return String::new() };
+    let word = found.str(1).to_lowercase();
+    if FACTS_NOT_PLACES.contains(&word) || FACTS_PLACE_VERBS.contains(&word) {
+        return String::new();
+    }
+    word
 }
 
-/// Python: bot/memory/store_replies.py:10634 `_about_kind(thing, text, memory=None, phrase=False)` (never called on the trace corpus)
-pub fn _about_kind(thing: &str, text: &str, memory: Option<&mut Memory>, phrase: bool) -> bool {
-    crate::unported!("bot.memory.store_replies:_about_kind")
+/// Python: bot/memory/store_replies.py:10634 `_about_kind(thing, text, memory=None, phrase=False)`
+///
+/// True when `text` is about the kind of thing the ask names ("trip" -> "Lisbon in may").
+pub fn _about_kind(thing: &str, text_: &str, memory: Option<&mut Memory>, phrase: bool) -> bool {
+    let kind = _kind(thing);
+    if kind.is_empty() || text::strip(text_).is_empty() {
+        return false;
+    }
+    let said = SAYS_THE_KIND.get(&kind);
+    if kind == "job" {
+        return said.map(|p| p.is_match(text_)).expect("'NoneType' object has no attribute 'search'");
+    }
+    // Where they live is decided by the store's own reading of a home.
+    if kind == "home" {
+        return _says_where_they_live(text_);
+    }
+    // A trip is the one kind allowed to answer a place.
+    if kind == "trip" && (SAYS_A_TRIP.is_match(text_) || _a_stay_in_a_place(text_) || !_a_place_they_go(text_).is_empty()) {
+        return true;
+    }
+    if let Some(p) = said {
+        if p.is_match(text_) {
+            return true;
+        }
+    }
+    if !phrase {
+        return false;
+    }
+    let known: Vec<String> = match memory {
+        Some(m) => user(m).get("places").map(py_list).unwrap_or_default().iter().filter_map(|p| p.as_str().map(str::to_string)).filter(|p| !p.is_empty()).collect(),
+        None => Vec::new(),
+    };
+    let low = text_.to_lowercase();
+    known.iter().any(|p| low.contains(&p.to_lowercase()))
 }
 
-/// Python: bot/memory/store_replies.py:10666 `_seen(line)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10666 `_seen(line)`
+///
+/// The content words of a line, read the way the ask about it is read.
 pub fn _seen(line: &str) -> HashSet<String> {
-    crate::unported!("bot.memory.store_replies:_seen")
+    use crate::memory::topics::content;
+    let mut words: HashSet<String> = content(line).into_iter().collect();
+    let plain = crate::understanding::normalize::normalise(line).norm_text;
+    if !plain.is_empty() && plain != line {
+        words.extend(content(&plain));
+    }
+    words.extend(_tagged(line));
+    words
 }
 
-/// Python: bot/memory/store_replies.py:10681 `_alike(word, seen)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10681 `_alike(word, seen)`
+///
+/// One word family is enough: "my allergy" finds "i'm allergic to nuts".
 pub fn _alike(word: &str, seen: &HashSet<String>) -> bool {
-    crate::unported!("bot.memory.store_replies:_alike")
+    use crate::memory::topics::forms;
+    let want = concept(word);
+    let mine = forms(word);
+    for other in seen {
+        if word == other {
+            return true;
+        }
+        if forms(other).iter().any(|f| mine.contains(f)) {
+            return true;
+        }
+        if want.is_some() && want == concept(other) {
+            return true;
+        }
+        let (lw, lo) = (text::len(word), text::len(other));
+        if lw >= 4 && lo >= 4 && (word.starts_with(other.as_str()) || other.starts_with(word)) {
+            return true;
+        }
+        if lw >= 5 && lo >= 5 && text::slice(word, 0, Some(5)) == text::slice(other, 0, Some(5)) {
+            return true;
+        }
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:10704 `_recall_quote(line, memory=None, asked=False)` (never called on the trace corpus)
+strs!(QUOTE_LEADS, ASKED_LEADS);
+static WHAT_DID_I_I: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bwhat (?:did|have) i\b", crate::py::re::I));
+
+/// Python: bot/memory/store_replies.py:10704 `_recall_quote(line, memory=None, asked=False)`
+///
+/// "You said: \"...\"": their own words, trimmed, so the answer is the thing itself.
 pub fn _recall_quote(line: &str, memory: Option<&Memory>, asked: bool) -> String {
-    crate::unported!("bot.memory.store_replies:_recall_quote")
+    let said = "\"".to_string() + &_trim(line, 120) + "\"";
+    if asked {
+        let n = memory.map(|m| recent_turns(m, 8).len()).unwrap_or(0);
+        return ASKED_LEADS[n % ASKED_LEADS.len()].clone() + &said;
+    }
+    let Some(memory) = memory else { return QUOTE_LEADS[0].clone() + &said };
+    // The same question twice should not read as the same sentence twice.
+    let asked = recent_turns(memory, 8).iter().filter(|t| WHAT_DID_I_I.is_match(&t.user)).count();
+    QUOTE_LEADS[asked % QUOTE_LEADS.len()].clone() + &said
 }
 
-/// Python: bot/memory/store_replies.py:10739 `_a_figure_put_right(line, memory)` (never called on the trace corpus)
+rx!(A_BARE_PUT_RIGHT, A_FIGURE);
+
+/// Python: bot/memory/store_replies.py:10740 `_a_figure_put_right(line, memory)`
+///
+/// The quote and the figure the person put right after it, or "".
 pub fn _a_figure_put_right(line: &str, memory: &Memory) -> String {
-    crate::unported!("bot.memory.store_replies:_a_figure_put_right")
+    let said = text::squash(line);
+    let figures = A_FIGURE.findall_str(&said);
+    if figures.len() != 1 {
+        return String::new();
+    }
+    let lines: Vec<String> = memory.turns.iter().map(|t| text::squash(&t.user)).collect();
+    let Some(at) = lines.iter().rposition(|l| *l == said) else { return String::new() };
+    // Only the line right after the quote.
+    for after in lines.iter().skip(at + 1).take(1) {
+        let Some(found) = A_BARE_PUT_RIGHT.match_(text::strip(after)) else { continue };
+        let value = text::rstrip_chars(text::strip(found.name_str("value")), ",").to_string();
+        if value.is_empty() || value == figures[0] {
+            continue;
+        }
+        return text::rstrip(&_recall_quote(line, Some(memory), false)).to_string() + " \u{2014} then you put it right: " + &value + ".";
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:10778 `_a_narrowing_put_after(line, memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10781 `_a_narrowing_put_after(line, memory)`
+///
+/// The quoted line and the narrowing the person put after it, or "".
 pub fn _a_narrowing_put_after(line: &str, memory: &Memory) -> String {
-    crate::unported!("bot.memory.store_replies:_a_narrowing_put_after")
+    let pair = crate::memory::repeat::a_narrowing_and_its_line(line, memory).val();
+    if !pair.truthy() {
+        return String::new();
+    }
+    let parts = pair.items();
+    let (before, after) = (py_str(&parts[0]), py_str(&parts[1]));
+    text::rstrip(&_recall_quote(&before, Some(memory), false)).to_string() + " \u{2014} then \"" + &_trim(&after, 80) + "\"."
 }
 
-/// Python: bot/memory/store_replies.py:10795 `_put_right_after_it(line, memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10797 `_put_right_after_it(line, memory)`
+///
+/// The quoted line and the correction that followed it, or "" when there is none.
 pub fn _put_right_after_it(line: &str, memory: &Memory) -> String {
-    crate::unported!("bot.memory.store_replies:_put_right_after_it")
+    let fixed = mget(memory, "correction");
+    if !fixed.is_dict() {
+        return String::new();
+    }
+    let said_back = fold(&sget(fixed, "said"));
+    let sentence = text::rstrip_chars(&text::squash(&sget(fixed, "sentence")), " .!?").to_string();
+    if said_back.is_empty() || sentence.is_empty() {
+        return String::new();
+    }
+    let lines: Vec<String> = memory.turns.iter().map(|t| fold(&t.user)).collect();
+    let quoted = fold(line);
+    let (Some(q), Some(s)) = (lines.iter().position(|l| *l == quoted), lines.iter().position(|l| *l == said_back)) else { return String::new() };
+    if q >= s {
+        return String::new(); // the line quoted is the correction itself, or came after it
+    }
+    let mine = _content_words(line);
+    if !_content_words(&sentence).iter().any(|w| mine.contains(w)) {
+        return String::new(); // the correction is about something else in the chat
+    }
+    let tail = lower_first(&sentence);
+    text::rstrip(&_recall_quote(line, Some(memory), false)).to_string() + " \u{2014} then you put it right: " + &tail + "."
 }
 
-/// Python: bot/memory/store_replies.py:10824 `_age_reply(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10824 `_age_reply(memory)`
 pub fn _age_reply(memory: &mut Memory) -> String {
-    crate::unported!("bot.memory.store_replies:_age_reply")
+    let age = user(memory).get("age").cloned().unwrap_or(Value::None);
+    // A number outside the range a person can be is no answer at all.
+    let in_range = |v: &Value| -> bool {
+        match v.as_f64() {
+            Some(a) => (1.0..=120.0).contains(&a),
+            None => panic!("TypeError: '<=' not supported between instances of 'int' and '{}'", if v.is_str() { "str" } else { "object" }),
+        }
+    };
+    if !age.truthy() || !in_range(&age) {
+        return pick(&["You haven't told me your age yet.", "I don't know it \u{2014} you haven't said."], memory, "");
+    }
+    let said = py_str(&age);
+    pick(&["You told me you're ".to_string() + &said + ".", said.clone() + " \u{2014} you said."], memory, "")
 }
 
-/// Python: bot/memory/store_replies.py:10833 `_content_words(line)` (never called on the trace corpus)
-pub fn _content_words(line: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_content_words")
+/// Python: bot/memory/store_replies.py:10833 `_content_words(line)`
+pub fn _content_words(line: &str) -> HashSet<String> {
+    LETTER_WORDS.findall_str(&line.to_lowercase()).into_iter().filter(|w| text::len(w) > 3 && !STOPWORDS.contains(w)).collect()
 }
 
-/// Python: bot/memory/store_replies.py:10837 `_the_line_before_was_a_plan(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10837 `_the_line_before_was_a_plan(memory)`
+///
+/// True when the last thing they said was a plan of their own.
 pub fn _the_line_before_was_a_plan(memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_the_line_before_was_a_plan")
+    let Some(Value::Str(plan)) = user(memory).get("plan").cloned() else { return false };
+    if text::strip(&plan).is_empty() {
+        return false;
+    }
+    let told = crate::memory::plan_line(memory, &plan);
+    if told.is_empty() {
+        return false;
+    }
+    fold(&told) == fold(&last_turn_user(memory))
 }
 
-/// Python: bot/memory/store_replies.py:10854 `_plan_was_corrected(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10854 `_plan_was_corrected(memory)`
+///
+/// True when the last thing they put right was a value inside the plan itself.
 pub fn _plan_was_corrected(memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_plan_was_corrected")
+    let changed = mget(memory, "correction").clone();
+    if !changed.is_dict() {
+        return false;
+    }
+    if changed.get("key") == Some(&Value::from("plan")) || changed.get("key") == Some(&Value::from("plans")) {
+        return true;
+    }
+    let value = fold(&sget(&changed, "value"));
+    let plan = fold(&sget(&user(memory), "plan"));
+    !value.is_empty() && !plan.is_empty() && plan.contains(&value)
 }
 
-/// Python: bot/memory/store_replies.py:10871 `_about_the_same(line, line_words)` (never called on the trace corpus)
-pub fn _about_the_same(line: &str, line_words: &[String]) -> bool {
-    crate::unported!("bot.memory.store_replies:_about_the_same")
+/// Python: bot/memory/store_replies.py:10871 `_about_the_same(line, line_words)`
+///
+/// A line that carries on about the subject (a detail) and not a statement of its own.
+pub fn _about_the_same(line: &str, line_words: &HashSet<String>) -> bool {
+    DETAIL_START.is_match(line) || _content_words(line).iter().any(|w| line_words.contains(w))
 }
 
-/// Python: bot/memory/store_replies.py:10875 `_activity_line(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10875 `_activity_line(memory)`
+///
+/// The last line in which they said what they were making, cooking or planning (a str; the
+/// contract types it `Value`).
 pub fn _activity_line(memory: &Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_activity_line")
+    Value::from(_activity_line_str(memory))
 }
 
-/// Python: bot/memory/store_replies.py:10906 `_the_making_line_they_said(memory, back=8)` (never called on the trace corpus)
-pub fn _the_making_line_they_said(memory: &Memory, back: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_making_line_they_said")
+/// `_activity_line` as the str it is.
+fn _activity_line_str(memory: &Memory) -> String {
+    let lines: Vec<String> = recent_turns(memory, 4).iter().map(|t| text::squash(&t.user)).collect();
+    let changed = mget(memory, "correction");
+    let fixed = if changed.is_dict() { text::squash(&sget(changed, "said")) } else { String::new() };
+    for wanted in [&*ACTIVITY_WORDS, &*ACTIVITY_LOOSE] {
+        for index in (0..lines.len()).rev() {
+            let line = &lines[index];
+            if line.is_empty() || ASK_LINE.is_match(line) || ACTIVITY_ASK.is_match(line) {
+                continue;
+            }
+            if !wanted.is_match(line) {
+                continue;
+            }
+            let words = _content_words(line);
+            let newer: Vec<&String> = lines[index + 1..].iter().filter(|l| !l.is_empty()).collect();
+            if newer.iter().any(|later| !fixed.is_empty() && **later == fixed) {
+                // A correction is the newest word on the thing they were on.
+                return String::new();
+            }
+            if newer.iter().all(|later| ASK_LINE.is_match(later) || ACTIVITY_ASK.is_match(later) || _about_the_same(later, &words)) {
+                return line.clone();
+            }
+            return String::new();
+        }
+    }
+    String::new()
+}
+
+/// Python: bot/memory/store_replies.py:10906 `_the_making_line_they_said(memory, back=8)`
+///
+/// The last line of theirs that says what they are making, without the trail check.
+pub fn _the_making_line_they_said(memory: &Memory, back: usize) -> String {
+    for turn in recent_turns(memory, back).iter().rev() {
+        let line = text::squash(&turn.user);
+        if line.is_empty() || ASK_LINE.is_match(&line) || ACTIVITY_ASK.is_match(&line) {
+            continue;
+        }
+        if ACTIVITY_WORDS.is_match(&line) || ACTIVITY_LOOSE.is_match(&line) {
+            return line;
+        }
+    }
+    String::new()
 }
 
 /// Python: bot/memory/store_replies.py:10924 `_recap(line)` (never called on the trace corpus)
