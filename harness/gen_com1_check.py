@@ -177,6 +177,8 @@ fn same(py: &Json, rs: &Json) -> bool {
     match (py, rs) {
         (_, Json::Bool(b)) if !py.is_boolean() => truthy(py) == *b,
         (Json::Null, Json::String(s)) => s.is_empty(),
+        // Python's `()` read as "nothing" where the port's contract is a str
+        (Json::Array(x), Json::String(s)) => x.is_empty() && s.is_empty(),
         _ => false,
     }
 }
