@@ -67,6 +67,8 @@ pub mod loss;
 pub mod memory_store;
 pub mod memory_tables;
 pub(crate) mod mod4;
+#[cfg(test)]
+mod mod4_tests;
 pub mod my_work;
 pub mod name_taken_back;
 pub mod near_me;
