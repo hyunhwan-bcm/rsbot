@@ -68,3 +68,5 @@ pub mod family_more;
 pub mod fruit;
 pub mod keeping;
 pub mod opinions;
+pub mod d2dup_maths;
+pub mod maths;
