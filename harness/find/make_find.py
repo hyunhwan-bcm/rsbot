@@ -1,6 +1,6 @@
 """PyBot's lookup.find for each line's single-turn reading: the reading, find(u), find(u, use_context=True)."""
 import sys, json, time
-sys.path.insert(0, "/private/tmp/claude-501/-Volumes-SSD-Workspace-rsbot/af214818-d870-4c0f-97fe-8a12a12da545/scratchpad")
+sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.abspath(__file__)))
 from pyenv import plainify, texts
 from bot.understanding import understand
 from bot.knowledge import lookup

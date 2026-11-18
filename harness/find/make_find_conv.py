@@ -1,7 +1,7 @@
 """lookup.find on the reading each turn of a whole conversation gets (full PyBot turns), plain and
 with use_context=True: the multi-turn readings (leans_on, kept, ...) the matcher sees."""
 import sys, json, copy, random, time
-sys.path.insert(0, "/private/tmp/claude-501/-Volumes-SSD-Workspace-rsbot/af214818-d870-4c0f-97fe-8a12a12da545/scratchpad")
+sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.abspath(__file__)))
 from pyenv import plainify
 from bot import runtime
 from bot.knowledge import lookup

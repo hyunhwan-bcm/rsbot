@@ -2,7 +2,7 @@
 plain and use_context, on a sample of turns (every turn whose reading leans on an earlier line,
 then others), for the port's find check."""
 import sys, json, gzip, time, random as R
-sys.path.insert(0, "/private/tmp/claude-501/-Volumes-SSD-Workspace-rsbot/af214818-d870-4c0f-97fe-8a12a12da545/scratchpad")
+sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.abspath(__file__)))
 import pyenv
 from bot.knowledge import lookup
 src, dst, limit = sys.argv[1], sys.argv[2], int(sys.argv[3])
