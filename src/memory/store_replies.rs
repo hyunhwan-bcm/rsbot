@@ -10479,105 +10479,476 @@ pub fn _turn_lines(memory: &Memory) -> Vec<(String, String)> {
     memory.turns.iter().map(|t| (t.user.clone(), t.bot.clone())).collect()
 }
 
+rx!(FIGURE_REPEAT);
+
 /// Python: bot/memory/store_replies.py:9866 `asks_again(text, memory=None)`
-pub fn asks_again(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:asks_again")
+///
+/// True when the whole line asks to hear the bot's last reply again.
+pub fn asks_again(text_: &str, memory: &Memory) -> bool {
+    asks_again_m(text_, Some(memory))
 }
 
-/// Python: bot/memory/store_replies.py:9877 `_repeat_reply(memory, text='')` (never called on the trace corpus)
-pub fn _repeat_reply(memory: &mut Memory, text: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_repeat_reply")
+/// `asks_again` with Python's `memory=None` expressible.
+pub fn asks_again_m(text_: &str, memory: Option<&Memory>) -> bool {
+    let low = text::strip(text_).to_lowercase();
+    !low.is_empty() && _repeat_ask_m(&low, &low, memory)
 }
 
-/// Python: bot/memory/store_replies.py:9946 `_a_whole_answer_to_hand_back(memory, text='')` (never called on the trace corpus)
-pub fn _a_whole_answer_to_hand_back(memory: &Memory, text: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_whole_answer_to_hand_back")
+static A_HAND_BACK_LEAD: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(?:sure|again|of course)\s*[—-]\s*|^here it is again:\s*", crate::py::re::I));
+
+/// The bot lines a repeat reads, a take-back's acknowledgement passed over.
+fn _said_lines(memory: &Memory) -> Vec<Turn> {
+    let mut said: Vec<Turn> = memory.turns.iter().filter(|t| !text::strip(&t.bot).is_empty()).cloned().collect();
+    if let Some(last) = said.last() {
+        if crate::memory::named::takes_back(&last.user) {
+            let answered: Vec<Turn> = said[..said.len() - 1].iter().filter(|t| !crate::memory::named::takes_back(&t.user)).cloned().collect();
+            if !answered.is_empty() {
+                said = answered;
+            }
+        }
+    }
+    said
 }
 
-/// Python: bot/memory/store_replies.py:9962 `_carries_something(turn)` (never called on the trace corpus)
-pub fn _carries_something(turn: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_carries_something")
+/// Python: bot/memory/store_replies.py:9877 `_repeat_reply(memory, text="")`
+///
+/// The bot's last answer said again, for "say that again".
+pub fn _repeat_reply(memory: &mut Memory, text_: &str) -> Option<String> {
+    // A line that takes something back answered nothing, so the answer to repeat is the last one
+    // that answered something.
+    let said = _said_lines(memory);
+    let whole = WHOLE_ASK.match_(&text::strip(text_).to_lowercase()).is_some();
+    if said.is_empty() {
+        return Some(_vary(
+            &["I haven't said anything yet \u{2014} you go first.", "Nothing from me so far. What would you like to talk about?"].map(str::to_string),
+            memory,
+        ));
+    }
+    let line = memory.understood.as_ref().map(|u| u.text.clone()).unwrap_or_default();
+    let about = _hearing_again(&said, &line);
+    let answer_module = |t: &Turn| t.module.as_deref().map(|m| ANSWER_MODULES.contains(m)).unwrap_or(false);
+    if whole && about.as_ref().map(|t| !answer_module(t)).unwrap_or(true) {
+        // A request for the whole of it with no answer behind it: the store says nothing at all.
+        return None;
+    }
+    let Some(about) = about else {
+        // Nothing behind the ask: no answer and nothing that carried content.
+        return Some(_vary(
+            &[
+                "Nothing from me on that yet. What were you asking about?",
+                "I haven't given you an answer on that yet. What is it you want to know?",
+                "Nothing of mine to give back there yet - what was the question?",
+            ]
+            .map(str::to_string),
+            memory,
+        ));
+    };
+    if FIGURE_REPEAT.is_match(text_) && !A_DIGIT.is_match(&about.bot) && !answer_module(&about) {
+        // The ask names a length and the line it would hand back has no length in it.
+        return Some(_vary(
+            &["I haven't said a length yet - what are you timing?", "Nothing with a time in it from me so far. What are you looking at?"].map(str::to_string),
+            memory,
+        ));
+    }
+    let last = about.bot.clone();
+    // A frame this codebase puts on a hand-back is taken off first, so asking twice does not stack.
+    let base = crate::memory::again::unframed(&last).filter(|u| !u.is_empty()).unwrap_or(last);
+    let mut base = A_HAND_BACK_LEAD.sub("", &base);
+    if FIGURE_REPEAT.is_match(text_) {
+        // The ask names the figure, so the figure is the answer.
+        if let Some(figure) = crate::memory::narrow::narrow(&base, text_, "").filter(|f| !text::strip(f).is_empty()) {
+            base = text::strip(&figure).to_string();
+        }
+    }
+    if !answer_module(&about) {
+        // Not an answer to give again, so nothing is promised: the line is said as it was.
+        return Some(base);
+    }
+    if WHOLE_ASK.match_(&text::strip(text_).to_lowercase()).is_some() {
+        // The person asked for the whole of it, so the lead-in says that is what this is.
+        return Some(_vary(
+            &["All of it: ".to_string() + &base, "Here it is in full: ".to_string() + &base, "The whole of it, then: ".to_string() + &base],
+            memory,
+        ));
+    }
+    Some(_vary(&["Sure \u{2014} ".to_string() + &base, "Again \u{2014} ".to_string() + &base, "Here it is again: ".to_string() + &base, base.clone()], memory))
 }
 
-/// Python: bot/memory/store_replies.py:9985 `_only_a_nod(line)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:9946 `_a_whole_answer_to_hand_back(memory, text="")`
+///
+/// True when the chat's last answer is one this store can hand over whole.
+pub fn _a_whole_answer_to_hand_back(memory: &Memory, text_: &str) -> bool {
+    let said: Vec<Turn> = memory.turns.iter().filter(|t| !text::strip(&t.bot).is_empty()).cloned().collect();
+    if said.is_empty() {
+        return false;
+    }
+    let said = _said_lines(memory);
+    match _hearing_again(&said, text_) {
+        Some(about) => about.module.as_deref().map(|m| ANSWER_MODULES.contains(m)).unwrap_or(false),
+        None => false,
+    }
+}
+
+/// Python: bot/memory/store_replies.py:9961 `_carries_something(turn)`
+///
+/// True when a bot turn has something in it to hear again.
+pub fn _carries_something(turn: &Turn) -> bool {
+    let reply = text::strip(&turn.bot);
+    if reply.is_empty() {
+        return false;
+    }
+    if _about_this_chat_m(&turn.user, None) {
+        // The bot's own paperwork is not something the person asked to hear again.
+        return false;
+    }
+    turn.module.as_deref().map(|m| ANSWER_MODULES.contains(m)).unwrap_or(false) || text::split(reply).len() >= 8
+}
+
+strset!(NOD_WORDS, HELLO_FILLER, GREET, ACKS);
+
+/// Python: bot/memory/store_replies.py:9982 `_only_a_nod(line)`
+///
+/// True for a line that says nothing but thank you or so: "thanks", "got it", "ok cheers".
 pub fn _only_a_nod(line: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_only_a_nod")
+    let found = LETTER_WORDS.findall_str(&line.to_lowercase());
+    if found.is_empty() || found.len() > 4 {
+        return false;
+    }
+    found.iter().all(|w| NOD_WORDS.contains(w))
 }
 
-/// Python: bot/memory/store_replies.py:9992 `_hearing_again(said, line)` (never called on the trace corpus)
-pub fn _hearing_again(said: &str, line: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_hearing_again")
+/// Python: bot/memory/store_replies.py:9989 `_hearing_again(said, line)`
+///
+/// The bot turn a repeat ask is about: the last line, or the last one with content in it.
+pub fn _hearing_again(said: &[Turn], line: &str) -> Option<Turn> {
+    if LAST_LINE_ASK.is_match(line) {
+        return Some(said.last().expect("IndexError: list index out of range").clone());
+    }
+    let mut said: Vec<Turn> = said.to_vec();
+    let live: Vec<Turn> = said.iter().filter(|t| !_only_a_nod(&t.user)).cloned().collect();
+    if !live.is_empty() && live.len() < said.len() {
+        said = live;
+    }
+    let answered: Vec<Turn> = said.iter().filter(|t| !_about_this_chat_m(&t.user, None)).cloned().collect();
+    if !answered.is_empty() && answered.len() < said.len() {
+        // A turn that was itself a question about the chat is the bot's paperwork.
+        said = answered;
+    }
+    let last = said.last().expect("IndexError: list index out of range");
+    if !crate::memory::thread::thin(&last.user) {
+        // The bot was answering a line of its own, so its last reply is the thing to hear again.
+        return Some(last.clone());
+    }
+    // After a "thanks" or an "ok" the reply is a nod: the answer is the one the nod followed.
+    if let Some(t) = said.iter().rev().find(|t| t.module.as_deref().map(|m| ANSWER_MODULES.contains(m)).unwrap_or(false)) {
+        return Some(t.clone());
+    }
+    if let Some(t) = said.iter().rev().find(|t| _carries_something(t)) {
+        return Some(t.clone());
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:10032 `_just_a_hello(line)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10039 `_just_a_hello(line)`
+///
+/// True for a line that is only a greeting ("hi", "good morning", "hiya there").
 pub fn _just_a_hello(line: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_just_a_hello")
+    if line.contains('?') {
+        return false;
+    }
+    let found = LETTER_WORDS.findall_str(&line.to_lowercase());
+    !found.is_empty() && found.iter().any(|w| GREET.contains(w)) && found.iter().all(|w| GREET.contains(w) || ACKS.contains(w) || HELLO_FILLER.contains(w))
 }
 
-/// Python: bot/memory/store_replies.py:10045 `_worth_reporting(line)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10052 `_worth_reporting(line)`
+///
+/// True for a line that said something a chat can be said to have opened with.
 pub fn _worth_reporting(line: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_worth_reporting")
+    !line.is_empty() && !_just_a_hello(line) && !crate::memory::history::not_a_subject(line)
 }
 
-/// Python: bot/memory/store_replies.py:10056 `_first_reply(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10056 `_first_reply(memory)`
+///
+/// The first line the person sent, the way a friend would recall how the chat began.
 pub fn _first_reply(memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_first_reply")
+    let lines = _turn_lines(memory);
+    if lines.is_empty() || lines[0].0.is_empty() {
+        return Some(_vary(&["You haven't said anything yet, so this is the start.", "We're just beginning \u{2014} you go first."].map(str::to_string), memory));
+    }
+    let said: Vec<String> = lines.iter().map(|(u, _)| u.clone()).filter(|l| _worth_reporting(l)).collect();
+    if said.is_empty() {
+        return Some(_vary(
+            &[
+                "We've only just started \u{2014} nothing of yours to look back on yet.",
+                "Only hellos so far: your first proper line is still to come.",
+                "Nothing of yours to report back yet \u{2014} you've only said hello.",
+            ]
+            .map(str::to_string),
+            memory,
+        ));
+    }
+    let first = _trim(&said[0], 90);
+    let mut options = vec![
+        "You started with: \"".to_string() + &first + "\"",
+        "Your first line was: \"".to_string() + &first + "\"",
+        "That's how we opened: \"".to_string() + &first + "\"",
+    ];
+    if said.len() <= 1 {
+        options.push("This chat opened with: \"".to_string() + &first + "\" \u{2014} not much else yet.");
+    }
+    Some(_vary(&options, memory))
 }
 
-/// Python: bot/memory/store_replies.py:10075 `_what_i_said_about(memory, thing)` (never called on the trace corpus)
+static SENTENCE_END: LazyLock<Re> = LazyLock::new(|| Re::new(r"(?<=[.!?])\s+", 0));
+
+/// Python: bot/memory/store_replies.py:10075 `_what_i_said_about(memory, thing)`
+///
+/// The bot's own answer about the thing they name, in a sentence, or None.
 pub fn _what_i_said_about(memory: &mut Memory, thing: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_what_i_said_about")
+    use crate::memory::topics::keywords;
+    let words: HashSet<String> = keywords(thing).into_iter().filter(|w| !STOPWORDS.contains(w)).collect();
+    if words.is_empty() {
+        return None;
+    }
+    let turns = memory.turns.clone();
+    for turn in turns.iter().rev() {
+        if ["safety", "urgent", "grief", "loss"].contains(&turn.module.as_deref().unwrap_or("")) {
+            return None; // an emergency answer is not read out again as a quotation
+        }
+        let said = text::strip(&turn.bot).to_string();
+        let asked = &turn.user;
+        if said.is_empty() {
+            continue;
+        }
+        // The answer matches when it *opens* on the thing.
+        let parts = SENTENCE_END.split(&said);
+        let opening: HashSet<String> = keywords(&parts[0]).into_iter().collect();
+        let in_answer = words.iter().all(|w| opening.contains(w));
+        let in_question = {
+            let q: HashSet<String> = keywords(asked).into_iter().collect();
+            words.iter().all(|w| q.contains(w))
+        };
+        if !_carries_something(turn) || !_adds_something(&said, asked) {
+            continue; // a nod, or the line said back, is not an answer about the thing
+        }
+        if !(in_answer || in_question) {
+            continue;
+        }
+        let mut sentence = text::strip(&parts[0]).to_string();
+        // An opening that says little on its own takes the sentence after it along.
+        let own: HashSet<String> = keywords(&sentence).into_iter().filter(|w| !NOD_WORDS.contains(w)).collect();
+        if own.len() <= 2 && parts.len() > 1 {
+            sentence = sentence + " " + text::strip(&parts[1]);
+        }
+        if sentence.is_empty() || text::split(&sentence).len() > 45 {
+            sentence = text::rstrip_chars(&text::split(&sentence).into_iter().take(45).collect::<Vec<_>>().join(" "), ",;:").to_string() + "...";
+        }
+        let name = text::squash(thing);
+        return Some(pick(
+            &["On ".to_string() + &name + ": " + &sentence, "I said: ".to_string() + &sentence, "What I said about ".to_string() + &name + ": " + &sentence],
+            memory,
+            "",
+        ));
+    }
+    if words.len() <= 4 {
+        // Nothing in the chat was about it: saying so, and naming it, is the answer.
+        let name = text::squash(thing);
+        return Some(pick(
+            &[
+                "I don't think we've been over ".to_string() + &name + " yet - what do you want to know?",
+                "We haven't got to ".to_string() + &name + " yet. Ask me and I'll say what I know.",
+                text::upper_first(&name) + " hasn't come up yet - ask away.",
+            ],
+            memory,
+            "",
+        ));
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:10126 `_adds_something(said, asked)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10126 `_adds_something(said, asked)`
+///
+/// True when a bot line says more than the line it answers, so it can be quoted as an answer.
 pub fn _adds_something(said: &str, asked: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_adds_something")
+    use crate::memory::topics::keywords;
+    let asked_words: HashSet<String> = keywords(asked).into_iter().collect();
+    keywords(said).into_iter().any(|w| !NOD_WORDS.contains(&w) && !asked_words.contains(&w))
 }
 
-/// Python: bot/memory/store_replies.py:10137 `_first_bot_reply(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10137 `_first_bot_reply(memory)`
+///
+/// The first thing the bot said, for "what was the first thing you said?".
 pub fn _first_bot_reply(memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_first_bot_reply")
+    let first = _first_sentence(&crate::memory::history::first_bot_line(memory), 70);
+    if first.is_empty() {
+        return Some("I haven't said anything yet \u{2014} you go first.".to_string());
+    }
+    Some(_vary(
+        &["I opened with: \"".to_string() + &first + "\"", "My first line was: \"".to_string() + &first + "\"", "I started with: \"".to_string() + &first + "\""],
+        memory,
+    ))
 }
 
-/// Python: bot/memory/store_replies.py:10146 `_asked_and_answered(memory)` (never called on the trace corpus)
-pub fn _asked_and_answered(memory: &Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_asked_and_answered")
+/// Python: bot/memory/store_replies.py:10146 `_asked_and_answered(memory)`
+///
+/// The last line they said that was about something, and the bot's own reply to it.
+pub fn _asked_and_answered(memory: &Memory) -> (String, String) {
+    for seen in recent_turns(memory, 8).iter().rev() {
+        if !seen.user.is_empty() && !_about_this_chat_m(&seen.user, None) {
+            return (seen.user.clone(), text::strip(&seen.bot).to_string());
+        }
+    }
+    (String::new(), String::new())
 }
 
-/// Python: bot/memory/store_replies.py:10162 `_said_reply(memory)` (never called on the trace corpus)
+rx!(THEIR_OWN_ASK);
+static A_SHORT_ANSWER: LazyLock<usize> = LazyLock::new(|| g("A_SHORT_ANSWER").as_int().unwrap() as usize);
+
+/// Python: bot/memory/store_replies.py:10162 `_said_reply(memory)`
+///
+/// The person's own last line, for "what did I just say?".
 pub fn _said_reply(memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_said_reply")
+    let mut last = last_turn_user(memory);
+    if last.is_empty() {
+        return Some("That was your first line \u{2014} there's nothing before it.".to_string());
+    }
+    // A recall said after a recall is about the thing the chat is on.
+    let mut real = _last_real(memory);
+    if !real.is_empty() && _just_a_hello(&real) {
+        // A greeting is not a thing they told us about themselves.
+        real = String::new();
+    }
+    if !real.is_empty() {
+        last = real.clone();
+    } else if crate::memory::corrected::_asks(&last) {
+        // A question they asked is not something they told us either.
+        let (mut asked, mut mine) = _asked_and_answered(memory);
+        if asked.is_empty() {
+            for seen in recent_turns(memory, 2).iter().rev() {
+                let line = &seen.user;
+                if !line.is_empty() && !SAID_ASK.is_match(&line.to_lowercase()) && !FIRST_ASK.is_match(&line.to_lowercase()) {
+                    asked = line.clone();
+                    mine = text::strip(&seen.bot).to_string();
+                    break;
+                }
+            }
+        }
+        let again = _about_this_chat_m(&last, None);
+        // A question is worth handing back when it is all the chat holds.
+        let nothing_yet = real.is_empty() && (crate::memory::history::not_a_subject(&asked) || THEIR_OWN_ASK.is_match(&asked));
+        if !mine.is_empty() && (nothing_yet || (!_just_a_hello(&asked) && (again || text::split(&mine).len() > *A_SHORT_ANSWER))) {
+            let asked = text::rstrip_chars(&_trim(&asked, 90), " .!?").to_string();
+            let first = text::strip(&SENTENCE_END.split(&mine)[0]).to_string();
+            return Some(_vary(
+                &[
+                    "You asked: \"".to_string() + &asked + "\" \u{2014} I said: " + &first,
+                    "That one was your question: \"".to_string() + &asked + "\". My answer: " + &first,
+                    "You asked \"".to_string() + &asked + "\", and what I said was: " + &first,
+                ],
+                memory,
+            ));
+        }
+        return None;
+    } else {
+        // Nothing they told us yet, so say that rather than quote a greeting back at them.
+        return _summary_reply(memory);
+    }
+    let fixed = mget(memory, "correction").clone();
+    let fixed_words = {
+        let s = fixed.get("sentence").filter(|v| v.truthy()).or_else(|| fixed.get("value").filter(|v| v.truthy()));
+        text::squash(&s.map(py_str).unwrap_or_default())
+    };
+    if fixed.is_dict() && !fixed_words.is_empty() && fixed.get("said") == Some(&Value::from(fold(&last))) {
+        // Their last line was a correction of the one before it: what they said is the line with
+        // the correction in it.
+        let said = text::rstrip_chars(&fixed_words, " .!?").to_string();
+        return Some(_vary(
+            &[
+                "You said ".to_string() + &said + " \u{2014} you put me right on it.",
+                "You said ".to_string() + &said + ", and that is the version I am going with.",
+                "\"".to_string() + &said + "\" \u{2014} your first line, put right a moment later.",
+            ],
+            memory,
+        ));
+    }
+    let trimmed = _trim(&last, 90);
+    Some(_vary(
+        &["You said: \"".to_string() + &trimmed + "\"", "Your last line was: \"".to_string() + &trimmed + "\"", "That was: \"".to_string() + &trimmed + "\""],
+        memory,
+    ))
 }
 
-/// Python: bot/memory/store_replies.py:10242 `_corrects(line)` (never called on the trace corpus)
+rx!(ASKS_IN_LINE, CORRECTS, DENIAL);
+
+/// Python: bot/memory/store_replies.py:10242 `_corrects(line)`
+///
+/// "sorry, Naples not Rome" replaces an earlier line instead of saying something new.
 pub fn _corrects(line: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_corrects")
+    CORRECTS.is_match(&fold(line))
 }
 
-/// Python: bot/memory/store_replies.py:10246 `_last_real(memory)` (never called on the trace corpus)
-pub fn _last_real(memory: &Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_last_real")
+/// Python: bot/memory/store_replies.py:10246 `_last_real(memory)`
+///
+/// The last thing the user said that was about something, not about this chat.
+pub fn _last_real(memory: &Memory) -> String {
+    for seen in recent_turns(memory, 8).iter().rev() {
+        let line = &seen.user;
+        if !line.is_empty() && !_about_this_chat_m(line, None) && !crate::memory::corrected::_asks(line) {
+            return line.clone();
+        }
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:10265 `_the_fact_is_kept(key, memory)` (never called on the trace corpus)
+static KEY_SLOT: LazyLock<HashMap<String, String>> = LazyLock::new(|| g("KEY_SLOT").str_map());
+
+/// Python: bot/memory/store_replies.py:10265 `_the_fact_is_kept(key, memory)`
+///
+/// True when the store holds the fact a recall key names.
 pub fn _the_fact_is_kept(key: &str, memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_the_fact_is_kept")
+    match KEY_SLOT.get(key).filter(|s| !s.is_empty()) {
+        Some(slot) => user(memory).get(slot).map(Value::truthy).unwrap_or(false),
+        None => false,
+    }
 }
 
-/// Python: bot/memory/store_replies.py:10270 `_a_denial(reply)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:10270 `_a_denial(reply)`
+///
+/// True when the reply is the store saying it has nothing about the thing.
 pub fn _a_denial(reply: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_denial")
+    !reply.is_empty() && DENIAL.is_match(reply)
 }
+
+static ABOUT_THE_REST: LazyLock<Re> = LazyLock::new(|| Re::new(r"\babout\b\s+(.+)$", 0));
+static RECALL_TAIL_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:again|before|earlier|please|so far|up to now|until now)\b", 0));
 
 /// Python: bot/memory/store_replies.py:10274 `_names_its_thing(low)`
+///
+/// True when a "what was i saying about ..." line names the thing it asks about.
 pub fn _names_its_thing(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_names_its_thing")
+    let Some(after) = ABOUT_THE_REST.search(low) else { return false };
+    let thing = text::strip_chars(&RECALL_TAIL_WORDS.sub("", after.str(1)), " ?!.,").to_string();
+    if crate::memory::topics::content(&thing).is_empty() || ["it", "that", "this", "them", "that one"].contains(&thing.as_str()) {
+        return false;
+    }
+    true
 }
 
-/// Python: bot/memory/store_replies.py:10290 `_say_back(line, memory=None)` (never called on the trace corpus)
-pub fn _say_back(line: &str, memory: &Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_say_back")
+/// Python: bot/memory/store_replies.py:10290 `_say_back(line, memory=None)`
+///
+/// Their own line said again as a sentence about them, with no quotation marks round it.
+pub fn _say_back(line: &str, memory: &Memory) -> String {
+    let restated = crate::memory::thread::restate(line);
+    let said = if restated.is_empty() { _recap(line) } else { restated };
+    let said = text::rstrip_chars(text::strip(&said), ".").to_string();
+    if said.is_empty() {
+        return _recall_quote(line, Some(memory), false);
+    }
+    let said = lower_first(&said);
+    _vary(&["You said ".to_string() + &said + ". Want to carry on?", "You said ".to_string() + &said + "."], memory)
 }
+
+strset!(REFLEXIVE);
 
 /// Python: bot/memory/store_replies.py:10306 `_recall_reply(memory, low, text='', spoken=False)` (never called on the trace corpus)
 pub fn _recall_reply(memory: &mut Memory, low: &str, text: &str, spoken: bool) -> Option<String> {
@@ -11030,7 +11401,7 @@ pub fn _the_call_from_the_advice(text: &str, memory: &Memory) -> Option<String> 
 }
 
 /// Python: bot/memory/store_replies.py:12743 `_trim(text, limit=90)` (never called on the trace corpus)
-pub fn _trim(text: &str, limit: i64) -> Value {
+pub fn _trim(text: &str, limit: i64) -> String {
     crate::unported!("bot.memory.store_replies:_trim")
 }
 
