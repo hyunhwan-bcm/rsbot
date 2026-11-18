@@ -46,12 +46,35 @@ pub fn py_repr_str(s: &str) -> String {
                 out.push('\\');
                 out.push(c);
             }
-            c if (c as u32) < 0x20 || c as u32 == 0x7f => out.push_str(&format!("\\x{:02x}", c as u32)),
+            c if !py_printable(c) => {
+                let n = c as u32;
+                if n < 0x100 {
+                    out.push_str(&format!("\\x{n:02x}"));
+                } else if n < 0x10000 {
+                    out.push_str(&format!("\\u{n:04x}"));
+                } else {
+                    out.push_str(&format!("\\U{n:08x}"));
+                }
+            }
             c => out.push(c),
         }
     }
     out.push(quote);
     out
+}
+
+/// Python's `str.isprintable()` for one character, closely enough for the words of a line:
+/// controls, separators other than the space, and the common format characters are not.
+fn py_printable(c: char) -> bool {
+    if c == ' ' {
+        return true;
+    }
+    if c.is_control() || c.is_whitespace() {
+        return false;
+    }
+    !matches!(c as u32,
+        0xad | 0x600..=0x605 | 0x61c | 0x6dd | 0x70f | 0x180e | 0x200b..=0x200f | 0x202a..=0x202e
+        | 0x2060..=0x2064 | 0x2066..=0x206f | 0xfeff | 0xfff9..=0xfffb | 0xe000..=0xf8ff)
 }
 
 /// Python `str(list_of_str)`, e.g. `['a', "don't"]`.
@@ -590,5 +613,6 @@ mod tests {
     #[test]
     fn reprs() {
         assert_eq!(py_repr_list(&["a", "don't", "x\"y'"]), "['a', \"don't\", 'x\"y\\'']");
+        assert_eq!(py_repr_str("a\u{200b}b\u{e9}\u{a0}"), "'a\\u200bb\u{e9}\\xa0'");
     }
 }
