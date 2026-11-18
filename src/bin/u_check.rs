@@ -309,6 +309,54 @@ fn main() {
             }
             for x in out { println!("{x}"); }
         }
+        "gives" => {
+            // u_check gives GIVES.jsonl [show]: compose::fit::gives against PyBot (fit/make_gives.py)
+            use rsbot::compose::fit;
+            let show: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(10);
+            let (mut ok, mut bad, mut shown) = (0, 0, 0);
+            let mut by_want: std::collections::BTreeMap<String, usize> = Default::default();
+            for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
+                let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+                let reply = v["reply"].as_str().unwrap_or("");
+                let said = v["text"].as_str().unwrap_or("");
+                if fit::first_sentence(reply) != v["first"].as_str().unwrap_or("") { bad += 1; *by_want.entry("first_sentence".into()).or_default() += 1; } else { ok += 1 }
+                for (key, l) in [("gives", Some(said)), ("none", None)] {
+                    for (want, wv) in v[key].as_object().unwrap() {
+                        let got = rsbot::runtime::guarded(|| fit::gives(reply, want, l));
+                        let got = match got { Some(Some(b)) => serde_json::Value::Bool(b), Some(None) => serde_json::Value::Null, None => serde_json::Value::String("!panic".into()) };
+                        if &got == wv { ok += 1 } else {
+                            bad += 1;
+                            *by_want.entry(format!("{key}:{want}")).or_default() += 1;
+                            if shown < show { println!("-- {key} {want} line={said:?}\n   reply {:?}\n   rust {got} py {wv}", &reply[..reply.len().min(160)]); shown += 1; }
+                        }
+                    }
+                }
+            }
+            println!("gives ok {ok} bad {bad} {by_want:?}");
+        }
+        "dream" => {
+            // u_check dream DREAM.jsonl: memory/dream.py's readers against PyBot (dream/make.py)
+            use rsbot::memory::dream as d;
+            let died = rsbot::understanding::rx("\\bdied\\b");
+            let (mut ok, mut bad) = (0, 0);
+            for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
+                let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+                let t = v["text"].as_str().unwrap();
+                let got = serde_json::json!({"text": t, "scene": d::the_scene(t), "named": d::named(t), "told": d::told_as_a_dream(t),
+                    "not_happening": d::a_dream_is_not_happening(t), "death_first": d::a_death_came_first(t), "before_died": d::dreamed_before(t, died)});
+                if got == v { ok += 1 } else { bad += 1; if bad < 10 { println!("-- {t:?}\n   rust {got}\n   py   {v}"); } }
+            }
+            println!("dream ok {ok} bad {bad}");
+        }
+        "guards" => {
+            // u_check guards ONE.jsonl ID...: lookup.guard_passes for these entries on the record's reading
+            let v: serde_json::Value = serde_json::from_str(std::fs::read_to_string(&args[1]).unwrap().lines().next().unwrap()).unwrap();
+            let u: rsbot::understood::Understood = serde_json::from_value(v["understood"].clone()).unwrap();
+            for id in &args[2..] {
+                let e = rsbot::knowledge::entry::by_id(id).expect("no such entry");
+                println!("{id} guard_passes={}", lookup::guard_passes(e, &u));
+            }
+        }
         x => panic!("unknown check {x}"),
     }
 }
