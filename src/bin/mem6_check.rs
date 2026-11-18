@@ -376,10 +376,15 @@ fn main() {
         }
         i += 1;
     }
+    check(&paths, &fns, show);
+}
+
+/// Compare every recorded call in `paths`; the totals [same, differ, unported, not compared, no case].
+fn check(paths: &[String], fns: &[String], show: usize) -> [usize; 5] {
     // fn -> [same, differ, unported, not compared, no case]
     let mut tally: BTreeMap<String, [usize; 5]> = BTreeMap::new();
     let mut shown: BTreeMap<String, usize> = BTreeMap::new();
-    for path in &paths {
+    for path in paths {
         let reader = std::io::BufReader::new(flate2::read::GzDecoder::new(std::fs::File::open(path).unwrap()));
         for line in reader.lines() {
             let Ok(line) = line else { break };
@@ -449,4 +454,17 @@ fn main() {
         }
     }
     println!("{:<58} {:>6} {:>6} {:>8} {:>6} {:>6}", "TOTAL", total[0], total[1], total[2], total[3], total[4]);
+    total
+}
+
+#[cfg(test)]
+mod tests {
+    /// CPython's values on the hand-made inputs of `harness/mem6_cases.py`: no call differs.
+    #[test]
+    fn hand_made_cases_match_python() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/harness/mem6_cases.jsonl.gz").to_string();
+        let total = super::check(&[path], &[], 5);
+        assert_eq!(total[1], 0, "calls that differ from CPython");
+        assert!(total[0] > 150);
+    }
 }
