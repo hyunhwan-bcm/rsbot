@@ -1,39 +1,242 @@
-//! Port of `bot/compose/their_life.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/their_life.py`: "do i like it", "what does my son do", "how long will
+//! she be in" - a particular of the person's own life gets the honest line and one question.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
+use crate::data;
+use crate::py::re::{Match, Re, I};
+use crate::py::text;
+use crate::state::Memory;
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
-/// Python: bot/compose/their_life.py:161 `_bare(text)`
+const M: &str = "bot.compose.their_life.";
+macro_rules! regexes {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<&'static Re> =
+            LazyLock::new(|| data::re(concat!("bot.compose.their_life.", stringify!($name))));)*
+    };
+}
+regexes!(
+    TASTE, AN_AGE_NAME_OR_PLACE, WORK, ABOUT_THEM, ALREADY_SAID, A_NEED_OF_THEIRS, STAY, MISSING,
+    WHERE_THEY_ARE, A_PRONOUN, SAID_WHO, NOT_THIS, RECALL, A_HOW_TO,
+);
+static TOO_LONG: LazyLock<usize> = LazyLock::new(|| data::get(&format!("{M}TOO_LONG")).as_int().unwrap() as usize);
+static STOP_ABOUT: LazyLock<HashSet<String>> = LazyLock::new(|| data::set(&format!("{M}STOP_ABOUT")));
+static PROSE: LazyLock<&'static crate::data::Value> = LazyLock::new(|| data::get(&format!("{M}PROSE")));
+/// `re.search(r"\b(?:my|our|his|her|their)\s+" + RELATION, line, re.I)`, written inline in `reads`.
+static A_RELATION_NAMED: LazyLock<Re> =
+    LazyLock::new(|| Re::new(&format!(r"\b(?:my|our|his|her|their)\s+{}", data::string(&format!("{M}RELATION"))), I));
+/// `re.sub(r"\s+", " ", ...)`, written inline in `_bare`.
+static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", 0));
+
+/// Python: bot/compose/their_life.py:130 `_bare(text)`
 pub fn _bare(text: &str) -> String {
-    crate::unported!("bot.compose.their_life:_bare")
+    let squashed = SPACES.sub(" ", text::strip(text));
+    text::lower(text::strip_chars(&squashed, " .!,"))
 }
 
-/// Python: bot/compose/their_life.py:165 `_a_thing_already_said(match, memory)`
-pub fn _a_thing_already_said(r#match: &Value, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.their_life:_a_thing_already_said")
+/// Python: bot/compose/their_life.py:134 `_a_thing_already_said(match, memory)`
+///
+/// True when the noun the question turns on was said by the person earlier in the chat (only
+/// this file calls it, with the `ABOUT_THEM` match).
+pub fn _a_thing_already_said(found: &Match, memory: &Memory) -> bool {
+    let about = text::lower(text::strip(found.name("about").unwrap_or("")));
+    let words: Vec<String> = ALREADY_SAID.findall_str(&about).into_iter().filter(|w| !STOP_ABOUT.contains(w)).collect();
+    if words.is_empty() {
+        return false;
+    }
+    let turns: Vec<String> = memory.turns.iter().map(|t| text::lower(&t.user)).collect();
+    let earlier = turns[..turns.len().saturating_sub(1)].join(" ");
+    words.iter().any(|w| earlier.contains(w.as_str()))
 }
 
-/// Python: bot/compose/their_life.py:178 `_somebody_of_theirs(memory)`
+/// Python: bot/compose/their_life.py:146 `_somebody_of_theirs(memory)`
+///
+/// "she", "he" and "they" are theirs when the last few turns named somebody they know.
 pub fn _somebody_of_theirs(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.their_life:_somebody_of_theirs")
+    memory.turns[memory.turns.len().saturating_sub(6)..].iter().any(|t| SAID_WHO.is_match(&t.user))
 }
 
-/// Python: bot/compose/their_life.py:184 `reads(text, memory=None)`
-pub fn reads(text: &str, memory: &Memory) {
-    crate::unported!("bot.compose.their_life:reads")
+/// Python: bot/compose/their_life.py:152 `reads(text, memory=None)`
+///
+/// The kind of particular this is - "taste", "work", "stay", "theirs" - or None.
+pub fn reads(text: &str, memory: &Memory) -> Option<String> {
+    let line = _bare(text);
+    if line.is_empty() {
+        return None;
+    }
+    if text::split_ref(&line).len() > *TOO_LONG {
+        return None;
+    }
+    if NOT_THIS.is_match(&line) || RECALL.is_match(&line) || A_HOW_TO.is_match(&line) {
+        return None;
+    }
+    if AN_AGE_NAME_OR_PLACE.is_match(&line) {
+        return None;
+    }
+    if MISSING.is_match(&line) || WHERE_THEY_ARE.is_match(&line) {
+        return None;
+    }
+    if A_NEED_OF_THEIRS.is_match(&line) {
+        return None;
+    }
+    if TASTE.is_match(&line) {
+        return Some("taste".into());
+    }
+    let kinds: [(&str, &Re); 3] = [("work", &WORK), ("stay", &STAY), ("theirs", &ABOUT_THEM)];
+    for (kind, pattern) in kinds {
+        let Some(found) = pattern.search(&line) else { continue };
+        if kind == "theirs" && _a_thing_already_said(&found, memory) {
+            return None;
+        }
+        if A_PRONOUN.is_match(&line) && !A_RELATION_NAMED.is_match(&line) && !_somebody_of_theirs(memory) {
+            return None;
+        }
+        return Some(kind.to_string());
+    }
+    None
 }
 
-/// Python: bot/compose/their_life.py:215 `reply_for(text, memory)`
-pub fn reply_for(text: &str, memory: &Memory) {
-    crate::unported!("bot.compose.their_life:reply_for")
+/// Python: bot/compose/their_life.py:178 `reply_for(text, memory)`
+///
+/// The honest line and the one question, or None when this is not the ask.
+pub fn reply_for(text: &str, memory: &Memory) -> Option<String> {
+    let kind = reads(text, memory).filter(|k| !k.is_empty())?;
+    let lines = PROSE.get(&kind).expect("KeyError").strs();
+    Some(lines[memory.turns.len() % lines.len()].clone())
 }
 
+// ---- COM5-CASES (generated by harness/com5_cases.py; expected values from PyBot) ----
+#[cfg(test)]
+mod pybot_cases {
+    #![allow(unused_imports, dead_code)]
+    use super::*;
+    use crate::data::Value;
+    use crate::state::{Memory, Turn};
+
+    fn mem(turns: &[(&str, &str, &str)]) -> Memory {
+        let mut m = Memory::new();
+        m.turns = turns
+            .iter()
+            .map(|(u, b, md)| Turn { user: u.to_string(), bot: b.to_string(), module: (!md.is_empty()).then(|| md.to_string()) })
+            .collect();
+        m
+    }
+
+    /// The call's result, or None when it reached a function another workstream has not ported yet.
+    fn unless_unported<T>(f: impl FnOnce() -> T) -> Option<T> {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
+                if msg.starts_with("UNPORTED") {
+                    eprintln!("skipped: {msg}");
+                    return None;
+                }
+                std::panic::resume_unwind(e)
+            }
+        }
+    }
+
+    /// True when the call raises (panics), as the Python does.
+    fn raises<T>(f: impl FnOnce() -> T) -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+    }
+
+    #[test]
+    fn case_0() {
+        if let Some(got) = unless_unported(|| reads("do i like it", &Memory::new())) {
+            assert_eq!(got, Some("taste".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_1() {
+        if let Some(got) = unless_unported(|| reply_for("do i like it", &Memory::new())) {
+            assert_eq!(got, Some("That one's yours, not mine: I can't know what you like from here. What does your gut say?".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_2() {
+        if let Some(got) = unless_unported(|| reads("what does my son do", &Memory::new())) {
+            assert_eq!(got, Some("work".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_3() {
+        if let Some(got) = unless_unported(|| reply_for("what does my son do", &Memory::new())) {
+            assert_eq!(got, Some("I've not met them, so I can't say what they do. What do they do?".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_4() {
+        if let Some(got) = unless_unported(|| reads("how long will she be in", &mem(&[("my mum is in hospital", "Oh no.", "chat")]))) {
+            assert_eq!(got, Some("stay".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_5() {
+        if let Some(got) = unless_unported(|| reply_for("how long will she be in", &mem(&[("my mum is in hospital", "Oh no.", "chat")]))) {
+            assert_eq!(got, Some("Nobody here can say how long they'll keep them in. The staff on the ward can, and the desk will ring through for you. How are they doing?".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_6() {
+        if let Some(got) = unless_unported(|| reads("how long will she be in", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_7() {
+        if let Some(got) = unless_unported(|| reply_for("how long will she be in", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_8() {
+        if let Some(got) = unless_unported(|| reads("where is my dog", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_9() {
+        if let Some(got) = unless_unported(|| reply_for("where is my dog", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_10() {
+        if let Some(got) = unless_unported(|| reads("what is his job like", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_11() {
+        if let Some(got) = unless_unported(|| reply_for("what is his job like", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_12() {
+        if let Some(got) = unless_unported(|| reads("what car does she have", &mem(&[("my sister bought a car", "Nice.", "chat"), ("she loves it", "Good.", "chat")]))) {
+            assert_eq!(got, Some("theirs".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_13() {
+        if let Some(got) = unless_unported(|| reply_for("what car does she have", &mem(&[("my sister bought a car", "Nice.", "chat"), ("she loves it", "Good.", "chat")]))) {
+            assert_eq!(got, Some("No idea, sorry - nobody has introduced us. Tell me and it stays here with me.".to_string()));
+        }
+    }
+}

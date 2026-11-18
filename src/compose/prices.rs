@@ -1,34 +1,184 @@
-//! Port of `bot/compose/prices.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/prices.py`: an ask for a price (or for a price to be judged, or whether a
+//! budget is enough) gets the honest note about where a figure comes from.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
-use std::sync::LazyLock;
+use crate::data;
+use crate::py::re::{escape, Re};
+use std::collections::HashMap;
+use std::sync::{Arc, LazyLock, Mutex};
 
-/// Python: bot/compose/prices.py:182 `_a_balance_ask(clean)`
+macro_rules! regexes {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<&'static Re> =
+            LazyLock::new(|| data::re(concat!("bot.compose.prices.", stringify!($name))));)*
+    };
+}
+regexes!(
+    PRICE_ASK, PRICE_ASK_HEADLESS, PRICE_JUDGEMENT, A_FAIRNESS_JUDGEMENT, MONEY_JUDGEMENT,
+    A_MONEY_CUE, FOOD_SAID_BEFORE, A_PRICE_WORD, NOT_A_PRICE, BALANCE_ASK, BALANCE_CARRIER,
+    A_BUDGET_ASK, WORTH_AN_AMOUNT, WORTH_IT, A_BARE_BUDGET_JUDGEMENT, A_MONEY_NEARBY,
+);
+macro_rules! pools {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<Vec<String>> =
+            LazyLock::new(|| data::strs(concat!("bot.compose.prices.", stringify!($name))));)*
+    };
+}
+pools!(PRICE_OF_A_JOB, A_JOB_JUDGED, PRICE_OF_A_THING, A_BUDGET_IS_THEIR_OWN_SUM);
+/// A frozenset: the order only decides which word is found first, never whether one is.
+static JOB_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let mut v: Vec<String> = data::set("bot.compose.prices.JOB_WORDS").into_iter().collect();
+    v.sort();
+    v
+});
+/// `re`'s own cache, for the patterns `_bounded` builds.
+static BOUNDED: LazyLock<Mutex<HashMap<String, Arc<Re>>>> = LazyLock::new(Default::default);
+
+/// Python: bot/compose/prices.py:186 `_a_balance_ask(clean)`
+///
+/// True when the line asks what is already on a card or in an account, not what one costs.
 pub fn _a_balance_ask(clean: &str) -> bool {
-    crate::unported!("bot.compose.prices:_a_balance_ask")
+    BALANCE_ASK.is_match(clean) && BALANCE_CARRIER.is_match(clean)
 }
 
-/// Python: bot/compose/prices.py:255 `_bounded(phrase)`
-pub fn _bounded(phrase: &str) -> Value {
-    crate::unported!("bot.compose.prices:_bounded")
+/// Python: bot/compose/prices.py:259 `_bounded(phrase)`: the phrase as whole words (only this
+/// file calls it).
+pub fn _bounded(phrase: &str) -> Arc<Re> {
+    let mut cache = BOUNDED.lock().unwrap();
+    cache
+        .entry(phrase.to_string())
+        .or_insert_with(|| Arc::new(Re::new(&format!("(?<![a-z0-9]){}(?![a-z0-9])", escape(phrase)), 0)))
+        .clone()
 }
 
-/// Python: bot/compose/prices.py:259 `_has(clean, phrases)`
+/// Python: bot/compose/prices.py:263 `_has(clean, phrases)`
 pub fn _has(clean: &str, phrases: &[String]) -> bool {
-    crate::unported!("bot.compose.prices:_has")
+    phrases.iter().any(|phrase| _bounded(phrase).is_match(clean))
 }
 
-/// Python: bot/compose/prices.py:263 `the_price_reply(clean, phrases, before, options)`
-pub fn the_price_reply(clean: &str, phrases: &[String], before: &str, options: &[String]) {
-    crate::unported!("bot.compose.prices:the_price_reply")
+/// Python: bot/compose/prices.py:267 `the_price_reply(clean, phrases, before, options)`
+///
+/// The honest note for a price, or None when the line is not asking for one. `before` is the
+/// person's previous line (always a str), `options` the live row's own pool.
+pub fn the_price_reply(clean: &str, phrases: &[String], before: &str, options: &[String]) -> Option<Vec<String>> {
+    if NOT_A_PRICE.is_match(clean) || _a_balance_ask(clean) {
+        return None;
+    }
+    if !before.is_empty() && FOOD_SAID_BEFORE.is_match(before) && !A_PRICE_WORD.is_match(clean) {
+        return None;
+    }
+    if A_BUDGET_ASK.is_match(clean) || (A_BARE_BUDGET_JUDGEMENT.is_match(clean) && A_MONEY_NEARBY.is_match(before)) {
+        return Some(A_BUDGET_IS_THEIR_OWN_SUM.clone());
+    }
+    let judged = MONEY_JUDGEMENT.is_match(clean) || PRICE_JUDGEMENT.is_match(clean) || A_FAIRNESS_JUDGEMENT.is_match(clean);
+    let worth = WORTH_AN_AMOUNT.is_match(clean)
+        || (WORTH_IT.is_match(clean) && (A_MONEY_NEARBY.is_match(clean) || A_MONEY_NEARBY.is_match(before)));
+    let asked = _has(clean, phrases)
+        || PRICE_ASK.is_match(clean)
+        || worth
+        || PRICE_ASK_HEADLESS.match_(clean).is_some()
+        || (judged && (A_MONEY_CUE.is_match(clean) || A_MONEY_CUE.is_match(before) || MONEY_JUDGEMENT.is_match(clean)));
+    if !asked {
+        return None;
+    }
+    if _has(clean, &JOB_WORDS) || (judged && _has(before, &JOB_WORDS)) {
+        return Some(if judged { A_JOB_JUDGED.clone() } else { PRICE_OF_A_JOB.clone() });
+    }
+    if judged || worth {
+        return Some(PRICE_OF_A_THING.clone());
+    }
+    Some(options.to_vec())
 }
 
+// ---- COM5-CASES (generated by harness/com5_cases.py; expected values from PyBot) ----
+#[cfg(test)]
+mod pybot_cases {
+    #![allow(unused_imports, dead_code)]
+    use super::*;
+    use crate::data::Value;
+    use crate::state::{Memory, Turn};
+
+    fn mem(turns: &[(&str, &str, &str)]) -> Memory {
+        let mut m = Memory::new();
+        m.turns = turns
+            .iter()
+            .map(|(u, b, md)| Turn { user: u.to_string(), bot: b.to_string(), module: (!md.is_empty()).then(|| md.to_string()) })
+            .collect();
+        m
+    }
+
+    /// The call's result, or None when it reached a function another workstream has not ported yet.
+    fn unless_unported<T>(f: impl FnOnce() -> T) -> Option<T> {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
+                if msg.starts_with("UNPORTED") {
+                    eprintln!("skipped: {msg}");
+                    return None;
+                }
+                std::panic::resume_unwind(e)
+            }
+        }
+    }
+
+    /// True when the call raises (panics), as the Python does.
+    fn raises<T>(f: impl FnOnce() -> T) -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+    }
+
+    #[test]
+    fn case_0() {
+        if let Some(got) = unless_unported(|| the_price_reply("how much does a plumber cost", &["cost".to_string()], "", &["OPT".to_string()])) {
+            assert_eq!(got, Some(vec!["I can't price a job from here, sorry - it comes down to who does it and what they find when they open it up. Two quotes will give you a real range, and I can help you weigh them up.".to_string(), "No figure from me on a job like that, sorry: it is a quote rather than a price list. Ring two firms and compare what each one covers, not just the total.".to_string()]));
+        }
+    }
+
+    #[test]
+    fn case_1() {
+        if let Some(got) = unless_unported(|| the_price_reply("is that a fair price", &["cost".to_string()], "they quoted 400 for the boiler service", &["OPT".to_string()])) {
+            assert_eq!(got, Some(vec!["A quote is only normal against another one: ring a second firm for the same job and compare what each one covers, not just the total, because who does it and what they find when they open it up is why two figures for the same job come out apart.".to_string(), "What tells you whether that figure is normal is a second quote for the same job, in writing, compared on what each one includes rather than the total alone. The range moves with who does it and what they find, so the second quote is the only real test of the first.".to_string()]));
+        }
+    }
+
+    #[test]
+    fn case_2() {
+        if let Some(got) = unless_unported(|| the_price_reply("is 1200 a month enough to live on", &["cost".to_string()], "", &["OPT".to_string()])) {
+            assert_eq!(got, Some(vec!["Housing, council tax and energy are the three that decide whether a month stretches, and the first two are fixed for the year - your council's site has your band and what it comes to. Add those, take them off the figure, and what is left is what has to cover food and travel. I can't see your bills from here, so tell me if the rent is already inside that figure.".to_string(), "Most of a month goes on housing, council tax, energy and food. The first three are written down somewhere - the band is on your council's site and the energy figure is on the bill - and food you can judge from one week's shop. Put those against it and the rest is arithmetic; the bills are the part I can't see, so I can't do that sum from here.".to_string()]));
+        }
+    }
+
+    #[test]
+    fn case_3() {
+        if let Some(got) = unless_unported(|| the_price_reply("how much flour per person", &["cost".to_string()], "", &["OPT".to_string()])) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_4() {
+        if let Some(got) = unless_unported(|| the_price_reply("are they worth it", &["cost".to_string()], "they cost 300 quid", &["OPT".to_string()])) {
+            assert_eq!(got, Some(vec!["What decides it is the same thing priced in more than one place, and what each one includes: two or three quotes for the same job tell you whether a figure is normal. Today's prices move with where you are, so I can't see them from here.".to_string(), "Two or three places, the same thing, and compare what each one includes rather than the total alone - that is what answers whether a price is fair. The figures themselves move with where you are and when you go, so they are not mine to see.".to_string()]));
+        }
+    }
+
+    #[test]
+    fn case_5() {
+        if let Some(got) = unless_unported(|| the_price_reply("how much is left on my gift card", &["cost".to_string()], "", &["OPT".to_string()])) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_6() {
+        if let Some(got) = unless_unported(|| the_price_reply("how much is it", &["cost".to_string()], "i want to bake bread", &["OPT".to_string()])) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_7() {
+        if let Some(got) = unless_unported(|| the_price_reply("is that expensive", &["cost".to_string()], "", &["OPT".to_string()])) {
+            assert_eq!(got, Some(vec!["What decides it is the same thing priced in more than one place, and what each one includes: two or three quotes for the same job tell you whether a figure is normal. Today's prices move with where you are, so I can't see them from here.".to_string(), "Two or three places, the same thing, and compare what each one includes rather than the total alone - that is what answers whether a price is fair. The figures themselves move with where you are and when you go, so they are not mine to see.".to_string()]));
+        }
+    }
+}

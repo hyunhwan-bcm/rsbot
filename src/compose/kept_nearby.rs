@@ -1,49 +1,230 @@
-//! Port of `bot/compose/kept_nearby.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/kept_nearby.py`: a short follow-up that names no kind of its own ("and
+//! the kids, do they get one each") takes the kind of place its answer is kept from the person's
+//! own last line, in place of the plain hedge.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
+use crate::compose::fallback_data::the_place_the_answer_is_kept;
+use crate::data;
 use crate::py::re::Re;
-use crate::runtime::Candidate;
+use crate::py::text;
 use crate::state::{Memory, Turn};
-use crate::understood::Understood;
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
-/// Python: bot/compose/kept_nearby.py:108 `_turns(memory)`
-pub fn _turns(memory: &Memory) -> Value {
-    crate::unported!("bot.compose.kept_nearby:_turns")
+const M: &str = "bot.compose.kept_nearby.";
+static PLAIN_HEADS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(&format!("{M}PLAIN_HEADS")));
+static LEANING: LazyLock<&'static Re> = LazyLock::new(|| data::re(&format!("{M}LEANING")));
+static SHORT: LazyLock<usize> = LazyLock::new(|| data::get(&format!("{M}SHORT")).as_int().unwrap() as usize);
+static ASKING: LazyLock<HashSet<String>> = LazyLock::new(|| data::set(&format!("{M}ASKING")));
+static A_METHOD: LazyLock<&'static Re> = LazyLock::new(|| data::re(&format!("{M}A_METHOD")));
+static BAGGAGE: LazyLock<&'static Re> = LazyLock::new(|| data::re(&format!("{M}BAGGAGE")));
+static BAGGAGE_POOL: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(&format!("{M}BAGGAGE_POOL")));
+/// `re.split(r"[^a-z']+", line)`, written inline in `answer_for`.
+static NOT_A_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"[^a-z']+", 0));
+
+/// Python: bot/compose/kept_nearby.py:87 `_turns(memory)`: the turns (only this file calls it).
+pub fn _turns(memory: &Memory) -> &[Turn] {
+    &memory.turns
 }
 
-/// Python: bot/compose/kept_nearby.py:112 `_clean(text)`
+/// Python: bot/compose/kept_nearby.py:91 `_clean(text)`
 pub fn _clean(text: &str) -> String {
-    crate::unported!("bot.compose.kept_nearby:_clean")
+    text::squash(&text::lower(text))
 }
 
-/// Python: bot/compose/kept_nearby.py:116 `_without_plurals(line)`
+/// Python: bot/compose/kept_nearby.py:95 `_without_plurals(line)`
+///
+/// The line with the s taken off every word longer than three letters ("orders" -> "order"),
+/// but not off "ss", "us" or "is".
 pub fn _without_plurals(line: &str) -> String {
-    crate::unported!("bot.compose.kept_nearby:_without_plurals")
+    text::split_ref(line)
+        .iter()
+        .map(|word| {
+            if text::len(word) > 3 && word.ends_with('s') && !(word.ends_with("ss") || word.ends_with("us") || word.ends_with("is")) {
+                word[..word.len() - 1].to_string()
+            } else {
+                word.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
-/// Python: bot/compose/kept_nearby.py:133 `is_the_plain_hedge(said)` (never called on the trace corpus)
+/// Python: bot/compose/kept_nearby.py:113 `is_the_plain_hedge(said)`
+///
+/// True when the reply is the plain pointer and not one of the hedges that already say more.
 pub fn is_the_plain_hedge(said: &str) -> bool {
-    crate::unported!("bot.compose.kept_nearby:is_the_plain_hedge")
+    let head = text::slice(said, 0, Some(40));
+    PLAIN_HEADS.iter().any(|h| *h == head)
 }
 
-/// Python: bot/compose/kept_nearby.py:138 `_inheritable(pool)` (never called on the trace corpus)
-pub fn _inheritable(pool: &Value) -> bool {
-    crate::unported!("bot.compose.kept_nearby:_inheritable")
+/// Python: bot/compose/kept_nearby.py:118 `_inheritable(pool)`
+///
+/// Whether this kind's own line can stand on a kind borrowed from the turn above (only this file
+/// calls it, with the pool's lines).
+pub fn _inheritable(pool: &[String]) -> bool {
+    !pool.iter().any(|line| text::lower(line).contains("council"))
 }
 
-/// Python: bot/compose/kept_nearby.py:150 `_the_kind(line, borrowable=False)`
-pub fn _the_kind(line: &str, borrowable: bool) {
-    crate::unported!("bot.compose.kept_nearby:_the_kind")
+/// Python: bot/compose/kept_nearby.py:130 `_the_kind(line, borrowable=False)`
+///
+/// The kind a line names itself, as the table or this file knows it, or None.
+pub fn _the_kind(line: &str, borrowable: bool) -> Option<Vec<String>> {
+    for said in [line.to_string(), _without_plurals(line)] {
+        if let Some(pool) = the_place_the_answer_is_kept(&said).filter(|p| !p.is_empty()) {
+            if borrowable && !_inheritable(&pool) {
+                continue;
+            }
+            return Some(pool);
+        }
+        if BAGGAGE.is_match(&said) {
+            return Some(BAGGAGE_POOL.clone());
+        }
+    }
+    None
 }
 
-/// Python: bot/compose/kept_nearby.py:163 `answer_for(text, memory=None)`
+/// Python: bot/compose/kept_nearby.py:142 `answer_for(text, memory=None)`
+///
+/// The place this follow-up's answer is kept, or None when the thread names no kind.
 pub fn answer_for(text: &str, memory: &Memory) -> Option<Vec<String>> {
-    crate::unported!("bot.compose.kept_nearby:answer_for")
+    let line = _clean(text);
+    if line.is_empty() {
+        return None;
+    }
+    if the_place_the_answer_is_kept(&line).is_some_and(|p| !p.is_empty()) {
+        return None;
+    }
+    if BAGGAGE.is_match(&line) {
+        return Some(BAGGAGE_POOL.clone());
+    }
+    if !LEANING.is_match(&line) {
+        return None;
+    }
+    if A_METHOD.is_match(&line) {
+        return None;
+    }
+    let said: Vec<String> = NOT_A_WORD.split(&line).into_iter().filter(|w| !w.is_empty()).collect();
+    if said.len() > *SHORT {
+        return None;
+    }
+    if said.iter().any(|word| !ASKING.contains(word)) {
+        return None;
+    }
+    let turns = _turns(memory);
+    let Some(last) = turns.last() else { return None };
+    let mut near = vec![last.user.as_str()];
+    if turns.len() > 1 && LEANING.is_match(&_clean(&last.user)) {
+        near.push(&turns[turns.len() - 2].user);
+    }
+    for said in near {
+        let said = _clean(said);
+        if said.is_empty() || said == line {
+            continue;
+        }
+        if let Some(pool) = _the_kind(&said, true) {
+            return Some(pool);
+        }
+    }
+    None
 }
 
+// ---- COM5-CASES (generated by harness/com5_cases.py; expected values from PyBot) ----
+#[cfg(test)]
+mod pybot_cases {
+    #![allow(unused_imports, dead_code)]
+    use super::*;
+    use crate::data::Value;
+    use crate::state::{Memory, Turn};
+
+    fn mem(turns: &[(&str, &str, &str)]) -> Memory {
+        let mut m = Memory::new();
+        m.turns = turns
+            .iter()
+            .map(|(u, b, md)| Turn { user: u.to_string(), bot: b.to_string(), module: (!md.is_empty()).then(|| md.to_string()) })
+            .collect();
+        m
+    }
+
+    /// The call's result, or None when it reached a function another workstream has not ported yet.
+    fn unless_unported<T>(f: impl FnOnce() -> T) -> Option<T> {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
+                if msg.starts_with("UNPORTED") {
+                    eprintln!("skipped: {msg}");
+                    return None;
+                }
+                std::panic::resume_unwind(e)
+            }
+        }
+    }
+
+    /// True when the call raises (panics), as the Python does.
+    fn raises<T>(f: impl FnOnce() -> T) -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+    }
+
+    #[test]
+    fn case_0() {
+        if let Some(got) = unless_unported(|| answer_for("can i save anything", &mem(&[("im on benefits", "Ok.", "chat")]))) {
+            assert_eq!(got, Some(vec!["That is a free advice service's call rather than mine, sorry - Citizens Advice or the department's own line will know your rules and your numbers, and I'll help you get the figures straight before you ring.".to_string(), "I can't call that one, sorry: who is owed what depends on your record, and a free adviser can see it. Bring me their answer and I'll help you work out what to do next.".to_string(), "Their rules, their answer, sorry - a free advice line will tell you in one call. Say what they say and I'll help you plan around it.".to_string()]));
+        }
+    }
+
+    #[test]
+    fn case_1() {
+        if let Some(got) = unless_unported(|| answer_for("and the kids, do they get one each", &mem(&[("one bag is 23 kilos", "Ok.", "chat")]))) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_2() {
+        if let Some(got) = unless_unported(|| answer_for("is a backpack ok as hand luggage", &Memory::new())) {
+            assert_eq!(got, Some(vec!["That is your airline's rather than mine, sorry - the allowance is set by the fare, so two people on the same plane can have different ones. Your booking's own page shows the kilos you have paid for, and adding a bag before the airport is always the cheaper way. Tell me what it says and I'll help you pack to it.".to_string(), "The airline sets that and the fare decides it, sorry, so it is your booking that answers it: open it and look for the baggage line rather than the airline's general page. Bring me the figure and I'll help you fit everything in.".to_string(), "I can't call that one - it belongs to the ticket rather than to the plane, sorry. Your booking shows what you have paid for and the desk weighs it to the kilo; tell me the number and I'll help you sort the rest.".to_string()]));
+        }
+    }
+
+    #[test]
+    fn case_3() {
+        if let Some(got) = unless_unported(|| answer_for("how do i do it", &mem(&[("im on benefits", "Ok.", "chat")]))) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_4() {
+        if let Some(got) = unless_unported(|| answer_for("can i renew it", &mem(&[("my passport expires soon", "Ok.", "chat")]))) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_5() {
+        if let Some(got) = unless_unported(|| answer_for("will it be alright", &mem(&[("i dropped my phone in the sink and the warranty", "Ok.", "chat")]))) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_6() {
+        if let Some(got) = unless_unported(|| _without_plurals("my orders are late")) {
+            assert_eq!(got, "my order are late".to_string());
+        }
+    }
+
+    #[test]
+    fn case_7() {
+        if let Some(got) = unless_unported(|| _without_plurals("the bus is late")) {
+            assert_eq!(got, "the bus is late".to_string());
+        }
+    }
+
+    #[test]
+    fn case_8() {
+        if let Some(got) = unless_unported(|| _without_plurals("passports and visas")) {
+            assert_eq!(got, "passport and visa".to_string());
+        }
+    }
+}

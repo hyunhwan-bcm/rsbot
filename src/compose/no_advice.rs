@@ -1,59 +1,270 @@
-//! Port of `bot/compose/no_advice.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/no_advice.py`: a line that declines advice, or asks only to be heard,
+//! gets a listening line (or the bot's view, when that is what it asks for instead).
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
+use crate::data;
+use crate::memory::narrow::memory_value;
 use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
+use crate::py::text;
+use crate::state::Memory;
 use std::sync::LazyLock;
 
-/// Python: bot/compose/no_advice.py:137 `_what_is_left_after_the_decline(line)`
+macro_rules! regexes {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<&'static Re> =
+            LazyLock::new(|| data::re(concat!("bot.compose.no_advice.", stringify!($name))));)*
+    };
+}
+regexes!(
+    _NO_ADVICE, _WANT_TO_BE_HEARD, _JUST_LISTEN, _ASKS_A_VIEW, _NOT_THIS, _AN_ASK, _A_DECLINE,
+    _AN_ASK_LATER, _NOT_AN_ASK, A_DEATH,
+);
+static HEARD: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.no_advice.HEARD"));
+static A_VIEW: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.no_advice.A_VIEW"));
+
+/// `from . import pick`: its contract takes the memory as a `Value`.
+fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
+    crate::compose::pick(options, &memory_value(memory), seed_text)
+}
+
+/// Python: bot/compose/no_advice.py:132 `_what_is_left_after_the_decline(line)`
 pub fn _what_is_left_after_the_decline(line: &str) -> String {
-    crate::unported!("bot.compose.no_advice:_what_is_left_after_the_decline")
+    match _A_DECLINE.search(line) {
+        Some(said) => line[said.end()..].to_string(),
+        None => line.to_string(),
+    }
 }
 
-/// Python: bot/compose/no_advice.py:145 `asks_something_of_its_own(line)`
+/// Python: bot/compose/no_advice.py:140 `asks_something_of_its_own(line)`
+///
+/// True when the line asks something besides the decline, so the ask is the turn.
 pub fn asks_something_of_its_own(line: &str) -> bool {
-    crate::unported!("bot.compose.no_advice:asks_something_of_its_own")
+    let left = _NOT_AN_ASK.sub(" ", &_what_is_left_after_the_decline(line));
+    _AN_ASK_LATER.is_match(&left)
 }
 
-/// Python: bot/compose/no_advice.py:164 `_plain(text)`
+/// Python: bot/compose/no_advice.py:160 `_plain(text)`
 pub fn _plain(text: &str) -> String {
-    crate::unported!("bot.compose.no_advice:_plain")
+    text::squash(text)
 }
 
-/// Python: bot/compose/no_advice.py:168 `says_a_death(text)`
+/// Python: bot/compose/no_advice.py:164 `says_a_death(text)`
 pub fn says_a_death(text: &str) -> bool {
-    crate::unported!("bot.compose.no_advice:says_a_death")
+    A_DEATH.is_match(&_plain(text))
 }
 
-/// Python: bot/compose/no_advice.py:173 `asks_for_a_view(text)`
+/// Python: bot/compose/no_advice.py:169 `asks_for_a_view(text)`
 pub fn asks_for_a_view(text: &str) -> bool {
-    crate::unported!("bot.compose.no_advice:asks_for_a_view")
+    _ASKS_A_VIEW.is_match(&_plain(text))
 }
 
-/// Python: bot/compose/no_advice.py:178 `says_no_advice(text)`
+/// Python: bot/compose/no_advice.py:174 `says_no_advice(text)`
+///
+/// True when the line declines advice, or asks only to be heard.
 pub fn says_no_advice(text: &str) -> bool {
-    crate::unported!("bot.compose.no_advice:says_no_advice")
+    let line = _plain(text);
+    if line.is_empty() {
+        return false;
+    }
+    let said = _NO_ADVICE.is_match(&line) || _WANT_TO_BE_HEARD.is_match(&line) || _JUST_LISTEN.is_match(&line);
+    if !said {
+        return false;
+    }
+    if asks_for_a_view(&line) {
+        return true;
+    }
+    if _NOT_THIS.is_match(&line) {
+        return false;
+    }
+    let rest = _JUST_LISTEN.sub(" ", &_WANT_TO_BE_HEARD.sub(" ", &line));
+    if _AN_ASK.is_match(&rest) {
+        return false;
+    }
+    if asks_something_of_its_own(&line) {
+        return false;
+    }
+    true
 }
 
-/// Python: bot/compose/no_advice.py:209 `pool_name(text)`
-pub fn pool_name(text: &str) {
-    crate::unported!("bot.compose.no_advice:pool_name")
+/// Python: bot/compose/no_advice.py:204 `pool_name(text)`
+///
+/// Which reply pool the line wants: "a_view", "no_advice", or None.
+pub fn pool_name(text: &str) -> Option<String> {
+    if !says_no_advice(text) {
+        return None;
+    }
+    Some(if asks_for_a_view(text) { "a_view" } else { "no_advice" }.to_string())
 }
 
-/// Python: bot/compose/no_advice.py:240 `lines_for(pool)`
+/// Python: bot/compose/no_advice.py:233 `lines_for(pool)`
 pub fn lines_for(pool: &str) -> Vec<String> {
-    crate::unported!("bot.compose.no_advice:lines_for")
+    if pool == "a_view" { A_VIEW.clone() } else { HEARD.clone() }
 }
 
-/// Python: bot/compose/no_advice.py:245 `reply_for(pool, text, memory=None)`
+/// Python: bot/compose/no_advice.py:238 `reply_for(pool, text, memory=None)`
 pub fn reply_for(pool: &str, text: &str, memory: &Memory) -> String {
-    crate::unported!("bot.compose.no_advice:reply_for")
+    pick(&lines_for(pool), memory, text)
 }
 
+// ---- COM5-CASES (generated by harness/com5_cases.py; expected values from PyBot) ----
+#[cfg(test)]
+mod pybot_cases {
+    #![allow(unused_imports, dead_code)]
+    use super::*;
+    use crate::data::Value;
+    use crate::state::{Memory, Turn};
+
+    fn mem(turns: &[(&str, &str, &str)]) -> Memory {
+        let mut m = Memory::new();
+        m.turns = turns
+            .iter()
+            .map(|(u, b, md)| Turn { user: u.to_string(), bot: b.to_string(), module: (!md.is_empty()).then(|| md.to_string()) })
+            .collect();
+        m
+    }
+
+    /// The call's result, or None when it reached a function another workstream has not ported yet.
+    fn unless_unported<T>(f: impl FnOnce() -> T) -> Option<T> {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
+                if msg.starts_with("UNPORTED") {
+                    eprintln!("skipped: {msg}");
+                    return None;
+                }
+                std::panic::resume_unwind(e)
+            }
+        }
+    }
+
+    /// True when the call raises (panics), as the Python does.
+    fn raises<T>(f: impl FnOnce() -> T) -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+    }
+
+    #[test]
+    fn case_0() {
+        if let Some(got) = unless_unported(|| pool_name("I wish they would just listen to me and understand my perspective.")) {
+            assert_eq!(got, Some("no_advice".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_1() {
+        if let Some(got) = unless_unported(|| says_a_death("I wish they would just listen to me and understand my perspective.")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_2() {
+        if let Some(got) = unless_unported(|| pool_name("i dont want advice")) {
+            assert_eq!(got, Some("no_advice".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_3() {
+        if let Some(got) = unless_unported(|| says_a_death("i dont want advice")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_4() {
+        if let Some(got) = unless_unported(|| pool_name("i just need to vent")) {
+            assert_eq!(got, Some("no_advice".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_5() {
+        if let Some(got) = unless_unported(|| says_a_death("i just need to vent")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_6() {
+        if let Some(got) = unless_unported(|| pool_name("no advice please, what do you think")) {
+            assert_eq!(got, Some("a_view".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_7() {
+        if let Some(got) = unless_unported(|| says_a_death("no advice please, what do you think")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_8() {
+        if let Some(got) = unless_unported(|| pool_name("i dont want advice but what should i do?")) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_9() {
+        if let Some(got) = unless_unported(|| says_a_death("i dont want advice but what should i do?")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_10() {
+        if let Some(got) = unless_unported(|| pool_name("my mum died, i dont need advice")) {
+            assert_eq!(got, Some("no_advice".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_11() {
+        if let Some(got) = unless_unported(|| says_a_death("my mum died, i dont need advice")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_12() {
+        if let Some(got) = unless_unported(|| pool_name("what advice would you give")) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_13() {
+        if let Some(got) = unless_unported(|| says_a_death("what advice would you give")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_14() {
+        if let Some(got) = unless_unported(|| pool_name("i just want to be heard, is that ok")) {
+            assert_eq!(got, Some("no_advice".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_15() {
+        if let Some(got) = unless_unported(|| says_a_death("i just want to be heard, is that ok")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_16() {
+        if let Some(got) = unless_unported(|| pool_name("can i just talk")) {
+            assert_eq!(got, Some("no_advice".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_17() {
+        if let Some(got) = unless_unported(|| says_a_death("can i just talk")) {
+            assert_eq!(got, false);
+        }
+    }
+}

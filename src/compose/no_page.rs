@@ -1,39 +1,269 @@
-//! Port of `bot/compose/no_page.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/no_page.py`: "how do i handle my mum", "how do i get through christmas",
+//! "how do i cope with it all" have no page to point at, so the reply names the parts the
+//! question is made of.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
+use crate::compose::fallback_chain::py_format;
+use crate::data;
+use crate::py::re::{Match, Re};
+use crate::py::text;
+use crate::state::Memory;
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
-/// Python: bot/compose/no_page.py:154 `_bare(text)`
+macro_rules! regexes {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<&'static Re> =
+            LazyLock::new(|| data::re(concat!("bot.compose.no_page.", stringify!($name))));)*
+    };
+}
+regexes!(DOING, PERSON, STRETCH_WORDS, OCCASION, WHOLE, NOT_THIS);
+const M: &str = "bot.compose.no_page.";
+/// `re.search(r"\b" + word + r"\b", line)` for each of `BODY`.
+static BODY: LazyLock<Vec<Re>> =
+    LazyLock::new(|| data::strs(&format!("{M}BODY")).iter().map(|w| Re::new(&format!(r"\b{w}\b"), 0)).collect());
+static FEMALE_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(&format!("{M}FEMALE_WORDS")));
+static PLURAL_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(&format!("{M}PLURAL_WORDS")));
+static TAIL_OK: LazyLock<HashSet<String>> = LazyLock::new(|| data::set(&format!("{M}TAIL_OK")));
+static PROSE: LazyLock<&'static crate::data::Value> = LazyLock::new(|| data::get(&format!("{M}PROSE")));
+/// The patterns written inline in `_bare` and `_who`.
+static SPACES: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+", 0));
+static OWNER: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(?:my|our|the)\s+", 0));
+static WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z-]+", 0));
+
+/// Python: bot/compose/no_page.py:157 `_bare(text)`
 pub fn _bare(text: &str) -> String {
-    crate::unported!("bot.compose.no_page:_bare")
+    let squashed = SPACES.sub(" ", text::strip(text));
+    text::lower(text::strip_chars(&squashed, " .!,"))
 }
 
-/// Python: bot/compose/no_page.py:158 `_who(match)` (never called on the trace corpus)
-pub fn _who(r#match: &Value) -> Value {
-    crate::unported!("bot.compose.no_page:_who")
+/// Python: bot/compose/no_page.py:161 `_who(match)`
+///
+/// The person as they were named, and the pronoun that goes with them (only this file calls it,
+/// with the `PERSON` match).
+pub fn _who(found: &Match) -> (String, String) {
+    let phrase = text::strip(found.name("who").unwrap_or(""));
+    let phrase = OWNER.subn("your ", phrase, 1);
+    let words = WORDS.findall_str(&text::lower(&phrase));
+    let mut them = "them";
+    if !words.iter().any(|w| PLURAL_WORDS.contains(w)) {
+        them = if words.iter().any(|w| FEMALE_WORDS.contains(w)) {
+            "her"
+        } else if words.iter().any(|w| w == "ex" || w == "partner") {
+            "them"
+        } else {
+            "him"
+        };
+    }
+    (phrase, them.to_string())
 }
 
-/// Python: bot/compose/no_page.py:185 `_tail_ok(match, line)` (never called on the trace corpus)
-pub fn _tail_ok(r#match: &Value, line: &str) -> bool {
-    crate::unported!("bot.compose.no_page:_tail_ok")
+/// Python: bot/compose/no_page.py:186 `_tail_ok(match, line)` (only this file calls it).
+pub fn _tail_ok(found: &Match, line: &str) -> bool {
+    let tail = text::strip_chars(&line[found.end()..], " .!,");
+    TAIL_OK.contains(tail) || tail.starts_with("when ")
 }
 
-/// Python: bot/compose/no_page.py:192 `reads(text)`
-pub fn reads(text: &str) {
-    crate::unported!("bot.compose.no_page:reads")
+/// Python: bot/compose/no_page.py:191 `reads(text)`
+///
+/// The kind of ask this is - "person", "occasion", "stretch", "whole" - or None.
+pub fn reads(text: &str) -> Option<String> {
+    let line = _bare(text);
+    if line.is_empty() || !DOING.is_match(&line) {
+        return None;
+    }
+    if NOT_THIS.is_match(&line) {
+        return None;
+    }
+    if BODY.iter().any(|word| word.is_match(&line)) {
+        return None;
+    }
+    if let Some(person) = PERSON.search(&line) {
+        if _tail_ok(&person, &line) {
+            return Some("person".into());
+        }
+    }
+    if let Some(occasion) = OCCASION.search(&line) {
+        if _tail_ok(&occasion, &line) {
+            if STRETCH_WORDS.is_match(&line) {
+                return Some("stretch".into());
+            }
+            return Some("occasion".into());
+        }
+    }
+    if WHOLE.is_match(&line) {
+        return Some("whole".into());
+    }
+    None
 }
 
-/// Python: bot/compose/no_page.py:214 `reply_for(text, memory=None)`
-pub fn reply_for(text: &str, memory: &Memory) {
-    crate::unported!("bot.compose.no_page:reply_for")
+/// Python: bot/compose/no_page.py:211 `reply_for(text, memory=None)`
+///
+/// The parts it is made of and the one question back, or None when this is not the ask.
+pub fn reply_for(text: &str, memory: &Memory) -> Option<String> {
+    let kind = reads(text).filter(|k| !k.is_empty())?;
+    let pool = PROSE.get(&kind).expect("KeyError").strs();
+    let line = &pool[memory.turns.len() % pool.len()];
+    let bare = _bare(text);
+    if kind == "person" {
+        let (who, them) = _who(&PERSON.search(&bare).expect("AttributeError"));
+        return Some(py_format(line, &[("who", &who), ("them", &them)]));
+    }
+    if kind == "occasion" || kind == "stretch" {
+        let found = OCCASION.search(&bare).expect("AttributeError");
+        let said = py_format(line, &[("what", found.name_str("what"))]);
+        let mut chars = said.chars();
+        let first = chars.next().map(|c| c.to_uppercase().collect::<String>()).expect("IndexError");
+        return Some(first + chars.as_str());
+    }
+    Some(line.clone())
 }
 
+// ---- COM5-CASES (generated by harness/com5_cases.py; expected values from PyBot) ----
+#[cfg(test)]
+mod pybot_cases {
+    #![allow(unused_imports, dead_code)]
+    use super::*;
+    use crate::data::Value;
+    use crate::state::{Memory, Turn};
+
+    fn mem(turns: &[(&str, &str, &str)]) -> Memory {
+        let mut m = Memory::new();
+        m.turns = turns
+            .iter()
+            .map(|(u, b, md)| Turn { user: u.to_string(), bot: b.to_string(), module: (!md.is_empty()).then(|| md.to_string()) })
+            .collect();
+        m
+    }
+
+    /// The call's result, or None when it reached a function another workstream has not ported yet.
+    fn unless_unported<T>(f: impl FnOnce() -> T) -> Option<T> {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
+                if msg.starts_with("UNPORTED") {
+                    eprintln!("skipped: {msg}");
+                    return None;
+                }
+                std::panic::resume_unwind(e)
+            }
+        }
+    }
+
+    /// True when the call raises (panics), as the Python does.
+    fn raises<T>(f: impl FnOnce() -> T) -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+    }
+
+    #[test]
+    fn case_0() {
+        if let Some(got) = unless_unported(|| reads("how do i handle my mum")) {
+            assert_eq!(got, Some("person".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_1() {
+        if let Some(got) = unless_unported(|| reply_for("how do i handle my mum", &Memory::new())) {
+            assert_eq!(got, Some("There's no way to handle a person whole, so take one behaviour: the thing your mum will keep doing, and what you'll do when it happens again. Say it once, at a calm moment, about the time together rather than about her ('I need to be home by nine'), and keep that time shorter than feels natural - it is the part that helps most. Where the answer has to come from someone professional, the GP surgery and Citizens Advice are the two doors.".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_2() {
+        if let Some(got) = unless_unported(|| reads("how do i get through christmas")) {
+            assert_eq!(got, Some("occasion".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_3() {
+        if let Some(got) = unless_unported(|| reply_for("how do i get through christmas", &Memory::new())) {
+            assert_eq!(got, Some("There's no one answer for christmas, because it is really three questions: what you can spend, whose place it is at, and which people you can't be in a room with. Settle the first two this week and the third gets much smaller. If money is the tight part, the budgeting pages at Citizens Advice walk through it free.".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_4() {
+        if let Some(got) = unless_unported(|| reads("how do i cope with it all")) {
+            assert_eq!(got, Some("whole".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_5() {
+        if let Some(got) = unless_unported(|| reply_for("how do i cope with it all", &Memory::new())) {
+            assert_eq!(got, Some("That is too big to answer as one thing, so start with the load: write down everything that's on you, then mark the two that make the rest worse - for most people that is money and sleep. Fix one of those this week with the smallest real step, a budget you can see or a bedtime you keep. If it is money, housing or a benefit, Citizens Advice will go through your actual numbers free.".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_6() {
+        if let Some(got) = unless_unported(|| reads("how do i deal with my ex when he drops the kids")) {
+            assert_eq!(got, Some("person".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_7() {
+        if let Some(got) = unless_unported(|| reply_for("how do i deal with my ex when he drops the kids", &Memory::new())) {
+            assert_eq!(got, Some("There's no way to handle a person whole, so take one behaviour: the thing your ex will keep doing, and what you'll do when it happens again. Say it once, at a calm moment, about the time together rather than about them ('I need to be home by nine'), and keep that time shorter than feels natural - it is the part that helps most. Where the answer has to come from someone professional, the GP surgery and Citizens Advice are the two doors.".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_8() {
+        if let Some(got) = unless_unported(|| reads("how do i handle the pain")) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_9() {
+        if let Some(got) = unless_unported(|| reply_for("how do i handle the pain", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_10() {
+        if let Some(got) = unless_unported(|| reads("how do i manage half term")) {
+            assert_eq!(got, Some("stretch".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_11() {
+        if let Some(got) = unless_unported(|| reply_for("how do i manage half term", &Memory::new())) {
+            assert_eq!(got, Some("With half term, it is mostly about days rather than plans: pick two of them for something out of the house, leave the rest loose, and line up the one thing that gets everyone up in the morning. Ask whoever might help - a grandparent, a friend - this week rather than on the Monday, and your council lists the free activities by area.".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_12() {
+        if let Some(got) = unless_unported(|| reads("how do i fix the boiler")) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_13() {
+        if let Some(got) = unless_unported(|| reply_for("how do i fix the boiler", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_14() {
+        if let Some(got) = unless_unported(|| reads("how can we survive the summer holidays on my own")) {
+            assert_eq!(got, Some("stretch".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_15() {
+        if let Some(got) = unless_unported(|| reply_for("how can we survive the summer holidays on my own", &Memory::new())) {
+            assert_eq!(got, Some("With the summer holidays, it is mostly about days rather than plans: pick two of them for something out of the house, leave the rest loose, and line up the one thing that gets everyone up in the morning. Ask whoever might help - a grandparent, a friend - this week rather than on the Monday, and your council lists the free activities by area.".to_string()));
+        }
+    }
+}

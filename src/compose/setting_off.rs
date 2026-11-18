@@ -1,39 +1,273 @@
-//! Port of `bot/compose/setting_off.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/setting_off.py`: "what time should i leave" gets the method for working
+//! it out (back from the hour you must be there), in place of a pointer to search.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
+use crate::data;
 use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
+use crate::py::text;
+use crate::state::Memory;
 use std::sync::LazyLock;
 
-/// Python: bot/compose/setting_off.py:176 `_the_hour_already_said(text, memory)` (never called on the trace corpus)
-pub fn _the_hour_already_said(text: &str, memory: &Memory) -> Value {
-    crate::unported!("bot.compose.setting_off:_the_hour_already_said")
+macro_rules! regexes {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<&'static Re> =
+            LazyLock::new(|| data::re(concat!("bot.compose.setting_off.", stringify!($name))));)*
+    };
+}
+regexes!(
+    ASK_SHAPE, ASK_LATEST, FIRST_PERSON, THEIR_OWN_CHOICE, SOMEBODY_ELSE, SET_OFF_A_THING,
+    THEIR_TIMETABLE, A_TIME_GIVEN, THE_HOUR_IS_FIXED, A_DESTINATION,
+);
+macro_rules! strs {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<Vec<String>> =
+            LazyLock::new(|| data::strs(concat!("bot.compose.setting_off.", stringify!($name))));)*
+    };
+}
+strs!(SETTING_OFF, NOT_A_JOURNEY, POINTERS, NEEDS_THE_HOUR, THE_HOUR_IS_KNOWN, THE_HOUR_THEY_SAID, A_PLACE_NAMED);
+/// `re.sub(r"^(?:at|by|for|before|until|till)\s+", "", ...)`, written inline.
+static A_PREPOSITION: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(?:at|by|for|before|until|till)\s+", 0));
+
+/// Python: bot/compose/setting_off.py:150 `_the_hour_already_said(text, memory)`
+///
+/// The hour the person fixed a line or two back, with the preposition off it ("9", "2.30pm"),
+/// or "" (only this file calls it).
+pub fn _the_hour_already_said(_text: &str, memory: &Memory) -> String {
+    let turns = &memory.turns[memory.turns.len().saturating_sub(2)..];
+    for turn in turns.iter().rev() {
+        let said = text::squash(&text::lower(&turn.user));
+        if said.is_empty() || !THE_HOUR_IS_FIXED.is_match(&said) {
+            continue;
+        }
+        let Some(found) = A_TIME_GIVEN.search(&said) else { continue };
+        return A_PREPOSITION.sub("", text::strip(found.as_str()));
+    }
+    String::new()
 }
 
-/// Python: bot/compose/setting_off.py:191 `is_a_pointer(reply)`
+/// Python: bot/compose/setting_off.py:166 `is_a_pointer(reply)`
+///
+/// True when the composer's line names where to look rather than giving an answer.
 pub fn is_a_pointer(reply: &str) -> bool {
-    crate::unported!("bot.compose.setting_off:is_a_pointer")
+    let said = text::lower(reply);
+    POINTERS.iter().any(|shape| said.contains(shape.as_str()))
 }
 
-/// Python: bot/compose/setting_off.py:197 `reads_it(text)`
+/// Python: bot/compose/setting_off.py:172 `reads_it(text)`
+///
+/// True for a question about what time the person should set off.
 pub fn reads_it(text: &str) -> bool {
-    crate::unported!("bot.compose.setting_off:reads_it")
+    let said = text::squash(&text::lower(text));
+    if said.is_empty() {
+        return false;
+    }
+    if !(ASK_SHAPE.is_match(&said) || ASK_LATEST.is_match(&said)) {
+        return false;
+    }
+    if !(FIRST_PERSON.is_match(&said) || (THEIR_OWN_CHOICE.is_match(&said) && !SOMEBODY_ELSE.is_match(&said))) {
+        return false;
+    }
+    if !SETTING_OFF.iter().any(|verb| said.contains(verb.as_str())) {
+        return false;
+    }
+    if NOT_A_JOURNEY.iter().any(|fence| said.contains(fence.as_str())) {
+        return false;
+    }
+    if SET_OFF_A_THING.is_match(&said) {
+        return false;
+    }
+    !THEIR_TIMETABLE.is_match(&said)
 }
 
-/// Python: bot/compose/setting_off.py:218 `_choose(pool, memory)` (never called on the trace corpus)
-pub fn _choose(pool: &Value, memory: &Memory) -> Value {
-    crate::unported!("bot.compose.setting_off:_choose")
+/// Python: bot/compose/setting_off.py:192 `_choose(pool, memory)`
+///
+/// The first line whose opening the bot's last reply does not already carry (only this file
+/// calls it).
+pub fn _choose(pool: &[String], memory: &Memory) -> String {
+    let last = memory.turns.last().map(|t| t.bot.as_str()).unwrap_or("");
+    for line in pool {
+        if last.is_empty() || !last.contains(&text::slice(line, 0, Some(30))) {
+            return line.clone();
+        }
+    }
+    pool[0].clone()
 }
 
-/// Python: bot/compose/setting_off.py:229 `answer_for(text, memory=None)`
-pub fn answer_for(text: &str, memory: &Memory) {
-    crate::unported!("bot.compose.setting_off:answer_for")
+/// Python: bot/compose/setting_off.py:203 `answer_for(text, memory=None)`
+///
+/// The method for working out a leaving time, or None.
+pub fn answer_for(text: &str, memory: &Memory) -> Option<String> {
+    if !reads_it(text) {
+        return None;
+    }
+    let said = text::squash(&text::lower(text));
+    if A_TIME_GIVEN.is_match(&said) {
+        return Some(_choose(&THE_HOUR_IS_KNOWN, memory));
+    }
+    let hour = _the_hour_already_said(text, memory);
+    if !hour.is_empty() {
+        // `line % hour`: each line holds one "%s".
+        let lines: Vec<String> = THE_HOUR_THEY_SAID.iter().map(|line| line.replacen("%s", &hour, 1)).collect();
+        return Some(_choose(&lines, memory));
+    }
+    if A_DESTINATION.is_match(&said) {
+        return Some(_choose(&A_PLACE_NAMED, memory));
+    }
+    Some(_choose(&NEEDS_THE_HOUR, memory))
 }
 
+// ---- COM5-CASES (generated by harness/com5_cases.py; expected values from PyBot) ----
+#[cfg(test)]
+mod pybot_cases {
+    #![allow(unused_imports, dead_code)]
+    use super::*;
+    use crate::data::Value;
+    use crate::state::{Memory, Turn};
+
+    fn mem(turns: &[(&str, &str, &str)]) -> Memory {
+        let mut m = Memory::new();
+        m.turns = turns
+            .iter()
+            .map(|(u, b, md)| Turn { user: u.to_string(), bot: b.to_string(), module: (!md.is_empty()).then(|| md.to_string()) })
+            .collect();
+        m
+    }
+
+    /// The call's result, or None when it reached a function another workstream has not ported yet.
+    fn unless_unported<T>(f: impl FnOnce() -> T) -> Option<T> {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
+                if msg.starts_with("UNPORTED") {
+                    eprintln!("skipped: {msg}");
+                    return None;
+                }
+                std::panic::resume_unwind(e)
+            }
+        }
+    }
+
+    /// True when the call raises (panics), as the Python does.
+    fn raises<T>(f: impl FnOnce() -> T) -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+    }
+
+    #[test]
+    fn case_0() {
+        if let Some(got) = unless_unported(|| reads_it("what time should i leave for the airport")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_1() {
+        if let Some(got) = unless_unported(|| answer_for("what time should i leave for the airport", &Memory::new())) {
+            assert_eq!(got, Some("I can't see today's roads or trains from here, so the journey part has to come off a planner - but the working out is the same either way: the hour you have to be there, minus the journey for that time of day, minus ten minutes for parking and the walk in. Check the planner on the morning, when the traffic is real.".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_2() {
+        if let Some(got) = unless_unported(|| reads_it("what time should i leave my husband")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_3() {
+        if let Some(got) = unless_unported(|| answer_for("what time should i leave my husband", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_4() {
+        if let Some(got) = unless_unported(|| reads_it("what time should i set off if my flight is at 9am")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_5() {
+        if let Some(got) = unless_unported(|| answer_for("what time should i set off if my flight is at 9am", &Memory::new())) {
+            assert_eq!(got, Some("Work back from that hour: a journey planner for that time of day gives the journey and the traffic so far, and ten minutes on top covers parking and the walk in. Look at the planner again just before you go, because that is when a closure or a cancellation is real.".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_6() {
+        if let Some(got) = unless_unported(|| reads_it("when does the bus leave")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_7() {
+        if let Some(got) = unless_unported(|| answer_for("when does the bus leave", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_8() {
+        if let Some(got) = unless_unported(|| reads_it("whats the latest i can leave")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_9() {
+        if let Some(got) = unless_unported(|| answer_for("whats the latest i can leave", &Memory::new())) {
+            assert_eq!(got, Some("Work back from the hour you have to be there, not forward from now: a journey planner for that time of day gives the journey, then ten minutes on top for parking and finding the door, and that is when to set off. I can't see today's traffic or the timetables from here - the planner or the operator's app has them, live on the morning. What time do you have to be there?".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_10() {
+        if let Some(got) = unless_unported(|| reads_it("what time should he leave")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_11() {
+        if let Some(got) = unless_unported(|| answer_for("what time should he leave", &Memory::new())) {
+            assert_eq!(got, None);
+        }
+    }
+
+    #[test]
+    fn case_12() {
+        if let Some(got) = unless_unported(|| reads_it("when should i set off")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_13() {
+        if let Some(got) = unless_unported(|| answer_for("when should i set off", &Memory::new())) {
+            assert_eq!(got, Some("Work back from the hour you have to be there, not forward from now: a journey planner for that time of day gives the journey, then ten minutes on top for parking and finding the door, and that is when to set off. I can't see today's traffic or the timetables from here - the planner or the operator's app has them, live on the morning. What time do you have to be there?".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_14() {
+        if let Some(got) = unless_unported(|| answer_for("when should i set off", &mem(&[("i have an interview at 2.30pm", "Good luck.", "chat")]))) {
+            assert_eq!(got, Some("You said 2, so that is the hour to work back from: a journey planner for that time of day gives the journey, ten minutes on top covers parking and the walk in, and that is when to set off. Look at the planner again on the morning, because that is when a closure or a delay is real.".to_string()));
+        }
+    }
+
+    #[test]
+    fn case_15() {
+        if let Some(got) = unless_unported(|| is_a_pointer("A search should sort you out.")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_16() {
+        if let Some(got) = unless_unported(|| is_a_pointer("Leave at 8.")) {
+            assert_eq!(got, false);
+        }
+    }
+}

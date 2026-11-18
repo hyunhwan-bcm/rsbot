@@ -1,44 +1,204 @@
-//! Port of `bot/compose/worn.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/worn.py`: "this spreadsheet is killing me", "so much to do" - a thing
+//! that wears, a pile of things to do, or the work itself - gets a question about that.
 
+use crate::compose::fallback_chain::truthy;
+use crate::compose::trouble;
 use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
 use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
+use crate::py::text;
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
-/// Python: bot/compose/worn.py:144 `pool(shape)` (never called on the trace corpus)
+const M: &str = "bot.compose.worn.";
+static WEAR: LazyLock<&'static Re> = LazyLock::new(|| data::re(&format!("{M}WEAR")));
+static PILE: LazyLock<&'static Re> = LazyLock::new(|| data::re(&format!("{M}PILE")));
+static CONTENT: LazyLock<&'static Re> = LazyLock::new(|| data::re(&format!("{M}CONTENT")));
+macro_rules! sets {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<HashSet<String>> =
+            LazyLock::new(|| data::set(concat!("bot.compose.worn.", stringify!($name))));)*
+    };
+}
+sets!(MONEY, WEATHER, A_STRETCH, EXTRA_BODY, NOT_A_JOB, POINTING, ROLE);
+static PLEA: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.trouble.PLEA"));
+static BODY_PART: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.compose.trouble.BODY_PART"));
+
+/// Python: bot/compose/worn.py:111 `pool(shape)`
+///
+/// The replies for a shape: "pile", "role", or (anything else) one job that fights back.
 pub fn pool(shape: &Value) -> Value {
-    crate::unported!("bot.compose.worn:pool")
+    let name = match shape.as_str() {
+        Some("pile") => "PILE_REPLIES",
+        Some("role") => "ROLE_REPLIES",
+        _ => "JOB_REPLIES",
+    };
+    data::get(&format!("{M}{name}")).clone()
 }
 
-/// Python: bot/compose/worn.py:154 `reads_as_worn(clean, words=None, repaired='')`
-pub fn reads_as_worn(clean: &str, words: &[String], repaired: &str) {
-    crate::unported!("bot.compose.worn:reads_as_worn")
+/// Python: bot/compose/worn.py:121 `reads_as_worn(clean, words=None, repaired="")`
+///
+/// "pile", "role" or "job" for the wear the line names, or None. `words` empty is Python's None
+/// (read from the line); `repaired` is only consulted when the line as typed is not one.
+pub fn reads_as_worn(clean: &str, words: &[String], repaired: &str) -> Option<String> {
+    let text = text::squash(&text::lower(clean));
+    if text.is_empty() || text.contains('?') {
+        return None; // a question asks something back and is answered as one
+    }
+    let words = if words.is_empty() { None } else { Some(words) };
+    let mut shape = _shape(&text, words);
+    if shape.is_none() && !repaired.is_empty() && repaired != text {
+        shape = _shape(repaired, None);
+    }
+    shape
 }
 
-/// Python: bot/compose/worn.py:169 `_shape(text, words=None)`
-pub fn _shape(text: &str, words: Option<&[String]>) {
-    crate::unported!("bot.compose.worn:_shape")
+/// Python: bot/compose/worn.py:134 `_shape(text, words=None)`
+///
+/// The shape of the wear in this one text, or None.
+pub fn _shape(text: &str, words: Option<&[String]>) -> Option<String> {
+    // `set(words) if words else set(CONTENT.findall(text))`, first seen first
+    let mut set: Vec<String> = Vec::new();
+    let source = match words.filter(|w| !w.is_empty()) {
+        Some(w) => w.to_vec(),
+        None => CONTENT.findall_str(text),
+    };
+    for word in source {
+        if !set.contains(&word) {
+            set.push(word);
+        }
+    }
+    if set.is_empty() {
+        return None;
+    }
+    if trouble::someone_elses(&set) {
+        return None;
+    }
+    if truthy(trouble::reads_as_trouble(text, Some(&set), "")) {
+        return None;
+    }
+    if PLEA.is_match(text) {
+        return None;
+    }
+    if set.iter().any(|w| WEATHER.contains(w)) || set.iter().any(|w| MONEY.contains(w)) {
+        return None;
+    }
+    if !PILE.finditer(text).is_empty() && _names_a_job(text) {
+        return Some("pile".into());
+    }
+    for found in WEAR.finditer(text) {
+        let subject = &text[..found.start()];
+        if CONTENT.findall_str(subject).iter().any(|w| BODY_PART.contains(w) || EXTRA_BODY.contains(w)) {
+            continue;
+        }
+        if _is_a_role(subject) {
+            return Some("role".into());
+        }
+        if _names_a_job(subject) {
+            return Some("job".into());
+        }
+    }
+    None
 }
 
-/// Python: bot/compose/worn.py:205 `_content_words(clause)` (never called on the trace corpus)
-pub fn _content_words(clause: &str) -> Value {
-    crate::unported!("bot.compose.worn:_content_words")
+/// Python: bot/compose/worn.py:160 `_content_words(clause)`
+///
+/// The words of a clause that name something, without the ones that only point at it.
+pub fn _content_words(clause: &str) -> Vec<String> {
+    CONTENT.findall_str(clause).into_iter().filter(|w| !POINTING.contains(w) && !A_STRETCH.contains(w)).collect()
 }
 
-/// Python: bot/compose/worn.py:211 `_is_a_role(clause)` (never called on the trace corpus)
+/// Python: bot/compose/worn.py:166 `_is_a_role(clause)`
+///
+/// True when the wear is about their work or their course, and nothing else.
 pub fn _is_a_role(clause: &str) -> bool {
-    crate::unported!("bot.compose.worn:_is_a_role")
+    let content = _content_words(clause);
+    !content.is_empty() && content.iter().all(|w| ROLE.contains(w))
 }
 
-/// Python: bot/compose/worn.py:220 `_names_a_job(clause)` (never called on the trace corpus)
+/// Python: bot/compose/worn.py:175 `_names_a_job(clause)`
+///
+/// True when the clause names something to be done, not just a stretch of time.
 pub fn _names_a_job(clause: &str) -> bool {
-    crate::unported!("bot.compose.worn:_names_a_job")
+    let content = _content_words(clause);
+    !content.is_empty() && !content.iter().all(|w| NOT_A_JOB.contains(w))
 }
 
+// ---- COM5-CASES (generated by harness/com5_cases.py; expected values from PyBot) ----
+#[cfg(test)]
+mod pybot_cases {
+    #![allow(unused_imports, dead_code)]
+    use super::*;
+    use crate::data::Value;
+    use crate::state::{Memory, Turn};
+
+    fn mem(turns: &[(&str, &str, &str)]) -> Memory {
+        let mut m = Memory::new();
+        m.turns = turns
+            .iter()
+            .map(|(u, b, md)| Turn { user: u.to_string(), bot: b.to_string(), module: (!md.is_empty()).then(|| md.to_string()) })
+            .collect();
+        m
+    }
+
+    /// The call's result, or None when it reached a function another workstream has not ported yet.
+    fn unless_unported<T>(f: impl FnOnce() -> T) -> Option<T> {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
+                if msg.starts_with("UNPORTED") {
+                    eprintln!("skipped: {msg}");
+                    return None;
+                }
+                std::panic::resume_unwind(e)
+            }
+        }
+    }
+
+    /// True when the call raises (panics), as the Python does.
+    fn raises<T>(f: impl FnOnce() -> T) -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+    }
+
+    #[test]
+    fn case_0() {
+        if let Some(got) = unless_unported(|| _names_a_job("this week has been a nightmare")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_1() {
+        if let Some(got) = unless_unported(|| _is_a_role("this week has been a nightmare")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_2() {
+        if let Some(got) = unless_unported(|| _names_a_job("work is killing me")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_3() {
+        if let Some(got) = unless_unported(|| _is_a_role("work is killing me")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_4() {
+        if let Some(got) = unless_unported(|| _names_a_job("my back is killing me")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_5() {
+        if let Some(got) = unless_unported(|| _is_a_role("my back is killing me")) {
+            assert_eq!(got, false);
+        }
+    }
+}

@@ -1,39 +1,289 @@
-//! Port of `bot/compose/childwords.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/childwords.py`: "how do i tell my son", in a thread where somebody has
+//! died, is an ask for the words to use with a child.
 
+use crate::compose::fallback_chain::caught;
 use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
 use crate::py::re::Re;
-use crate::runtime::Candidate;
+use crate::py::text;
 use crate::state::{Memory, Turn};
-use crate::understood::Understood;
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
-/// Python: bot/compose/childwords.py:62 `_the_tail_after_the_child(text)` (never called on the trace corpus)
-pub fn _the_tail_after_the_child(text: &str) -> Value {
-    crate::unported!("bot.compose.childwords:_the_tail_after_the_child")
+macro_rules! regexes {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<&'static Re> =
+            LazyLock::new(|| data::re(concat!("bot.compose.childwords.", stringify!($name))));)*
+    };
+}
+regexes!(
+    A_CHILD_DIED, A_DEATH_IN_THE_LINE, A_SUICIDE_IN_THE_LINE, TELL_ASK, A_CHILD_IN_THE_ASK,
+    _A_PERSON_IN_THE_TAIL, A_DEATH_IN_THE_TAIL,
+);
+static TAIL_FILLER: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.compose.childwords.TAIL_FILLER"));
+static TAIL_ABOUT_THE_ONE_WHO_DIED: LazyLock<HashSet<String>> =
+    LazyLock::new(|| data::set("bot.compose.childwords.TAIL_ABOUT_THE_ONE_WHO_DIED"));
+/// `re.findall(r"[a-z']+", tail)`, written inline in `_the_tail_is_about_the_death`.
+static AZ_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z']+", 0));
+
+/// `turns[-look_back:]` with Python's slice rules (0 is the whole list).
+fn last_turns(turns: &[Turn], look_back: i64) -> &[Turn] {
+    let n = turns.len() as i64;
+    let start = if look_back == 0 { 0 } else if look_back > 0 { (n - look_back).max(0) } else { (-look_back).min(n) };
+    &turns[start as usize..]
 }
 
-/// Python: bot/compose/childwords.py:72 `_the_tail_is_about_the_death(tail)` (never called on the trace corpus)
+/// Python: bot/compose/childwords.py:57 `_the_tail_after_the_child(text)`
+///
+/// The words after the last child named in the ask, or None when no child is named.
+pub fn _the_tail_after_the_child(text: &str) -> Option<String> {
+    let last = A_CHILD_IN_THE_ASK.finditer(text).into_iter().last()?;
+    Some(text[last.end()..].to_string())
+}
+
+/// Python: bot/compose/childwords.py:67 `_the_tail_is_about_the_death(tail)`
+///
+/// True when what follows the child leaves the ask about the death, and not about something else.
 pub fn _the_tail_is_about_the_death(tail: &str) -> bool {
-    crate::unported!("bot.compose.childwords:_the_tail_is_about_the_death")
+    let words = AZ_WORDS.findall_str(tail);
+    if words.is_empty() {
+        return true; // "how do i tell my son"
+    }
+    if A_DEATH_IN_THE_TAIL.is_match(tail) {
+        return !_A_PERSON_IN_THE_TAIL.is_match(tail);
+    }
+    // A word that is neither filler nor about the one who died is a subject of its own.
+    words.iter().all(|word| TAIL_FILLER.contains(word) || TAIL_ABOUT_THE_ONE_WHO_DIED.contains(word))
 }
 
-/// Python: bot/compose/childwords.py:105 `a_death_in_the_thread(memory, look_back=3)` (never called on the trace corpus)
+/// Python: bot/compose/childwords.py:105 `a_death_in_the_thread(memory, look_back=3)`
+///
+/// True when the person said a death in one of their last few lines. `look_back` is an int
+/// (callers pass 3 for the default).
 pub fn a_death_in_the_thread(memory: &Memory, look_back: &Value) -> bool {
-    crate::unported!("bot.compose.childwords:a_death_in_the_thread")
+    let look_back = look_back.as_int().unwrap_or(3);
+    last_turns(&memory.turns, look_back).iter().any(|turn| {
+        let said = text::squash(&text::lower(&turn.user));
+        !said.is_empty() && A_DEATH_IN_THE_LINE.is_match(&said)
+    })
 }
 
-/// Python: bot/compose/childwords.py:123 `asks_the_words_for_a_child(clean, memory)`
+/// Python: bot/compose/childwords.py:124 `asks_the_words_for_a_child(clean, memory)`
+///
+/// A how-do-I-tell ask about a child, in a thread where somebody has died.
 pub fn asks_the_words_for_a_child(clean: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.childwords:asks_the_words_for_a_child")
+    let text = text::squash(&text::lower(clean));
+    if text.is_empty() {
+        return false;
+    }
+    if !(TELL_ASK.is_match(&text) && A_CHILD_IN_THE_ASK.is_match(&text)) {
+        return false;
+    }
+    let thread = caught(|| {
+        if !a_death_in_the_thread(memory, &Value::Int(3)) {
+            return None;
+        }
+        Some(_the_last_few_lines(memory, &Value::Int(4)))
+    });
+    let Some(Some(thread)) = thread else { return false };
+    if A_SUICIDE_IN_THE_LINE.is_match(&thread) || A_SUICIDE_IN_THE_LINE.is_match(&text) {
+        return false;
+    }
+    if A_CHILD_DIED.is_match(&text) {
+        return false;
+    }
+    match _the_tail_after_the_child(&text) {
+        Some(tail) => _the_tail_is_about_the_death(&tail),
+        None => false,
+    }
 }
 
-/// Python: bot/compose/childwords.py:156 `_the_last_few_lines(memory, look_back=4)` (never called on the trace corpus)
+/// Python: bot/compose/childwords.py:154 `_the_last_few_lines(memory, look_back=4)`
+///
+/// The recent lines of the conversation, the person's and the bot's, as one lower-case string.
 pub fn _the_last_few_lines(memory: &Memory, look_back: &Value) -> String {
-    crate::unported!("bot.compose.childwords:_the_last_few_lines")
+    let look_back = look_back.as_int().unwrap_or(4);
+    let mut lines: Vec<&str> = Vec::new();
+    for turn in last_turns(&memory.turns, look_back) {
+        lines.push(&turn.user);
+        lines.push(&turn.bot);
+    }
+    text::lower(&lines.join(" "))
 }
 
+// ---- COM5-CASES (generated by harness/com5_cases.py; expected values from PyBot) ----
+#[cfg(test)]
+mod pybot_cases {
+    #![allow(unused_imports, dead_code)]
+    use super::*;
+    use crate::data::Value;
+    use crate::state::{Memory, Turn};
+
+    fn mem(turns: &[(&str, &str, &str)]) -> Memory {
+        let mut m = Memory::new();
+        m.turns = turns
+            .iter()
+            .map(|(u, b, md)| Turn { user: u.to_string(), bot: b.to_string(), module: (!md.is_empty()).then(|| md.to_string()) })
+            .collect();
+        m
+    }
+
+    /// The call's result, or None when it reached a function another workstream has not ported yet.
+    fn unless_unported<T>(f: impl FnOnce() -> T) -> Option<T> {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
+                if msg.starts_with("UNPORTED") {
+                    eprintln!("skipped: {msg}");
+                    return None;
+                }
+                std::panic::resume_unwind(e)
+            }
+        }
+    }
+
+    /// True when the call raises (panics), as the Python does.
+    fn raises<T>(f: impl FnOnce() -> T) -> bool {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).is_err()
+    }
+
+    #[test]
+    fn case_0() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my son", &mem(&[("my dad died yesterday", "I'm so sorry.", "loss")]))) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_1() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my son", &mem(&[("my dad killed himself", "I'm so sorry.", "safety")]))) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_2() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my son", &Memory::new())) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_3() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my 4 year old about his dad", &mem(&[("my dad died yesterday", "I'm so sorry.", "loss")]))) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_4() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my 4 year old about his dad", &mem(&[("my dad killed himself", "I'm so sorry.", "safety")]))) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_5() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my 4 year old about his dad", &Memory::new())) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_6() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my daughter shes going to be a big sister", &mem(&[("my dad died yesterday", "I'm so sorry.", "loss")]))) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_7() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my daughter shes going to be a big sister", &mem(&[("my dad killed himself", "I'm so sorry.", "safety")]))) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_8() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my daughter shes going to be a big sister", &Memory::new())) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_9() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my son his grandad died", &mem(&[("my dad died yesterday", "I'm so sorry.", "loss")]))) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_10() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my son his grandad died", &mem(&[("my dad killed himself", "I'm so sorry.", "safety")]))) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_11() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("how do i tell my son his grandad died", &Memory::new())) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_12() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("what do i tell the kids", &mem(&[("my dad died yesterday", "I'm so sorry.", "loss")]))) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_13() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("what do i tell the kids", &mem(&[("my dad killed himself", "I'm so sorry.", "safety")]))) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_14() {
+        if let Some(got) = unless_unported(|| asks_the_words_for_a_child("what do i tell the kids", &Memory::new())) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_15() {
+        if let Some(got) = unless_unported(|| _the_tail_is_about_the_death("")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_16() {
+        if let Some(got) = unless_unported(|| _the_tail_is_about_the_death(" his dad")) {
+            assert_eq!(got, true);
+        }
+    }
+
+    #[test]
+    fn case_17() {
+        if let Some(got) = unless_unported(|| _the_tail_is_about_the_death(" shes pregnant")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_18() {
+        if let Some(got) = unless_unported(|| _the_tail_is_about_the_death(" that grandad died")) {
+            assert_eq!(got, false);
+        }
+    }
+
+    #[test]
+    fn case_19() {
+        if let Some(got) = unless_unported(|| _the_tail_is_about_the_death(" please now")) {
+            assert_eq!(got, true);
+        }
+    }
+}
