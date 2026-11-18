@@ -214,6 +214,8 @@ fn same(py: &Json, rs: &Json) -> bool {
             b.sort();
             a == b
         }
+        // Python's `(None, None)` (or `(None, None, None)`) for "nothing", an Option's None here
+        (Json::Array(x), Json::Null) => !x.is_empty() && x.iter().all(Json::is_null),
         // Python's `{}` for "no turn"
         (Json::Object(o), Json::Null) => o.is_empty(),
         (Json::Object(o), Json::Object(r)) if r.contains_key("__turn__") => {

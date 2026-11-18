@@ -144,6 +144,7 @@ fn guard_says_not_mine(guard: &Value, clean: &str) -> bool {
             "bot.compose.gap:NOT_A_QUEUE" => NOT_A_QUEUE(clean),
             "bot.compose.gap:_not_a_record" => _not_a_record(clean),
             "bot.compose.gap:not_a_bare_procedure" => not_a_bare_procedure(clean),
+            "bot.compose.gap:a_sum_through_the_year" => a_sum_through_the_year(clean),
             other => panic!("gap: no port of the guard {other}"),
         };
     }

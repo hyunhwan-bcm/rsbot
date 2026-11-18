@@ -4323,7 +4323,7 @@ mod lanes {
     pub fn limit_reply_for(mem: &Mem) -> Value {
         let memory = m(mem);
         let understood = memory.understood.as_ref().expect("a reading");
-        crate::compose::limit::reply_for(understood, &memory)
+        Value::from(crate::compose::limit::reply_for(understood, &memory))
     }
 
     /// `_limit.FRAME`.

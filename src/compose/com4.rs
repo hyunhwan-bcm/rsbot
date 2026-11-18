@@ -164,3 +164,38 @@ pub fn understood_clean(memory: &Memory) -> &str {
 pub fn any_search(patterns: &[&crate::py::re::Re], text: &str) -> bool {
     patterns.iter().any(|p| p.search(text).is_some())
 }
+
+/// Python's `int(x)` for the values a memory holds (an int, a bool, a float, or a str of
+/// digits), or None where Python raises TypeError or ValueError.
+pub fn py_int(v: &Value) -> Option<i64> {
+    match v {
+        Value::Int(i) => Some(*i),
+        Value::Bool(b) => Some(*b as i64),
+        Value::Float(f) if f.is_finite() => Some(f.trunc() as i64),
+        Value::Str(s) => {
+            let t = text::strip(s).replace('_', "");
+            if s.contains("__") || s.starts_with('_') || s.ends_with('_') {
+                return None;
+            }
+            t.parse::<i64>().ok()
+        }
+        _ => None,
+    }
+}
+
+/// `pool[sum(ord(c) for c in text) % len(pool)]`, the same line for the same words.
+pub fn by_ord<'a>(pool: &'a [String], text_: &str) -> &'a str {
+    &pool[(ord_sum(text_) % pool.len() as i128) as usize]
+}
+
+/// `str(v)` for the scalar values a memory holds.
+pub fn py_str(v: &Value) -> String {
+    match v {
+        Value::None => "None".into(),
+        Value::Bool(b) => if *b { "True".into() } else { "False".into() },
+        Value::Int(i) => i.to_string(),
+        Value::Float(f) => text::float_repr(*f),
+        Value::Str(s) => s.to_string(),
+        other => panic!("str() of {other:?} is not a value this port formats"),
+    }
+}

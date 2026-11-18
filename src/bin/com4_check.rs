@@ -22,6 +22,7 @@
 //   bot.compose.harm:_stands_on_its_own
 //   bot.compose.is_it_worth_it:_with_what_they_said
 //   bot.compose.lead:_the_own_sentence_holding
+//   bot.compose.leaving:_wish_pool
 #![allow(unused_mut, unused_variables, dead_code)]
 
 extern crate rsbot as crate_;
@@ -287,6 +288,29 @@ fn call(name: &str, a: &[Json]) -> Option<Json> {
         "bot.compose.lead:_names_the_line" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::lead::_names_the_line(&p0, &p1))) }
         "bot.compose.lead:_sentence_stands_alone" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::lead::_sentence_stands_alone(&p0))) }
         "bot.compose.lead:shape" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = opt_und(&a[1])?; let p2 = sv(&a[2]); Some(J::j(&crate_::compose::lead::shape(&p0, p1.as_ref(), &p2))) }
+        "bot.compose.leaving:_clauses" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_clauses(&p0))) }
+        "bot.compose.leaving:_is_sign_off" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_is_sign_off(&p0))) }
+        "bot.compose.leaving:_ends_in_a_sign_off" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_ends_in_a_sign_off(&p0))) }
+        "bot.compose.leaving:_is_thanks_clause" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_is_thanks_clause(&p0))) }
+        "bot.compose.leaving:_reads_as_a_body_complaint" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_reads_as_a_body_complaint(&p0))) }
+        "bot.compose.leaving:_reads_as_unwell" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_reads_as_unwell(&p0))) }
+        "bot.compose.leaving:_a_trouble_behind_a_contrast" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_a_trouble_behind_a_contrast(&p0))) }
+        "bot.compose.leaving:_names_their_own_trouble" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_names_their_own_trouble(&p0))) }
+        "bot.compose.leaving:reads_as_a_sign_off" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::reads_as_a_sign_off(&p0))) }
+        "bot.compose.leaving:_is_wish_clause" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_is_wish_clause(&p0))) }
+        "bot.compose.leaving:_is_leave_clause" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_is_leave_clause(&p0))) }
+        "bot.compose.leaving:reads_as_leaving" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = opt_strs(&a[1]); Some(J::j(&crate_::compose::leaving::reads_as_leaving(&p0, p1.as_deref()))) }
+        "bot.compose.leaving:reads_as_a_leave_with_a_body_in_it" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::leaving::reads_as_a_leave_with_a_body_in_it(&p0, &p1))) }
+        "bot.compose.leaving:reads_as_a_leave_with_a_trouble_in_it" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::leaving::reads_as_a_leave_with_a_trouble_in_it(&p0, &p1))) }
+        "bot.compose.leaving:_reads_as_leaving" => { if a.len() != 4 { return None; } let p0 = sv(&a[0]); let p1 = opt_strs(&a[1]); let p2 = truthy(&a[2]); let p3 = truthy(&a[3]); Some(J::j(&crate_::compose::leaving::_reads_as_leaving(&p0, p1.as_deref(), p2, p3))) }
+        "bot.compose.leaving:_asks_something" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_asks_something(&p0))) }
+        "bot.compose.leaving:_is_filler" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_is_filler(&p0))) }
+        "bot.compose.leaving:_thread_is_an_emergency" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::leaving::_thread_is_an_emergency(&p0))) }
+        "bot.compose.leaving:_thread_is_unwell" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::leaving::_thread_is_unwell(&p0))) }
+        "bot.compose.leaving:pool" => { if a.len() != 5 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); let p2 = truthy(&a[2]); let p3 = mem(&a[3]); let p4 = truthy(&a[4]); Some(J::j(&crate_::compose::leaving::pool(&p0, &p1, p2, &p3, p4))) }
+        "bot.compose.leaving:_a_state_not_an_errand" => { if a.len() != 1 { return None; } let p0 = strs(&a[0]); Some(J::j(&crate_::compose::leaving::_a_state_not_an_errand(&p0))) }
+        "bot.compose.leaving:_is_a_bedtime" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_is_a_bedtime(&p0))) }
+        "bot.compose.leaving:lines" => { if a.len() != 0 { return None; }  Some(J::j(&crate_::compose::leaving::lines())) }
         "bot.compose.said_about_me:reads_as_somebody_elses_words" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::said_about_me::reads_as_somebody_elses_words(&p0))) }
         "bot.compose.said_about_me:_kind" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::said_about_me::_kind(&p0))) }
         "bot.compose.said_about_me:reads_as_reported_judgement" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::said_about_me::reads_as_reported_judgement(&p0))) }
