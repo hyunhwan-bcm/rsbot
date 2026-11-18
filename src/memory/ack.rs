@@ -1427,11 +1427,9 @@ fn facts_reported_clause(clean: &str) -> Option<String> {
     facts::_reported_clause(clean)
 }
 
-/// CONTRACT: `trouble::reads_as_trouble` is typed `()`; Python returns a reading or None. The
-/// call is made and its value read as None until the contract carries one.
+/// `trouble.reads_as_trouble(read)`: the reading's shape, or None.
 fn trouble_reading(read: &str) -> Option<String> {
-    crate::compose::trouble::reads_as_trouble(read, None, "");
-    None
+    crate::compose::trouble::reads_as_trouble(read, None, "")
 }
 
 /// CONTRACT: `opening::the_opening` is typed `()`; Python returns the opening question or None.
@@ -3615,11 +3613,10 @@ inline_re!(RE_ALNUM_ANY, r"[a-z0-9]", pyre::I);
 inline_re!(RE_SPACES, r"\s+", 0);
 inline_re!(RE_FIGURE_WORD_SHAPE, r"\d{1,3}(?:st|nd|rd|th)?(?:(?:cm|m|ft|in|kg|st|lbs?)s?)?", 0);
 
-/// CONTRACT: `trouble::reads_as_trouble(read, words)` is typed `()`; read as None.
+/// `trouble.reads_as_trouble(read, words)`: the reading's shape, or None.
 fn trouble_reading_with_words(read: &str) -> Option<String> {
     let words = text::split(read);
-    crate::compose::trouble::reads_as_trouble(read, Some(&words), "");
-    None
+    crate::compose::trouble::reads_as_trouble(read, Some(&words), "")
 }
 
 /// Python: bot/memory/ack.py:5712 `_adds_a_detail(text, memory)`

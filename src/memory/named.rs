@@ -190,6 +190,11 @@ impl PyTruth for bool {
         *self
     }
 }
+impl PyTruth for String {
+    fn py_truth(&self) -> bool {
+        !self.is_empty()
+    }
+}
 impl<T: PyTruth> PyTruth for Option<T> {
     fn py_truth(&self) -> bool {
         self.as_ref().is_some_and(PyTruth::py_truth)
