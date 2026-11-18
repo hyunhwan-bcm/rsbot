@@ -46,6 +46,19 @@ pub fn last_bot(memory: &Memory) -> String {
     memory.turns.last().map(|t| t.bot.clone()).unwrap_or_default()
 }
 
+/// DUP(bot.knowledge.lookup::asks_how_often), for a line already flattened by `the_line`: true
+/// when it asks the interval rather than the method.
+pub fn asks_how_often_text(said: &str) -> bool {
+    static HOW_OFTEN_WORDS: std::sync::LazyLock<Vec<String>> =
+        std::sync::LazyLock::new(|| crate::data::strs("bot.knowledge.lookup.HOW_OFTEN_WORDS"));
+    HOW_OFTEN_WORDS.iter().any(|w| said.contains(w.as_str()))
+}
+
+/// DUP(bot.knowledge.lookup::asks_how_often), for a reading.
+pub fn asks_how_often(understood: &crate::understood::Understood) -> bool {
+    asks_how_often_text(&crate::knowledge::d1_shared::the_line(understood))
+}
+
 // ---------------------------------------------------------------------------------------------
 // A differential check for the group's modules (test only): replays calls recorded by calling
 // every function guard / reply / shape of a module's entries on many readings, whether or not
@@ -102,7 +115,7 @@ mod g6_diff {
     }
 
     fn shape(f: &FnRef, arg: &str) -> Option<bool> {
-        let tables: Vec<&[(&str, crate::knowledge::d1_shared::ShapeFn)]> = vec![];
+        let tables: Vec<&[(&str, crate::knowledge::d1_shared::ShapeFn)]> = vec![crate::knowledge::cars::SHAPES];
         for t in tables {
             if let Some((_, s)) = t.iter().find(|(k, _)| *k == f.id) {
                 return Some(crate::runtime::guarded(|| s(f, arg)).unwrap_or(false));
@@ -119,10 +132,12 @@ mod g6_diff {
         let mut readings: HashMap<String, Understood> = HashMap::new();
         for line in std::io::BufReader::new(std::fs::File::open(format!("{dir}/readings.jsonl")).unwrap()).lines() {
             let mut v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
-            // `kept` is a dict on some single-turn readings ({"place", "time"}) while the typed
-            // reading holds a string; none of the group's functions read it.
-            if v["understood"]["kept"].is_object() {
-                v["understood"]["kept"] = serde_json::Value::Null;
+            // `kept` and `care_home` are dicts on some single-turn readings while the typed reading
+            // holds strings; none of the group's functions read them.
+            for key in ["kept", "care_home", "setup", "taking_up", "looks_back", "leans_on", "over_time_what"] {
+                if v["understood"][key].is_object() {
+                    v["understood"][key] = serde_json::Value::Null;
+                }
             }
             match serde_json::from_value(v["understood"].clone()) {
                 Ok(u) => {
@@ -195,8 +210,16 @@ mod g6_diff {
             if !s("user").is_empty() || !s("bot").is_empty() {
                 memory.turns.push(crate::state::Turn { user: s("user"), bot: s("bot"), module: None });
             }
+            for t in c["turns"].as_array().into_iter().flatten() {
+                let (user, bot) = (t[0].as_str().unwrap_or("").to_string(), t[1].as_str().unwrap_or("").to_string());
+                memory.turns.push(crate::state::Turn { user, bot, module: None });
+            }
             let reading = Understood { clean: s("text"), ..Default::default() };
             let got: serde_json::Value = match s("fn").as_str() {
+                "reply" => {
+                    let f = FnRef { id: s("id"), cells: vec![], defaults: vec![] };
+                    serde_json::json!(registry::reply(&f, &mut memory, &reading))
+                }
                 "the_still_ok_follow_up" => serde_json::json!(crate::knowledge::freshness::the_still_ok_follow_up(&s("text"), &memory)),
                 "_left_out" => serde_json::json!(crate::knowledge::freshness::_left_out(&memory, &reading)),
                 "crosses_a_border" => serde_json::json!(crate::knowledge::geography::crosses_a_border(&s("text"))),
