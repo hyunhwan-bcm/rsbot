@@ -2738,3 +2738,81 @@ pub fn continues(memory: &Memory) -> bool {
         && !SAFETY_MODULES.iter().any(|m| m == module)
         && reads_as_loss(&last.user, None, false)
 }
+
+#[cfg(test)]
+mod com3_branch_values {
+    //! Lines the corpus does not reach, with PyBot's own answers (`scratch` probe run through the
+    //! Python functions, clock pinned): each COM3 reader is held to them. A reader that reaches
+    //! another workstream's stub is not judged here.
+    use crate::data::Value;
+    use crate::state::Memory;
+    use serde_json::{json, Value as J};
+
+    fn caught<T>(f: impl FnOnce() -> T) -> Result<T, String> {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| {
+            p.downcast_ref::<String>().cloned().or_else(|| p.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default()
+        })
+    }
+
+    fn rust(name: &str, t: &str) -> J {
+        use crate::compose::*;
+        match name {
+            "loss.reads_as_loss" => json!(loss::reads_as_loss(t, None, false)),
+            "loss.is_dying_now" => json!(loss::is_dying_now(t)),
+            "loss.whose" => json!(loss::whose(t)),
+            "trouble.reads_as_trouble" => json!(trouble::reads_as_trouble(t, None, "")),
+            "goodnews.reads_as_settled" => json!(goodnews::reads_as_settled(t)),
+            "goodnews.reads_as_a_clear_result" => json!(goodnews::reads_as_a_clear_result(t)),
+            "goodnews.reads_as_recovery" => json!(goodnews::reads_as_recovery(t)),
+            "goodnews.reads_as_a_prize_in_a_message" => json!(goodnews::reads_as_a_prize_in_a_message(t)),
+            "reading._doubt" => reading::_doubt(t)
+                .map(|d| json!({"word": d.word, "value": d.value, "money": d.money, "unit": d.unit, "subject": d.subject, "rate": d.rate}))
+                .unwrap_or(J::Null),
+            "quantity._read" => match quantity::_read(t, &Memory::new()) {
+                Some(x) => json!([x.value, x.family, x.unit, x.period, x.phrase, x.tail]),
+                None => json!([null, null, null, null, null, null]),
+            },
+            "ruledout._ruled_out_thing" => {
+                let (a, b) = ruledout::_ruled_out_thing(t);
+                json!([a, b])
+            }
+            "check_with_you.reads_as_a_check" => json!(check_with_you::reads_as_a_check(t)),
+            "finding_out.for_the_ask" => json!(finding_out::for_the_ask_with(t, "", None)),
+            "what_i_do_know._a_thing_from" => json!(what_i_do_know::_a_thing_from(t, false)),
+            other => panic!("no reader {other}"),
+        }
+    }
+
+    /// Python's int/float and Rust's f64 agree when the numbers do.
+    fn same(a: &J, b: &J) -> bool {
+        match (a, b) {
+            (J::Number(x), J::Number(y)) => x.as_f64() == y.as_f64(),
+            (J::Array(x), J::Array(y)) => x.len() == y.len() && x.iter().zip(y).all(|(p, q)| same(p, q)),
+            (J::Object(x), J::Object(y)) => x.len() == y.len() && x.iter().all(|(k, v)| y.get(k).is_some_and(|w| same(v, w))),
+            _ => a == b,
+        }
+    }
+
+    #[test]
+    fn the_readers_answer_as_pybot_does() {
+        let want: J = serde_json::from_str(include_str!("testdata/com3_branch_values.json")).expect("fixture");
+        let _ = Value::None;
+        let (mut checked, mut bad) = (0, Vec::new());
+        for (name, rows) in want.as_object().expect("an object") {
+            for row in rows.as_array().expect("rows") {
+                let line = row[0].as_str().expect("a line");
+                match caught(|| rust(name, line)) {
+                    Ok(got) => {
+                        checked += 1;
+                        if !same(&got, &row[1]) {
+                            bad.push(format!("{name}({line:?}): rust {got} python {}", row[1]));
+                        }
+                    }
+                    Err(msg) if msg.starts_with("UNPORTED") => {}
+                    Err(msg) => bad.push(format!("{name}({line:?}): panic {msg}")),
+                }
+            }
+        }
+        assert!(bad.is_empty(), "{checked} checked, {} differ:\n{}", bad.len(), bad.join("\n"));
+    }
+}
