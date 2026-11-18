@@ -27,8 +27,13 @@ MINE = ("bot.memory.facts", "bot.memory.again", "bot.memory.corrected", "bot.mem
 DEPS = {
     "bot.memory.taste": ("read_other", "said_about", "read_all", "read", "only_a_taste"),
     "bot.memory.filler": ("without_filler", "without_the_end_shrug", "without_the_shrug"),
-    "bot.memory.named": ("the_name_in",),
+    "bot.memory.named": ("the_name_in", "carries_a_name"),
     "bot.compose.badnews": ("reads_like_a_symptom",),
+    "bot.memory.quotes": ("sentences", "closed"),
+    "bot.memory.returned": ("says_it_happened_again", "the_next_step"),
+    "bot.memory.repeat": ("asks_for_the_move",),
+    "bot.memory.relations": ("_animal_family", "_tidy_name"),
+    "bot.memory": ("plan_sentence",),
 }
 
 
@@ -134,6 +139,20 @@ def main():
                 if getattr(umod, attr, None) is fn:
                     setattr(umod, attr, w)
 
+    # Modules that imported a function by name hold the function itself: point them at the
+    # wrapper too, so their calls are recorded.
+    wrapped = {}
+    for modname in MINE + tuple(DEPS):
+        for attr, value in list(vars(sys.modules[modname]).items()):
+            inner = getattr(value, "__wrapped__", None)
+            if inner is not None:
+                wrapped[id(inner)] = value
+    for modname, mod in list(sys.modules.items()):
+        if not modname.startswith("bot") or mod is None:
+            continue
+        for attr, value in list(vars(mod).items()):
+            if callable(value) and id(value) in wrapped:
+                setattr(mod, attr, wrapped[id(value)])
     facts = sys.modules["bot.memory.facts"]
     done = 0
     for path in a.lines:

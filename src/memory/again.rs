@@ -1055,3 +1055,32 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod pybot_values {
+    use super::*;
+
+    /// Expected values from PyBot (`bot.memory.again`), called directly.
+    #[test]
+    fn the_readers_say_what_pybot_says() {
+        let pair = |k: &str, p: &str| Some((k.to_string(), p.to_string()));
+        assert_eq!(_for_the_person("My head is banging, I am tired."), "Your head is banging, You are tired.");
+        assert_eq!(as_a_phrase("i feel empty"), pair("said", "Feeling empty"));
+        assert_eq!(as_a_phrase("nothing interests me"), pair("clause", "Nothing interests you"));
+        assert_eq!(as_a_phrase("i feel low, i feel empty"), pair("said", "Feeling empty"));
+        assert_eq!(as_a_phrase("im so tired"), pair("said", "Being tired"));
+        assert_eq!(unframed("Same answer, and it covers this: Do the thing.").as_deref(), Some("Do the thing."));
+        assert_eq!(unframed("Back to the tap \u{2014} Turn it off.").as_deref(), Some("Turn it off."));
+        assert!(_carries_a_lead_in("still: do it"));
+        assert!(_carries_a_lead_in("same as before do it"));
+        assert_eq!(the_name_the_answer_says("Chewing is normal while teeth change", "the chewing", ""), "the chewing");
+        assert_eq!(the_name_the_answer_says("A scratching post helps", "a scratching post help", ""), "a scratching post help");
+        assert_eq!(_as_a_name("back to new york"), "back to New York");
+        assert_eq!(_without_the_thing_in_front("In Rome: the Colosseum with a ticket", "rome"), "The Colosseum with a ticket");
+        assert!(!_a_report("he keeps coming into our bed"));
+        assert!(!_a_report("my son is 6"));
+        assert_eq!(_as_said("packed lunch ideas no sandwiches"), vec!["packed", "lunch", "ideas", "sandwiches"]);
+        let earlier: HashSet<String> = ["heat", "ice", "better"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(_the_run_they_said_both_times("so is heat or ice better then", &earlier), "heat ice better");
+    }
+}

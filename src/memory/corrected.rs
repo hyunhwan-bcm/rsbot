@@ -2349,3 +2349,66 @@ pub fn _many(count: i64, animal: &Value) -> String {
 pub fn _asks(line: &str) -> bool {
     ASK_START.match_(line).is_some()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn v(s: &str) -> Value {
+        Value::from(s)
+    }
+
+    /// Expected values from PyBot (`bot.memory.corrected`), called directly.
+    #[test]
+    fn the_readers_say_what_pybot_says() {
+        assert_eq!(_letters_apart("anna", "hannah"), 2);
+        assert!(_a_spelling_of("anna", "ana"));
+        assert!(!_a_spelling_of("june", "jane"));
+        assert_eq!(_birthday_words(&v("3rd of may")).str(), "the 3rd of May");
+        assert_eq!(_birthday_words(&v("3rd may")).str(), "the 3rd of May");
+        assert_eq!(_birthday_words(&v("august")).str(), "in August");
+        assert_eq!(_birthday_words(&v("4 july 1980")).str(), "4 July 1980");
+        assert_eq!(_many(2, &v("cat")), "two cats");
+        assert_eq!(_many(12, &v("puppy")), "12 puppies");
+        assert_eq!(_a_count(1, &v("cats")), "1 cats");
+        assert_eq!(_a_count(3, &v("fish")), "3 fish");
+        assert_eq!(date_said("the 4th of june"), (Some("4th".into()), Some("june".into())));
+        assert_eq!(date_said("4 june"), (Some("4".into()), Some("june".into())));
+        assert_eq!(date_said("sept"), (None, Some("sept".into())));
+        assert_eq!(_a_day_in_the_kind("3rd", "the 4th"), "The 4th");
+        assert_eq!(_a_day_in_the_kind("3", "the 22nd"), "The 22nd");
+        assert_eq!(_a_day_in_the_kind("11th", "12"), "12th");
+        assert_eq!(_swap_in(&v("A trip to Lisbon in May"), &v("August"), &Value::None).str(), "A trip to Lisbon in August");
+        assert_eq!(_swap_in(&v("400 pounds"), &v("500"), &Value::None).str(), "500 pounds");
+        assert_eq!(_swap_in(&v("£400"), &v("500"), &Value::None).str(), "£500");
+        assert_eq!(_swap_in(&v("my flight is at 6am"), &v("8"), &Value::None).str(), "my flight is at 8am");
+        assert_eq!(_swap_in(&v("Lisbon in May"), &v("Porto"), &v("lisbon")).str(), "Porto in May");
+        assert_eq!(
+            _swap_in(&v("Portugal on the 12th of june"), &v("the 13th of june"), &Value::None).str(),
+            "Portugal on the 13th of june"
+        );
+        assert_eq!(_what_took_its_place("sons birthday on 3 may", "sons birthday on 4 may", "3 may").as_deref(), Some("4 may"));
+        assert_eq!(_the_topic_with_the_new_clock("im flying at 6am", "im flying at 7am").as_deref(), Some("im flying at 7am"));
+        assert_eq!(
+            _a_relative_month("Rome next month", None, Some("july")),
+            Some(("Rome in July".into(), "next month".into(), "in July".into()))
+        );
+        assert_eq!(
+            _a_relative_month("Rome next month", Some("12th"), Some("july")),
+            Some(("Rome on the 12th of July".into(), "next month".into(), "on the 12th of July".into()))
+        );
+        assert_eq!(_kind_of_value(&v("500"), &v("my budget is 400")).as_deref(), Some("amount"));
+        assert_eq!(_kind_of_value(&v("8"), &v("leave at 4")).as_deref(), Some("time"));
+        assert_eq!(_keep_unit(&v("500"), &v("300 pounds")).str(), "500 pounds");
+        assert!(!_asks("were redoing our bathroom"));
+        assert!(_asks("so what do i do"));
+        assert_eq!(_without_the_naming_verb(&v("called max")).str(), "Max");
+        assert_eq!(_without_the_naming_verb(&v("hes max")).str(), "Max");
+        assert_eq!(_clock_key("10 a.m."), "10am");
+        let amount = _an_amount_on_the_measure("Lose a stone", &v("half a stone"));
+        assert_eq!(amount.get("plan").map(Value::str), Some("Lose half a stone"));
+        assert_eq!(amount.get("was").map(Value::str), Some("a stone"));
+        assert_eq!(_count_said("a couple of dogs"), 2);
+        assert_eq!(_a_bare_hour(&v("12")), "12");
+    }
+}
