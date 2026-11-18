@@ -482,3 +482,53 @@ pub fn cached_re(pattern: &str, flags: u32) -> &'static crate::py::re::Re {
     cache.insert((pattern.to_string(), flags), re);
     re
 }
+
+/// Values PyBot gives for branches the corpus does not reach (from `harness/pycall.py`).
+#[cfg(test)]
+mod python_values {
+    use crate::data::Value;
+    use crate::memory::*;
+
+    #[test]
+    fn small_readers_agree_with_python() {
+        assert_eq!(asleep::_a_length(7.5), "seven and a half hours");
+        assert_eq!(asleep::_a_length(6.25), "six hours and 15 minutes");
+        assert_eq!(years_in::_the_figure_in_words(23), "Twenty-three");
+        assert_eq!(years_in::_the_figure_in_words(150), "150");
+        assert_eq!(surname::_the_name_they_said("van der berg"), "van der Berg");
+        assert_eq!(surname::_the_name_they_said("o'brien"), "O'Brien");
+        assert_eq!(favourite::their_words("My mums curry"), "Your mum's curry");
+        assert_eq!(guest::_fold("tomatoes"), "tomato");
+        assert_eq!(guest::_fold("berries"), "berry");
+        assert_eq!(guest::_fold("boxes"), "box");
+        assert_eq!(portions::_a_total(1250.0), "1.2 kg");
+        assert_eq!(portions::_a_total(37500.0), "37.5 kg");
+        assert_eq!(portions::_a_total(62.5), "62 g");
+        assert_eq!(resize::headcount("3 kids and 2 adults"), Some((5, 0, 12)));
+        assert_eq!(condition::_meets("if it is under five years old", "its 8 years old"), Some(false));
+        assert_eq!(condition::_meets("if it is under five years old", "its 3 years old"), Some(true));
+        assert_eq!(amounts::_a_number(1500.0), "1,500");
+        assert_eq!(amounts::_a_number(2.5), "2.5");
+        assert_eq!(matters::_say_the_ages(&[6, 4, 9]), "4, 6 and 9");
+        assert_eq!(carried_on::_doing("blotted"), "blotting");
+        assert_eq!(carried_on::_doing("stopped"), "stopping");
+        assert_eq!(carried_on::_doing("make"), "making");
+        let six: Vec<String> = ["a", "b", "c", "d", "e", "f"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(reject::_the_whole_lot(&six), "all of them");
+        assert_eq!(change::reply("changed", "diet", "no meat."), "You don't eat meat, so I'll drop that - what does a normal day look like now?");
+        assert!(stands::_the_same_figure("12 to 15 minutes", "12-15 minutes"));
+        assert_eq!(outfit::_an(""), "an ");
+        assert_eq!(aboutthem::_an_age_said(34), "34");
+        assert_eq!(measure::_as_a_headline("water", "Six to eight glasses a day"), "Water: six to eight glasses a day");
+        assert_eq!(
+            plans::_the_first_step("Work out how many nights you have first, then give each place at least three of them.").as_deref(),
+            Some("Start with this: work out how many nights you have first.")
+        );
+        assert_eq!(another::split_sentences("Say: \"Thanks. I will.\" Then follow it up."), vec!["Say: \"Thanks. I will.\"".to_string(), "Then follow it up.".to_string()]);
+        assert_eq!(lineback::_stem("revising"), "revis");
+        assert_eq!(company::_as_you_would_say_it("my mum"), "your mum");
+        let taste = taste::read("not sure if i like curry tho");
+        assert_eq!(taste.get("thing"), Some(&Value::from("curry")));
+        assert_eq!(taste.get("how"), Some(&Value::from("unsure")));
+    }
+}
