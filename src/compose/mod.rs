@@ -20,6 +20,7 @@ pub mod childwords;
 pub mod circumstance;
 pub mod colour_on_the_body;
 pub mod com4;
+mod com4_tests;
 pub mod doubt;
 pub mod draft;
 pub mod facts;
