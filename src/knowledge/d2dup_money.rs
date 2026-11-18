@@ -70,12 +70,8 @@ pub fn extract_name(_text: &str) -> Option<String> {
 
 static _JUDGING: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.prices._JUDGING"));
 
-// DUP-D2(bot.knowledge.prices::a_price_is_judged)
-/// True when the line brings a figure in money and asks whether it is a lot.
-pub fn a_price_is_judged(text: &str) -> bool {
-    let text = text::squash(&text.to_lowercase());
-    _JUDGING.is_match(&text)
-}
+// was DUP-D2(bot.knowledge.prices::a_price_is_judged): now the real port
+pub use crate::knowledge::prices::a_price_is_judged;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/cooking.py and bot/knowledge/units.py
@@ -91,20 +87,10 @@ static _CROWD_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.
 static _NOT_A_TABLE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cooking._NOT_A_TABLE"));
 static _TABLE_GROUPS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.units._TABLE_GROUPS"));
 static _GROUP_VALUE: LazyLock<Vec<(String, i64)>> = LazyLock::new(|| str_int_pairs("bot.knowledge.units._GROUP_VALUE"));
-static FOR_A_COUNT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bfor\s+(\d{1,3})\b", 0));
-static A_COUNT_OF_PEOPLE: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(\d{1,3})\s+(?:people|of us|adults|guests|coming)\b", 0));
 
-fn crowd_number(word: &str) -> i64 {
-    _CROWD_NUMBERS.iter().find(|(k, _)| k == word).map(|(_, v)| *v).unwrap_or_else(|| panic!("KeyError: {word}"))
-}
 
-// DUP-D2(bot.knowledge.cooking::_people_after)
-/// True when what follows the count at byte `end` is not a unit, so the number is people.
-pub fn _people_after(text: &str, end: usize) -> bool {
-    let rest = text::split_ref(text::strip(&text[end..]));
-    let after = rest.first().map(|w| text::strip_chars(w, ".,!?;:").to_lowercase()).unwrap_or_default();
-    !_NOT_A_TABLE.contains(&after)
-}
+// was DUP-D2(bot.knowledge.cooking::_people_after): now the real port
+pub use crate::knowledge::cooking::_people_after;
 
 // DUP(bot.knowledge.units::people_in_groups)
 /// How many people the groups named in the line add up to, or None when it names none.
@@ -123,31 +109,8 @@ pub fn people_in_groups(text: &str) -> Option<i64> {
     if total != 0 { Some(total) } else { None }
 }
 
-// DUP-D2(bot.knowledge.cooking::_crowd)
-/// How many people the line is cooking for, or 0 when it is an ordinary dinner.
-pub fn _crowd(text: &str) -> i64 {
-    let text = text.to_lowercase().replace('-', " ");
-    let t = text.as_str();
-    let mut numbers: Vec<i64> = FOR_A_COUNT
-        .finditer(t)
-        .iter()
-        .filter(|m| _people_after(t, m.end()))
-        .map(|m| m.str(1).parse().unwrap())
-        .collect();
-    numbers.extend(_CROWD_FOR.finditer(t).iter().filter(|m| _people_after(t, m.end())).map(|m| crowd_number(m.str(1))));
-    numbers.extend(_CROWD_WITHIN.findall_str(t).iter().map(|w| crowd_number(w)));
-    numbers.extend(A_COUNT_OF_PEOPLE.findall_str(t).iter().map(|c| c.parse::<i64>().unwrap()));
-    if let Some(grouped) = people_in_groups(t) {
-        numbers.push(grouped);
-    }
-    if let Some(most) = numbers.iter().max() {
-        return *most;
-    }
-    if _CROWD_PHRASES.iter().any(|p| t.contains(p.as_str())) {
-        return 6;
-    }
-    0
-}
+// was DUP-D2(bot.knowledge.cooking::_crowd): now the real port
+pub use crate::knowledge::cooking::_crowd;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/geography.py

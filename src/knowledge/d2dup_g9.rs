@@ -123,132 +123,22 @@ pub fn people_in_groups(text: &str) -> Option<i64> {
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/cooking.py (owned by the cooking groups)
 
-static COOKING_NOT_A_TABLE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cooking._NOT_A_TABLE"));
-static CROWD_NUMBERS: LazyLock<Vec<(String, i64)>> = LazyLock::new(|| int_dict("bot.knowledge.cooking._CROWD_NUMBERS"));
-static CROWD_FOR: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.cooking._CROWD_FOR"));
-static CROWD_WITHIN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.cooking._CROWD_WITHIN"));
-static CROWD_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cooking._CROWD_PHRASES"));
-static CROWD_WORDS: LazyLock<Vec<(i64, String)>> = LazyLock::new(|| {
-    data::get("bot.knowledge.cooking._CROWD_WORDS")
-        .pairs()
-        .iter()
-        .map(|(k, v)| (k.as_int().unwrap_or(0), v.str().to_string()))
-        .collect()
-});
-static OCCASIONS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cooking._OCCASIONS"));
-static FOR_A_NUMBER: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bfor\s+(\d{1,3})\b", 0));
-static A_NUMBER_OF_PEOPLE: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(\d{1,3})\s+(?:people|of us|adults|guests|coming)\b", 0));
-static AN_ORDINAL: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b\d{1,3}(?:st|nd|rd|th)\b", 0));
 
-// DUP-D2(bot.knowledge.cooking::_people_after)
-/// True when what follows the count at `end` (a byte offset) is not a unit, so the number is people.
-pub fn _people_after(text: &str, end: usize) -> bool {
-    let rest = crate::py::text::split_ref(&text[end..]);
-    let after = rest.first().map(|w| crate::py::text::strip_chars(w, ".,!?;:").to_lowercase()).unwrap_or_default();
-    !COOKING_NOT_A_TABLE.contains(&after)
-}
+// was DUP-D2(bot.knowledge.cooking::_people_after): now the real port
+pub use crate::knowledge::cooking::_people_after;
 
-// DUP-D2(bot.knowledge.cooking::_crowd)
-/// How many people the line is cooking for, or 0 when it is an ordinary dinner.
-pub fn _crowd(text: &str) -> i64 {
-    let text = text.to_lowercase().replace('-', " ");
-    let mut numbers: Vec<i64> = Vec::new();
-    for m in FOR_A_NUMBER.finditer(&text) {
-        if _people_after(&text, m.end()) {
-            numbers.push(m.str(1).parse().unwrap_or(0));
-        }
-    }
-    for m in CROWD_FOR.finditer(&text) {
-        if _people_after(&text, m.end()) {
-            // Python: _CROWD_NUMBERS[...] (every word the pattern takes is a key)
-            numbers.push(lookup_int(&CROWD_NUMBERS, m.str(1)).expect("_CROWD_NUMBERS key"));
-        }
-    }
-    for word in CROWD_WITHIN.findall_str(&text) {
-        numbers.push(lookup_int(&CROWD_NUMBERS, &word).expect("_CROWD_NUMBERS key"));
-    }
-    for count in A_NUMBER_OF_PEOPLE.findall_str(&text) {
-        numbers.push(count.parse().unwrap_or(0));
-    }
-    if let Some(grouped) = people_in_groups(&text) {
-        numbers.push(grouped);
-    }
-    if let Some(max) = numbers.iter().max() {
-        return *max;
-    }
-    if CROWD_PHRASES.iter().any(|p| text.contains(p.as_str())) {
-        return 6;
-    }
-    0
-}
+// was DUP-D2(bot.knowledge.cooking::_crowd): now the real port
+pub use crate::knowledge::cooking::_crowd;
 
-fn crowd_word(count: i64) -> String {
-    CROWD_WORDS.iter().find(|(k, _)| *k == count).map(|(_, v)| v.clone()).unwrap_or_else(|| count.to_string())
-}
 
-// DUP-D2(bot.knowledge.cooking::_trays)
-/// How many trays the table needs, so a table of twelve is not told about eight.
-pub fn _trays(count: i64) -> String {
-    if count >= 13 {
-        return "two or three trays of it, on the top and middle shelves, or one dish made in \
-                the biggest pot you own"
-            .to_string();
-    }
-    if count >= 9 {
-        return format!("two trays of it, on the top and middle shelves and swapped halfway, to feed {}", crowd_word(count));
-    }
-    if count != 0 && count <= 5 {
-        return format!("one tray of it is plenty for {}", crowd_word(count));
-    }
-    if count == 0 {
-        return "which does four to six, so count the potatoes yourself".to_string();
-    }
-    "which feeds eight from one oven".to_string()
-}
+// was DUP-D2(bot.knowledge.cooking::_trays): now the real port
+pub use crate::knowledge::cooking::_trays;
 
-// DUP-D2(bot.knowledge.cooking::_crowd_meal)
-/// One dish that scales, for a birthday or a table of eight, instead of a ten-minute dinner.
-pub fn _crowd_meal(banned: &std::collections::HashSet<String>, occasion: bool, count: i64) -> String {
-    const MEATS: [&str; 17] = [
-        "meat", "chicken", "beef", "pork", "lamb", "mince", "bacon", "sausage", "sausages", "ham", "turkey", "fish",
-        "salmon", "cod", "tuna", "prawn", "prawns",
-    ];
-    let vegetarian = MEATS.iter().any(|m| banned.contains(*m));
-    let (dish, amount) = if vegetarian {
-        (
-            "a big mushroom and lentil lasagne or a chickpea and vegetable traybake, made in \
-             the largest dish you own",
-            "about 300g of the dish per person",
-        )
-    } else {
-        (
-            "a tray of chicken thighs or sausages with halved potatoes, peppers and onions at \
-             200C (180C fan) for 45 minutes",
-            "about 200g of meat and a big potato each",
-        )
-    };
-    let mut reply = format!(
-        "Cook one big oven dish rather than several pans: {dish}, {}. Allow {amount}, add a loaf of bread and a bowl of salad, and write the \
-         times down so nothing needs the oven at once.",
-        _trays(count)
-    );
-    if occasion {
-        reply.push_str(
-            " Anything that can be made that morning - a chilli, a stew, a lasagne - just \
-             gets reheated, which leaves the day free.",
-        );
-    }
-    reply
-}
+// was DUP-D2(bot.knowledge.cooking::_crowd_meal): now the real port
+pub use crate::knowledge::cooking::_crowd_meal;
 
-// DUP-D2(bot.knowledge.cooking::_occasion)
-/// True when the line is a day that matters: a birthday, a wake, or a "70th".
-pub fn _occasion(text: &str) -> bool {
-    if OCCASIONS.iter().any(|w| text.contains(w.as_str())) {
-        return true;
-    }
-    AN_ORDINAL.is_match(text)
-}
+// was DUP-D2(bot.knowledge.cooking::_occasion): now the real port
+pub use crate::knowledge::cooking::_occasion;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/dishes.py
@@ -351,47 +241,12 @@ pub fn dishes_ruled_out(text: &str) -> std::collections::HashSet<String> {
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/entertainment.py (owned by the entertainment group)
 
-static RESERVING_PHRASES: LazyLock<Vec<Re>> = LazyLock::new(|| {
-    data::strs("bot.knowledge.entertainment._RESERVING_PHRASES")
-        .iter()
-        .map(|p| Re::new(&format!("(?<![a-z]){}(?![a-z])", escape(p)), 0))
-        .collect()
-});
-static BOOK_VERB_BEFORE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.entertainment._BOOK_VERB_BEFORE"));
-static BOOK_VERB_AFTER: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.entertainment._BOOK_VERB_AFTER"));
-static A_DETERMINER_JUST_BEFORE: LazyLock<&'static Re> =
-    LazyLock::new(|| data::re("bot.knowledge.entertainment._A_DETERMINER_JUST_BEFORE"));
 
-// DUP-D2(bot.knowledge.entertainment::_a_reservation)
-/// Whether this one reading of the line is reserving something.
-pub fn _a_reservation(text: &str) -> bool {
-    if crate::py::text::strip(text).is_empty() {
-        return false;
-    }
-    if RESERVING_PHRASES.iter().any(|rx| rx.is_match(text)) {
-        return true;
-    }
-    if BOOK_VERB_BEFORE.is_match(text) {
-        return true;
-    }
-    for m in BOOK_VERB_AFTER.finditer(text) {
-        if !A_DETERMINER_JUST_BEFORE.is_match(&text[..m.start()]) {
-            return true;
-        }
-    }
-    false
-}
+// was DUP-D2(bot.knowledge.entertainment::_a_reservation): now the real port
+pub use crate::knowledge::entertainment::_a_reservation;
 
-// DUP-D2(bot.knowledge.entertainment::the_book_is_a_reservation)
-/// True when the line is reserving something, which is the booking rows' question.
-pub fn the_book_is_a_reservation(understood: &Understood) -> bool {
-    for reading in [&understood.clean, &understood.norm_text] {
-        if _a_reservation(&reading.to_lowercase()) {
-            return true;
-        }
-    }
-    false
-}
+// was DUP-D2(bot.knowledge.entertainment::the_book_is_a_reservation): now the real port
+pub use crate::knowledge::entertainment::the_book_is_a_reservation;
 
 // ---------------------------------------------------------------------------------------------
 // Python's datetime.date, for the replies that name a date.

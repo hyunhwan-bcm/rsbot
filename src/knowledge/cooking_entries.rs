@@ -569,7 +569,7 @@ pub fn _said_no_sandwich(memory: &Memory) -> bool {
 
 /// The lunch ideas, unless they offer a sandwich to someone who said no to one.
 pub fn _lunch_ideas_after_a_no(memory: &mut Memory, understood: &Understood) -> Option<String> {
-    let reply = dup::_lunch_ideas(memory, understood); // DUP-D2(bot.knowledge.cooking::_lunch_ideas)
+    let reply = crate::knowledge::cooking::_lunch_ideas(memory, understood).unwrap_or_default();
     let low = reply.to_lowercase();
     let offers_one = low.contains("sandwich") && !low.contains("not a sandwich");
     if offers_one && _said_no_sandwich(memory) {

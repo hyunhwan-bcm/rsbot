@@ -10,61 +10,12 @@ use std::sync::LazyLock;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/cooking.py (D2 group cookA/cookB)
 
-// DUP-D2(bot.knowledge.cooking::_fold)
-/// A word with its plural undone, so eggs/egg and tomatoes/tomato are one word.
-pub fn _fold(word: &str) -> String {
-    let lowered = word.to_lowercase().replace('\u{2019}', "'");
-    let word = crate::py::text::strip_chars(&lowered, ".,!?;:'\"");
-    let n = word.chars().count();
-    let chars: Vec<char> = word.chars().collect();
-    if n > 4 && word.ends_with("ies") {
-        return format!("{}y", &word[..word.len() - 3]);
-    }
-    if n > 4 && word.ends_with("oes") {
-        return word[..word.len() - 2].to_string();
-    }
-    if n > 3 && word.ends_with("es") && "sxzh".contains(chars[n - 3]) {
-        return word[..word.len() - 2].to_string();
-    }
-    if n > 2 && word.ends_with('s') && !word.ends_with("ss") {
-        return word[..word.len() - 1].to_string();
-    }
-    word.to_string()
-}
+// was DUP-D2(bot.knowledge.cooking::_fold): now the real port
+pub use crate::knowledge::cooking::_fold;
 
-/// Every recipe alias, folded into parts, in table order (pantry foods left out).
-static RECIPE_ALIASES: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| {
-    let pantry: HashSet<String> = data::set("bot.knowledge.cooking._PANTRY_FOODS");
-    let mut out = Vec::new();
-    for row in data::get("bot.knowledge.cooking.RECIPES").items() {
-        for alias in row.items()[0].strs() {
-            let parts: Vec<String> = crate::py::text::split_ref(&alias).iter().map(|p| _fold(p)).collect();
-            if parts.is_empty() || pantry.contains(&parts.join(" ")) {
-                continue;
-            }
-            out.push((alias, parts));
-        }
-    }
-    out
-});
 
-// DUP-D2(bot.knowledge.cooking::names_a_dish)
-/// The dish a line names from the recipe table, or None when it names no dish.
-pub fn names_a_dish(understood: &Understood) -> Option<String> {
-    let folded: Vec<String> =
-        understood.words.iter().filter(|w| !crate::py::text::strip(w).is_empty()).map(|w| _fold(w)).collect();
-    for (alias, parts) in RECIPE_ALIASES.iter() {
-        let hit = if parts.len() == 1 {
-            folded.contains(&parts[0])
-        } else {
-            folded.len() >= parts.len() && (0..=folded.len() - parts.len()).any(|at| folded[at..at + parts.len()] == parts[..])
-        };
-        if hit {
-            return Some(alias.clone());
-        }
-    }
-    None
-}
+// was DUP-D2(bot.knowledge.cooking::names_a_dish): now the real port
+pub use crate::knowledge::cooking::names_a_dish;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/kept_animals.py (D1)
