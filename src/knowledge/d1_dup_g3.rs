@@ -289,6 +289,47 @@ pub fn a_persons_temperature(u: &Understood) -> bool {
 }
 
 // ---------------------------------------------------------------------------------------------
+// bot.knowledge.cleaning and bot.compose.fit
+
+static LANDED_ON: LazyLock<&'static crate::py::re::Re> = LazyLock::new(|| data::re("bot.knowledge.cleaning.LANDED_ON"));
+static LANDED_ON_THINGS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cleaning.LANDED_ON_THINGS"));
+
+/// DUP(bot.knowledge.cleaning::landed_on_a_thing): the line says what is on a garment or a
+/// surface ("i got egg on my shirt"), not what it is made of.
+pub fn landed_on_a_thing(u: &Understood) -> bool {
+    let text = format!(" {} ", sh::text_or_clean(u).to_lowercase());
+    for m in LANDED_ON.finditer(&text) {
+        if LANDED_ON_THINGS.iter().any(|t| t == m.str(1)) {
+            return true;
+        }
+    }
+    if [" on it ", " on them ", " on those ", " on that ", " on this "].iter().any(|p| text.contains(p)) {
+        return LANDED_ON_THINGS.iter().any(|w| text.contains(w.as_str()));
+    }
+    false
+}
+
+/// DUP(bot.knowledge.cleaning::not_a_mark_on_a_thing): the stand-down for a food row.
+pub fn not_a_mark_on_a_thing(u: &Understood) -> bool {
+    !landed_on_a_thing(u)
+}
+
+static FIT_WANTS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.fit.WANTS"));
+
+/// DUP(bot.compose.fit::wanted): the shape of answer this turn asked for, from the store
+/// (`memory["understood"]["wants"]`, else `memory["intent_wants"]`).
+pub fn fit_wanted(memory: &crate::state::Memory) -> Option<String> {
+    if let Some(u) = &memory.understood {
+        if let Some(w) = &u.wants {
+            if FIT_WANTS.contains(w) {
+                return Some(w.clone());
+            }
+        }
+    }
+    memory.intent_wants.clone().filter(|w| FIT_WANTS.contains(w))
+}
+
+// ---------------------------------------------------------------------------------------------
 // bot.knowledge.cooking (the functions the dish, meal and cooking_more tables call, with their
 // closure). Every `pub fn` here is DUP(bot.knowledge.cooking::<same name>).
 
