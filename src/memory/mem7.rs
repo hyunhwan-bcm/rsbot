@@ -251,3 +251,79 @@ mod tests {
         assert_eq!(low1("Élan"), "élan");
     }
 }
+
+/// `bot.memory.user(memory)`: the user's facts (a dict), created on first use. A copy of the
+/// three-line PyBot helper, so the MEM7 files do not wait on it (its stub in `memory/mod.rs` is
+/// typed for another shape).
+pub fn user(memory: &mut Memory) -> &mut Value {
+    if !memory.get("user").is_some_and(Value::is_dict) {
+        memory.set("user", Value::dict());
+    }
+    memory.get_mut("user").expect("just set")
+}
+
+/// `bot.memory.others(memory)`: the facts about other people, a list, created on first use. A
+/// copy of the three-line PyBot helper (its stub in `memory/mod.rs` returns `Vec<String>`, which
+/// cannot carry the dicts the list holds).
+pub fn others(memory: &mut Memory) -> Vec<Value> {
+    match memory.get("others") {
+        Some(Value::List(seen)) => seen.to_vec(),
+        _ => {
+            memory.set("others", Value::list());
+            Vec::new()
+        }
+    }
+}
+
+/// `entry.get(key)` on an item of a list memory holds: Python's AttributeError when the item is
+/// not a dict.
+pub fn item_get<'a>(entry: &'a Value, key: &str) -> &'a Value {
+    if !entry.is_dict() {
+        panic!("AttributeError: {entry:?} has no attribute 'get'");
+    }
+    get(entry, key)
+}
+
+/// Python's `str.islower()`: at least one cased character, and none upper-case.
+pub fn is_lower(text: &str) -> bool {
+    let mut cased = false;
+    for c in text.chars() {
+        if c.is_uppercase() || (c.is_alphabetic() && !c.is_lowercase() && c.to_lowercase().next() != Some(c)) {
+            return false;
+        }
+        if c.is_lowercase() {
+            cased = true;
+        }
+    }
+    cased
+}
+
+/// `for x in value` for the values memory holds: a list's items, a dict's keys, a str's
+/// characters; nothing for None. Anything else is Python's TypeError.
+pub fn iterate(value: &Value) -> Vec<Value> {
+    match value {
+        Value::None => Vec::new(),
+        Value::List(items) | Value::Tuple(items) | Value::Set(items) => items.to_vec(),
+        Value::Dict(pairs) => pairs.iter().map(|(key, _)| key.clone()).collect(),
+        Value::Str(text) => text.chars().map(|c| Value::from(c.to_string())).collect(),
+        other => panic!("TypeError: {other:?} is not iterable"),
+    }
+}
+
+/// `x or ()` iterated: a falsy value is nothing.
+pub fn iterate_or_empty(value: Option<&Value>) -> Vec<Value> {
+    match value {
+        Some(v) if v.truthy() => iterate(v),
+        _ => Vec::new(),
+    }
+}
+
+/// `isinstance(x, int)` (a bool is an int in Python) and its value.
+pub fn as_int(value: Option<&Value>) -> Option<i64> {
+    value.and_then(Value::as_int)
+}
+
+/// `str(one.get(key) or "").lower()`.
+pub fn lower_of(entry: &Value, key: &str) -> String {
+    pt::lower(&text_of(entry.get(key)))
+}
