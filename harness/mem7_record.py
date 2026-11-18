@@ -87,6 +87,9 @@ def main():
     ap.add_argument("--lines", action="store_true")
     ap.add_argument("--no-turns", action="store_true")
     ap.add_argument("--text", help="a plain text file: each line is handed to the line readers")
+    ap.add_argument("--script", help="a JSON file {name: [conversation, ...]}: each conversation (a "
+                    "list of lines) is played through the runtime")
+    ap.add_argument("--group", default="", help="comma list of the script groups to play")
     a = ap.parse_args()
 
     run_python.pin_clock("2026-11-17")
@@ -99,11 +102,13 @@ def main():
 
     def wrap(name, fn, cap):
         def wrapper(*args, **kwargs):
-            try:
-                key = name + repr(args) + repr(sorted(kwargs.items()))
-            except Exception:  # noqa: BLE001
-                key = None
-            fresh = key is not None and key not in seen and counts.get(name, 0) < cap
+            key = None
+            if counts.get(name, 0) < cap:
+                try:
+                    key = hash(name + repr(args) + repr(sorted(kwargs.items())))
+                except Exception:  # noqa: BLE001
+                    key = None
+            fresh = key is not None and key not in seen
             before = state = None
             if fresh:
                 try:
@@ -177,6 +182,25 @@ def main():
                 for found in re.finditer(r"\w+", text):
                     taste.said_about(text, found.start())
             done += 1
+    if a.script:
+        groups = json.load(open(a.script))
+        for group, convs in groups.items():
+            if a.group and group not in a.group.split(","):
+                continue
+            for conv in convs:
+                memory = {}
+                random.seed(0)
+                for text in conv:
+                    for probe in probes:
+                        try:
+                            probe(text)
+                        except Exception:  # noqa: BLE001
+                            pass
+                    try:
+                        rt.turn(text, memory)
+                    except Exception:  # noqa: BLE001
+                        pass
+                    done += 1
     for path in a.oracles:
         with gzip.open(path, "rt") as f:
             convs, last, memory = 0, None, None

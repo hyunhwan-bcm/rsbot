@@ -48,6 +48,7 @@ pub mod lineback;
 pub mod matters;
 pub mod meant;
 pub mod measure;
+pub mod mem7;
 pub mod more;
 pub mod named;
 pub mod narrow;

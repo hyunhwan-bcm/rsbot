@@ -1,0 +1,43 @@
+{
+"healing": [
+ ["my back hurts", "how long will it take to heal"],
+ ["my knee hurts", "how long does it take to get better", "and what should i do"],
+ ["my shoulder hurts", "how long does it take to heal", "how long will it last"],
+ ["i cut my finger", "how long will it take to heal", "how long will it take to heal"],
+ ["i have a headache", "what should i do", "how long will it take to go away"],
+ ["ive got a cough", "how long will it last"],
+ ["i twisted my ankle", "how long till it heals"],
+ ["i burnt my hand", "how long before it clears up", "should i cover it"],
+ ["im learning to drive", "how long will it take to get better"],
+ ["i have a cold", "how long does a cold last", "how long will this take to go"],
+ ["my wrist is sore", "how long does a broken wrist take to heal"],
+ ["i sprained my wrist", "how long to heal", "how long to heal", "how long to heal"],
+ ["ive got a sore throat", "how long will it be like this"],
+ ["i pulled a muscle in my leg", "how long will it keep me off my feet"]
+],
+"change": [
+ ["im vegetarian", "ive changed my diet"],
+ ["i want to lose a bit of weight", "ive changed my diet"],
+ ["im vegetarian", "i want to change my diet"],
+ ["i dont eat meat", "should i change my diet"],
+ ["im vegan", "i changed my diet a month ago", "am i vegan"],
+ ["ive changed my diet to vegan"],
+ ["how do i change my diet"],
+ ["i dont want to change my diet"],
+ ["my diet has changed"],
+ ["im thinking of changing my diet"],
+ ["i eat no dairy", "my diet is different now"]
+],
+"times": [
+ ["i get up at six thirty", "what time do i get up"],
+ ["i get up at 6", "what time do i get up", "actually 7", "when do i get up"],
+ ["my shift starts at eight", "and ends at four", "what time is my shift", "when do i finish"],
+ ["i start work at 9", "no wait, half nine", "when do i start work"],
+ ["i usually go to bed around eleven", "when do i go to bed", "what time do i need to leave for the airport"],
+ ["i get home about six", "what time am i home"],
+ ["i leave at 7:15", "make it seven", "what time do i leave"],
+ ["my shift ends at four", "what time is my shift", "what time does the post office open"],
+ ["i finish work at five", "it starts at nine", "when does my shift start"],
+ ["i met my friend at six", "what time do i get up for work"]
+]
+}
