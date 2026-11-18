@@ -423,5 +423,622 @@
    "i want to lose weight",
    "back to weight how long will it take"
   ]
+ ],
+ "amounts": [
+  [
+   "how much water should i drink a day",
+   "i have about 4 glasses"
+  ],
+  [
+   "how many steps should i do a day",
+   "i walk 2000 steps a day"
+  ],
+  [
+   "how much salt is too much",
+   "i have about 9g a day"
+  ],
+  [
+   "how much exercise do i need",
+   "i do 30 minutes a day"
+  ],
+  [
+   "how many units is too many",
+   "i have 2 hours of meetings today"
+  ]
+ ],
+ "another": [
+  [
+   "my tomato plants have blight",
+   "what else can i do about it"
+  ],
+  [
+   "how do i get my baby to sleep",
+   "go on"
+  ],
+  [
+   "what can i cook tonight with mince",
+   "another one"
+  ],
+  [
+   "i want to get fit",
+   "i dont like gyms",
+   "what else"
+  ],
+  [
+   "how do i clean my oven",
+   "keep going",
+   "anything else"
+  ],
+  [
+   "how do i ask for a pay rise",
+   "and if they say no"
+  ],
+  [
+   "my toddler wakes up at 5am every day",
+   "any other ideas"
+  ]
+ ],
+ "earlier": [
+  [
+   "shes 7 going on 8",
+   "how old did i say she was"
+  ],
+  [
+   "the room is 3 metres by 4",
+   "back to the bedroom, what size was it again"
+  ],
+  [
+   "i go to the gym three times a week",
+   "i walk the dog every day",
+   "how often did i say i go"
+  ],
+  [
+   "i finally got my hospital appointment through",
+   "its on the 12th of march at half nine",
+   "what day did i say my appointment was"
+  ],
+  [
+   "my sister is called jane",
+   "whats my sisters name"
+  ],
+  [
+   "i usually do 500g of mince for 4",
+   "and how much mince was that"
+  ],
+  [
+   "my daughter keeps saying shes too old",
+   "shes 7 going on 8",
+   "how old is she"
+  ]
+ ],
+ "favourite": [
+  [
+   "my favourite colour is green",
+   "what is my favourite colour"
+  ],
+  [
+   "my favourite film is alien",
+   "no wait its blade runner",
+   "whats my favourite film again"
+  ],
+  [
+   "my favourite colour is green",
+   "i prefer blue now",
+   "what is my favourite colour"
+  ],
+  [
+   "whats your favourite colour"
+  ],
+  [
+   "my favourite genre is comedy, what should i watch"
+  ],
+  [
+   "my mums favourite colour is green"
+  ],
+  [
+   "what are my favourites"
+  ],
+  [
+   "my best friend is moving away"
+  ],
+  [
+   "my favourite food is my mums curry",
+   "what is my favourite food"
+  ]
+ ],
+ "guest": [
+  [
+   "what shall i cook tonight",
+   "and she hates mushrooms"
+  ],
+  [
+   "i dont like water"
+  ],
+  [
+   "what shall i cook tonight",
+   "no mushrooms"
+  ],
+  [
+   "i dont want tea or coffee"
+  ],
+  [
+   "fish isnt really my thing"
+  ],
+  [
+   "no curry for me thanks"
+  ],
+  [
+   "what should i make for dinner",
+   "not pizza or curry"
+  ],
+  [
+   "she hates her job"
+  ]
+ ],
+ "meant": [
+  [
+   "my back hurts",
+   "what do you mean"
+  ],
+  [
+   "how long should i boil an egg",
+   "i dont follow"
+  ],
+  [
+   "my battery health is 78%",
+   "what does that mean for me"
+  ],
+  [
+   "i failed my driving test",
+   "im confused"
+  ],
+  [
+   "what is 180c in fahrenheit",
+   "what?"
+  ],
+  [
+   "my knee hurts when i run",
+   "say that again",
+   "say that again"
+  ],
+  [
+   "what do you mean by that"
+  ],
+  [
+   "my cat sneezes a lot",
+   "what does that mean, is she ill"
+  ]
+ ],
+ "rates": [
+  [
+   "i go to the gym twice a week",
+   "how often was that again"
+  ],
+  [
+   "i walk 3 times a week",
+   "actually 5 times",
+   "how often do i walk"
+  ],
+  [
+   "our 7 month old is waking every 2 hours",
+   "how often was he waking"
+  ],
+  [
+   "i water them every evening",
+   "how often should i feed them"
+  ],
+  [
+   "i take 2 tablets a day",
+   "how many a day was that"
+  ]
+ ],
+ "reject": [
+  [
+   "whats a good film tonight",
+   "nah not that one",
+   "nah not that either",
+   "them all please"
+  ],
+  [
+   "what should i read next",
+   "already read that",
+   "seen them all"
+  ],
+  [
+   "what can i cook quickly",
+   "already had the frittata"
+  ],
+  [
+   "i fancy a film but not a scary one",
+   "nah not that one"
+  ],
+  [
+   "how do i stop biting my nails",
+   "ive tried everything"
+  ],
+  [
+   "whats a good gift for my dad",
+   "no not that"
+  ]
+ ],
+ "resize": [
+  [
+   "how long do i cook a 2kg chicken for",
+   "what about a 3kg one"
+  ],
+  [
+   "how much rice for 4 people",
+   "actually only 3 people"
+  ],
+  [
+   "i can put away 50 a month for a holiday",
+   "what if i do 100"
+  ],
+  [
+   "how much pasta for 8 people",
+   "one of them isnt coming"
+  ],
+  [
+   "how much rice for 6 people",
+   "two of them are kids"
+  ],
+  [
+   "how long do i cook a 2kg chicken for",
+   "make it 3"
+  ],
+  [
+   "how much meat for a bbq",
+   "3 kids and 2 adults"
+  ]
+ ],
+ "stands": [
+  [
+   "i want to run 5k",
+   "how long will it take",
+   "so is eight weeks still right"
+  ],
+  [
+   "how often should i change my sheets",
+   "is once a week right"
+  ],
+  [
+   "how long do i cook rice",
+   "im using brown rice instead",
+   "does that change the time"
+  ],
+  [
+   "how long do i roast a chicken",
+   "actually its a veggie one, no meat",
+   "does that change the temperature"
+  ],
+  [
+   "how long do i boil an egg",
+   "is nine hours right"
+  ]
+ ],
+ "surname": [
+  [
+   "my last name is okafor",
+   "whats my surname"
+  ],
+  [
+   "my name is sam",
+   "my surname is okafor",
+   "whats my full name"
+  ],
+  [
+   "whats my surname"
+  ],
+  [
+   "hello",
+   "whats my surname"
+  ],
+  [
+   "my surname is hard to spell",
+   "what is my last name"
+  ],
+  [
+   "how do i change my surname after marriage"
+  ],
+  [
+   "my last name is van der berg",
+   "and what is it again"
+  ],
+  [
+   "call me sam",
+   "do you know my first name"
+  ]
+ ],
+ "taking": [
+  [
+   "i keep getting heartburn",
+   "is it normal",
+   "what can i take"
+  ],
+  [
+   "my back is killing me",
+   "what can i take"
+  ],
+  [
+   "im flying to spain",
+   "what can i take"
+  ],
+  [
+   "my son has a cough",
+   "what can i take"
+  ],
+  [
+   "im pregnant and have a headache",
+   "what can i take"
+  ]
+ ],
+ "years_in": [
+  [
+   "im a teacher",
+   "i have been doing it for 10 years"
+  ],
+  [
+   "im a nurse",
+   "ive been nursing for six months now"
+  ],
+  [
+   "im a teacher",
+   "ive been driving for 10 years"
+  ],
+  [
+   "my sister is a nurse",
+   "shes been doing it for 20 years"
+  ],
+  [
+   "i've been waiting for 10 years"
+  ],
+  [
+   "im an engineer",
+   "been doing it 18 months"
+  ]
+ ],
+ "plan": [
+  [
+   "my bathroom tap drips",
+   "what next",
+   "and then",
+   "what next",
+   "what next"
+  ],
+  [
+   "how do i make bread",
+   "what next",
+   "next"
+  ],
+  [
+   "my bathroom tap drips",
+   "i tried the washer",
+   "what next"
+  ],
+  [
+   "i lost my mum",
+   "what next"
+  ]
+ ],
+ "plans": [
+  [
+   "im getting married in june",
+   "how do i pick a venue"
+  ],
+  [
+   "im planning a trip",
+   "what do i do first"
+  ],
+  [
+   "im moving house next month",
+   "how long will it take"
+  ],
+  [
+   "i start a new job on monday",
+   "what day is it"
+  ],
+  [
+   "im planning a trip to my dads grave"
+  ],
+  [
+   "im planning a kitchen"
+  ]
+ ],
+ "portions": [
+  [
+   "how much pasta for 4 people",
+   "how many does that serve"
+  ],
+  [
+   "how much potato salad for a party",
+   "how many does that feed",
+   "theres about twenty coming"
+  ],
+  [
+   "how much rice for 4 people",
+   "so how much for 8"
+  ],
+  [
+   "how much rice for 8 people",
+   "make it 6 not 4"
+  ],
+  [
+   "how long do i steep tea",
+   "enough for how many"
+  ]
+ ],
+ "condition": [
+  [
+   "dog or cat",
+   "i work all day"
+  ],
+  [
+   "should i repair my washing machine",
+   "its 8 years old"
+  ],
+  [
+   "dog or cat",
+   "my neighbour works all day"
+  ],
+  [
+   "should i get a cat",
+   "im at home all day"
+  ]
+ ],
+ "company": [
+  [
+   "im travelling with my mum",
+   "who am i going with"
+  ],
+  [
+   "we are going to cornwall in july",
+   "my mum is coming too",
+   "is my mum coming too?"
+  ],
+  [
+   "im travelling with my wife",
+   "actually its my sister not my wife",
+   "who am i going with"
+  ],
+  [
+   "im going to rome on my own in may",
+   "who am i going with"
+  ],
+  [
+   "me and the kids are going to spain in july"
+  ]
+ ],
+ "household": [
+  [
+   "its just me and my daughter",
+   "who lives with us"
+  ],
+  [
+   "my mum lives on her own",
+   "does she live on her own"
+  ],
+  [
+   "i live on my own",
+   "who lives with you"
+  ],
+  [
+   "my dad is 80",
+   "does he live alone",
+   "yes he does",
+   "should i ring more"
+  ],
+  [
+   "theres 10 of us",
+   "how many of us are there"
+  ]
+ ],
+ "matters": [
+  [
+   "my mum is 78 and keeps falling",
+   "she lives alone"
+  ],
+  [
+   "my mum keeps falling",
+   "she says shes fine"
+  ],
+  [
+   "my kids are 4 and 6",
+   "sorry ones 7"
+  ],
+  [
+   "my kids are 4 and 6",
+   "the oldest is 7 now"
+  ],
+  [
+   "my son is 4",
+   "she lives alone"
+  ]
+ ],
+ "lineback": [
+  [
+   "its on the outside of the knee, just under the bone",
+   "and which knee was it"
+  ],
+  [
+   "my coat came in a medium",
+   "what size did i say"
+  ],
+  [
+   "i need 1.5kg of mince",
+   "how much mince did i say i needed"
+  ],
+  [
+   "my deposit target is 800",
+   "what was my deposit target again"
+  ],
+  [
+   "what day is it"
+  ]
+ ],
+ "obstacle": [
+  [
+   "i want to lose weight",
+   "i hate exercise"
+  ],
+  [
+   "theres a mouse in my kitchen",
+   "i dont want to kill it"
+  ],
+  [
+   "i want to lose a bit of weight before summer",
+   "i cant do gyms"
+  ],
+  [
+   "my cat has fleas",
+   "i dont want to use chemical sprays"
+  ],
+  [
+   "how do i fix the tap",
+   "i hate exercise"
+  ],
+  [
+   "i cant sleep",
+   "i dont want to take pills"
+  ]
+ ],
+ "aboutthem": [
+  [
+   "my son is 5",
+   "how much sleep does he need?"
+  ],
+  [
+   "my daughter is 6 months old",
+   "how much should she be sleeping?"
+  ],
+  [
+   "my son is 7",
+   "how old will he be next year"
+  ],
+  [
+   "my daughter is 4",
+   "what age will she be in 2030"
+  ],
+  [
+   "my son is 5",
+   "what is his bedtime?"
+  ]
+ ],
+ "carried_on": [
+  [
+   "how do i get red wine out of a cream carpet",
+   "it happened last night and i blotted it"
+  ],
+  [
+   "how do i descale a kettle",
+   "i did the vinegar bit"
+  ],
+  [
+   "how do i descale a kettle",
+   "i boiled it dry"
+  ],
+  [
+   "how do i get red wine out of a carpet",
+   "i rubbed it"
+  ]
  ]
 }

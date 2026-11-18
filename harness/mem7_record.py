@@ -27,6 +27,35 @@ MINE = ("aboutthem amounts another asleep back_again carried_on change company c
         "places plan plans portions rates reject resize returns stands surname taking taste times "
         "years_in").split()
 
+# Functions of other workstreams that the MEM7 files call and that are not ported yet. A call made
+# while a MEM7 function is running is recorded as a "dep" row with a lookup key, so the test-only
+# mock crate (harness/mem7_mockpatch.py) can answer it from the recording. The key leaves out a
+# memory argument (pick's), which the Rust side cannot rebuild byte for byte.
+DEPS = {
+    "bot.memory.kinds": ("the_line_that_gives",),
+    "bot.memory.choice": ("options_in",),
+    "bot.memory.quotes": ("sentences",),
+    "bot.memory.detail": ("_a_step", "_first_clause"),
+    "bot.compose": ("pick",),
+}
+
+
+def dep_key(name, args, kwargs):
+    """The lookup key of a dep call, in the compact JSON serde_json writes."""
+    if name == "bot.compose:pick":
+        options = [enc(option) for option in args[0]]
+        seed = args[2] if len(args) > 2 else kwargs.get("seed_text", "")
+        key = [options, seed]
+    elif name == "bot.memory.quotes:sentences":
+        key = [args[0], args[1].pattern, int(args[1].flags)]
+    elif name == "bot.memory.detail:_a_step":
+        flag = args[1] if len(args) > 1 else kwargs.get("questions_are_steps", False)
+        key = [args[0], bool(flag)]
+    else:
+        key = enc(list(args))
+    return json.dumps([name, key], ensure_ascii=False, separators=(",", ":"))
+
+
 # Readers of one line, called on every user line with --lines: {module: [function names]}.
 LINE_PROBES = {
     "taste": ["read", "read_all", "read_other", "only_a_taste", "asks_about_a_taste"],
@@ -100,6 +129,26 @@ def main():
     seen, counts = set(), {}
     out = gzip.open(a.out, "wt")
 
+    inside = [0]
+
+    def wrap_dep(name, fn):
+        def wrapper(*args, **kwargs):
+            result = fn(*args, **kwargs)
+            if inside[0] > 0:
+                try:
+                    key = dep_key(name, args, kwargs)
+                except Exception:  # noqa: BLE001
+                    key = None
+                if key is not None and key not in seen_deps:
+                    seen_deps.add(key)
+                    out.write(json.dumps({"fn": name, "dep": True, "key": key, "result": enc(result)},
+                                         ensure_ascii=False) + "\n")
+            return result
+        wrapper.__wrapped__ = fn
+        return wrapper
+
+    seen_deps = set()
+
     def wrap(name, fn, cap):
         def wrapper(*args, **kwargs):
             key = None
@@ -120,6 +169,7 @@ def main():
                         fresh = False
                 state = random.getstate()
             row = None
+            inside[0] += 1
             try:
                 result = fn(*args, **kwargs)
                 if fresh:
@@ -131,6 +181,7 @@ def main():
                            "raised": type(e).__name__}
                 raise
             finally:
+                inside[0] -= 1
                 if row is not None:
                     seen.add(key)
                     counts[name] = counts.get(name, 0) + 1
@@ -153,6 +204,13 @@ def main():
                 w = wrap(f"{modname}:{attr}", fn, a.cap)
                 setattr(mod, attr, w)
                 wrapped[id(fn)] = w
+    for modname, names in DEPS.items():
+        mod = importlib.import_module(modname)
+        for attr in names:
+            fn = getattr(mod, attr)
+            w = wrap_dep(f"{modname}:{attr}", fn)
+            setattr(mod, attr, w)
+            wrapped[id(fn)] = w
     # Modules that imported a function by name hold the function itself: point them at the
     # wrapper too, so their calls are recorded.
     for modname, mod in list(sys.modules.items()):

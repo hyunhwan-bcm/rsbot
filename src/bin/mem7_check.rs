@@ -266,6 +266,9 @@ fn main() {
     for line in reader.lines() {
         let Ok(line) = line else { break };
         let row: J = serde_json::from_str(&line).unwrap();
+        if row.get("dep").is_some() {
+            continue; // a call of another workstream's function, kept for the mock crate
+        }
         let name = row["fn"].as_str().unwrap().to_string();
         if !fns.is_empty() && !fns.iter().any(|f| name.contains(f.as_str())) {
             continue;
