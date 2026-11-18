@@ -7844,6 +7844,11 @@ impl PyTuple for Value {
         }
     }
 }
+impl PyTuple for Option<(String, String)> {
+    fn tuple(self) -> Option<Vec<Value>> {
+        self.map(|(a, b)| vec![Value::from(a), Value::from(b)])
+    }
+}
 impl PyTuple for Option<Value> {
     fn tuple(self) -> Option<Vec<Value>> {
         self.and_then(PyTuple::tuple)
@@ -8439,7 +8444,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         if item.is_none() {
             let older = memory::swap::rewritten(&text, MemView::new(&*memory).arg()).tuple();
             let mut readings: Vec<Vec<Value>> = if memory::swap::is_repair(&text) {
-                memory::swap::candidates(&text, memory, &Value::Int(3)).items().iter().filter_map(|c| c.clone().tuple()).collect()
+                memory::swap::candidates(&text, memory, 3).into_iter().filter_map(|c| Some(c).tuple()).collect()
             } else {
                 vec![]
             };
@@ -8478,7 +8483,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
                 if let Some(o) = other {
                     if same_answer
                         || kept
-                        || memory::swap::names(&swapped[1], &said_text, &text, memory, &question)
+                        || memory::swap::names(swapped[1].str(), &said_text, &text, Some(&*memory), &question)
                         || _about_the_rest_of_the_question(o, &question, &thing)
                     {
                         let mut said_out = said_text.clone();
@@ -8510,7 +8515,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
                 let (other, said) =
                     _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&again, None, reject, false)), memory, &again);
                 let said_text = said.clone().unwrap_or_default();
-                if other.is_some() && memory::swap::names_person(&about_someone[1], &said_text, &text, &memory::last_bot(memory)) {
+                if other.is_some() && memory::swap::names_person(about_someone[1].str(), &said_text, &text, &memory::last_bot(memory)) {
                     item = other;
                     reply = said;
                     reading = again;

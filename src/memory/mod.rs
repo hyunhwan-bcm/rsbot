@@ -225,6 +225,17 @@ pub mod pyv {
         }
     }
 
+    /// The whole memory as the dict Python passes around, for a contract that takes it as a
+    /// `Value` (`compose.pick`).
+    pub fn memory_value(memory: &crate::state::Memory) -> Value {
+        Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
+    }
+
+    /// `compose.pick(options, memory, seed_text=text)`.
+    pub fn pick(options: &[String], memory: &crate::state::Memory, seed_text: &str) -> String {
+        crate::compose::pick(options, &memory_value(memory), seed_text)
+    }
+
     /// `isinstance(v, int)` (a bool is an int in Python).
     pub fn is_int(v: &Value) -> bool {
         matches!(v, Value::Int(_) | Value::Bool(_))
