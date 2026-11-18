@@ -6941,269 +6941,719 @@ pub fn the_part_it_hurts(text: &str) -> Option<Value> {
     Some(held)
 }
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /// Python: bot/memory/facts.py:10720 `_extract(text, question=False)`
-    pub fn _extract(text: &str, question: bool) -> Value {
-        crate::unported!("bot.memory.facts:_extract")
-    }
-
+// ---------------------------------------------------------------------------------------------
+// _extract: every reader above, run over one line
+
+inline_re!(I_OR_WE_FIRST, r"(?:i|we)", 0);
+inline_re!(I_OR_WE_FIRST_I, r"(?:i|we)", I);
+inline_re!(TO_A_FAREWELL, r"^to\s+(?:go|leave|head off|set off|get going|dash)\b", I);
+inline_re!(TO_FIRST, r"^to\s+", I);
+inline_re!(TO_WORD, r"to\b", I);
+inline_re!(MONEY_OR_FIGURE_FIRST, "(?:[\u{a3}$\u{20ac}]|\\d)", 0);
+inline_re!(INSTEAD_THEN_NOW_LAST, r"\s+(?:instead|then|now)\b\W*$", I);
+
+/// Which budget reader a match came from (`budget.re is CEILING_BUDGET`).
+const CEILING: usize = 12;
+
+/// `{"to": to, "from": from}`.
+fn correction_of(to: Value, from: Value) -> Value {
+    dict(vec![("to", to), ("from", from)])
 }
 
+/// `re.findall(r"[a-z']+", text.lower())[-4:]` as a set, against `AMOUNT_WISH`.
+fn wished_before(text: &str) -> bool {
+    let words = LOWER_WORDS.findall_str(&lower(text));
+    let from = words.len().saturating_sub(4);
+    words[from..].iter().any(|w| AMOUNT_WISH.contains(w))
+}
+
+/// Python: bot/memory/facts.py:10720 `_extract(text, question=False)`: the facts one line states.
+pub fn _extract(text: &str, question: bool) -> Value {
+    let mut found = Value::dict();
+    if let Some(hurt) = the_part_it_hurts(text) {
+        found.set_key("hurts", hurt);
+    }
+    let text = _the_numbers_in_words(text);
+    let text = text.as_str();
+    let diet = VEGETARIAN.search(text);
+    let mut name = _name(text);
+    if let (Some(n), Some(d)) = (&name, &diet) {
+        if I_OR_WE_FIRST.match_(&lower(d.str(1))).is_some()
+            && lower(d.str(2)).replace('-', " ").starts_with(&format!("{} ", _finish(n)))
+        {
+            name = None;
+        }
+    }
+    if let Some(n) = &name {
+        found.set_key("name", n.as_str());
+    }
+    let (mut job, mut city, mut frame) = _job_and_city(text, name.as_deref().unwrap_or(""), question);
+    if job.is_none() && CHANGED_WORK.is_match(text) {
+        if let Some(moved) = WORK_NOW.search(text) {
+            let place = _finish(moved.str(3));
+            if !place.is_empty() && !JOB_STOP.contains(&place) && pt::split(&place).len() <= 3 {
+                job = Some(place);
+                frame = [moved.get(1), moved.get(2)].into_iter().flatten().filter(|p| !p.is_empty()).collect::<Vec<_>>().join(" ");
+            }
+        }
+    }
+    if let Some(j) = job.as_ref().filter(|j| !j.is_empty()) {
+        found.set_key("job", j.as_str());
+        if !frame.is_empty() {
+            found.set_key("job_frame", frame.as_str());
+        }
+    }
+    if let Some(car) = _car(text).filter(|c| !c.is_empty()) {
+        found.set_key("car", car);
+    }
+    let (mut places, mut home, home_said) = _places(text);
+    if home.is_none() {
+        if let Some(near) = HOME_LOOSE.search(text) {
+            let first = lower(pt::split_ref(near.str(1)).first().copied().unwrap_or(""));
+            if !NOT_PLACES.contains(&first) {
+                let h = near.str(1).to_string();
+                if !places.contains(&h) {
+                    places.push(h.clone());
+                }
+                home = Some(h);
+            }
+        }
+    }
+    let home_set = home.as_ref().is_some_and(|h| !h.is_empty());
+    if let Some(origin) = _from_place(text).filter(|o| !o.is_empty()) {
+        found.set_key("from", origin.as_str());
+        if !home_set && !places.contains(&origin) {
+            places.push(origin);
+        }
+    }
+    if let Some(born) = _born_place(text).filter(|b| !b.is_empty()) {
+        found.set_key("born", born);
+    }
+    for place in &places {
+        found.setdefault("places", Value::list()).push(place.as_str());
+    }
+    if home_set && city.as_ref().map_or(true, |c| c.is_empty()) {
+        city = home.clone();
+        let said: Value = if home_said.is_empty() { Value::Bool(true) } else { Value::from(home_said.as_str()) };
+        found.set_key("home", said);
+    }
+    if let Some(c) = city.as_ref().filter(|c| !c.is_empty()) {
+        if !vget(&found, "places").contains_str(c) {
+            found.setdefault("places", Value::list()).push(c.as_str());
+        }
+        found.set_key("city", c.as_str());
+    }
+    let own = _own_states(text);
+    for (k, v) in own.pairs() {
+        found.set_key(k.clone(), v.clone());
+    }
+    let (allergies, mut others) = _allergies(text);
+    if !allergies.is_empty() {
+        found.set_key("allergies", str_list(&allergies));
+    }
+    for (readings, key) in [(_other_diets(text), "diet"), (_other_conditions(text), "condition"), (_other_jobs(text), "job")] {
+        for entry in readings {
+            match others.iter().position(|seen| _same_person(seen, &entry)) {
+                None => others.push(entry),
+                Some(i) => {
+                    let value = entry.get(key).cloned().unwrap_or_else(|| panic!("KeyError: '{key}'"));
+                    others[i].setdefault(key, value);
+                }
+            }
+        }
+    }
+    for entry in _other_states(text) {
+        let same = match others.last() {
+            Some(last) => {
+                let who = last.get("who").unwrap_or_else(|| panic!("KeyError: 'who'"));
+                *who == *vget(&entry, "who")
+            }
+            None => false,
+        };
+        if !same {
+            others.push(entry);
+        } else {
+            let known = others.last_mut().unwrap();
+            for (k, v) in entry.pairs() {
+                known.set_key(k.clone(), v.clone());
+            }
+        }
+    }
+    for entry in _other_ages(text) {
+        let Some(i) = others.iter().position(|seen| _same_person(seen, &entry)) else {
+            others.push(entry);
+            continue;
+        };
+        let known = &mut others[i];
+        if vget(&entry, "ages").truthy() || vget(known, "ages").truthy() {
+            let held_known = _ages_held(known);
+            let mut merged = held_known.clone();
+            merged.extend(_ages_held(&entry).into_iter().filter(|a| !held_known.contains(a)));
+            let held = _ages_held(&entry);
+            if !held.is_empty() && held.len() >= held_known.len() {
+                merged = held;
+            }
+            known.del_key("age");
+            known.set_key("ages", ints(&merged));
+            if merged.len() == 1 {
+                known.del_key("ages");
+                known.set_key("age", merged[0]);
+            }
+        } else {
+            let age = entry.get("age").cloned().unwrap_or_else(|| panic!("KeyError: 'age'"));
+            known.set_key("age", age);
+            if vget(&entry, "turns").truthy() {
+                known.set_key("turns", vget(&entry, "turns").clone());
+            } else {
+                known.del_key("turns");
+            }
+        }
+        if vget(&entry, "name").truthy() && !vget(known, "name").truthy() {
+            known.set_key("name", vget(&entry, "name").clone());
+        }
+    }
+    for entry in _a_relations_name(text) {
+        match others.iter().position(|seen| _same_person(seen, &entry)) {
+            None => others.push(entry),
+            Some(i) => others[i].set_key("name", vget(&entry, "name").clone()),
+        }
+    }
+    for entry in _relation_facts(text) {
+        let who = if vget(&entry, "who").truthy() {
+            vget(&entry, "who").clone()
+        } else if vget(&entry, "pronoun").truthy() {
+            vget(&entry, "pronoun").clone()
+        } else {
+            Value::from("")
+        };
+        let mut known: Option<usize> = None;
+        for (i, seen) in others.iter().enumerate() {
+            let seen_who = if vget(seen, "who").truthy() {
+                vget(seen, "who").clone()
+            } else if vget(seen, "pronoun").truthy() {
+                vget(seen, "pronoun").clone()
+            } else {
+                Value::from("")
+            };
+            if vget(&entry, "name").truthy()
+                && vget(seen, "name").truthy()
+                && lower(&value_str(vget(&entry, "name"))) != lower(&value_str(vget(seen, "name")))
+            {
+                continue;
+            }
+            if who.truthy()
+                && (seen_who == who || (!seen_who.truthy() && vget(&entry, "pronoun").truthy() && !vget(seen, "who").truthy()))
+            {
+                known = Some(i);
+                break;
+            }
+        }
+        let Some(i) = known else {
+            others.push(entry);
+            continue;
+        };
+        for (key, value) in entry.pairs() {
+            let k = key.str();
+            if k == "who" || k == "pronoun" {
+                let have = vget(&others[i], k).clone();
+                others[i].set_key(k, if have.truthy() { have } else { value.clone() });
+            } else {
+                others[i].setdefault(k, value.clone());
+            }
+        }
+    }
+    if let Some(entry) = _a_name_and_a_figure(text) {
+        let name = lower(vget(&entry, "name").str());
+        match others.iter().position(|seen| lower(&str_or_empty(seen.get("name"))) == name) {
+            None => others.push(entry),
+            Some(i) => {
+                others[i].set_key("age", vget(&entry, "age").clone());
+                others[i].del_key("months");
+                others[i].del_key("ages");
+            }
+        }
+    }
+    if !others.is_empty() {
+        for entry in &others {
+            for key in ["name", "age", "months"] {
+                if entry.get(key).is_some() {
+                    let who = vget(entry, "who");
+                    if who.truthy() && !vget(&found, "people").items().contains(who) {
+                        found.setdefault("people", Value::list()).push(who.clone());
+                    }
+                    break;
+                }
+            }
+        }
+        found.set_key("others", Value::from(others.clone()));
+    }
+    if let Some(d) = &diet {
+        if I_OR_WE_FIRST_I.match_(d.str(1)).is_some() {
+            let eating = squash(&lower(d.str(2)).replace('-', " "));
+            found.set_key("diet", DIET_NAMES.get(&eating).cloned().unwrap_or(eating));
+        }
+    }
+    if let Some(named) = DIET_NAMED.search(text) {
+        if found.get("diet").is_none() {
+            found.set_key("diet", squash(&lower(named.str(1))).replace(' ', "-"));
+        }
+    }
+    if let Some(underway) = DIET_UNDERWAY.search(text) {
+        if found.get("diet").is_none() {
+            match underway.name("named").filter(|n| !n.is_empty()) {
+                Some(n) => found.set_key("diet", squash(&lower(n)).replace(' ', "-")),
+                None => found.set_key("diet", "on a diet"),
+            }
+        }
+    }
+    let doing = _a_way_of_eating_said_with_a_verb(text);
+    if !doing.is_empty() && found.get("diet").is_none() {
+        found.set_key("diet", doing);
+    }
+    if let Some(bare) = DIET_BARE.search(text) {
+        if found.get("diet").is_none() {
+            found.set_key("diet", pt::split(&lower(bare.name_str("bare")).replace('-', " ")).join("-"));
+        }
+    }
+    if let Some(meat) = NO_MEAT.search(text) {
+        let mut avoided = _finish(meat.str(1));
+        if NO_EAT_QUALIFIER.contains(&avoided) {
+            let next = pt::split_ref(&text[meat.end()..]).first().map(|w| _finish(w)).unwrap_or_default();
+            if MEAT.contains(&next) {
+                avoided = format!("{avoided} {next}");
+            }
+        }
+        if !avoided.is_empty() {
+            let words = pt::split(&avoided);
+            let first = words.first().map(|w| lower(w)).unwrap_or_default();
+            if !_QUANTITY_WORDS.contains(&first) && !words.iter().any(|w| ALLERGY_STOP.contains(w)) {
+                found.set_key("diet", format!("no {avoided}"));
+                if pt::split(&avoided.replace(',', " ")).iter().any(|w| MEAT.contains(w)) {
+                    found.set_key("no_meat", true);
+                }
+            }
+        }
+    }
+    if !vget(&found, "diet").truthy() {
+        let drank = _the_drink_they_do_not_take(text);
+        if !drank.is_empty() {
+            found.set_key("diet", format!("no {drank}"));
+        }
+    }
+    if let Some(condition) = CONDITION.search(text) {
+        found.set_key("condition", squash(&lower(condition.str(1))));
+    }
+    let pets = _pets(text, question);
+    if !pets.is_empty() {
+        found.set_key("pets", Value::from(pets));
+    }
+    let owned = _owns(text);
+    if owned.truthy() {
+        found.set_key("owns", owned);
+    }
+    let tastes = if vget(&found, "diet").truthy() { Value::list() } else { crate::memory::taste::read_all(text) };
+    if tastes.truthy() {
+        found.set_key("tastes", tastes);
+    }
+    let budget_readers: [&'static Re; 13] = [
+        *BUDGET, *SPEND_BUDGET, *SPEND_FOR, *INTENDED_SPEND, *THE_THING_MAY_COST, *ALL_I_CAN_DO, *ONLY_HAVE, *SPEND_BUDGET_NOW,
+        *STRETCH_BUDGET, *BARE_BUDGET, *BUDGET_ASKED, *BUDGET_THOUGHT, *CEILING_BUDGET,
+    ];
+    let mut budget: Option<(Match, usize)> = None;
+    for (k, reader) in budget_readers.iter().enumerate() {
+        if let Some(m) = reader.search(text) {
+            budget = Some((m, k));
+            break;
+        }
+    }
+    if budget.is_none() {
+        let mut money = INCOME.search(text);
+        if money.as_ref().is_some_and(|m| !_paid_by_a_period(text, m.end())) {
+            money = None;
+        }
+        if money.is_none() {
+            if let Some(bare) = INCOME_BARE.search(text) {
+                if _paid_by_a_period(text, bare.end()) {
+                    let figure = pt::split(bare.str(1)).last().cloned().unwrap_or_default();
+                    if figure.chars().filter(|c| pt::is_digit(&c.to_string())).count() >= 3 {
+                        money = Some(bare);
+                    }
+                }
+            }
+        }
+        if money.is_none() {
+            for a_year in INCOME_A_YEAR.iter() {
+                if let Some(year) = a_year.search(text) {
+                    if _a_years_pay(year.str(1)) && pt::strip(pt::strip_chars(&text[year.end()..], " .,;!?-")).is_empty() {
+                        money = Some(year);
+                        break;
+                    }
+                }
+            }
+        }
+        if money.as_ref().is_some_and(|m| match_at(&INCOME_RATE, text, m.end()).is_some()) {
+            money = None;
+        }
+        budget = money.map(|m| (m, usize::MAX));
+    }
+    if let Some((b, k)) = budget.as_ref().filter(|(b, _)| subject_at(text, b.start()).0 != "other") {
+        let mut said_budget = pt::rstrip_chars(&squash(b.str(1)), ".,;:").to_string();
+        if *k == CEILING {
+            said_budget = format!("no more than {said_budget}");
+        }
+        found.set_key("budget", said_budget);
+    } else if !question {
+        if let Some(vague) = vague_budget(text) {
+            if subject_at(text, 0).0 != "other" {
+                found.set_key("budget", vague);
+            }
+        }
+    }
+    if let Some(kids) = kid_count(text) {
+        found.set_key("kids", kids);
+    }
+    if let Some(age) = AGE.search(text).or_else(|| MY_AGE.search(text)) {
+        found.set_key("age", int_of(age.str(1)));
+    }
+    let tall = _how_tall(text);
+    if !tall.is_empty() {
+        found.set_key("height", tall);
+    }
+    if let Some(birthday) = BIRTHDAY.search(text) {
+        if subject_at(text, birthday.start()).0 != "other" {
+            let date = _a_birthday_date(birthday.str(1));
+            if !date.is_empty() {
+                found.set_key("birthday", date);
+            }
+        }
+    }
+    if let Some(weight) = WEIGH.search(text).or_else(|| WEIGH_IM.search(text)).or_else(|| WEIGH_MY.search(text)) {
+        if subject_at(text, weight.start()).0 != "other" {
+            if let Some(unit) = _weight_unit(weight.str(2)) {
+                found.set_key("weight", format!("{} {unit}", weight.str(1)));
+                let age_said = match found.get("age") {
+                    Some(v) => value_str(v),
+                    None => "None".into(),
+                };
+                if age_said == weight.str(1) {
+                    found.del_key("age");
+                }
+            }
+        }
+    }
+    let relations = _people(text);
+    if !relations.is_empty() {
+        found.set_key("people", str_list(&relations));
+    }
+    let moved = _date_change(text);
+    let mut plan = PLAN.search(text);
+    if plan.as_ref().is_some_and(|p| _asks_about_the_plan(text, p.start())) {
+        plan = None;
+    }
+    if plan.as_ref().is_some_and(|p| _GOT_A.is_match(p.as_str())) && !FUTURE.is_match(text) && !_GOT_TO.is_match(text) {
+        plan = None;
+    }
+    if plan.as_ref().is_some_and(|p| TO_A_FAREWELL.match_(&_plan_text(text, p.end())).is_some()) && _FAREWELL.is_match(text) {
+        plan = None;
+    }
+    if let Some(p) = &plan {
+        let mut plan_text = _plan_text(text, p.end());
+        let mut words = pt::split(&lower(&TO_FIRST.sub("", &plan_text)));
+        while !words.is_empty() && ["a", "an", "the", "my", "our"].contains(&words[0].as_str()) {
+            words.remove(0);
+        }
+        let first_word = words.first().cloned().unwrap_or_default();
+        let after_an_infinitive = TO_WORD.match_(&plan_text).is_some() || INFINITIVE_FRAME.is_match(p.as_str());
+        if !plan_text.is_empty()
+            && MONEY_OR_FIGURE_FIRST.match_(&plan_text).is_none()
+            && !NOT_PLACES.contains(&first_word)
+            && (after_an_infinitive || (!PLACE_VERBS.contains(&first_word) && _a_plan_has_a_thing(&plan_text)))
+        {
+            let verb = _plan_verb(p.as_str(), &plan_text);
+            if !verb.is_empty() {
+                plan_text = format!("{verb} {}{}", lower(&pt::slice(&plan_text, 0, Some(1))), pt::slice(&plan_text, 1, None));
+            }
+            found.set_key("plan", plan_text);
+        }
+    }
+    if vget(&found, "plan").truthy() && vget(&found, "pets").truthy() && PETS.is_match(vget(&found, "plan").str()) {
+        found.del_key("plan");
+    }
+    for key in ["places", "allergies", "people"] {
+        if let Some(values) = found.get(key) {
+            let kept: Vec<String> = values.items().iter().map(|v| _fact_value(&value_str(v))).filter(|v| !v.is_empty()).collect();
+            if kept.is_empty() {
+                found.del_key(key);
+            } else {
+                found.set_key(key, str_list(&kept));
+            }
+        }
+    }
+    if let Some(list) = found.get_mut("others").and_then(Value::items_mut) {
+        for entry in list.iter_mut() {
+            for key in ["allergies", "places"] {
+                if let Some(values) = entry.get(key) {
+                    let kept: Vec<String> = values.items().iter().map(|v| _fact_value(&value_str(v))).filter(|v| !v.is_empty()).collect();
+                    entry.set_key(key, str_list(&kept));
+                }
+            }
+        }
+    }
+    for key in ["budget", "diet", "city", "plan"] {
+        if let Some(v) = found.get(key) {
+            let value = _fact_value(&value_str(v));
+            if value.is_empty() {
+                found.del_key(key);
+            } else {
+                found.set_key(key, value);
+            }
+        }
+    }
+    if found.get("plan").is_none() {
+        let mut deed: Vec<String> = Vec::new();
+        let several = _dated_plans(text, Some(&mut deed));
+        let mut dated = _appointment(text);
+        if dated.is_empty() {
+            dated = several.first().cloned().unwrap_or_default();
+        }
+        if !dated.is_empty() {
+            found.set_key("plan", dated);
+            if several.len() > 1 {
+                found.set_key("plans_today", str_list(&several));
+            }
+        } else if let Some(first) = deed.first() {
+            found.set_key("done", first.as_str());
+        }
+    }
+    if found.get("plan").is_some() && moved.is_none() {
+        let today = found.del_key("plans_today").filter(Value::truthy);
+        let plans = today.unwrap_or_else(|| vget(&found, "plan").clone());
+        found.set_key("plans", plans);
+    }
+    if moved.is_some() {
+        found.del_key("plan");
+        found.del_key("plans");
+    }
+    // The corrections. `which` records the reader, for `correction.re is CORRECTION_MAKE`.
+    let mut correction: Option<Match> = None;
+    let mut made = false;
+    for (k, reader) in [&*CORRECTION_SAID, &*CORRECTION, &*CORRECTION_PAIR, &*CORRECTION_NUMBER_PAIR].into_iter().enumerate() {
+        let _ = k;
+        if let Some(m) = reader.search(text) {
+            correction = Some(m);
+            break;
+        }
+    }
+    if correction.is_none() {
+        correction = _a_day_taken_back(text);
+    }
+    if correction.is_none() {
+        correction = _a_moved_time(text);
+    }
+    if correction.is_none() {
+        correction = CORRECTION_CLOCK.search(text).or_else(|| CLOCK_PREFERRED.search(text));
+    }
+    if correction.is_none() {
+        correction = CORRECTION_MAKE.search(text);
+        made = correction.is_some();
+    }
+    let mut hedged: Option<Match> = None;
+    if correction.is_none() {
+        let dated = CORRECTION_DATE.search(text).or_else(|| CORRECTION_DATE_GOING.search(text)).or_else(|| CORRECTION_GOING_MOVED.search(text));
+        if let Some(d) = dated {
+            found.set_key("correction", correction_of(tidy(&squash(d.name_str("date"))).into(), Value::None));
+        }
+    }
+    if correction.is_none() && found.get("correction").is_none() {
+        hedged = CORRECTION_HEDGED.search(text);
+        if hedged.is_some() {
+            correction = hedged.clone();
+        }
+        let bare = if correction.is_some() { None } else { CORRECTION_BARE.search(text) };
+        if let Some(b) = bare {
+            let value = lower(b.str(1));
+            let alone = lower(pt::strip(&_the_value_alone(&COPULA_SPLIT.split(b.str(1))[0])));
+            if !CORRECTION_BARE_NO.contains(&value) && !CORRECTION_BARE_NO.contains(&alone) {
+                correction = Some(b);
+            }
+        }
+        if correction.is_none() {
+            if let Some(named) = NO_THEN_A_THING_NAMED.search(text) {
+                let first = pt::split(&lower(named.str(1))).first().cloned().unwrap_or_default();
+                if !ANIMALS.contains(&first) {
+                    correction = Some(named);
+                }
+            }
+        }
+    }
+    if correction.is_none() {
+        if let Some(m) = &moved {
+            found.set_key("correction", correction_of(m.as_str().into(), Value::None));
+        }
+    }
+    let amount_correction = |found: &mut Value| {
+        if let Some(amount) = AMOUNT_CORRECTION.search(text).or_else(|| AMOUNT_CORRECTION_BARE.search(text)) {
+            if !wished_before(&text[..amount.start()]) {
+                found.set_key("correction", correction_of(pt::strip_chars(amount.str(1), " .,").into(), Value::None));
+            }
+        }
+    };
+    if correction.is_none() {
+        amount_correction(&mut found);
+    }
+    if let Some(c) = &correction {
+        let group1 = Value::from(c.get(1));
+        if !_is_only_the_take_back(&group1, &denials(text, &Value::None)) {
+            let wrong = if c.group_count() > 1 { c.get(2).filter(|w| !w.is_empty()) } else { None };
+            let mut value = _the_value_alone(&COPULA_SPLIT.split(c.str(1))[0]);
+            let without_it = pt::strip(&ON_IN_AT_FIRST_I.sub("", &value)).to_string();
+            if !without_it.is_empty() && a_value(&without_it) {
+                value = without_it;
+            }
+            let named = crate::memory::named::the_name_in(&Value::from(value.as_str()));
+            if !named.is_empty() {
+                value = named;
+            }
+            if a_value(&value) || hedged.is_some() {
+                let from = match wrong {
+                    Some(w) => Value::from(_tidy_apart(w)),
+                    None => Value::None,
+                };
+                let mut fixed = correction_of(tidy(&value).into(), from);
+                if made {
+                    fixed.set_key("make", true);
+                }
+                found.set_key("correction", fixed);
+            }
+        }
+    }
+    if found.get("correction").is_none() {
+        amount_correction(&mut found);
+    }
+    let no_drop = |found: &Value| found.get("drop").map_or(true, Value::is_none);
+    if found.get("correction").is_none() && no_drop(&found) {
+        if let Some(pair) = CORRECTION_NOT_PAIR.search(text) {
+            let right = tidy(pair.str(2));
+            let wrong = tidy(pair.str(1));
+            if a_value(&right) && a_value(&wrong) && !NOT_A_DAY.contains(&lower(&right)) && !NOT_A_DAY.contains(&lower(&wrong)) {
+                found.set_key("correction", correction_of(right.into(), wrong.into()));
+            }
+        }
+    }
+    if found.get("correction").is_none() && no_drop(&found) {
+        if let Some(denial) = DENIAL_OF_A_VALUE.match_(text) {
+            if !a_name_is_taken_back(text) {
+                let said = denial.name("value").filter(|s| !s.is_empty());
+                let wrong = denial.name("wrong").filter(|s| !s.is_empty());
+                let says = denial.name("says").is_some_and(|s| !s.is_empty());
+                if let Some(said) = said {
+                    if says && a_value(said) {
+                        let from = match wrong {
+                            Some(w) if a_value(w) && lower(w) != lower(said) => Value::from(tidy(w)),
+                            _ => Value::None,
+                        };
+                        found.set_key("correction", correction_of(tidy(said).into(), from));
+                    }
+                }
+            }
+        }
+    }
+    if found.get("correction").is_none() && no_drop(&found) {
+        if let Some(paired) = CORRECTION_NOT_TO.search(text) {
+            let wrong = tidy(paired.str(1));
+            let right = INSTEAD_THEN_NOW_LAST.sub("", &tidy(paired.str(2)));
+            if a_value(&wrong)
+                && a_value(&right)
+                && !NOT_A_DAY.contains(&lower(&wrong))
+                && !NOT_A_DAY.contains(&lower(&right))
+                && lower(&wrong) != lower(&right)
+            {
+                found.set_key("correction", correction_of(right.into(), wrong.into()));
+            }
+        }
+        if let Some(gone) = CORRECTION_NOT.search(text) {
+            if found.get("correction").is_none() {
+                let value = COPULA_SPLIT.split(gone.str(1)).into_iter().next().unwrap_or_default();
+                if a_value(&value) && !NOT_A_DAY.contains(&lower(&value)) {
+                    found.set_key("drop", tidy(&value));
+                }
+            }
+        }
+    }
+    if !found.truthy() && RETRACT.match_(pt::strip(text)).is_some() {
+        found.set_key("retract", true);
+    }
+    let keys: Vec<Value> = found.pairs().iter().map(|(k, _)| k.clone()).collect();
+    for key in keys {
+        let k = key.str().to_string();
+        let Some(value) = found.get(&k).cloned() else {
+            continue;
+        };
+        match &value {
+            Value::Str(s) if !s.is_empty() => {
+                let kept = no_tone(s);
+                if kept.is_empty() {
+                    found.del_key(&k);
+                } else {
+                    found.set_key(k.as_str(), kept);
+                }
+            }
+            Value::List(items) if items.iter().all(Value::is_str) => {
+                let cleaned: Vec<String> = items
+                    .iter()
+                    .map(|i| no_tone(i.str()))
+                    .filter(|kept| !kept.is_empty() && RETRACT.match_(kept).is_none())
+                    .collect();
+                if cleaned.is_empty() {
+                    found.del_key(&k);
+                } else {
+                    found.set_key(k.as_str(), str_list(&cleaned));
+                }
+            }
+            _ => {}
+        }
+    }
+    if let Some(list) = found.get_mut("others").and_then(Value::items_mut) {
+        for entry in list.iter_mut() {
+            let pairs: Vec<(Value, Value)> = entry.pairs().to_vec();
+            for (key, value) in pairs {
+                let k = key.str();
+                if k == "who" {
+                    continue;
+                }
+                match &value {
+                    Value::Str(s) if !s.is_empty() => entry.set_key(k, no_tone(s)),
+                    Value::List(items) if items.iter().all(Value::is_str) => {
+                        let kept: Vec<String> = items.iter().map(|i| no_tone(i.str())).filter(|k| !k.is_empty()).collect();
+                        entry.set_key(k, str_list(&kept));
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    if found.get("correction").is_none() && CORRECTION_MARK.is_match(text) {
+        for key in CORRECT_FROM_MARK.iter() {
+            let mut value = found.get(key).cloned().unwrap_or(Value::None);
+            if let Value::List(items) = &value {
+                value = items.first().cloned().unwrap_or(Value::None);
+            }
+            let value = match &value {
+                Value::Int(_) | Value::Float(_) | Value::Bool(_) => value_str(&value),
+                Value::Str(s) => s.to_string(),
+                _ => continue,
+            };
+            if pt::strip(&value).is_empty() {
+                continue;
+            }
+            if !a_value(&value) {
+                continue;
+            }
+            found.set_key("correction", correction_of(tidy(&value).into(), Value::None));
+            break;
+        }
+    }
+    found
+}
+
+inline_re!(ON_IN_AT_FIRST_I, r"^(?:on|in|at)\s+", I);
