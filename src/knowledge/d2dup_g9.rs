@@ -65,33 +65,8 @@ pub fn recent(memory: &crate::state::Memory, n: usize) -> &[crate::state::Turn] 
 static A_BOY: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.family._A_BOY"));
 static A_GIRL: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.family._A_GIRL"));
 
-// DUP(bot.knowledge.family::_the_child_pronouns)
-/// he/him or she/her for the child the card is about, they/them when nothing says which: read
-/// from the line, then the line it leans on, then the chat.
-pub fn _the_child_pronouns(
-    memory: &crate::state::Memory,
-    understood: &Understood,
-) -> (&'static str, &'static str, &'static str, &'static str) {
-    let mut said: Vec<String> = Vec::new();
-    said.push(if understood.text.is_empty() { understood.clean.clone() } else { understood.text.clone() });
-    // TYPE(understood.leans_on): Python reads leans_on["text"]; the typed reading keeps no dict.
-    said.push(String::new());
-    for turn in &memory.turns {
-        said.push(turn.user.clone());
-    }
-    for text in said {
-        let low = format!(" {} ", text.to_lowercase());
-        let boy = A_BOY.is_match(&low);
-        let girl = A_GIRL.is_match(&low);
-        if boy && !girl {
-            return ("he", "him", "his", "does");
-        }
-        if girl && !boy {
-            return ("she", "her", "hers", "does");
-        }
-    }
-    ("they", "them", "their", "do")
-}
+// was DUP(bot.knowledge.family::_the_child_pronouns): now the real port
+pub use crate::knowledge::family::_the_child_pronouns;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/units.py
@@ -159,52 +134,11 @@ static PLAN_NAMES: LazyLock<Vec<(String, Vec<Vec<String>>)>> = LazyLock::new(|| 
         .collect()
 });
 
-// DUP(bot.knowledge.dishes::_same_word)
-/// eggs/egg, potatoes/potato, roasting/roast: the loose forms cooking.py matches with.
-pub fn _same_word(a: &str, b: &str) -> bool {
-    if a == b {
-        return true;
-    }
-    for (one, two) in [(a, b), (b, a)] {
-        if one.chars().count() > 3 {
-            if one.strip_suffix('s') == Some(two) {
-                return true;
-            }
-            if one.strip_suffix("es") == Some(two) {
-                return true;
-            }
-            if let Some(stem) = one.strip_suffix("ing") {
-                if stem == two || format!("{stem}e") == two {
-                    return true;
-                }
-            }
-            if one.strip_suffix("ed") == Some(two) {
-                return true;
-            }
-        }
-    }
-    false
-}
+// was DUP(bot.knowledge.dishes::_same_word): now the real port
+pub use crate::knowledge::dishes::_same_word;
 
-// DUP(bot.knowledge.dishes::_ruled_out_near)
-/// True when the words just before `at` rule the dish that starts there out ("isnt a roast").
-pub fn _ruled_out_near(have: &[String], at: usize, width: usize) -> bool {
-    let after = at + width;
-    if after < have.len() {
-        let tail = have[after].replace('\u{2019}', "").replace('\'', "");
-        if INGREDIENT_AFTER.contains(&tail) {
-            return false;
-        }
-    }
-    for step in 1..=at.min(5) {
-        let word = have[at - step].replace('\u{2019}', "").replace('\'', "");
-        if RULE_OUT_FILLER.contains(&word) {
-            continue;
-        }
-        return RULE_OUT.contains(&word);
-    }
-    false
-}
+// was DUP(bot.knowledge.dishes::_ruled_out_near): now the real port
+pub use crate::knowledge::dishes::_ruled_out_near;
 
 // DUP(bot.knowledge.dishes::dishes_ruled_out)
 /// The plan keys a text names only to rule them out ("isnt a roast").

@@ -52,52 +52,17 @@ pub fn clean_or_text(understood: &Understood) -> &str {
 
 globals!("bot.knowledge.geography", re { _CROSSING_WORD, _DIRECTION, _ARTICLE }, strs { _EVERYDAY_PLACE, _NOT_A_PLACE });
 
-// DUP(bot.knowledge.geography::_bare_place)
-/// The place words after a direction, without the article in front of them.
-pub fn _bare_place(phrase: &str) -> String {
-    let mut phrase = crate::py::text::strip_chars(crate::py::text::strip(phrase), ".,!?;:").to_string();
-    loop {
-        let shorter = _ARTICLE.subn("", &phrase, 1);
-        if shorter == phrase {
-            return phrase;
-        }
-        phrase = shorter;
-    }
-}
+// was DUP(bot.knowledge.geography::_bare_place): now the real port
+pub use crate::knowledge::geography::_bare_place;
 
-// DUP(bot.knowledge.geography::directed_place)
-/// The place a line carries something towards, in its own words, or None.
-pub fn directed_place(line: &str) -> Option<String> {
-    for m in _DIRECTION.finditer(line) {
-        let place = _bare_place(m.str(1));
-        if !place.is_empty() && !_NOT_A_PLACE.contains(&place) {
-            return Some(place);
-        }
-    }
-    None
-}
+// was DUP(bot.knowledge.geography::directed_place): now the real port
+pub use crate::knowledge::geography::directed_place;
 
-// DUP(bot.knowledge.geography::_is_everyday)
-/// True when the place words name a room, a building or a do rather than a country.
-pub fn _is_everyday(place: &str) -> bool {
-    let place = _bare_place(place);
-    _EVERYDAY_PLACE.iter().any(|name| {
-        place == *name || place.starts_with(&format!("{name} ")) || place.ends_with(&format!(" {name}"))
-    })
-}
+// was DUP(bot.knowledge.geography::_is_everyday): now the real port
+pub use crate::knowledge::geography::_is_everyday;
 
-// DUP(bot.knowledge.geography::crosses_a_border)
-/// True when the line carries something across a border rather than to a do.
-pub fn crosses_a_border(line: &str) -> bool {
-    let line = line.to_lowercase();
-    if _CROSSING_WORD.is_match(&line) {
-        return true;
-    }
-    match directed_place(&line) {
-        Some(place) => !_is_everyday(&place),
-        None => false,
-    }
-}
+// was DUP(bot.knowledge.geography::crosses_a_border): now the real port
+pub use crate::knowledge::geography::crosses_a_border;
 
 // ---------------------------------------------------------------------------------------------
 // Python's `re` module cache: `re.search(pattern, text)` with a pattern string built at run time.
@@ -141,15 +106,8 @@ pub fn reads_as_loss(text: &str) -> bool {
 
 globals!("bot.knowledge.dishes", strs { _COOK_PHRASES, FOOD_WORDS });
 
-// DUP(bot.knowledge.dishes::cook_ask)
-/// True when the line asks what to make or eat with a food it names.
-pub fn cook_ask(understood: &Understood) -> bool {
-    let text = if understood.norm_text.is_empty() { &understood.clean } else { &understood.norm_text }.to_lowercase();
-    if !_COOK_PHRASES.iter().any(|w| text.contains(w.as_str())) {
-        return false;
-    }
-    FOOD_WORDS.iter().any(|f| text.contains(f.as_str()))
-}
+// was DUP(bot.knowledge.dishes::cook_ask): now the real port
+pub use crate::knowledge::dishes::cook_ask;
 
 /// Python's `template % {"key": value, ...}` for `%(key)s` fields (and `%%`).
 pub fn percent_named(template: &str, values: &[(&str, &str)]) -> String {

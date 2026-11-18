@@ -107,31 +107,8 @@ static COUNTRY_ALIASES: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
         .collect()
 });
 
-// DUP(bot.knowledge.geography::_countries_said)
-/// The countries a line names, in the order it says them, as keys into COUNTRIES.
-pub fn _countries_said(clean: &str) -> Vec<String> {
-    let mut found: Vec<(usize, String)> = Vec::new();
-    let mut taken: Vec<(usize, usize)> = Vec::new();
-    for (phrase, re) in COUNTRY_PHRASES.iter() {
-        for m in re.finditer(clean) {
-            let (start, end) = (m.start(), m.end());
-            if taken.iter().any(|&(before, after)| before < end && start < after) {
-                continue;
-            }
-            taken.push((start, end));
-            let name = COUNTRY_ALIASES.iter().find(|(k, _)| k == phrase).map(|(_, v)| v.clone()).unwrap_or_else(|| phrase.clone());
-            found.push((start, name));
-        }
-    }
-    found.sort();
-    let mut said: Vec<String> = Vec::new();
-    for (_, name) in found {
-        if !said.contains(&name) {
-            said.push(name);
-        }
-    }
-    said
-}
+// was DUP(bot.knowledge.geography::_countries_said): now the real port
+pub use crate::knowledge::geography::_countries_said;
 
 #[cfg(test)]
 mod tests {

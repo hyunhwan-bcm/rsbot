@@ -37,14 +37,8 @@ pub fn chars_before(text: &str, at: usize, n: usize) -> &str {
 // ---------------------------------------------------------------------------------------------
 // bot/understanding, bot/memory, bot/knowledge/units
 
-// DUP(bot.understanding::line_as_read)
-/// The line with the engine's repairs (`plain`), else as typed.
-pub fn line_as_read(understood: &Understood) -> String {
-    if !text::strip(&understood.plain).is_empty() {
-        return understood.plain.clone();
-    }
-    crate::knowledge::d2_shared::or(&understood.clean, &understood.text).to_string()
-}
+// was DUP(bot.understanding::line_as_read): now the real port
+pub use crate::understanding::line_as_read;
 
 // DUP(bot.memory::recent)
 /// The last n turns, oldest first.
@@ -80,15 +74,11 @@ pub use crate::knowledge::units::people_in_groups;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/cooking_more.py
 
-// DUP(bot.knowledge.cooking_more::_clean)
-pub fn _clean(understood: &Understood) -> String {
-    understood.clean.to_lowercase()
-}
+// was DUP(bot.knowledge.cooking_more::_clean): now the real port
+pub use crate::knowledge::cooking_more::_clean;
 
-// DUP(bot.knowledge.cooking_more::_said_words)
-pub fn _said_words(understood: &Understood) -> Vec<String> {
-    understood.words.iter().map(|w| super::cooking_b::_fold(w)).collect()
-}
+// was DUP(bot.knowledge.cooking_more::_said_words): now the real port
+pub use crate::knowledge::cooking_more::_said_words;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/meals.py
@@ -116,99 +106,23 @@ fn is_alpha_word(s: &str) -> bool {
     text::is_alpha(s)
 }
 
-// DUP(bot.knowledge.meals::_up_food)
-pub fn _up_food(words: &[String]) -> Option<String> {
-    for (index, word) in words.iter().enumerate() {
-        if UP_FOOD_SET.contains(word) {
-            return Some(word.clone());
-        }
-        if index + 1 < words.len() {
-            let two = words[index..index + 2].join(" ");
-            if UP_FOOD_SET.contains(&two) {
-                return Some(two);
-            }
-        }
-    }
-    None
-}
+// was DUP(bot.knowledge.meals::_up_food): now the real port
+pub use crate::knowledge::meals::_up_food;
 
-// DUP(bot.knowledge.meals::_named)
-/// The ingredients a reading names, phrases first.
-pub fn meals_named(understood: &Understood) -> Vec<String> {
-    let mut words: Vec<String> = understood.words.clone();
-    for word in MEALS_WORD.findall_str(&understood.norm_text) {
-        if !words.contains(&word) {
-            words.push(word);
-        }
-    }
-    let mut text = words.join(" ");
-    let mut found: Vec<String> = Vec::new();
-    for (ingredient, forms) in MEALS_INGREDIENTS.iter() {
-        let hit: Vec<&String> = forms.iter().filter(|f| !is_alpha_word(f)).filter(|p| text.contains(p.as_str())).collect();
-        if !hit.is_empty() {
-            found.push(ingredient.clone());
-            for phrase in hit {
-                text = text.replace(phrase.as_str(), " ");
-                words.retain(|w| !phrase.contains(w.as_str()));
-            }
-        }
-    }
-    for (ingredient, forms) in MEALS_INGREDIENTS.iter() {
-        if found.contains(ingredient) {
-            continue;
-        }
-        if forms.iter().any(|f| is_alpha_word(f) && words.contains(f)) {
-            found.push(ingredient.clone());
-        }
-    }
-    found
-}
+// was DUP(bot.knowledge.meals::_named): now the real port
+pub use crate::knowledge::meals::_named as meals_named;
 
-// DUP(bot.knowledge.meals::named_food)
-pub fn named_food(words: &[String], understood: Option<&Understood>) -> Option<String> {
-    if let Some(up) = _up_food(words) {
-        if !up.is_empty() {
-            return Some(up);
-        }
-    }
-    let empty = Understood::default();
-    let named = meals_named(understood.unwrap_or(&empty));
-    named.into_iter().next().filter(|n| !n.is_empty())
-}
+// was DUP(bot.knowledge.meals::named_food): now the real port
+pub use crate::knowledge::meals::named_food;
 
-// DUP(bot.knowledge.meals::idea_is_a_dish)
-pub fn idea_is_a_dish(idea: &str) -> bool {
-    let low = idea.to_lowercase();
-    USE_DISH_WORDS.iter().any(|w| low.contains(w.as_str()))
-}
+// was DUP(bot.knowledge.meals::idea_is_a_dish): now the real port
+pub use crate::knowledge::meals::idea_is_a_dish;
 
-// DUP(bot.knowledge.meals::use_it_up)
-pub fn use_it_up(name: &str) -> String {
-    let said = text::strip(name);
-    let folded = said.to_lowercase();
-    for (words, mv) in UP_CLASSES.iter() {
-        if words.contains(&folded) {
-            return format!("Leftover {said}: {mv}");
-        }
-    }
-    for (words, mv) in UP_CLASSES.iter() {
-        if words.iter().any(|w| folded.ends_with(&format!(" {w}")) || folded.starts_with(&format!("{w} "))) {
-            return format!("Leftover {said}: {mv}");
-        }
-    }
-    format!(
-        "Leftover {said}: already cooked, so treat it as an ingredient - stir through a soup or a curry, fry with an onion and an egg, or eat cold in a salad with oil and vinegar."
-    )
-}
+// was DUP(bot.knowledge.meals::use_it_up): now the real port
+pub use crate::knowledge::meals::use_it_up;
 
-// DUP(bot.knowledge.meals::reads_as_news)
-pub fn reads_as_news(understood: &Understood, clean: &str) -> bool {
-    if understood.intent != "news" {
-        return false;
-    }
-    let low = crate::knowledge::d2_shared::or(clean, &understood.clean).to_lowercase();
-    !ASK_IN_NEWS.iter().any(|cue| low.contains(cue.as_str()))
-}
+// was DUP(bot.knowledge.meals::reads_as_news): now the real port
+pub use crate::knowledge::meals::reads_as_news;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/picking.py, bot/knowledge/dishes.py, bot/knowledge/lookup.py

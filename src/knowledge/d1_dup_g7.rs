@@ -15,10 +15,8 @@ static IN_THE_OVEN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.kno
 static JOINT_BEEF: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.cooking.JOINT_BEEF"));
 static JOINT_PORK: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.cooking.JOINT_PORK"));
 
-/// DUP(bot.knowledge.cooking::_same): the word is the wanted one or starts with it.
-pub fn _same(word: &str, wanted: &str) -> bool {
-    !word.is_empty() && !wanted.is_empty() && (word == wanted || word.starts_with(wanted))
-}
+// was DUP(bot.knowledge.cooking::_same): now the real port
+pub use crate::knowledge::cooking::_same;
 
 /// DUP(bot.knowledge.cooking::_roast_joint): the oven time for the joint the line names (both
 /// when it names none); None on a keeping or going-off line.
@@ -46,40 +44,15 @@ static STARTING_INTO: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bo
 static STARTING_AT: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.repeat.STARTING_AT"));
 static STARTING_BACK: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.repeat.STARTING_BACK"));
 
-/// DUP(bot.memory.repeat::_starting_out_names_a_thing): "starting out <thing>" names a thing
-/// (not "starting out again", "starting out slowly").
-pub fn _starting_out_names_a_thing(line: &str) -> bool {
-    let Some(found) = STARTING_OUT.search(line) else { return false };
-    let (first, second) = (found.str(1), found.str(2));
-    if STARTING_INTO.contains(first) || STARTING_AT.contains(first) {
-        return !second.is_empty() && !STARTING_BACK.contains(second);
-    }
-    !STARTING_BACK.contains(first)
-}
+// was DUP(bot.memory.repeat::_starting_out_names_a_thing): now the real port
+pub use crate::memory::repeat::_starting_out_names_a_thing;
 
 static KEEPING_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEEPING_WORDS"));
 static KEPT_FOODS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEPT_FOODS"));
 static CONTAINERS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.CONTAINERS"));
 
-/// DUP(bot.knowledge.lookup::a_food_is_being_kept): the line is about storing a food (a keeping
-/// word and a kept food both named).
-pub fn a_food_is_being_kept(understood: &Understood) -> bool {
-    let text = format!(" {} ", crate::knowledge::d1_shared::or(&understood.norm_text, &understood.clean).to_lowercase());
-    if !KEEPING_WORDS.iter().any(|w| text.contains(w.as_str())) {
-        return false;
-    }
-    let said: HashSet<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
-    for food in KEPT_FOODS.iter() {
-        if food.contains(' ') {
-            if text.contains(food.as_str()) {
-                return true;
-            }
-        } else if said.contains(food) || text.contains(&format!(" {food} ")) {
-            return true;
-        }
-    }
-    false
-}
+// was DUP(bot.knowledge.lookup::a_food_is_being_kept): now the real port
+pub use crate::knowledge::lookup::a_food_is_being_kept;
 
 /// DUP(bot.knowledge.lookup::only_a_container): every one of `names` the line holds is a
 /// container (a bag, a tub), and it holds at least one.
@@ -154,100 +127,20 @@ static PER_MONTH_RE: LazyLock<Re> = LazyLock::new(|| {
 static GOING_OUT: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.money.GOING_OUT"));
 static GOING_IN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.money.GOING_IN"));
 
-/// DUP(bot.knowledge.money::_salary_in): the largest yearly salary the text names (a figure of
-/// 3,000 or more, or one with "k"/"grand"), or None.
-pub fn _salary_in(text: &str) -> Option<i64> {
-    let mut best: Option<f64> = None;
-    for m in _SALARY_NUMBER.finditer(text) {
-        let raw = m.str(1).replace(',', "");
-        let Ok(mut value) = raw.parse::<f64>() else { continue };
-        if m.get(2).is_some_and(|g| !g.is_empty()) {
-            value *= 1000.0;
-        } else if value < 3000.0 {
-            continue;
-        }
-        if value >= 1000.0 && best.is_none_or(|b| value > b) {
-            best = Some(value);
-        }
-    }
-    best.filter(|b| *b != 0.0).map(|b| b as i64)
-}
+// was DUP(bot.knowledge.money::_salary_in): now the real port
+pub use crate::knowledge::money::_salary_in;
 
-/// DUP(bot.knowledge.money::_income_tax_and_ni): UK income tax and employee National Insurance
-/// on a yearly income, as (tax, ni).
-pub fn _income_tax_and_ni(income: f64) -> (f64, f64) {
-    let pa = *_PERSONAL_ALLOWANCE;
-    let mut allowance = pa;
-    if income > 100000.0 {
-        allowance = (allowance - (income - 100000.0) / 2.0).max(0.0);
-    }
-    let taxable = (income - allowance).max(0.0);
-    let (mut tax, mut left) = (0.0, taxable);
-    for (width, rate) in _TAX_BANDS.iter() {
-        let part = left.min(*width);
-        tax += part * rate;
-        left -= part;
-        if left <= 0.0 {
-            break;
-        }
-    }
-    if left > 0.0 {
-        tax += left * *_TAX_TOP;
-    }
-    let mut ni = 0.0;
-    if income > pa {
-        ni += (income.min(*_NI_MAIN_TO) - pa) * 0.08;
-    }
-    if income > *_NI_MAIN_TO {
-        ni += (income - *_NI_MAIN_TO) * 0.02;
-    }
-    (tax, ni)
-}
+// was DUP(bot.knowledge.money::_income_tax_and_ni): now the real port
+pub use crate::knowledge::money::_income_tax_and_ni;
 
-/// DUP(bot.knowledge.money::_clause_about): the clause of `text` around [start, end) (byte
-/// offsets; the marks are ASCII, so this is Python's code-point slicing), lower-cased; when it
-/// joins halves with "and"/"but"/"so"/"then", the first half that holds a sum of money.
-pub fn _clause_about(text: &str, start: usize, end: usize) -> String {
-    let marks = ['.', ';', ',', '?'];
-    let left = marks.iter().filter_map(|m| text[..start].rfind(*m)).max().map(|i| i + 1).unwrap_or(0);
-    let right = marks.iter().filter_map(|m| text.get(end..).and_then(|t| t.find(*m)).map(|i| i + end)).min();
-    let stop = right.unwrap_or(text.len());
-    let clause = if left <= stop { text[left..stop].to_lowercase() } else { String::new() };
-    for joiner in [" and ", " but ", " so ", " then "] {
-        if clause.contains(joiner) {
-            for piece in clause.split(joiner) {
-                if MONEY_RE.is_match(piece) {
-                    return piece.to_string();
-                }
-            }
-        }
-    }
-    clause
-}
+// was DUP(bot.knowledge.money::_clause_about): now the real port
+pub use crate::knowledge::money::_clause_about;
 
-/// DUP(bot.knowledge.money::_said_a_month): the figure a money match names (times 1,000 for
-/// "k"/"grand").
-pub fn _said_a_month(m: &crate::py::re::Match) -> f64 {
-    let amount: f64 = m.str(1).replace(',', "").parse().unwrap_or(0.0);
-    if m.get(2).is_some_and(|g| !g.is_empty()) { amount * 1000.0 } else { amount }
-}
+// was DUP(bot.knowledge.money::_said_a_month): now the real port
+pub use crate::knowledge::money::_said_a_month;
 
-/// DUP(bot.knowledge.money::_per_month): a sum "a month/week/fortnight/year" in the text, as a
-/// monthly figure (0 when there is none, or the clause is a cost going out).
-pub fn _per_month(text: &str) -> i64 {
-    let Some(m) = PER_MONTH_RE.search(text) else { return 0 };
-    let clause = _clause_about(text, m.start(), m.end());
-    if GOING_OUT.iter().any(|w| clause.contains(w.as_str())) && !GOING_IN.iter().any(|w| clause.contains(w.as_str())) {
-        return 0;
-    }
-    let factor = match m.str(3) {
-        "month" => 1.0,
-        "week" => 52.0 / 12.0,
-        "fortnight" => 26.0 / 12.0,
-        _ => 1.0 / 12.0,
-    };
-    text::round_half_even(_said_a_month(&m) * factor)
-}
+// was DUP(bot.knowledge.money::_per_month): now the real port
+pub use crate::knowledge::money::_per_month;
 
 // ---- the pinned clock and civil dates ---------------------------------------------------------
 // Read from the shared clock (`py::clock`), which the checkers pin to the oracle's day.
@@ -318,22 +211,11 @@ pub fn valid_date(y: i64, m: i64, d: i64) -> bool {
 
 static _ORDER_OF_STEPS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._ORDER_OF_STEPS"));
 
-/// DUP(bot.knowledge.lookup::the_ask_is_the_order_of_steps): the line asks which step comes
-/// first.
-pub fn the_ask_is_the_order_of_steps(understood: &Understood) -> bool {
-    let joined;
-    let mut said = crate::knowledge::d1_shared::text_or_clean(understood);
-    if said.is_empty() {
-        joined = understood.words.join(" ");
-        said = &joined;
-    }
-    !said.is_empty() && _ORDER_OF_STEPS.is_match(said)
-}
+// was DUP(bot.knowledge.lookup::the_ask_is_the_order_of_steps): now the real port
+pub use crate::knowledge::lookup::the_ask_is_the_order_of_steps;
 
-/// DUP(bot.knowledge.lookup::not_the_ask_about_the_order).
-pub fn not_the_ask_about_the_order(understood: &Understood) -> bool {
-    !the_ask_is_the_order_of_steps(understood)
-}
+// was DUP(bot.knowledge.lookup::not_the_ask_about_the_order): now the real port
+pub use crate::knowledge::lookup::not_the_ask_about_the_order;
 
 static FREEZE_DISH_TIMES: LazyLock<Vec<(Vec<String>, String)>> = LazyLock::new(|| {
     data::get("bot.knowledge.cooking_entries.FREEZE_DISH_TIMES")
@@ -362,18 +244,5 @@ pub fn freeze_cooked_answer(_memory: &Memory, understood: &Understood) -> String
     )
 }
 
-/// DUP(bot.knowledge.lookup::said_in_this_line): the line as typed this turn (the answers
-/// module's copy, else the reading's own line without the carried-over earlier line).
-pub fn said_in_this_line(understood: &Understood, memory: Option<&Memory>) -> String {
-    if let Some(typed) = memory.and_then(|m| m.asked_now.as_deref()) {
-        if !text::strip(typed).is_empty() {
-            return text::strip(typed).to_string();
-        }
-    }
-    // `understood["said_now"]` is not a field the reading carries here.
-    if understood.setup.as_deref().is_some_and(|s| !s.is_empty()) && !understood.focus.is_empty() {
-        return text::strip(&understood.focus.join(" ")).to_string();
-    }
-    // LEANS_ON: Python removes the earlier reading's text when the line leans on one.
-    text::strip(crate::knowledge::d1_shared::clean_or_text(understood)).to_string()
-}
+// was DUP(bot.knowledge.lookup::said_in_this_line): now the real port
+pub use crate::knowledge::lookup::said_in_this_line;

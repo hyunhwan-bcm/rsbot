@@ -54,10 +54,8 @@ pub fn asks_how_often_text(said: &str) -> bool {
     HOW_OFTEN_WORDS.iter().any(|w| said.contains(w.as_str()))
 }
 
-/// DUP(bot.knowledge.lookup::asks_how_often), for a reading.
-pub fn asks_how_often(understood: &crate::understood::Understood) -> bool {
-    asks_how_often_text(&crate::knowledge::d1_shared::the_line(understood))
-}
+// was DUP(bot.knowledge.lookup::asks_how_often): now the real port
+pub use crate::knowledge::lookup::asks_how_often;
 
 // --- bot.knowledge.lookup: food that has gone off, food being kept, counts into a dish ---------
 
@@ -71,107 +69,17 @@ fn lookup_set(name: &str) -> HashSet<String> {
     data::set(&format!("bot.knowledge.lookup.{name}"))
 }
 
-/// DUP(bot.knowledge.lookup::tokens): the loose words of a line, lower case, for matching keys.
-pub fn tokens(text: &str) -> Vec<String> {
-    static WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.WORD"));
-    let straight: String = text
-        .chars()
-        .map(|c| match c as u32 {
-            8217 | 8216 | 700 => '\'',
-            _ => c,
-        })
-        .collect();
-    WORD.findall_str(&straight.to_lowercase())
-}
+// was DUP(bot.knowledge.lookup::tokens): now the real port
+pub use crate::knowledge::lookup::tokens;
 
-/// DUP(bot.knowledge.lookup::food_has_gone_off): whether the line says the food it names has
-/// gone off ("my chicken smells a bit", "the milk has gone sour", "is my chicken still ok").
-pub fn food_has_gone_off(understood: &Understood) -> bool {
-    static FOOD_NAMED: LazyLock<HashSet<String>> = LazyLock::new(|| lookup_set("FOOD_NAMED"));
-    static OFF_STATE_ASKS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.OFF_STATE_ASKS"));
-    static BEFORE_OFF: LazyLock<HashSet<String>> = LazyLock::new(|| lookup_set("BEFORE_OFF"));
-    static BAD_IS_A_STATE: LazyLock<HashSet<String>> = LazyLock::new(|| lookup_set("_BAD_IS_A_STATE"));
-    static OFF_SAID_OF_FOOD: LazyLock<HashSet<String>> = LazyLock::new(|| lookup_set("OFF_SAID_OF_FOOD"));
-    static SMELL_VERBS: LazyLock<HashSet<String>> = LazyLock::new(|| lookup_set("SMELL_VERBS"));
-    static A_GOOD_SMELL: LazyLock<HashSet<String>> = LazyLock::new(|| lookup_set("A_GOOD_SMELL"));
-    use crate::knowledge::d1_shared as sh;
-    let text = sh::or(sh::or(&understood.plain, &understood.clean), &understood.text).to_lowercase();
-    let words = tokens(&text);
-    if words.is_empty() || !words.iter().any(|w| FOOD_NAMED.contains(w)) {
-        return false;
-    }
-    if OFF_STATE_ASKS.iter().any(|p| text.contains(p.as_str())) {
-        return true;
-    }
-    for (pos, word) in words.iter().enumerate() {
-        if !FOOD_NAMED.contains(word) {
-            continue;
-        }
-        let mut at = pos + 1;
-        while at < words.len() && BEFORE_OFF.contains(&words[at]) {
-            at += 1;
-        }
-        if at >= words.len() {
-            continue;
-        }
-        let said = &words[at];
-        if said == "bad" {
-            let between = &words[pos + 1..at + 1];
-            if !between.iter().any(|w| BAD_IS_A_STATE.contains(w)) {
-                continue;
-            }
-        }
-        if OFF_SAID_OF_FOOD.contains(said) {
-            return true;
-        }
-        if SMELL_VERBS.contains(said) {
-            match words.get(at + 1) {
-                None => return true,
-                Some(after) if !A_GOOD_SMELL.contains(after) => return true,
-                _ => {}
-            }
-        }
-    }
-    false
-}
+// was DUP(bot.knowledge.lookup::food_has_gone_off): now the real port
+pub use crate::knowledge::lookup::food_has_gone_off;
 
-/// DUP(bot.knowledge.lookup::not_a_count_for_the_box_or_the_dish): false when a "how many"
-/// line counts into a dish or asks how long the food keeps.
-pub fn not_a_count_for_the_box_or_the_dish(understood: &Understood) -> bool {
-    static GOES_IN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.GOES_IN"));
-    static HOW_MANY_DAYS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.HOW_MANY_DAYS"));
-    static KEEPS_OR_STORES: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.KEEPS_OR_STORES"));
-    static COUNTED_INTO_A_THING: LazyLock<&'static Re> =
-        LazyLock::new(|| data::re("bot.knowledge.lookup.COUNTED_INTO_A_THING"));
-    let text = format!(" {} ", crate::knowledge::d1_shared::clean_or_text(understood).to_lowercase());
-    !(GOES_IN.is_match(&text)
-        || HOW_MANY_DAYS.is_match(&text)
-        || KEEPS_OR_STORES.is_match(&text)
-        || COUNTED_INTO_A_THING.is_match(&text))
-}
+// was DUP(bot.knowledge.lookup::not_a_count_for_the_box_or_the_dish): now the real port
+pub use crate::knowledge::lookup::not_a_count_for_the_box_or_the_dish;
 
-/// DUP(bot.knowledge.lookup::a_food_is_being_kept): true when the line names a food and a
-/// keeping word.
-pub fn a_food_is_being_kept(understood: &Understood) -> bool {
-    static KEPT_FOODS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEPT_FOODS"));
-    static KEEPING_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEEPING_WORDS"));
-    use crate::knowledge::d1_shared as sh;
-    let text = format!(" {} ", sh::or(&understood.norm_text, &understood.clean).to_lowercase());
-    if !sh::any_in(&text, &KEEPING_WORDS) {
-        return false;
-    }
-    let said: HashSet<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
-    for food in KEPT_FOODS.iter() {
-        if food.contains(' ') {
-            if text.contains(food.as_str()) {
-                return true;
-            }
-        } else if said.contains(food) || text.contains(&format!(" {food} ")) {
-            return true;
-        }
-    }
-    false
-}
+// was DUP(bot.knowledge.lookup::a_food_is_being_kept): now the real port
+pub use crate::knowledge::lookup::a_food_is_being_kept;
 
 // --- bot.understanding.topics / bot.knowledge.shopping: a present to buy ---------------------
 
@@ -192,15 +100,8 @@ fn meets(words: &HashSet<&str>, name: &str) -> bool {
     topics_set(name).iter().any(|w| words.contains(w.as_str()))
 }
 
-/// DUP(bot.understanding.topics::gift_ask): true when this reading asks what to give someone.
-pub fn gift_ask(understood: &Understood) -> bool {
-    let norm = &understood.norm;
-    if norm.is_empty() {
-        return false;
-    }
-    let words: HashSet<&str> = norm.iter().map(String::as_str).collect();
-    _gift_ask(&words, norm)
-}
+// was DUP(bot.understanding.topics::gift_ask): now the real port
+pub use crate::understanding::topics::gift_ask;
 
 /// The person a giving verb is followed by (within its first two words), and what comes after
 /// them; None when no person follows the verb.
@@ -290,10 +191,8 @@ pub fn _gift_still_to_get(words: &HashSet<&str>, norm: &[String]) -> bool {
     false
 }
 
-/// DUP(bot.knowledge.shopping::not_a_present): false when the line asks what to give somebody.
-pub fn not_a_present(understood: &Understood) -> bool {
-    !gift_ask(understood)
-}
+// was DUP(bot.knowledge.shopping::not_a_present): now the real port
+pub use crate::knowledge::shopping::not_a_present;
 
 // --- bot.knowledge.cooking: the one food a line names a portion of --------------------------
 
@@ -301,73 +200,17 @@ fn cooking(name: &str) -> &'static Value {
     data::get(&format!("bot.knowledge.cooking.{name}"))
 }
 
-/// DUP(bot.knowledge.cooking::_plurals): a food word with an s on the end.
-pub fn _plurals(word: &str) -> String {
-    if !crate::py::text::is_alpha(word) || word.ends_with('s') {
-        return word.to_string();
-    }
-    if ["ch", "sh", "ss", "x", "z"].iter().any(|e| word.ends_with(e)) {
-        return format!("{word}es");
-    }
-    if ["potato", "tomato", "hero"].contains(&word) {
-        return format!("{word}es");
-    }
-    let chars: Vec<char> = word.chars().collect();
-    if word.ends_with('y') {
-        let before = if chars.len() >= 2 { chars[chars.len() - 2].to_string() } else { String::new() };
-        // Python: word[-2:-1] not in "aeiou" ("" is in every string)
-        if !"aeiou".contains(before.as_str()) {
-            return format!("{}ies", &word[..word.len() - 1]);
-        }
-    }
-    format!("{word}s")
-}
+// was DUP(bot.knowledge.cooking::_plurals): now the real port
+pub use crate::knowledge::cooking_b::_plurals;
 
-/// DUP(bot.knowledge.cooking::_portion_count): how many the line names, from the words before.
-pub fn _portion_count(words: &[String], index: usize) -> f64 {
-    let back = &words[index.saturating_sub(4)..index];
-    let said = back.join(" ");
-    if said.ends_with("a couple of") || said.ends_with("couple of") {
-        return 2.0;
-    }
-    if said.ends_with("a few") {
-        return 3.0;
-    }
-    if said.ends_with("half a") || said.ends_with("half an") {
-        return 0.5;
-    }
-    for word in back.iter().rev() {
-        if let Some(n) = cooking("_COUNT_WORDS").get(word).and_then(Value::as_f64) {
-            return n;
-        }
-    }
-    1.0
-}
+// was DUP(bot.knowledge.cooking::_portion_count): now the real port
+pub use crate::knowledge::cooking_b::_portion_count;
 
-/// DUP(bot.knowledge.cooking::_squashed): every run of one letter cut to one.
-pub fn _squashed(word: &str) -> String {
-    let mut out = String::new();
-    let mut last: Option<char> = None;
-    for c in word.chars() {
-        // `(.)\1+`: the dot does not match a newline
-        if Some(c) != last || c == '\n' {
-            out.push(c);
-        }
-        last = Some(c);
-    }
-    out
-}
+// was DUP(bot.knowledge.cooking::_squashed): now the real port
+pub use crate::knowledge::cooking_b::_squashed;
 
-/// DUP(bot.knowledge.cooking::_one_letter_apart): the shorter word is the longer one with a
-/// single letter taken out.
-pub fn _one_letter_apart(short: &str, long: &str) -> bool {
-    let (s, l): (Vec<char>, Vec<char>) = (short.chars().collect(), long.chars().collect());
-    let mut index = 0;
-    while index < s.len() && s[index] == l[index] {
-        index += 1;
-    }
-    s[index..] == l[(index + 1).min(l.len())..]
-}
+// was DUP(bot.knowledge.cooking::_one_letter_apart): now the real port
+pub use crate::knowledge::cooking_b::_one_letter_apart;
 
 /// DUP(bot.knowledge.cooking::_a_food_word_misspelt): the name this word is a slip of, or None.
 pub fn _a_food_word_misspelt<'a>(word: &str, names: &[&'a str]) -> Option<&'a str> {
@@ -487,16 +330,8 @@ pub fn _nutrient_food(clean: &str) -> Option<(String, f64)> {
 
 // --- bot.understanding.topics::the_bin_is_on_a_machine, bot.memory.topics::context ----------
 
-/// DUP(bot.understanding.topics::the_bin_is_on_a_machine): the sentence's bin is the one on a
-/// computer (a machine word in the line, or the technology topic).
-pub fn the_bin_is_on_a_machine(understood: &Understood) -> bool {
-    static MACHINE_BIN_WORDS: LazyLock<HashSet<String>> =
-        LazyLock::new(|| data::set("bot.understanding.topics.MACHINE_BIN_WORDS"));
-    if understood.words.iter().any(|w| MACHINE_BIN_WORDS.contains(w)) {
-        return true;
-    }
-    understood.topics.iter().any(|t| t == "technology")
-}
+// was DUP(bot.understanding.topics::the_bin_is_on_a_machine): now the real port
+pub use crate::understanding::topics::the_bin_is_on_a_machine;
 
 /// DUP(bot.memory.topics::context): the last `n` topic texts, oldest first
 /// (`memory["topics"]`, a list of records with a "text").

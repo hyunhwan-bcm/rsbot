@@ -18,14 +18,8 @@ fn set_of(name: &str) -> HashSet<String> {
 
 static WEIGHT_UNITS: LazyLock<HashSet<String>> = LazyLock::new(|| set_of("bot.knowledge.lookup.WEIGHT_UNITS"));
 
-/// DUP(bot.knowledge.lookup::a_weight): true when the line gives a weight in kilos, grams or
-/// pounds (a kitchen line, not a question about the animal or the place the noun also names).
-pub fn a_weight(understood: &Understood) -> bool {
-    understood
-        .numbers
-        .iter()
-        .any(|number| WEIGHT_UNITS.contains(number.unit.as_deref().unwrap_or("").to_lowercase().as_str()))
-}
+// was DUP(bot.knowledge.lookup::a_weight): now the real port
+pub use crate::knowledge::lookup::a_weight;
 
 // ---------------------------------------------------------------------------------------------
 // bot.memory.topics / bot.memory.named: what the chat is on, read from the memory store's
@@ -150,49 +144,14 @@ static AND_OR_BUT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:and|but)\b|[,;
 static A_TIME_SPLIT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:for|tonight|today|tomorrow|yesterday|this|next)\b", 0));
 static COMMA_OR_SEMI: LazyLock<Re> = LazyLock::new(|| Re::new(r"[,;]", 0));
 
-/// DUP(bot.memory.topics::words): the words of a line, apostrophe forms folded.
-pub fn topics_words(text_: &str) -> Vec<String> {
-    let lowered = text_.to_lowercase().replace('\u{2019}', "'");
-    WORD.findall_str(&lowered)
-        .into_iter()
-        .map(|w| {
-            let w = w.strip_suffix("'s").map(str::to_string).unwrap_or(w);
-            w.replace('\'', "")
-        })
-        .filter(|w| !w.is_empty())
-        .collect()
-}
+// was DUP(bot.memory.topics::words): now the real port
+pub use crate::memory::topics::words as topics_words;
 
-/// DUP(bot.memory.topics::stem).
-pub fn topics_stem(word: &str) -> String {
-    let n = word.chars().count();
-    let chars: Vec<char> = word.chars().collect();
-    if n > 4 && word.ends_with("ies") {
-        return format!("{}y", chars[..n - 3].iter().collect::<String>());
-    }
-    if n > 3 && word.ends_with("es") && "sxzh".contains(chars[n - 3]) {
-        return chars[..n - 2].iter().collect();
-    }
-    if n > 3 && word.ends_with('s') && !word.ends_with("ss") {
-        return chars[..n - 1].iter().collect();
-    }
-    word.to_string()
-}
+// was DUP(bot.memory.topics::stem): now the real port
+pub use crate::memory::topics::stem as topics_stem;
 
-/// DUP(bot.memory.topics::keywords): the content words of a line, stemmed, first seen first.
-pub fn topics_keywords(text_: &str) -> Vec<String> {
-    let mut out: Vec<String> = Vec::new();
-    for word in topics_words(text_) {
-        if STOPWORDS.contains(&word) || word.chars().count() < 3 || text::is_digit(&word) {
-            continue;
-        }
-        let key = topics_stem(&word);
-        if !out.contains(&key) {
-            out.push(key);
-        }
-    }
-    out
-}
+// was DUP(bot.memory.topics::keywords): now the real port
+pub use crate::memory::topics::keywords as topics_keywords;
 
 /// DUP(bot.memory.topics::_strip_considering).
 fn topics_strip_considering(source: &str) -> String {
@@ -248,92 +207,8 @@ fn topics_the_thing_after_a_date(text_: &str) -> String {
     if MAKING_A_THING.is_match(tail) { tail.to_string() } else { String::new() }
 }
 
-/// DUP(bot.memory.topics::gist): the short noun phrase a line is really about ("birthday
-/// cake", "kitchen tap", "turkey").
-pub fn topics_gist(text_: &str) -> String {
-    let mut source = text::squash(&text_.to_lowercase());
-    source = CORRECTION_LEAD.sub("", &source);
-    for switcher in SWITCHERS.iter() {
-        if source.starts_with(switcher.as_str()) {
-            source = text::lstrip_chars(&source[switcher.len()..], " ,.!-").to_string();
-            break;
-        }
-    }
-    let dated = topics_the_thing_after_a_date(&source);
-    if !dated.is_empty() {
-        source = dated;
-    }
-    source = text::squash(&PHRASAL_RE.sub(" ", &source));
-    source = RELATION.split(&source).into_iter().next().unwrap_or_default();
-    let whole = source.clone();
-    if FRAME_ASK.is_match(&source) {
-        let trimmed = WITHOUT_CLAUSE.sub("", &source);
-        let trimmed = text::strip_chars(&trimmed, " ,.;:!?");
-        if !trimmed.is_empty() && !topics_keywords(trimmed).is_empty() {
-            source = trimmed.to_string();
-        }
-    }
-    source = topics_strip_considering(&source);
-    let buying = BUYING_A_STATE.match_(&source).is_some();
-    let mut wished = false;
-    for _ in 0..(if buying { 0 } else { 3 }) {
-        let stripped = WISH_RE.sub("", &source);
-        if stripped == source || text::strip_chars(&stripped, " ,.;:!?").is_empty() {
-            break;
-        }
-        source = stripped;
-        wished = true;
-    }
-    let before_split = source.clone();
-    let segments = A_TIME_SPLIT.split(&source);
-    source = segments.first().cloned().unwrap_or_default();
-    if !wished && !buying {
-        source = LEAD.sub("", text::strip_chars(&source, " ,.;:!?"));
-        loop {
-            let trimmed = LEAD_QUESTION.sub("", &source);
-            if trimmed == source || text::strip(&trimmed).is_empty() {
-                break;
-            }
-            source = trimmed;
-        }
-    }
-    source = topics_strip_considering(&source);
-    let (head, sep, after_handoff) = text::partition(&source, ",");
-    source = if !sep.is_empty() && !text::strip(after_handoff).is_empty() && topics_only_a_handoff(head) {
-        after_handoff.to_string()
-    } else {
-        COMMA_OR_SEMI.split(&source).into_iter().next().unwrap_or_default()
-    };
-    let mut kept: Vec<String> = topics_keywords(&source).into_iter().filter(|w| !ASK_ONLY.contains(w)).collect();
-    while kept.last().map(|w| TIME_WORDS.contains(w)).unwrap_or(false) {
-        kept.pop();
-    }
-    if !kept.is_empty() && kept.iter().all(|w| A_FIGURE.contains(w)) {
-        for part in segments.iter().skip(1) {
-            let later: Vec<String> = topics_keywords(part)
-                .into_iter()
-                .filter(|w| !ASK_ONLY.contains(w) && !TIME_WORDS.contains(w))
-                .collect();
-            if !later.is_empty() && !later.iter().all(|w| A_FIGURE.contains(w)) {
-                kept = later;
-                break;
-            }
-        }
-    }
-    if kept.is_empty() && wished {
-        for source in [&before_split, &whole] {
-            kept = topics_keywords(source).into_iter().filter(|w| !ASK_ONLY.contains(w) && !TIME_WORDS.contains(w)).collect();
-            if !kept.is_empty() {
-                break;
-            }
-        }
-    }
-    if kept.is_empty() {
-        return String::new();
-    }
-    kept.truncate(*MAX_SUBJECT);
-    kept.join(" ")
-}
+// was DUP(bot.memory.topics::gist): now the real port
+pub use crate::memory::topics::gist as topics_gist;
 
 /// DUP(bot.memory.topics::_names_nothing).
 fn topics_names_nothing(record: &Value) -> bool {
@@ -377,30 +252,8 @@ fn topics_thing_of<'a>(memory: &'a Memory, record: Option<&Value>) -> Option<&'a
     None
 }
 
-/// DUP(bot.memory.topics::subject): what the conversation is about now, as a noun phrase.
-pub fn topics_subject(memory: &Memory) -> String {
-    let known = match mem(memory, "user") {
-        Some(v @ Value::Dict(_)) => Some(v),
-        _ => None,
-    };
-    let mut record = topics_about_record(memory);
-    if let Some(thing) = topics_thing_of(memory, record) {
-        record = Some(thing);
-    }
-    let subject = record.map(|r| text::squash(rec_str(r, "subject"))).unwrap_or_default();
-    let now = if !subject.is_empty() {
-        subject
-    } else {
-        let t = record.map(|r| rec_str(r, "text")).unwrap_or("");
-        let t = if t.is_empty() { topics_topic_text(memory) } else { t.to_string() };
-        topics_gist(&t)
-    };
-    let planned = topics_gist(known.map(|k| rec_str(k, "plan")).unwrap_or(""));
-    if !planned.is_empty() && !now.is_empty() && now.contains(&planned) {
-        return planned;
-    }
-    if now.is_empty() { planned } else { now }
-}
+// was DUP(bot.memory.topics::subject): now the real port
+pub use crate::memory::topics::subject as topics_subject;
 
 static NOT_THE_THING: LazyLock<HashSet<String>> = LazyLock::new(|| set_of("bot.memory.named.NOT_THE_THING"));
 static MEASURE_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| set_of("bot.memory.named.MEASURE_WORDS"));
@@ -438,26 +291,8 @@ fn named_the_record_before(memory: &Memory) -> Option<&Value> {
         .find(|r| rec_str(r, "text") != now)
 }
 
-/// DUP(bot.memory.named::subject_word): the thing the chat is on, in one word, or "".
-pub fn subject_word(memory: &Memory) -> String {
-    let said = text::squash(&topics_subject(memory)).to_lowercase();
-    let mut found = named_the_noun_in(&said);
-    if !found.is_empty() && found.iter().all(|w| A_GETTING.contains(w.as_str())) {
-        let own = mem(memory, "topic").map(|n| rec_str(n, "text")).unwrap_or("");
-        found = named_the_noun_in(&text::squash(own).to_lowercase());
-    }
-    if let Some(last) = found.last() {
-        if PLACE_WORDS.contains(last.as_str()) {
-            if let Some(before) = named_the_record_before(memory) {
-                let again = named_the_noun_in(&text::squash(rec_str(before, "text")).to_lowercase());
-                if !again.is_empty() {
-                    found = again;
-                }
-            }
-        }
-    }
-    found.last().cloned().unwrap_or_default()
-}
+// was DUP(bot.memory.named::subject_word): now the real port
+pub use crate::memory::named::subject_word;
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.clothing
@@ -470,11 +305,8 @@ fn clothing_the_line(understood: &Understood) -> String {
     format!("{} {} {}", understood.clean, understood.norm_text, understood.text).to_lowercase()
 }
 
-/// DUP(bot.knowledge.clothing::not_a_fight_about_clothes): false when the line is a child
-/// fighting the clothes ("my son fights getting dressed"), so a buying or sibling row stands down.
-pub fn not_a_fight_about_clothes(understood: &Understood) -> bool {
-    !A_CHILD_REFUSING_A_GARMENT.is_match(&clothing_the_line(understood))
-}
+// was DUP(bot.knowledge.clothing::not_a_fight_about_clothes): now the real port
+pub use crate::knowledge::clothing::not_a_fight_about_clothes;
 
 // ---------------------------------------------------------------------------------------------
 // bot.compose.repair
@@ -574,11 +406,8 @@ pub fn a_repair_is_open(memory: &Memory) -> bool {
 
 static HOW_OFTEN_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.HOW_OFTEN_WORDS"));
 
-/// DUP(bot.knowledge.lookup::asks_how_often): the line asks the interval rather than the method.
-pub fn asks_how_often(understood: &Understood) -> bool {
-    let said = crate::knowledge::d1_shared::the_line(understood);
-    HOW_OFTEN_WORDS.iter().any(|w| said.contains(w.as_str()))
-}
+// was DUP(bot.knowledge.lookup::asks_how_often): now the real port
+pub use crate::knowledge::lookup::asks_how_often;
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.cooking
@@ -600,68 +429,8 @@ static DAIRY: LazyLock<Vec<String>> = LazyLock::new(|| cooking("DAIRY").strs());
 static TIRED_OF: LazyLock<Re> =
     LazyLock::new(|| Re::new(r"\b(?:tired|sick|bored)\s+of\b|\bfed\s+up\s+(?:of|with)\b", 0));
 
-/// DUP(bot.knowledge.cooking::_fold): a word with its plural undone (eggs/egg, tomatoes/tomato).
-pub fn cooking_fold(word: &str) -> String {
-    let lowered = word.to_lowercase().replace('\u{2019}', "'");
-    let w: Vec<char> = text::strip_chars(&lowered, ".,!?;:'\"").chars().collect();
-    let n = w.len();
-    let s: String = w.iter().collect();
-    if n > 4 && s.ends_with("ies") {
-        return format!("{}y", w[..n - 3].iter().collect::<String>());
-    }
-    if n > 4 && s.ends_with("oes") {
-        return w[..n - 2].iter().collect();
-    }
-    if n > 3 && s.ends_with("es") && "sxzh".contains(w[n - 3]) {
-        return w[..n - 2].iter().collect();
-    }
-    if n > 2 && s.ends_with('s') && !s.ends_with("ss") {
-        return w[..n - 1].iter().collect();
-    }
-    s
-}
+// was DUP(bot.knowledge.cooking::_fold): now the real port
+pub use crate::knowledge::cooking_b::_fold as cooking_fold;
 
-/// DUP(bot.knowledge.cooking::_refused_foods): the foods the line says somebody will not eat.
-pub fn cooking_refused_foods(text_: &str, families: bool) -> HashSet<String> {
-    let said = cooking_fold(text_);
-    let said = TIRED_OF.sub(" no ", &said);
-    let mut refused = HashSet::new();
-    let words: Vec<&str> =
-        said.split(|c: char| !(c.is_ascii_lowercase() || c == '\'')).filter(|w| !w.is_empty()).collect();
-    for (start, word) in words.iter().enumerate() {
-        if !REFUSAL_CUES.contains(*word) {
-            continue;
-        }
-        let mut index = start + 1;
-        while index < words.len() {
-            let here = words[index];
-            let name = INGREDIENT_WORDS
-                .get(here)
-                .filter(|n| !n.is_empty())
-                .or_else(|| INGREDIENT_WORDS.get(&cooking_fold(here)).filter(|n| !n.is_empty()));
-            if let Some(name) = name {
-                let after = &words[(index + 1).min(words.len())..(index + 3).min(words.len())];
-                if BARE_NO_CUES.contains(*word) && after.iter().any(|p| SHORTAGE_AFTER.contains(*p)) {
-                    break;
-                }
-                refused.insert(name.clone());
-                index += 1;
-                continue;
-            }
-            if let Some((_, members)) = FAMILIES.iter().find(|(k, _)| k == here) {
-                if families {
-                    let take = if here == "lactose" { &*DAIRY } else { members };
-                    refused.extend(take.iter().cloned());
-                }
-                index += 1;
-                continue;
-            }
-            if REFUSAL_FILLER.contains(here) || REFUSAL_JOINERS.contains(here) {
-                index += 1;
-                continue;
-            }
-            break;
-        }
-    }
-    refused
-}
+// was DUP(bot.knowledge.cooking::_refused_foods): now the real port
+pub use crate::knowledge::cooking_b::_refused_foods as cooking_refused_foods;

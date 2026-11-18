@@ -189,27 +189,11 @@ pub fn user_lines(memory: &Memory) -> Vec<String> {
 static TOPICS_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.WORD"));
 static WHO_SAID: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.WHO_SAID"));
 
-// DUP(bot.memory.topics::words)
-/// The words of a line, with the apostrophe forms folded ("what's" -> "what", "you'd" -> "youd").
-pub fn words(text: &str) -> Vec<String> {
-    let low = text.to_lowercase().replace('\u{2019}', "'");
-    TOPICS_WORD
-        .findall_str(&low)
-        .into_iter()
-        .map(|w| {
-            let w = w.strip_suffix("'s").map(str::to_string).unwrap_or(w);
-            w.replace('\'', "")
-        })
-        .filter(|w| !w.is_empty())
-        .collect()
-}
+// was DUP(bot.memory.topics::words): now the real port
+pub use crate::memory::topics::words;
 
-// DUP(bot.memory.topics::person)
-/// The person this speaker names ("my mum" -> "mum"), or None.
-pub fn person(text: &str) -> Option<String> {
-    let joined = words(text).join(" ");
-    WHO_SAID.search(&joined).map(|m| m.str(1).to_string())
-}
+// was DUP(bot.memory.topics::person): now the real port
+pub use crate::memory::topics::person;
 
 // ---------------------------------------------------------------------------------------------
 // bot/memory/people.py
@@ -505,16 +489,8 @@ fn meets(words: &HashSet<&str>, set: &HashSet<String>) -> bool {
     words.iter().any(|w| set.contains(*w))
 }
 
-// DUP(bot.understanding.topics::gift_ask)
-/// True when this reading asks what to give someone.
-pub fn gift_ask(understood: &Understood) -> bool {
-    let norm = &understood.norm;
-    if norm.is_empty() {
-        return false;
-    }
-    let words: HashSet<&str> = norm.iter().map(String::as_str).collect();
-    _gift_ask(&words, norm)
-}
+// was DUP(bot.understanding.topics::gift_ask): now the real port
+pub use crate::understanding::topics::gift_ask;
 
 // DUP(bot.understanding.topics::_gift_ask)
 pub fn _gift_ask(words: &HashSet<&str>, norm: &[String]) -> bool {
@@ -687,24 +663,11 @@ static SIGNS: LazyLock<Vec<Sign>> = LazyLock::new(|| {
 });
 static SIGN_PLURAL: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.wording._SIGN_PLURAL"));
 
-// DUP(bot.knowledge.wording::sign_said)
-/// The sign the person actually named, in their words, or None.
-pub fn sign_said(text: &str) -> Option<String> {
-    let said = text.to_lowercase();
-    SIGNS.iter().find(|s| s.phrases.iter().any(|p| said.contains(p.as_str()))).map(|s| s.label.clone())
-}
+// was DUP(bot.knowledge.wording::sign_said): now the real port
+pub use crate::knowledge::wording::sign_said;
 
-// DUP(bot.knowledge.wording::nerves_opening)
-/// `Shaky hands before an interview are ...` in the person's own words.
-pub fn nerves_opening(text: &str, situation: &str, tail: &str) -> String {
-    match sign_said(text) {
-        None => format!("That feeling {situation} is {tail}"),
-        Some(label) => {
-            let verb = if SIGN_PLURAL.contains(&label) { " are " } else { " is " };
-            format!("{label} {situation}{verb}{tail}")
-        }
-    }
-}
+// was DUP(bot.knowledge.wording::nerves_opening): now the real port
+pub use crate::knowledge::wording::nerves_opening;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/home.py

@@ -18,24 +18,8 @@ fn saving(name: &str) -> &'static Re {
 static INSIDE_A_SAFETY_THREAD: LazyLock<Vec<String>> =
     LazyLock::new(|| data::strs("bot.memory.topics.INSIDE_A_SAFETY_THREAD"));
 
-// DUP(bot.memory.topics::in_a_safety_thread)
-/// True while the bot's last real answer was an emergency and nothing has answered since.
-pub fn in_a_safety_thread(memory: &Memory) -> bool {
-    let turns = &memory.turns;
-    let start = turns.len().saturating_sub(3);
-    for turn in turns[start..].iter().rev() {
-        let module = turn.module.as_deref();
-        if module == Some("safety") {
-            return true;
-        }
-        match module {
-            None | Some("greeting") => continue,
-            Some(m) if INSIDE_A_SAFETY_THREAD.iter().any(|x| x == m) => continue,
-            _ => return false,
-        }
-    }
-    false
-}
+// was DUP(bot.memory.topics::in_a_safety_thread): now the real port
+pub use crate::memory::topics::in_a_safety_thread;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/units.py

@@ -118,23 +118,8 @@ pub fn repair_line_of(reading: &Understood) -> String {
     reading.words.join(" ")
 }
 
-/// DUP(bot.knowledge.habits::_words_of): the line and whatever the reading carried with it
-/// (`leans_on`, `ref`, `topic`), as one lower-case string.
-pub fn habits_words_of(understood: &Understood) -> String {
-    let mut said: Vec<String> = vec![repair_line_of(understood)];
-    // "leans_on": a dict (an earlier reading) in multi-turn Python; None here. LEANS_ON
-    // "ref": a dict, its str/int values in insertion order (a bool is an int: "True"/"False").
-    let r = &understood.reference;
-    for v in [&r.it, &r.that, &r.they, &r.there, &r.he, &r.she, &r.kind] {
-        if let Some(s) = v {
-            said.push(s.clone());
-        }
-    }
-    said.push(if r.followup { "True".into() } else { "False".into() });
-    // "topic": a str, which is neither a dict nor a list: nothing is added.
-    let joined = said.join(" ").to_lowercase().replace('\u{2019}', "'");
-    text::squash(&joined)
-}
+// was DUP(bot.knowledge.habits::_words_of): now the real port
+pub use crate::knowledge::habits::_words_of as habits_words_of;
 
 /// DUP(bot.compose.repair::deed_of): the deed the person reports doing to somebody close, or
 /// None.
@@ -190,38 +175,11 @@ pub fn repair_owns_the_deed(reading: &Understood) -> bool {
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.lookup
 
-/// DUP(bot.knowledge.lookup::names_a_thing): the phrase has a word that is not grammar or a
-/// number.
-pub fn lookup_names_a_thing(phrase: &str) -> bool {
-    static GRAMMAR_ONLY: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.GRAMMAR_ONLY"));
-    static SPLIT: LazyLock<Re> = LazyLock::new(|| Re::new(r"[^a-z0-9']+", 0));
-    SPLIT
-        .split(&phrase.to_lowercase())
-        .iter()
-        .filter(|w| !w.is_empty())
-        .any(|w| !GRAMMAR_ONLY.contains(w.as_str()) && !text::is_digit(w))
-}
+// was DUP(bot.knowledge.lookup::names_a_thing): now the real port
+pub use crate::knowledge::lookup::names_a_thing as lookup_names_a_thing;
 
-/// DUP(bot.knowledge.lookup::a_food_is_being_kept): the line asks how a named food keeps.
-pub fn lookup_a_food_is_being_kept(understood: &Understood) -> bool {
-    static KEEPING_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEEPING_WORDS"));
-    static KEPT_FOODS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEPT_FOODS"));
-    let text = sh::padded(&sh::or(&understood.norm_text, &understood.clean).to_lowercase());
-    if !sh::any_in(&text, &KEEPING_WORDS) {
-        return false;
-    }
-    let said: HashSet<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
-    for food in KEPT_FOODS.iter() {
-        if food.contains(' ') {
-            if text.contains(food.as_str()) {
-                return true;
-            }
-        } else if said.contains(food) || text.contains(&format!(" {food} ")) {
-            return true;
-        }
-    }
-    false
-}
+// was DUP(bot.knowledge.lookup::a_food_is_being_kept): now the real port
+pub use crate::knowledge::lookup::a_food_is_being_kept as lookup_a_food_is_being_kept;
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.wording

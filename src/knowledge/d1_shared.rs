@@ -158,49 +158,20 @@ pub fn last_user(memory: &Memory) -> String {
     memory.turns.last().map(|t| t.user.clone()).unwrap_or_default()
 }
 
-/// DUP(bot.knowledge.lookup::the_line): clean, norm_text and plain joined, lower-cased.
-pub fn the_line(u: &Understood) -> String {
-    format!("{} {} {}", u.clean, u.norm_text, u.plain).to_lowercase()
-}
+// was DUP(bot.knowledge.lookup::the_line): now the real port
+pub use crate::knowledge::lookup::the_line;
 
-/// DUP(bot.knowledge.lookup::a_sanding_job).
-pub fn a_sanding_job(u: &Understood) -> bool {
-    static SANDING_JOB: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.SANDING_JOB"));
-    SANDING_JOB.is_match(&the_line(u))
-}
+// was DUP(bot.knowledge.lookup::a_sanding_job): now the real port
+pub use crate::knowledge::lookup::a_sanding_job;
 
-/// DUP(bot.knowledge.lookup::said_text): the reading's words (or norm) joined; "" when both
-/// are empty.
-pub fn said_text(u: &Understood) -> String {
-    if !u.words.is_empty() {
-        return u.words.join(" ");
-    }
-    if !u.norm.is_empty() {
-        return u.norm.join(" ");
-    }
-    String::new()
-}
+// was DUP(bot.knowledge.lookup::said_text): now the real port
+pub use crate::knowledge::lookup::said_text;
 
-/// DUP(bot.knowledge.lookup::not_the_heat_of_an_argument): true unless the line's "heated" is
-/// people or a row rather than a room or a night.
-pub fn not_the_heat_of_an_argument(u: &Understood) -> bool {
-    static ARG: LazyLock<&'static Re> =
-        LazyLock::new(|| data::re("bot.knowledge.lookup._THE_HEAT_OF_AN_ARGUMENT"));
-    let said = text_or_clean(u);
-    if said.is_empty() {
-        return !ARG.is_match(&u.words.join(" "));
-    }
-    !ARG.is_match(said)
-}
+// was DUP(bot.knowledge.lookup::not_the_heat_of_an_argument): now the real port
+pub use crate::knowledge::lookup::not_the_heat_of_an_argument;
 
-/// DUP(bot.knowledge.health::_the_line): the line as lower-case words (or the clean line when
-/// the reading has no words).
-pub fn health_the_line(u: &Understood) -> String {
-    if !u.words.is_empty() {
-        return u.words.join(" ").to_lowercase();
-    }
-    u.clean.to_lowercase()
-}
+// was DUP(bot.knowledge.health::_the_line): now the real port
+pub use crate::knowledge::health::_the_line as health_the_line;
 
 // ---------------------------------------------------------------------------------------------
 // Entry callables other than guard/reply. The registry runs guards and replies; an entry's

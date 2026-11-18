@@ -183,40 +183,11 @@ static GONE_INTENSIFIER: LazyLock<HashSet<String>> = LazyLock::new(|| data::set(
 static GONE_STATE: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.GONE_STATE"));
 static WHERE_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.WHERE_PHRASES"));
 
-/// DUP(bot.knowledge.lookup::the_thing_has_gone): whether "gone"/"went" is what the thing did
-/// ("my kettle's gone"), rather than the state it went into ("the milk has gone off").
-pub fn the_thing_has_gone(understood: &Understood) -> bool {
-    let said: Vec<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
-    let line = if said.is_empty() {
-        format!(" {} ", sh::clean_or_text(understood).to_lowercase())
-    } else {
-        format!(" {} ", said.join(" "))
-    };
-    for found in HAS_GONE.finditer(&line) {
-        let tail = found.str(1);
-        let mut words: Vec<&str> = crate::py::text::split_ref(tail)
-            .into_iter()
-            .map(|w| crate::py::text::strip_chars(w, "'.,!?"))
-            .filter(|w| !w.is_empty())
-            .collect();
-        while !words.is_empty() && GONE_INTENSIFIER.contains(words[0]) {
-            words.remove(0);
-        }
-        if words.is_empty() || !GONE_STATE.contains(words[0]) {
-            return true;
-        }
-    }
-    false
-}
+// was DUP(bot.knowledge.lookup::the_thing_has_gone): now the real port
+pub use crate::knowledge::lookup::the_thing_has_gone;
 
-/// DUP(bot.knowledge.lookup::asks_where): the line asks where to get something.
-pub fn asks_where(understood: &Understood) -> bool {
-    if understood.asks.iter().any(|a| a == "where") {
-        return true;
-    }
-    let text = format!(" {} ", understood.words.join(" ").to_lowercase());
-    WHERE_PHRASES.iter().any(|p| text.contains(p.as_str()))
-}
+// was DUP(bot.knowledge.lookup::asks_where): now the real port
+pub use crate::knowledge::lookup::asks_where;
 
 // ---------------------------------------------------------------------------------------------
 // bot.understanding.topics
@@ -224,14 +195,8 @@ pub fn asks_where(understood: &Understood) -> bool {
 static MACHINE_BIN_WORDS: LazyLock<HashSet<String>> =
     LazyLock::new(|| data::set("bot.understanding.topics.MACHINE_BIN_WORDS"));
 
-/// DUP(bot.understanding.topics::the_bin_is_on_a_machine): the line's bin is the one on a
-/// computer, not the one under the sink.
-pub fn the_bin_is_on_a_machine(understood: &Understood) -> bool {
-    if understood.words.iter().any(|w| MACHINE_BIN_WORDS.contains(w)) {
-        return true;
-    }
-    understood.topics.iter().any(|t| t == "technology")
-}
+// was DUP(bot.understanding.topics::the_bin_is_on_a_machine): now the real port
+pub use crate::understanding::topics::the_bin_is_on_a_machine;
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.body
@@ -251,28 +216,11 @@ static _COOK_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.k
 static AMBIGUOUS_PLACES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.travel.AMBIGUOUS_PLACES"));
 static _PLACE_SHAPE: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.travel._PLACE_SHAPE"));
 
-/// DUP(bot.knowledge.travel::_worth_a_visit): the line asks whether the place is worth the
-/// journey, naming it as a place.
-pub fn _worth_a_visit(text: &str, name: &str) -> bool {
-    let name = sh::escape(name);
-    let pattern = format!(
-        r"(?<![a-z]){name}\s+(?:is\s+)?worth|\bis\s+{name}\s+worth|\bworth\s+(?:visiting|seeing|going to)\s+{name}\b"
-    );
-    sh::re_search(&pattern, text, 0)
-}
+// was DUP(bot.knowledge.travel::_worth_a_visit): now the real port
+pub use crate::knowledge::travel::_worth_a_visit;
 
-/// DUP(bot.knowledge.travel::_names_place): the word is used as a place, not as the everyday
-/// word it shares ("bath", "split", "cork").
-pub fn _names_place(text: &str, name: &str) -> bool {
-    if !AMBIGUOUS_PLACES.iter().any(|p| p == name) {
-        return true;
-    }
-    let shape = _PLACE_SHAPE.replacen("%s", &sh::escape(name), 1);
-    if sh::re_search(&shape, text, 0) {
-        return true;
-    }
-    _worth_a_visit(text, name)
-}
+// was DUP(bot.knowledge.travel::_names_place): now the real port
+pub use crate::knowledge::travel::_names_place;
 
 /// DUP(bot.knowledge.travel::_find_in): the key of `table` the line names, longest first.
 pub fn _find_in(text: &str, table: &[String]) -> Option<String> {
