@@ -163,191 +163,6 @@ fn format_named(template: &str, fields: &[(&str, &str)]) -> String {
     out
 }
 
-/// Python: bot/compose/fallback.py:13674 `_burn_line(clean, thread='')`
-pub fn _burn_line(clean: &str, thread: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_burn_line")
-}
-
-/// Python: bot/compose/fallback.py:13762 `_the_hazard_is_gas(line)`
-pub fn _the_hazard_is_gas(line: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_the_hazard_is_gas")
-}
-
-/// Python: bot/compose/fallback.py:13768 `_goes_back_for(clean, thread='')`
-pub fn _goes_back_for(clean: &str, thread: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_goes_back_for")
-}
-
-/// Python: bot/compose/fallback.py:13775 `_names_a_new_part(words, clean, thread)` (never called on the trace corpus)
-pub fn _names_a_new_part(words: &[String], clean: &str, thread: &Value) -> bool {
-    crate::unported!("bot.compose.fallback:_names_a_new_part")
-}
-
-/// Python: bot/compose/fallback.py:13794 `_keeps_thread(understood, clean, thread='', crisis=False)`
-pub fn _keeps_thread(understood: &Understood, clean: &str, thread: &str, crisis: bool) -> bool {
-    crate::unported!("bot.compose.fallback:_keeps_thread")
-}
-
-/// Python: bot/compose/fallback.py:13905 `_reads_as_fear(understood, clean)`
-pub fn _reads_as_fear(understood: &Understood, clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_reads_as_fear")
-}
-
-/// Python: bot/compose/fallback.py:13927 `_only_a_worry(clean)` (never called on the trace corpus)
-pub fn _only_a_worry(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_only_a_worry")
-}
-
-/// Python: bot/compose/fallback.py:13947 `_about_somebody_else(safety, memory)`
-pub fn _about_somebody_else(safety: &Value, memory: &Memory) {
-    crate::unported!("bot.compose.fallback:_about_somebody_else")
-}
-
-/// Python: bot/compose/fallback.py:13999 `_wrote_for_them(pool, forms)` (never called on the trace corpus)
-pub fn _wrote_for_them(pool: &Value, forms: &[String]) -> Value {
-    crate::unported!("bot.compose.fallback:_wrote_for_them")
-}
-
-/// Python: bot/compose/fallback.py:14053 `_red_flags_in(line)`
-pub fn _red_flags_in(line: &str) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_red_flags_in")
-}
-
-/// Python: bot/compose/fallback.py:14087 `_flag_events_in(line)`
-pub fn _flag_events_in(line: &str) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_flag_events_in")
-}
-
-/// Python: bot/compose/fallback.py:14140 `_the_threshold_words(sentence)`
-pub fn _the_threshold_words(sentence: &str) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_the_threshold_words")
-}
-
-/// Python: bot/compose/fallback.py:14154 `_it_is_the_answer_word(line, word)` (never called on the trace corpus)
-pub fn _it_is_the_answer_word(line: &str, word: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_it_is_the_answer_word")
-}
-
-/// Python: bot/compose/fallback.py:14166 `_the_flags_still_standing(line)`
-pub fn _the_flags_still_standing(line: &str) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_the_flags_still_standing")
-}
-
-/// Python: bot/compose/fallback.py:14188 `_the_threshold_was_crossed(last, clean, turns)`
-pub fn _the_threshold_was_crossed(last: &str, clean: &str, turns: &Value) -> bool {
-    crate::unported!("bot.compose.fallback:_the_threshold_was_crossed")
-}
-
-/// Python: bot/compose/fallback.py:14225 `_flag_stem(word)` (never called on the trace corpus)
-pub fn _flag_stem(word: &str) -> Value {
-    crate::unported!("bot.compose.fallback:_flag_stem")
-}
-
-/// Python: bot/compose/fallback.py:14240 `_it_is_this_files_call(said)` (never called on the trace corpus)
-pub fn _it_is_this_files_call(said: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_it_is_this_files_call")
-}
-
-/// Python: bot/compose/fallback.py:14249 `_a_newer_answer_asked_them_to_call(last, turns)` (never called on the trace corpus)
-pub fn _a_newer_answer_asked_them_to_call(last: &str, turns: &[Turn]) -> bool {
-    crate::unported!("bot.compose.fallback:_a_newer_answer_asked_them_to_call")
-}
-
-/// Python: bot/compose/fallback.py:14278 `_the_route_the_answer_named(last)` (never called on the trace corpus)
-pub fn _the_route_the_answer_named(last: &str) -> Value {
-    crate::unported!("bot.compose.fallback:_the_route_the_answer_named")
-}
-
-/// Python: bot/compose/fallback.py:14296 `_the_answer_asked_them_to_call(last)`
-pub fn _the_answer_asked_them_to_call(last: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_the_answer_asked_them_to_call")
-}
-
-/// Python: bot/compose/fallback.py:14321 `_raises_the_stakes(clean, last)` (never called on the trace corpus)
-pub fn _raises_the_stakes(clean: &str, last: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_raises_the_stakes")
-}
-
-/// Python: bot/compose/fallback.py:14331 `_releasable(memory)`
-pub fn _releasable(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_releasable")
-}
-
-/// Python: bot/compose/fallback.py:14350 `_named_draft(memory, text, words, clean)`
-pub fn _named_draft(memory: &Memory, text: &str, words: &[String], clean: &str) {
-    crate::unported!("bot.compose.fallback:_named_draft")
-}
-
-/// Python: bot/compose/fallback.py:14369 `_after_safety(memory, clean, understood=None)`
-pub fn _after_safety(memory: &Memory, clean: &str, understood: Option<&Understood>) {
-    crate::unported!("bot.compose.fallback:_after_safety")
-}
-
-/// Python: bot/compose/fallback.py:14739 `_is_a_hazard(last)` (never called on the trace corpus)
-pub fn _is_a_hazard(last: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_is_a_hazard")
-}
-
-/// Python: bot/compose/fallback.py:14752 `_the_safety_cards(turns)` (never called on the trace corpus)
-pub fn _the_safety_cards(turns: &[Turn]) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_the_safety_cards")
-}
-
-/// Python: bot/compose/fallback.py:14763 `_somebody_is_coming(turns, clean)` (never called on the trace corpus)
-pub fn _somebody_is_coming(turns: &[Turn], clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_somebody_is_coming")
-}
-
-/// Python: bot/compose/fallback.py:14772 `_the_answer_was_an_abuse_card(last)`
-pub fn _the_answer_was_an_abuse_card(last: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_the_answer_was_an_abuse_card")
-}
-
-/// Python: bot/compose/fallback.py:14782 `_thread_was_closed(turns)` (never called on the trace corpus)
-pub fn _thread_was_closed(turns: &[Turn]) -> bool {
-    crate::unported!("bot.compose.fallback:_thread_was_closed")
-}
-
-/// Python: bot/compose/fallback.py:14796 `_hold_pool(turns, clean, last, done_report=False)` (never called on the trace corpus)
-pub fn _hold_pool(turns: &[Turn], clean: &str, last: &str, done_report: &Value) -> Value {
-    crate::unported!("bot.compose.fallback:_hold_pool")
-}
-
-/// Python: bot/compose/fallback.py:14824 `_a_call_is_known(turns, clean, last)` (never called on the trace corpus)
-pub fn _a_call_is_known(turns: &[Turn], clean: &str, last: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_call_is_known")
-}
-
-/// Python: bot/compose/fallback.py:14851 `_the_call_is_conditional(text)` (never called on the trace corpus)
-pub fn _the_call_is_conditional(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_the_call_is_conditional")
-}
-
-/// Python: bot/compose/fallback.py:14860 `_already_rang(turns)` (never called on the trace corpus)
-pub fn _already_rang(turns: &[Turn]) -> bool {
-    crate::unported!("bot.compose.fallback:_already_rang")
-}
-
-/// Python: bot/compose/fallback.py:14866 `_thanks_carries_emergency(words, clean)` (never called on the trace corpus)
-pub fn _thanks_carries_emergency(words: &[String], clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_thanks_carries_emergency")
-}
-
-/// Python: bot/compose/fallback.py:14911 `a_date_of_ours_forgotten(clean)`
-pub fn a_date_of_ours_forgotten(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:a_date_of_ours_forgotten")
-}
-
-/// Python: bot/compose/fallback.py:14922 `_impact_said(clean)`
-pub fn _impact_said(clean: &str) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_impact_said")
-}
-
-/// Python: bot/compose/fallback.py:14948 `_grief_thread(memory)`
-pub fn _grief_thread(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_grief_thread")
-}
-
 /// Python: bot/compose/fallback.py:14963 `_grievance_thread(memory)`
 pub fn _grievance_thread(memory: &Memory) -> bool {
     crate::unported!("bot.compose.fallback:_grievance_thread")
@@ -504,7 +319,7 @@ pub fn _a_step_word_in(words: &[String], steps: &Value) -> bool {
 }
 
 /// Python: bot/compose/fallback.py:15998 `_a_report_on_the_advice(clean, words, about_the_body=True, the_lot_ok=False, steps=NO_STEP)`
-pub fn _a_report_on_the_advice(clean: &str, words: &[String], about_the_body: bool, the_lot_ok: bool, steps: &[String]) {
+pub fn _a_report_on_the_advice(clean: &str, words: &[String], about_the_body: bool, the_lot_ok: bool, steps: &HashSet<String>) -> Option<Vec<String>> {
     crate::unported!("bot.compose.fallback:_a_report_on_the_advice")
 }
 
@@ -7661,4 +7476,908 @@ pub fn _about_itself(clean: &str) -> Option<String> {
         }
     }
     None
+}
+
+// ---- fallback.py:13665-14003: a burn, a hazard, keeping a care thread, fear, somebody else ----
+
+regexes!(BURN_BLISTER_LINE, BURN_ON_IT, POP_A_BARE_IT, BURN_WORD, BURN_THING, BURN_ASK);
+
+/// Python: bot/compose/fallback.py:13674 `_burn_line(clean, thread='')`
+/// True for a line inside a burn thread that is about the burn.
+pub fn _burn_line(clean: &str, thread: &str) -> bool {
+    if BURN_BLISTER_LINE.is_match(clean) || BURN_ON_IT.is_match(clean) {
+        return true;
+    }
+    if POP_A_BARE_IT.is_match(clean) && (BURN_WORD.is_match(&lower(thread)) || BURN_WORD.is_match(clean)) {
+        return true;
+    }
+    BURN_THING.is_match(clean) && BURN_ASK.is_match(clean)
+}
+
+regexes!(_HAZARD_WORD, _FETCH_FROM_INSIDE, _GAS_WORD, _FIRE_WORD, _ASKS_TO_LEAVE, _THE_WAY_OUT, HOUSE_FAULT, CARE_ASKS, _POINTER_OWN_OBJECT, ALREADY_RANG, CARE_SEEN_ASKS);
+
+/// Python: bot/compose/fallback.py:13762 `_the_hazard_is_gas(line)`
+/// True when the emergency this thread opened on is a leak rather than a fire.
+pub fn _the_hazard_is_gas(line: &str) -> bool {
+    _GAS_WORD.is_match(line) && !_FIRE_WORD.is_match(line)
+}
+
+/// Python: bot/compose/fallback.py:13768 `_goes_back_for(clean, thread='')`
+/// True when the line asks to fetch something out of the place a hazard is burning in.
+pub fn _goes_back_for(clean: &str, thread: &str) -> bool {
+    if !(_HAZARD_WORD.is_match(clean) || _HAZARD_WORD.is_match(thread)) {
+        return false;
+    }
+    _FETCH_FROM_INSIDE.is_match(clean)
+}
+
+static TROUBLE_BODY_PART: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.compose.trouble.BODY_PART"));
+word_sets!(CARE_POINTER, CARE_PRONOUNS, CARE_HURTS, CARE_INJURY, CARE_WORDS, CARE_RESOLVED, CARE_NOT_RESOLVED, REACTION_WORDS, GENERIC_WORDS, AGREEMENTS, ASKING_WORDS);
+pools!(CARE_PHRASES);
+
+/// Python: bot/compose/fallback.py:13775 `_names_a_new_part(words, clean, thread)` (never called on the trace corpus)
+/// True when the line complains about a part of the body this thread never mentioned. (`words`
+/// is a set in Python; the thread's own line is `thread`.)
+pub fn _names_a_new_part(words: &[String], clean: &str, thread: &str) -> bool {
+    let part: Vec<&String> = words.iter().filter(|w| TROUBLE_BODY_PART.contains(*w)).collect();
+    if part.is_empty() {
+        return false;
+    }
+    let mut sorted: Vec<String> = words.to_vec();
+    sorted.sort();
+    sorted.dedup();
+    if !crate::compose::trouble::reads_as_trouble(clean, Some(&sorted[..]), "").truthy() {
+        return false;
+    }
+    if words.iter().any(|w| CARE_POINTER.contains(w) || CARE_PRONOUNS.contains(w)) {
+        return false;
+    }
+    let seen: HashSet<String> = az09_words(&lower(thread)).into_iter().collect();
+    !part.iter().any(|p| seen.contains(*p))
+}
+
+/// Python: bot/compose/fallback.py:13794 `_keeps_thread(understood, clean, thread='', crisis=False)`
+/// True when the line is still about the emergency, rather than a new subject.
+pub fn _keeps_thread(understood: &Understood, clean: &str, thread: &str, crisis: bool) -> bool {
+    // `norm` is always a list on a reading (`isinstance(norm, (list, tuple))`).
+    let mut words: Vec<String> = understood.norm.clone();
+    words.sort();
+    words.dedup();
+    let has = |set: &HashSet<String>| words.iter().any(|w| set.contains(w));
+    if !crisis && _names_a_new_part(&words, clean, thread) {
+        return false;
+    }
+    if _ASKS_TO_LEAVE.is_match(clean) && SOMEBODY_HURT_ME.is_match(thread) {
+        return true;
+    }
+    if _THE_WAY_OUT.is_match(clean) {
+        return true;
+    }
+    if has(&CARE_HURTS) {
+        return true;
+    }
+    if !crisis && !has(&CARE_INJURY) && HOUSE_FAULT.is_match(clean) {
+        return false;
+    }
+    if words.iter().any(|w| CARE_WORDS.contains(w) && !CARE_POINTER.contains(w)) || CARE_ASKS.is_match(clean) {
+        return true;
+    }
+    let own = understood.topic_own.as_deref();
+    if has(&CARE_RESOLVED) && has(&CARE_NOT_RESOLVED) && (own.is_none() || own == Some("feelings") || own == Some("health")) {
+        return true;
+    }
+    if has(&REACTION_WORDS) {
+        return true;
+    }
+    if has(&CARE_POINTER) && own.is_none_or(str::is_empty) && !_POINTER_OWN_OBJECT.is_match(clean) {
+        return true;
+    }
+    if CARE_PHRASES.iter().any(|p| clean.contains(p.as_str())) || CARE_SEEN_ASKS.is_match(clean) {
+        return true;
+    }
+    if _someone_is_arriving(clean) {
+        return true;
+    }
+    if ALREADY_RANG.is_match(clean) {
+        return true;
+    }
+    if _burn_line(clean, thread) {
+        return true;
+    }
+    if understood.presence || STILL_HERE.is_match(clean) {
+        return true;
+    }
+    if understood.kind == "thanks" {
+        return words.len() <= 5;
+    }
+    if crisis && has(&TROUBLE_BODY_PART) {
+        return true;
+    }
+    if understood.kind == "question" || clean.contains('?') {
+        return understood.keywords.iter().all(|w| GENERIC_WORDS.contains(&lower(w)));
+    }
+    if words.len() <= 2 && has(&AGREEMENTS) {
+        return true;
+    }
+    if own.is_none_or(str::is_empty) {
+        let mine: Vec<&String> = words.iter().filter(|w| w.chars().count() > 3 && !ASKING_WORDS.contains(*w)).collect();
+        let thread_words: HashSet<String> = az09_words(&lower(thread)).into_iter().collect();
+        return mine.iter().any(|w| thread_words.contains(*w)) || mine.is_empty();
+    }
+    false
+}
+
+regexes!(ABOUT_THE_SPEAKER, NOT_FRIGHTENED, FRIGHTENED);
+word_sets!(WORRY_FILLER);
+
+/// Python: bot/compose/fallback.py:13905 `_reads_as_fear(understood, clean)`
+/// True when the line is the speaker's own fear, not a practical question about the incident.
+pub fn _reads_as_fear(understood: &Understood, clean: &str) -> bool {
+    if understood.kind == "question" || clean.contains('?') {
+        return false;
+    }
+    if CARE_ASKS.is_match(clean) {
+        return false;
+    }
+    if !ABOUT_THE_SPEAKER.is_match(clean) {
+        return false;
+    }
+    if NOT_FRIGHTENED.is_match(clean) {
+        return false;
+    }
+    if FRIGHTENED.is_match(clean) {
+        return true;
+    }
+    _only_a_worry(clean)
+}
+
+/// Python: bot/compose/fallback.py:13927 `_only_a_worry(clean)` (never called on the trace corpus)
+/// True when the whole line is the speaker's worry and nothing else.
+pub fn _only_a_worry(clean: &str) -> bool {
+    if rx(r"\babout\b").is_match(clean) {
+        return false;
+    }
+    let words = az_words(clean);
+    if words.is_empty() || words.len() > 6 {
+        return false;
+    }
+    if !words.iter().any(|w| WORRY_WORDS.contains(w)) {
+        return false;
+    }
+    words.iter().all(|w| WORRY_FILLER.contains(w) || WORRY_WORDS.contains(w))
+}
+
+regexes!(A_PERSON_OF_THEIRS, SELF_IN_DANGER, SOMEBODY_HURT_ME, A_PRONOUN_FOR_SOMEBODY);
+word_sets!(SHE, HE);
+
+/// Python: bot/compose/fallback.py:13947 `_about_somebody_else(safety, memory)`
+/// The words for the person in danger when the crisis was about somebody else (a dict of
+/// `subject`, `object`, `possessive`, `be` and `who`), else None. `safety` is the safety turn.
+/// (The skeleton's `()` return could not carry the words.)
+pub fn _about_somebody_else(safety: &Value, memory: &Memory) -> Option<Value> {
+    let opener = safety.get("user").and_then(Value::as_str).unwrap_or("").to_string();
+    if SELF_IN_DANGER.is_match(&opener) {
+        return None;
+    }
+    if SOMEBODY_HURT_ME.is_match(&opener) {
+        return None;
+    }
+    let mut who: Option<String> = A_PERSON_OF_THEIRS.search(&opener).map(|m| m.name_str("who").to_string());
+    if who.is_none() {
+        if !A_PRONOUN_FOR_SOMEBODY.is_match(&opener) {
+            return None;
+        }
+        for turn in last_n(&memory.turns, 4).iter().rev() {
+            let said = &turn.user;
+            if *said == opener || SELF_IN_DANGER.is_match(said) {
+                continue;
+            }
+            if let Some(found) = A_PERSON_OF_THEIRS.search(said) {
+                who = Some(found.name_str("who").to_string());
+                break;
+            }
+        }
+    }
+    let who = who?;
+    let word = rx(r"\s+").sub(" ", &lower(text::strip(&who)));
+    let (subject, object, possessive, be) = if SHE.contains(&word) {
+        ("she", "her", "her", "is")
+    } else if HE.contains(&word) {
+        ("he", "him", "his", "is")
+    } else {
+        ("they", "them", "their", "are")
+    };
+    let mut forms = Value::dict();
+    forms.set_key("subject", subject);
+    forms.set_key("object", object);
+    forms.set_key("possessive", possessive);
+    forms.set_key("be", be);
+    forms.set_key("who", format!("your {word}"));
+    Some(forms)
+}
+
+/// Python: bot/compose/fallback.py:13999 `_wrote_for_them(pool, forms)` (never called on the trace corpus)
+/// One pool's lines, filled with the words for the person they are about (a tuple value).
+/// `forms` is the dict `_about_somebody_else` gives. (The skeleton typed it `&[String]`, which
+/// cannot carry the dict.)
+pub fn _wrote_for_them(pool: &Value, forms: &Value) -> Value {
+    let get = |k: &str| forms.get(k).and_then(Value::as_str).map(str::to_string).unwrap_or_else(|| panic!("KeyError: {k:?}"));
+    let (who, subj, obj, poss, be) = (get("who"), get("subject"), get("object"), get("possessive"), get("be"));
+    let lines: Vec<Value> = pool
+        .strs()
+        .iter()
+        .map(|l| Value::from(format_named(l, &[("who", &who), ("subj", &subj), ("obj", &obj), ("poss", &poss), ("be", &be)])))
+        .collect();
+    Value::Tuple(std::sync::Arc::new(lines))
+}
+
+// ---- fallback.py:14054-14345: red flags, the threshold crossed, the route named, a draft ----
+
+regexes!(RED_FLAG_SHARED, RED_FLAG_EVENTS, THRESHOLD_CLAUSE, A_CONDITION, ALREADY_OR_NOT, SENTENCE_END, CLAUSE_END, RESOLVED, STAKES_WORDS, FALL_FIRST_AID, CALL_THEM_NOW);
+word_sets!(THRESHOLD_NOT_A_SIGN);
+pools!(A_FEELING_OF, THE_CALL_POOLS);
+static CARE_ROUTE_WORDS: LazyLock<Vec<(String, &'static Re)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.CARE_ROUTE_WORDS").items().iter().map(|p| (p.items()[0].str().to_string(), p.items()[1].as_re().unwrap())).collect()
+});
+
+/// The last `n` words of `s.split()`.
+fn last_words(s: &str, n: usize) -> Vec<&str> {
+    let w = text::split_ref(s);
+    let start = w.len().saturating_sub(n);
+    w[start..].to_vec()
+}
+
+/// Python: bot/compose/fallback.py:14053 `_red_flags_in(line)`
+/// The flag words in the line, leaving out the ones the line itself says are gone (a set).
+pub fn _red_flags_in(line: &str) -> HashSet<String> {
+    let low = text::squash(&lower(line));
+    let mut flags = HashSet::new();
+    for m in RED_FLAG_SHARED.finditer(&low) {
+        let before = last_words(&low[..m.start()], 4);
+        let after: Vec<&str> = text::split_ref(&low[m.end()..]).into_iter().take(4).collect();
+        if before.iter().any(|w| ["not", "no", "never", "isnt", "arent", "havent", "hasnt", "dont", "didnt"].contains(w)) {
+            continue;
+        }
+        if after.contains(&"stopped")
+            || (after.contains(&"any") && after.contains(&"more"))
+            || (after.contains(&"no") && (after.contains(&"more") || after.contains(&"longer")))
+        {
+            continue;
+        }
+        flags.insert(_flag_stem(m.as_str()));
+    }
+    flags
+}
+
+/// Python: bot/compose/fallback.py:14087 `_flag_events_in(line)`
+/// The signs in the line that are an emergency by themselves, leaving out the denied ones.
+pub fn _flag_events_in(line: &str) -> HashSet<String> {
+    let low = text::squash(&lower(line));
+    let mut found = HashSet::new();
+    for m in RED_FLAG_EVENTS.finditer(&low) {
+        let before = last_words(&low[..m.start()], 4);
+        if before.iter().any(|w| ["not", "no", "never", "isnt", "arent", "havent", "hasnt", "dont", "didnt", "wasnt", "without"].contains(w)) {
+            continue;
+        }
+        found.insert(_flag_stem(text::split_ref(m.as_str())[0]));
+    }
+    found
+}
+
+/// Python: bot/compose/fallback.py:14140 `_the_threshold_words(sentence)`
+/// The signs the answer names in its own if-clause, without the ending that varies.
+pub fn _the_threshold_words(sentence: &str) -> HashSet<String> {
+    let low = text::squash(&lower(sentence));
+    let mut words = HashSet::new();
+    for m in THRESHOLD_CLAUSE.finditer(&low) {
+        if lower(text::lstrip(m.as_str())).starts_with("even if") {
+            continue;
+        }
+        for word in az_words(m.str(1)) {
+            if word.chars().count() < 4 || THRESHOLD_NOT_A_SIGN.contains(&word) {
+                continue;
+            }
+            words.insert(_flag_stem(&word));
+        }
+    }
+    words
+}
+
+/// Python: bot/compose/fallback.py:14154 `_it_is_the_answer_word(line, word)` (never called on the trace corpus)
+/// True when the line says the answer's own sign as a feeling of theirs.
+pub fn _it_is_the_answer_word(line: &str, word: &str) -> bool {
+    let low = text::squash(&lower(line));
+    let esc = crate::py::re::escape(word);
+    if !rx(&format!(r"\b{esc}\w*\b")).is_match(&low) {
+        return false;
+    }
+    for shape in A_FEELING_OF.iter() {
+        let said = format!(r"(?:the\s+|a\s+|some\s+)?{esc}\w*");
+        if rx(&format!(r"\b{}\b", shape.replace("{w}", &said))).is_match(&low) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:14166 `_the_flags_still_standing(line)`
+/// The flag words in the line, leaving out the clauses that say it has passed.
+pub fn _the_flags_still_standing(line: &str) -> HashSet<String> {
+    let clauses: Vec<String> = CLAUSE_END.split(&lower(line)).into_iter().filter(|c| !text::strip(c).is_empty()).collect();
+    let settled: Vec<&String> = clauses.iter().filter(|c| _feels_better(c) || RESOLVED.is_match(c)).collect();
+    if settled.is_empty() {
+        return _red_flags_in(line);
+    }
+    let mut flags = HashSet::new();
+    for clause in &clauses {
+        if settled.contains(&clause) || rx(r"\b(?:was|were|had)\b").is_match(clause) {
+            continue;
+        }
+        flags.extend(_red_flags_in(clause));
+    }
+    flags
+}
+
+/// Python: bot/compose/fallback.py:14188 `_the_threshold_was_crossed(last, clean, turns)`
+/// True when the answer named 999 for something worse, and this line says that thing.
+pub fn _the_threshold_was_crossed(last: &str, clean: &str, turns: &[Turn]) -> bool {
+    let said = lower(last);
+    if said.is_empty() || !CALL_THEM_NOW.is_match(&said) {
+        return false;
+    }
+    let line = clean;
+    if _the_thread_is_an_animal(line, turns, 4) {
+        return false;
+    }
+    if !_flag_events_in(line).is_empty() {
+        return true;
+    }
+    let flags = _the_flags_still_standing(line);
+    for sentence in SENTENCE_END.split(&said) {
+        if !CALL_THEM_NOW.is_match(&sentence) {
+            continue;
+        }
+        if _red_flags_in(&sentence).iter().any(|f| flags.contains(f)) {
+            return true;
+        }
+        if _feels_better(line) || RESOLVED.is_match(&lower(clean)) {
+            continue;
+        }
+        for word in _the_threshold_words(&sentence) {
+            if _it_is_the_answer_word(line, &word) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:14225 `_flag_stem(word)` (never called on the trace corpus)
+/// The word without the ending that makes "sweaty" and "sweating" the same flag.
+pub fn _flag_stem(word: &str) -> String {
+    let mut word = word.to_string();
+    for tail in ["ing", "ness", "ed", "y", "s"] {
+        if word.ends_with(tail) && text::len(&word) - text::len(tail) >= 4 {
+            word = text::slice(&word, 0, Some(-(text::len(tail) as isize)));
+        }
+    }
+    word
+}
+
+/// Python: bot/compose/fallback.py:14240 `_it_is_this_files_call(said)` (never called on the trace corpus)
+/// True when the line is one of this file's own call pools, said word for word.
+pub fn _it_is_this_files_call(said: &str) -> bool {
+    let said = text::squash(&lower(said));
+    THE_CALL_POOLS.iter().any(|line| said.starts_with(&text::slice(&text::squash(&lower(line)), 0, Some(40))))
+}
+
+/// Python: bot/compose/fallback.py:14249 `_a_newer_answer_asked_them_to_call(last, turns)` (never called on the trace corpus)
+/// True when this fallback's own later line already told them to ring, so the route is stale.
+pub fn _a_newer_answer_asked_them_to_call(last: &str, turns: &[Turn]) -> bool {
+    let last_low = lower(text::strip(last));
+    for turn in last_n(turns, *THREAD_TURNS).iter().rev() {
+        let said = &turn.bot;
+        if said.is_empty() {
+            continue;
+        }
+        if lower(text::strip(said)) == last_low {
+            return false;
+        }
+        if turn.module.as_deref() != Some(FALLBACK_MODULE.as_str()) {
+            return false;
+        }
+        if _the_answer_asked_them_to_call(said) || _it_is_this_files_call(said) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:14278 `_the_route_the_answer_named(last)` (never called on the trace corpus)
+/// The place the bot's own last answer told them to go, or None (a str value).
+pub fn _the_route_the_answer_named(last: &str) -> Value {
+    the_route_the_answer_named(last).map(Value::from).unwrap_or(Value::None)
+}
+
+/// `_the_route_the_answer_named` as an optional name.
+pub fn the_route_the_answer_named(last: &str) -> Option<String> {
+    if last.is_empty() {
+        return None;
+    }
+    let gas = rx(r"0800\s*111\s*999");
+    let t = if gas.is_match(last) { gas.sub("the gas emergency line", last) } else { last.to_string() };
+    CARE_ROUTE_WORDS.iter().find(|(_, p)| p.is_match(&t)).map(|(name, _)| name.clone())
+}
+
+/// Python: bot/compose/fallback.py:14296 `_the_answer_asked_them_to_call(last)`
+/// True when the bot's own last answer told the person to ring the emergency services now.
+pub fn _the_answer_asked_them_to_call(last: &str) -> bool {
+    for sentence in SENTENCE_END.split(last) {
+        let low = ALREADY_OR_NOT.sub("already", &lower(&sentence));
+        let mut led_by_condition = false;
+        for clause in CLAUSE_END.split(&low) {
+            let opens_with_condition = A_CONDITION.is_match(&clause) && !rx(r"\b(?:call|ring|ringing|dial|phone|text|press|try)\b").is_match(&clause);
+            if CALL_THEM_NOW.is_match(&clause) && !A_CONDITION.is_match(&clause) && !led_by_condition {
+                return true;
+            }
+            led_by_condition = opens_with_condition;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:14321 `_raises_the_stakes(clean, last)` (never called on the trace corpus)
+/// True when the person's line meets the red flag their first-aid card named.
+pub fn _raises_the_stakes(clean: &str, last: &str) -> bool {
+    STAKES_WORDS.is_match(clean) && FALL_FIRST_AID.is_match(&lower(last))
+}
+
+/// Python: bot/compose/fallback.py:14331 `_releasable(memory)`
+/// True when the thread the composer is holding can be let go by a new subject.
+pub fn _releasable(memory: &Memory) -> bool {
+    for turn in last_n(&memory.turns, *THREAD_TURNS).iter().rev() {
+        if turn.module.as_deref() == Some("safety") {
+            let last = lower(&turn.bot);
+            return !(CRISIS_WORDS.iter().any(|w| last.contains(w.as_str())) || _the_answer_asked_them_to_call(&last));
+        }
+        if turn.module.as_deref() != Some(FALLBACK_MODULE.as_str()) {
+            return false;
+        }
+    }
+    true
+}
+
+static DRAFT_LEAD_INS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.draft.LEAD_INS"));
+
+/// Python: bot/compose/fallback.py:14350 `_named_draft(memory, text, words, clean)`
+/// The message the bot asked for, on a line that says it is the message - or None. (The
+/// skeleton's `()` return could not carry the reply.)
+pub fn _named_draft(memory: &Memory, text_: &str, words: &[String], clean: &str) -> Option<String> {
+    if !crate::compose::draft::says_it_is_the_message(clean) {
+        return None;
+    }
+    if _action(clean, memory).is_some() || crate::compose::badnews::reads_as_pregnancy_bleeding(clean) || crate::compose::badnews::reads_as_sudden_loss(clean) {
+        return None;
+    }
+    let drafted = crate::compose::draft::drafter(memory, text_, words).py_opt_str().filter(|d| !d.is_empty())?;
+    let lines: Vec<String> = DRAFT_LEAD_INS.iter().map(|lead| format!("{lead} \"{drafted}\"")).collect();
+    choose(&lines, memory, clean)
+}
+
+// ---- fallback.py:14369-14962: the continuation after a safety answer and its helpers ----
+
+pools!(AFRAID_AFTER, HELLO_WITH_YOU, HELLO_STILL_THERE, GREETING_AFTER, CARE_HERE, MOVE_ON_AFTER, ABUSE_AFTER, TRIED_NO_CHANGE_ELSEWHERE, TRIED_WORSE_ELSEWHERE);
+pools!(CRISIS_AFTER_THEM, CRISIS_AFTER, EMERGENCY_NOT_WORKED, THANKS_AFTER, RESOLVED_AFTER, AFTER_RESOLVED, THE_CALL_STANDS_ANYWAY, RESOLVED_AFTER_THEM);
+pools!(HELPLINE_NOT_AN_AMBULANCE, STILL_HERE_AFTER, HOLD_AFTER, CARE_VISIT_WARD, CARE_VISIT, CARE_SEEN_ANIMAL, CARE_SEEN, EMERGENCY_BETTER_THEM, EMERGENCY_BETTER);
+pools!(CRISIS_BETTER_THEM, CRISIS_BETTER, CARE_BETTER, BURN_BLISTER, BURN_AFTER, WITH_YOU_AFTER, HAZARD_AFTER, EMERGENCY_AFTER, CARE_AFTER_ANIMAL_STILL);
+pools!(CARE_AFTER_ANIMAL, CARE_AFTER_STILL, CARE_AFTER, SORTED_AND_NO_CALL_YET, THRESHOLD_CROSSED, THE_CALL_STANDS, CALL_WORDS);
+regexes!(THING_SORTED, NEEDS_SEEN, A_HELPLINE, VISIT_ASK, MEDICAL_PLACE, NOT_A_VISIT, SAID_AS_A_DEATH, STILL_GOING, IMMEDIATE_CALL, CONDITIONAL_OPENING, ABUSE_CARD, HAZARD_LINE, A_BACK_AGAIN, THE_THING_ITSELF_LOOKS_FINE);
+word_sets!(THANKS_WORDS, ONGOING_WORDS);
+static THE_THREAD_KEPT: LazyLock<i64> = LazyLock::new(|| data::get("bot.compose.fallback.THE_THREAD_KEPT").as_int().unwrap());
+static CARE_ROUTE_BACK: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.CARE_ROUTE_BACK").pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect()
+});
+
+/// `_wrote_for_them(pool, forms)` as lines.
+fn wrote_for_them(pool: &[String], forms: &Value) -> Vec<String> {
+    _wrote_for_them(&Value::from(pool.to_vec()), forms).strs()
+}
+
+/// `_choose(_wrote_for_them(THEM, them) if them else OWN, memory, clean)`.
+fn for_them_or(them: &Option<Value>, them_pool: &[String], own: &[String], memory: &Memory, clean: &str) -> Option<String> {
+    match them {
+        Some(forms) => choose(&wrote_for_them(them_pool, forms), memory, clean),
+        None => choose(own, memory, clean),
+    }
+}
+
+/// Python: bot/compose/fallback.py:14369 `_after_safety(memory, clean, understood=None)`
+/// A careful continuation when the bot has just answered an emergency, or None. (The skeleton's
+/// `()` return could not carry the reply.)
+pub fn _after_safety(memory: &Memory, clean: &str, understood: Option<&Understood>) -> Option<String> {
+    let turns = &memory.turns;
+    let mut window = last_n(turns, *THREAD_TURNS);
+    let mut safety: Option<&Turn> = None;
+    for index in (0..window.len()).rev() {
+        if window[index].module.as_deref() == Some("safety") {
+            safety = Some(&window[index]);
+            window = &window[index + 1..];
+            break;
+        }
+    }
+    let safety = safety?;
+    let read_owned;
+    let read: &Understood = match understood.or(memory.understood.as_ref()) {
+        Some(u) => u,
+        None => {
+            read_owned = crate::understanding::understand(clean, Some(memory));
+            &read_owned
+        }
+    };
+    let mut last = lower(&safety.bot);
+    for turn in window {
+        if turn.module.as_deref() == Some(FALLBACK_MODULE.as_str()) {
+            continue;
+        }
+        if crate::memory::history::not_a_subject(&turn.user) {
+            continue;
+        }
+        if _words_kept(&turn.bot, &last) >= *THE_THREAD_KEPT {
+            continue;
+        }
+        return None;
+    }
+    let in_crisis = CRISIS_WORDS.iter().any(|w| last.contains(w.as_str()));
+    if _reads_as_fear(read, clean) && !in_crisis {
+        return choose(&AFRAID_AFTER, memory, clean);
+    }
+    let words: Vec<String> = read.words.clone();
+    let has = |set: &HashSet<String>| words.iter().any(|w| set.contains(w));
+    let live = in_crisis || _the_answer_asked_them_to_call(&last) || _raises_the_stakes(clean, &last);
+    if read.kind == "greeting" && !has(&CARE_WORDS) {
+        if live {
+            return choose(if in_crisis { &HELLO_WITH_YOU } else { &HELLO_STILL_THERE }, memory, clean);
+        }
+        return choose(&GREETING_AFTER, memory, clean);
+    }
+    let plain = if read.plain.is_empty() { clean } else { read.plain.as_str() };
+    if _asks_how_are_you(clean, plain) && !_burn_line(clean, "") {
+        return choose(&CARE_HERE, memory, clean);
+    }
+    if !live && A_BACK_AGAIN.match_(text::strip(clean)).is_some() {
+        return choose(&GREETING_AFTER, memory, clean);
+    }
+    if _short_ack(&words) && !live && _thread_was_closed(turns) {
+        return None;
+    }
+    if MOVE_ON.is_match(clean) {
+        return choose(&MOVE_ON_AFTER, memory, clean);
+    }
+    if !in_crisis {
+        if let Some(advice) = _asks_about_the_advice(clean, &last) {
+            if !advice.is_empty() {
+                return choose(&advice, memory, clean);
+            }
+        }
+    }
+    if crate::compose::outlook::asks_the_outlook(clean, clean) {
+        let cards = _the_safety_cards(turns);
+        let in_a_crisis = cards.iter().any(|card| CRISIS_WORDS.iter().any(|w| card.contains(w.as_str())));
+        let told_to_call = cards.iter().any(|card| _the_answer_asked_them_to_call(card));
+        let abuse = cards.iter().any(|card| _the_answer_was_an_abuse_card(card));
+        let pool = crate::compose::outlook::the_pool(
+            &Value::Bool(in_a_crisis),
+            &Value::Bool(_somebody_is_coming(turns, clean)),
+            &Value::Bool(told_to_call),
+            &Value::Bool(abuse),
+        );
+        let pool = if pool.is_none() { with_who(&FORECAST_AFTER_SAFETY, "you") } else { pool.strs() };
+        return choose(&pool, memory, clean);
+    }
+    let safety_turn = {
+        let mut d = Value::dict();
+        d.set_key("user", safety.user.as_str());
+        d.set_key("bot", safety.bot.as_str());
+        d.set_key("module", safety.module.as_deref().map(Value::from).unwrap_or(Value::None));
+        d
+    };
+    let them = _about_somebody_else(&safety_turn, memory);
+    if _the_answer_was_an_abuse_card(&last) && (_THE_WAY_OUT.is_match(clean) || _ASKS_TO_LEAVE.is_match(clean)) {
+        return choose(&ABUSE_AFTER, memory, clean);
+    }
+    if live {
+        // `in (TRIED_NO_CHANGE, TRIED_NO_CHANGE_ELSEWHERE, TRIED_WORSE, TRIED_WORSE_ELSEWHERE)`:
+        // the two bare names are the module's compiled patterns, which no pool equals.
+        let report = _a_report_on_the_advice(clean, &words, false, false, &HashSet::new());
+        if report.as_ref().is_some_and(|r| *r == *TRIED_NO_CHANGE_ELSEWHERE || *r == *TRIED_WORSE_ELSEWHERE) {
+            if in_crisis && them.is_some() {
+                return for_them_or(&them, &CRISIS_AFTER_THEM, &CRISIS_AFTER, memory, clean);
+            }
+            return choose(if in_crisis { &CRISIS_AFTER } else { &EMERGENCY_NOT_WORKED }, memory, clean);
+        }
+    }
+    if THING_SORTED.is_match(clean) {
+        let pool = if in_crisis { CRISIS_AFTER.clone() } else { _hold_pool(turns, clean, &last, true) };
+        return choose(&pool, memory, clean);
+    }
+    if !in_crisis {
+        let reading = crate::compose::verdict::reply_for(clean, memory).py_opt_str();
+        if let Some(reading) = reading.filter(|r| !r.is_empty()) {
+            return Some(reading);
+        }
+    }
+    if in_crisis && (_a_lost_ask(clean) || _a_start_ask(clean)) {
+        return choose(&CRISIS_AFTER, memory, clean);
+    }
+    if _the_hazard_is_gas(&safety.user) && (_THE_WAY_OUT.is_match(clean) || _goes_back_for(clean, &safety.user)) {
+        return Some(GAS_ANSWER.clone());
+    }
+    if _the_threshold_was_crossed(&last, clean, turns) {
+        return choose(&THRESHOLD_CROSSED, memory, clean);
+    }
+    if !_feels_better(clean)
+        && !(_goes_back_for(clean, &safety.user) || _keeps_thread(read, clean, &safety.user, !_releasable(memory) || _raises_the_stakes(clean, &last)))
+    {
+        return None;
+    }
+    if (read.kind == "thanks" || has(&THANKS_WORDS)) && !_thanks_carries_emergency(&words, clean) {
+        return choose(&THANKS_AFTER, memory, clean);
+    }
+    if _short_ack(&words) {
+        if in_crisis {
+            return choose(&CRISIS_AFTER, memory, clean);
+        }
+        return choose(&_hold_pool(turns, clean, &last, false), memory, clean);
+    }
+    last = lower(&safety.bot);
+    let asked = read.kind == "question" || clean.contains('?');
+    if !_reads_as_fear(read, clean) && has(&REACTION_WORDS) && last_n(turns, 2).iter().any(|t| RESOLVED_AFTER.contains(&t.bot)) {
+        return choose(&AFTER_RESOLVED, memory, clean);
+    }
+    if !asked && RESOLVED.is_match(clean) && !NEEDS_SEEN.is_match(clean) && !_someone_is_arriving(clean) {
+        if them.is_none() && _a_newer_answer_asked_them_to_call(&last, turns) && !ALREADY_RANG.is_match(clean) {
+            return choose(&THE_CALL_STANDS_ANYWAY, memory, clean);
+        }
+        return for_them_or(&them, &RESOLVED_AFTER_THEM, &RESOLVED_AFTER, memory, clean);
+    }
+    if ALREADY_RANG.is_match(clean) {
+        if A_HELPLINE.is_match(clean) {
+            if CRISIS_WORDS.iter().any(|w| last.contains(w.as_str())) {
+                return for_them_or(&them, &CRISIS_AFTER_THEM, &CRISIS_AFTER, memory, clean);
+            }
+            if SAFETY_WORDS.iter().any(|w| last.contains(w.as_str())) {
+                return choose(&HELPLINE_NOT_AN_AMBULANCE, memory, clean);
+            }
+            return choose(&STILL_HERE_AFTER, memory, clean);
+        }
+        if CRISIS_WORDS.iter().any(|w| last.contains(w.as_str())) {
+            return for_them_or(&them, &CRISIS_AFTER_THEM, &CRISIS_AFTER, memory, clean);
+        }
+        return choose(&HOLD_AFTER, memory, clean);
+    }
+    if _reads_as_fear(read, clean) && !CRISIS_WORDS.iter().any(|w| last.contains(w.as_str())) {
+        return choose(&AFRAID_AFTER, memory, clean);
+    }
+    if has(&REACTION_WORDS) {
+        if CRISIS_WORDS.iter().any(|w| last.contains(w.as_str())) {
+            return for_them_or(&them, &CRISIS_AFTER_THEM, &CRISIS_AFTER, memory, clean);
+        }
+        return choose(&_hold_pool(turns, clean, &last, false), memory, clean);
+    }
+    if VISIT_ASK.is_match(clean) && !MEDICAL_PLACE.is_match(clean) && !NOT_A_VISIT.is_match(clean) && _somebody_to_visit(clean, turns, 3) {
+        let pool = if _someone_is_a_patient(clean, turns, 4) { &CARE_VISIT_WARD } else { &CARE_VISIT };
+        return choose(pool, memory, clean);
+    }
+    if CARE_SEEN_ASKS.is_match(clean) {
+        if _the_thread_is_an_animal(clean, turns, 4) {
+            return choose(&CARE_SEEN_ANIMAL, memory, clean);
+        }
+        return choose(&CARE_SEEN, memory, clean);
+    }
+    if _feels_better(clean) {
+        if _no_relief(memory, &last) {
+            return for_them_or(&them, &EMERGENCY_BETTER_THEM, &EMERGENCY_BETTER, memory, clean);
+        }
+        if CRISIS_WORDS.iter().any(|w| last.contains(w.as_str())) {
+            return for_them_or(&them, &CRISIS_BETTER_THEM, &CRISIS_BETTER, memory, clean);
+        }
+        return choose(&CARE_BETTER, memory, clean);
+    }
+    let opener = lower(&safety.user);
+    if BURN_WORD.is_match(&last) || BURN_WORD.is_match(&opener) {
+        if BURN_BLISTER_LINE.is_match(clean) || POP_A_BARE_IT.is_match(clean) {
+            return choose(&BURN_BLISTER, memory, clean);
+        }
+        if BURN_ON_IT.is_match(clean) || (BURN_THING.is_match(clean) && BURN_ASK.is_match(clean)) {
+            return choose(&BURN_AFTER, memory, clean);
+        }
+    }
+    if them.is_some() && SAID_AS_A_DEATH.is_match(clean) {
+        return None;
+    }
+    if CRISIS_WORDS.iter().any(|w| last.contains(w.as_str())) {
+        return for_them_or(&them, &CRISIS_AFTER_THEM, &CRISIS_AFTER, memory, clean);
+    }
+    if _someone_is_arriving(clean) {
+        return choose(&WITH_YOU_AFTER, memory, clean);
+    }
+    if _already_rang(turns) {
+        return choose(&HOLD_AFTER, memory, clean);
+    }
+    if _the_answer_asked_them_to_call(&last) || _raises_the_stakes(clean, &last) {
+        if _is_a_hazard(&last) {
+            return choose(&HAZARD_AFTER, memory, clean);
+        }
+        return choose(&EMERGENCY_AFTER, memory, clean);
+    }
+    if _the_thread_is_an_animal(clean, turns, 4) {
+        return choose(if STILL_GOING.is_match(clean) { &CARE_AFTER_ANIMAL_STILL } else { &CARE_AFTER_ANIMAL }, memory, clean);
+    }
+    if _a_newer_answer_asked_them_to_call(&last, turns) {
+        return choose(&THE_CALL_STANDS, memory, clean);
+    }
+    if let Some(route) = the_route_the_answer_named(&last) {
+        if !THE_THING_ITSELF_LOOKS_FINE.is_match(clean) {
+            let pool = pool_of(&CARE_ROUTE_BACK, &route).unwrap_or_else(|| panic!("KeyError: {route:?} (CARE_ROUTE_BACK)"));
+            return choose(&pool, memory, clean);
+        }
+    }
+    choose(if STILL_GOING.is_match(clean) { &CARE_AFTER_STILL } else { &CARE_AFTER }, memory, clean)
+}
+
+/// Python: bot/compose/fallback.py:14739 `_is_a_hazard(last)` (never called on the trace corpus)
+/// True when the emergency the bot answered is a fire, a gas leak or an alarm going off.
+pub fn _is_a_hazard(last: &str) -> bool {
+    HAZARD_LINE.is_match(&lower(last))
+}
+
+/// Python: bot/compose/fallback.py:14752 `_the_safety_cards(turns)` (never called on the trace corpus)
+/// The safety answers still in the thread window, newest last.
+pub fn _the_safety_cards(turns: &[Turn]) -> Vec<String> {
+    last_n(turns, *THREAD_TURNS).iter().filter(|t| t.module.as_deref() == Some("safety")).map(|t| lower(&t.bot)).collect()
+}
+
+/// Python: bot/compose/fallback.py:14763 `_somebody_is_coming(turns, clean)` (never called on the trace corpus)
+/// True when the person has rung, or help is with them, anywhere in the thread.
+pub fn _somebody_is_coming(turns: &[Turn], clean: &str) -> bool {
+    for turn in last_n(turns, *THREAD_TURNS) {
+        let said = lower(&turn.user);
+        if !said.is_empty() && (ALREADY_RANG.is_match(&said) || _someone_is_arriving(&said)) {
+            return true;
+        }
+    }
+    ALREADY_RANG.is_match(clean) || _someone_is_arriving(clean)
+}
+
+/// Python: bot/compose/fallback.py:14772 `_the_answer_was_an_abuse_card(last)`
+pub fn _the_answer_was_an_abuse_card(last: &str) -> bool {
+    ABUSE_CARD.is_match(last)
+}
+
+/// Python: bot/compose/fallback.py:14782 `_thread_was_closed(turns)` (never called on the trace corpus)
+/// True when this fallback's last line in the thread was a close, not advice.
+pub fn _thread_was_closed(turns: &[Turn]) -> bool {
+    for turn in last_n(turns, *THREAD_TURNS).iter().rev() {
+        if turn.module.as_deref() != Some(FALLBACK_MODULE.as_str()) {
+            continue;
+        }
+        return THANKS_AFTER.iter().any(|line| turn.bot.starts_with(&text::slice(line, 0, Some(24))));
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:14796 `_hold_pool(turns, clean, last, done_report=False)` (never called on the trace corpus)
+/// The hold pool: one that may promise a call only when this thread already has one.
+pub fn _hold_pool(turns: &[Turn], clean: &str, last: &str, done_report: bool) -> Vec<String> {
+    if !_a_call_is_known(turns, clean, last) {
+        return STILL_HERE_AFTER.clone();
+    }
+    if done_report && !(ALREADY_RANG.is_match(clean) || _already_rang(turns)) {
+        return SORTED_AND_NO_CALL_YET.clone();
+    }
+    HOLD_AFTER.clone()
+}
+
+/// Python: bot/compose/fallback.py:14824 `_a_call_is_known(turns, clean, last)` (never called on the trace corpus)
+/// True when somebody has been rung in this thread: said here, said before, or in the advice.
+pub fn _a_call_is_known(turns: &[Turn], clean: &str, last: &str) -> bool {
+    if ALREADY_RANG.is_match(clean) || _already_rang(turns) {
+        return true;
+    }
+    if !CALL_WORDS.iter().any(|w| last.contains(w.as_str())) {
+        return false;
+    }
+    if last.contains("111") && !IMMEDIATE_CALL.is_match(last) {
+        return false;
+    }
+    !_the_call_is_conditional(last)
+}
+
+/// Python: bot/compose/fallback.py:14851 `_the_call_is_conditional(text)` (never called on the trace corpus)
+/// True when every sentence of the answer that names a call puts it behind a condition.
+pub fn _the_call_is_conditional(text_: &str) -> bool {
+    let sentences = rx(r"(?<=[.!?])\s+").split(text_);
+    let carrying: Vec<&String> = sentences.iter().filter(|s| {
+        let low = lower(s);
+        CALL_WORDS.iter().any(|w| low.contains(w.as_str()))
+    }).collect();
+    if carrying.is_empty() {
+        return false;
+    }
+    carrying.iter().all(|s| CONDITIONAL_OPENING.is_match(text::strip(s)))
+}
+
+/// Python: bot/compose/fallback.py:14860 `_already_rang(turns)` (never called on the trace corpus)
+/// True when the person said, in the last few turns, that somebody has been rung.
+pub fn _already_rang(turns: &[Turn]) -> bool {
+    last_n(turns, 3).iter().any(|t| ALREADY_RANG.is_match(&lower(&t.user)))
+}
+
+/// Python: bot/compose/fallback.py:14866 `_thanks_carries_emergency(words, clean)` (never called on the trace corpus)
+/// True when a thanks also says the emergency is still going on.
+pub fn _thanks_carries_emergency(words: &[String], clean: &str) -> bool {
+    let content: Vec<&String> = words
+        .iter()
+        .filter(|w| CARE_WORDS.contains(*w) && !THANKS_WORDS.contains(*w) && !CARE_PRONOUNS.contains(*w) && !CARE_POINTER.contains(*w))
+        .collect();
+    if !content.is_empty() && words.iter().any(|w| ONGOING_WORDS.contains(w)) {
+        return true;
+    }
+    if words.iter().any(|w| CARE_RESOLVED.contains(w)) {
+        return words.iter().any(|w| CARE_NOT_RESOLVED.contains(w));
+    }
+    !content.is_empty() || CARE_ASKS.is_match(clean) || CARE_SEEN_ASKS.is_match(clean) || CARE_PHRASES.iter().any(|p| clean.contains(p.as_str()))
+}
+
+regexes!(A_DATE_OF_OURS, A_WORRY_ABOUT_THEM);
+
+/// Python: bot/compose/fallback.py:14911 `a_date_of_ours_forgotten(clean)`
+/// True when the line is somebody forgetting a date of ours - an anniversary, a birthday.
+pub fn a_date_of_ours_forgotten(clean: &str) -> bool {
+    let said = text::squash(&lower(clean));
+    A_DATE_OF_OURS.is_match(&said) && !A_WORRY_ABOUT_THEM.is_match(&said)
+}
+
+word_sets!(GRIEVANCE_IMPACT, NOT_THEIR_VERB, FIRST_PERSON, FORGETTING, OURS, EATING, EATEN_KIND);
+
+/// Python: bot/compose/fallback.py:14922 `_impact_said(clean)`
+/// The words of what somebody did, where the somebody is the one doing them (a set).
+pub fn _impact_said(clean: &str) -> HashSet<String> {
+    let tokens = az_words(clean);
+    let mut found = HashSet::new();
+    for (position, token) in tokens.iter().enumerate() {
+        if !GRIEVANCE_IMPACT.contains(token) {
+            continue;
+        }
+        let before = &tokens[position.saturating_sub(2)..position];
+        if before.last().is_some_and(|w| NOT_THEIR_VERB.contains(w)) {
+            continue;
+        }
+        if before.iter().any(|w| FIRST_PERSON.contains(w)) {
+            continue;
+        }
+        if FORGETTING.contains(token) && !tokens[(position + 1).min(tokens.len())..(position + 4).min(tokens.len())].iter().any(|w| OURS.contains(w)) {
+            continue;
+        }
+        if EATING.contains(token) && position + 1 < tokens.len() && EATEN_KIND.contains(&tokens[position + 1]) {
+            continue;
+        }
+        found.insert(token.clone());
+    }
+    found
+}
+
+static LOSS_REPLIES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.loss.LOSS_REPLIES"));
+
+/// Python: bot/compose/fallback.py:14948 `_grief_thread(memory)`
+/// True when the last thing the bot said about this was a condolence.
+pub fn _grief_thread(memory: &Memory) -> bool {
+    for turn in last_n(&memory.turns, *THREAD_TURNS).iter().rev() {
+        let line = &turn.bot;
+        if line.is_empty() {
+            continue;
+        }
+        return LOSS_REPLIES.iter().any(|reply| line.starts_with(&text::slice(reply, 0, Some(30))));
+    }
+    false
 }
