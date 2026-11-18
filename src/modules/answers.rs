@@ -2169,15 +2169,18 @@ pub fn _hands_back_the_refusal(item: &Entry, refused: &str) -> bool {
     if _about_a_lack(item) {
         return false;
     }
-    let reply = item.raw.attr("reply").cloned().unwrap_or(Value::Str("".into()));
-    if matches!(reply, Value::Fn(_)) {
-        return false;
-    }
-    // `str(reply or "")`: a pool reads as its repr
-    let said = if reply.truthy() { py_repr(&reply) } else { String::new() };
-    let said = match &reply {
-        Value::Str(s) => s.to_string(),
-        _ => said,
+    use crate::knowledge::entry::Reply;
+    let said = match &item.reply {
+        Reply::Fn(_) => return false,
+        Reply::Text(s) => s.clone(),
+        // `str(reply or "")`: a pool reads as its repr (the exported tuple or list, when the
+        // entry came from the bundle)
+        Reply::Choices(c) => match item.raw.attr("reply") {
+            Some(v) if v.truthy() => py_repr(v),
+            Some(_) => String::new(),
+            None if c.is_empty() => String::new(),
+            None => py_repr(&Value::Tuple(std::sync::Arc::new(c.iter().map(Value::from).collect()))),
+        },
     };
     !_says_it_leaves_it_out(&said, refused)
 }
@@ -5294,67 +5297,284 @@ pub fn _about_the_rest_of_the_question(item: &Entry, question: &str, new: &str) 
     })
 }
 
-// ==== ported code ends; the stubs below are the functions not yet ported ====
+re_static!(KEEPING_CLAUSE, KEEPS_A_FIGURE, DEGREES, REHEAT_ASK, KEEPING_WORD);
+set_static!(COOKED_THING);
+static REHEAT_REPLY: LazyLock<String> = LazyLock::new(|| g("REHEAT_REPLY").str().to_string());
+static KEEPING_FROM_THE_ANSWER: LazyLock<String> = LazyLock::new(|| g("KEEPING_FROM_THE_ANSWER").str().to_string());
+static AGAIN_HELP: LazyLock<String> = LazyLock::new(|| g("AGAIN_HELP").str().to_string());
 
-/// Python: bot/modules/answers.py:7124 `_keeping_in_the_answer_before(memory)` (never called on the trace corpus)
+/// `lookup.entry(id, key, reply)` for an answer built at run time. The reader hands entries out
+/// as `&'static`, so each one built is kept (once per id, key and reply).
+fn built_entry(id: &str, key: &[&str], reply: &str) -> &'static Entry {
+    use std::sync::Mutex;
+    static BUILT: LazyLock<Mutex<std::collections::HashMap<String, &'static Entry>>> = LazyLock::new(Default::default);
+    let tag = format!("{id}\u{0}{}\u{0}{reply}", key.join("\u{1}"));
+    let mut built = BUILT.lock().unwrap();
+    if let Some(e) = built.get(&tag) {
+        return e;
+    }
+    let parts = key.iter().map(|w| crate::knowledge::entry::KeyPart::Word(w.to_string())).collect();
+    let made = knowledge::lookup::entry(id, parts, crate::knowledge::entry::Reply::Text(reply.to_string()), &[], 0, vec![], None);
+    let leaked: &'static Entry = Box::leak(Box::new(made));
+    built.insert(tag, leaked);
+    leaked
+}
+
+/// `mem.last_module(memory)`
+fn last_module(memory: &Memory) -> Option<String> {
+    memory::last_module(memory).py()
+}
+
+/// Python: bot/modules/answers.py:7124 `_keeping_in_the_answer_before(memory)`
+/// The sentence of the answer just given that says how long the thing in hand keeps, or "".
 pub fn _keeping_in_the_answer_before(memory: &Memory) -> String {
-    crate::unported!("bot.modules.answers:_keeping_in_the_answer_before")
+    let last = memory::last_bot(memory);
+    let said = text::strip(&last);
+    if said.is_empty() {
+        return String::new();
+    }
+    for sentence in SENTENCE.split(said) {
+        let mut sentence = text::strip(&sentence).to_string();
+        if !(knowledge::cooking::speaks_of_keeping(&sentence) && KEEPS_A_FIGURE.is_match(&sentence)) {
+            continue;
+        }
+        if let Some(keep_at) = KEEPING_CLAUSE.search(&sentence) {
+            if keep_at.start() > 0 {
+                let lead = text::rstrip_chars(&sentence[..keep_at.start()], " ,;:-");
+                if !lead.is_empty() && (lead.contains(',') || lead.to_lowercase().contains(" and")) {
+                    let rest = sentence[keep_at.start()..].to_string();
+                    sentence = up1(&rest);
+                }
+            }
+        }
+        if text::strip(&sentence) == said {
+            continue;
+        }
+        return text::strip(&sentence).to_string();
+    }
+    String::new()
 }
 
 /// Python: bot/modules/answers.py:7167 `_keeping_reader(reading, memory)`
-pub fn _keeping_reader(reading: &Understood, memory: &Memory) -> Value {
-    crate::unported!("bot.modules.answers:_keeping_reader")
+/// The reader for a line that asks how long something keeps rather than how long it cooks.
+pub fn _keeping_reader(reading: &Understood, memory: &Memory) -> Box<Reader<'static>> {
+    let reading = reading.clone();
+    if !knowledge::cooking::keeping_ask(&reading) {
+        return Box::new(move |_: &mut Memory, reject: Reject| reader_entry(knowledge::lookup::find(&reading, None, reject, false)));
+    }
+    let _ = memory;
+    let own = _own_thing(&reading);
+    // `keeps(of, reject)`: the entry for `of` whose answer speaks of keeping
+    fn keeps(of: &Understood, reject: Reject, memory: &mut Memory) -> Option<&'static Entry> {
+        let cell = std::cell::RefCell::new(memory);
+        let not_about_keeping = |one: &Entry| {
+            if reject.is_some_and(|r| r(one)) {
+                return true;
+            }
+            let said = _payload_mut(one, &mut cell.borrow_mut(), of);
+            !knowledge::cooking::speaks_of_keeping(&said)
+        };
+        knowledge::lookup::find(of, None, Some(&not_about_keeping), false)
+    }
+    fn in_the_fridge(of: &Understood) -> Understood {
+        let mut cold = of.clone();
+        let base = if !of.clean.is_empty() { of.clean.clone() } else { of.text.clone() };
+        cold.clean = format!("{base} in the fridge");
+        cold.words.extend(["in", "the", "fridge"].iter().map(|w| w.to_string()));
+        cold
+    }
+    fn with_the_thing(of: &Understood, memory: &mut Memory) -> Option<Understood> {
+        let said = if !of.text.is_empty() { of.text.clone() } else { of.clean.clone() };
+        let fuller = _with_subject(&said, memory, None);
+        if text::strip(&fuller).is_empty() || text::strip(&fuller) == text::strip(&said) {
+            return None;
+        }
+        Some(understanding::understand(&fuller, Some(&*memory)))
+    }
+    Box::new(move |memory: &mut Memory, reject: Reject| {
+        let mut found = keeps(&reading, reject, memory);
+        if found.is_none() {
+            if let Some(thing) = with_the_thing(&reading, memory) {
+                found = keeps(&thing, reject, memory);
+            }
+        }
+        if found.is_none() && own.is_empty() && last_module(memory).as_deref() == Some("answers") {
+            let kept = _keeping_in_the_answer_before(memory);
+            if !kept.is_empty() {
+                return Some((built_entry(&KEEPING_FROM_THE_ANSWER, &["keep", "keeps", "last", "lasts"], &kept), None));
+            }
+        }
+        if found.is_none() && last_module(memory).as_deref() == Some("answers") {
+            let mut cold = keeps(&in_the_fridge(&reading), reject, memory);
+            if let Some(c) = cold {
+                if !own.is_empty() && !_is_about(c, &own) {
+                    cold = None;
+                }
+            }
+            found = cold;
+        }
+        reader_entry(found.or_else(|| knowledge::lookup::find(&reading, None, reject, false)))
+    })
 }
 
 /// Python: bot/modules/answers.py:7251 `_cooked_thing(memory)`
+/// True when the thing the conversation is on has been cooked already.
 pub fn _cooked_thing(memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_cooked_thing")
+    text::split_ref(&memory::topics::subject(memory)).iter().any(|w| COOKED_THING.contains(*w))
 }
 
-/// Python: bot/modules/answers.py:7256 `_the_plan_for(text, memory, understood)` (never called on the trace corpus)
-pub fn _the_plan_for(text: &str, memory: &Memory, understood: &Understood) -> Value {
-    crate::unported!("bot.modules.answers:_the_plan_for")
+/// Python: bot/modules/answers.py:7256 `_the_plan_for(text, memory, understood)`
+/// The dish plan's answer to a part question the last answer did not state, or None.
+pub fn _the_plan_for(text_: &str, memory: &Memory, understood: &Understood) -> Option<String> {
+    let _ = text_;
+    if !_the_plan_answers_this(memory) {
+        return None;
+    }
+    knowledge::dishes::follow_up(memory, understood).filter(|a| !text::strip(a).is_empty())
 }
 
 /// Python: bot/modules/answers.py:7297 `_names_another_food(understood, subject)`
+/// True when the line names a thing of its own that is not the food we are on.
 pub fn _names_another_food(understood: &Understood, subject: &str) -> bool {
-    crate::unported!("bot.modules.answers:_names_another_food")
+    if subject.is_empty() {
+        return false;
+    }
+    let words: HashSet<&str> = text::split_ref(subject).into_iter().collect();
+    for ent in &understood.entities {
+        if ent.kind == "person" {
+            continue;
+        }
+        let said = text::strip(&ent.text.to_lowercase()).to_string();
+        if said.is_empty() {
+            continue;
+        }
+        if PRONOUN_OBJECTS.contains(&said) || COOK_VERB.is_match(&said) {
+            continue;
+        }
+        if text::split_ref(&said).iter().any(|w| words.contains(*w)) {
+            return false;
+        }
+        return true;
+    }
+    false
 }
 
 /// Python: bot/modules/answers.py:7334 `_the_food_named(subject)`
+/// The subject without the keeping words in it: "cooked rice keep" -> "cooked rice".
 pub fn _the_food_named(subject: &str) -> String {
-    crate::unported!("bot.modules.answers:_the_food_named")
+    text::split_ref(subject).into_iter().filter(|w| KEEPING_WORD.match_(w).is_none()).collect::<Vec<_>>().join(" ")
 }
 
 /// Python: bot/modules/answers.py:7340 `_a_cooking_ask_after_a_keeping_answer(understood, memory)`
-pub fn _a_cooking_ask_after_a_keeping_answer(understood: &Understood, memory: &Memory) {
-    crate::unported!("bot.modules.answers:_a_cooking_ask_after_a_keeping_answer")
+/// The method entry's answer to a "how long do i cook it for" after a keeping answer.
+pub fn _a_cooking_ask_after_a_keeping_answer(understood: &Understood, memory: &mut Memory) -> Option<String> {
+    let line = if !understood.clean.is_empty() { understood.clean.clone() } else { understood.text.clone() };
+    if line.is_empty() || !COOK_VERB.is_match(&line) || KEEPS_ASK.is_match(&line) {
+        return None;
+    }
+    let in_hand = memory::topics::answer_in_hand(memory);
+    let said = in_hand.get("bot").map(py_str_or_empty).unwrap_or_default();
+    if said.is_empty() || !KEEPS_ANSWER.is_match(&said) {
+        return None;
+    }
+    let subject = memory::topics::subject(memory).to_lowercase();
+    if _names_another_food(understood, &subject) {
+        return None;
+    }
+    if REHEAT_ASK.is_match(&line) {
+        return Some(REHEAT_REPLY.clone());
+    }
+    let food = _the_food_named(&memory::topics::subject(memory));
+    let food = if food.is_empty() { None } else { Some(food) };
+    let mut fuller = _with_subject(&line, memory, food.as_deref());
+    if text::strip(&fuller) == text::strip(&line) {
+        fuller = _about_subject(&line, memory, food.as_deref());
+    }
+    let readings: Vec<String> = if text::strip(&fuller) != text::strip(&line) { vec![fuller, line.clone()] } else { vec![line.clone()] };
+    let cooked = inline_re!(r"\b(cooked|leftover|left over|roast|roasted)\s+(?=[\w' ]+\bfor\b)");
+    let readings: Vec<String> = readings.iter().map(|r| cooked.subn("", r, 1)).collect();
+    let mut fallback: Option<String> = None;
+    for written in readings {
+        let reading = understanding::understand(&written, Some(&*memory));
+        let (item, answer) = _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(knowledge::lookup::find(&reading, None, reject, false)), memory, &reading);
+        let Some(answer) = answer.filter(|a| item.is_some() && !text::strip(a).is_empty()) else { continue };
+        if text::strip(&answer) == text::strip(&said) {
+            continue;
+        }
+        if !_minutes_in(&answer).is_empty() {
+            return Some(answer);
+        }
+        if fallback.is_none() {
+            fallback = Some(answer);
+        }
+    }
+    fallback
 }
 
 /// Python: bot/modules/answers.py:7405 `_the_plan_answers_this(memory)`
+/// True when the last answer was about cooking the dish, so its plan is the answer here.
 pub fn _the_plan_answers_this(memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_the_plan_answers_this")
+    let said = memory::last_bot(memory);
+    let low = said.to_lowercase();
+    if low.contains("air fryer") || low.contains("airfryer") {
+        return false;
+    }
+    DEGREES.is_match(&said) || memory::topics::has_time(&said)
 }
 
 /// Python: bot/modules/answers.py:7421 `_the_plan_said_again(understood, text, memory)`
-pub fn _the_plan_said_again(understood: &Understood, text: &str, memory: &Memory) {
-    crate::unported!("bot.modules.answers:_the_plan_said_again")
+/// The same property asked again about the plan we just gave, said as a repeat.
+pub fn _the_plan_said_again(understood: &Understood, text_: &str, memory: &Memory) -> Option<String> {
+    if !(memory::topics::asks_only(understood) && last_module(memory).as_deref() == Some("answers")) {
+        return None;
+    }
+    if !_the_plan_answers_this(memory) {
+        return None;
+    }
+    let plan = knowledge::dishes::follow_up(memory, understood).filter(|p| !text::strip(p).is_empty())?;
+    let said = if memory::topics::pairing(text_) { 0 } else { _answer_said(&plan, memory) };
+    if said >= 3 {
+        return Some(py_format(&AGAIN_HELP, &[("reply", &plan)]));
+    }
+    if said > 0 {
+        return Some(py_format(&AGAIN[(said - 1) as usize], &[("reply", &_repeat_short(&plan, text_, Some(memory)))]));
+    }
+    None
 }
 
 /// Python: bot/modules/answers.py:7454 `_filling_in_an_emergency(understood, memory)`
-pub fn _filling_in_an_emergency(understood: &Understood, memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_filling_in_an_emergency")
+/// True when the line only adds detail to a safety reply the bot has just given.
+pub fn _filling_in_an_emergency(understood: Option<&Understood>, memory: &Memory) -> bool {
+    // `mem.recent(memory, 1)`: the last turn
+    let Some(last) = memory.turns.last() else { return false };
+    if last.module.as_deref() != Some("safety") {
+        return false;
+    }
+    let Some(understood) = understood else { return true };
+    !(understood.kind == "question" || understood.signals.question_mark)
 }
 
 /// Python: bot/modules/answers.py:7469 `_usable(item, reading, memory)`
-pub fn _usable(item: &'static Entry, reading: &Understood, memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_usable")
+/// False when the answer needs something the line says the kitchen has not got.
+pub fn _usable(item: &Entry, reading: &Understood, memory: &Memory) -> bool {
+    if item.fault {
+        return true;
+    }
+    !knowledge::cooking::unusable(&_reply_of(item, reading, memory), reading)
 }
 
-/// Python: bot/modules/answers.py:7479 `_next_usable(item, reading, memory)` (never called on the trace corpus)
-pub fn _next_usable(item: &'static Entry, reading: &Understood, memory: &Memory) -> Value {
-    crate::unported!("bot.modules.answers:_next_usable")
+/// Python: bot/modules/answers.py:7479 `_next_usable(item, reading, memory)`
+/// The best entry that answers the same line without what the line has not got.
+pub fn _next_usable(item: &Entry, reading: &Understood, memory: &Memory) -> Option<&'static Entry> {
+    let kept: Vec<&'static Entry> =
+        knowledge::entry::entries().iter().filter(|one| !std::ptr::eq(*one, item) && _usable(one, reading, memory)).collect();
+    if kept.is_empty() {
+        return None;
+    }
+    knowledge::lookup::find(reading, Some(&kept), None, false)
 }
+
+// ==== ported code ends; the stubs below are the functions not yet ported ====
 
 /// Python: bot/modules/answers.py:7485 `_without_names(reading)`
 pub fn _without_names(reading: &Understood) -> Understood {
