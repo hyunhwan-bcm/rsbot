@@ -48,6 +48,7 @@ pub mod lineback;
 pub mod matters;
 pub mod meant;
 pub mod measure;
+pub(crate) mod mem8_py;
 pub mod more;
 pub mod named;
 pub mod narrow;
