@@ -250,7 +250,7 @@ fn rust_memory_outputs(t: &str, c: &str, k: &[String], m: &mut Memory, r: &str) 
     o.insert("_the_line_on_the_screen", json!(_the_line_on_the_screen(m)));
     o.insert("_last_was_joke", json!(_last_was_joke(m)));
     o.insert("_a_pick_is_in_hand", json!(_a_pick_is_in_hand(m)));
-    o.insert("_the_small_child", opt(_the_small_child(m)));
+    o.insert("_the_small_child", _the_small_child(m).map(|v| val(&v)).unwrap_or(J::Null));
     o.insert("_recent_plural", json!(_recent_plural(m)));
     o.insert("_the_same_cold_again", json!(_the_same_cold_again(c, m)));
     o.insert("_asked_about_the_effort", json!(_asked_about_the_effort(m)));

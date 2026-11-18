@@ -4510,8 +4510,9 @@ pub fn _fed_up_with(clean: &str) -> String {
     SECOND_PERSON_RE.sub_fn(&tail, |hit| table_str(&SECOND_PERSON, hit.str(1)))
 }
 
-/// Python: bot/modules/chat.py:11026 `_the_small_child(memory)`
-pub fn _the_small_child(memory: &Memory) -> Option<i64> {
+/// Python: bot/modules/chat.py:11026 `_the_small_child(memory)`: the age as it is kept (an int,
+/// or a bool, which Python's `isinstance(age, int)` lets through).
+pub fn _the_small_child(memory: &Memory) -> Option<Value> {
     let others: Vec<&Value> = match memory.get("others") {
         Some(v) => v.items().iter().filter(|e| e.is_dict()).collect(),
         None => Vec::new(),
@@ -4519,13 +4520,14 @@ pub fn _the_small_child(memory: &Memory) -> Option<i64> {
     if others.len() != 1 {
         return None;
     }
-    let age = match others[0].get("age") {
-        Some(Value::Int(i)) => *i,
-        Some(Value::Bool(b)) => *b as i64,
+    let kept = others[0].get("age")?;
+    let age = match kept {
+        Value::Int(i) => *i,
+        Value::Bool(b) => *b as i64,
         _ => return None,
     };
     if 0 < age && age < 9 {
-        Some(age)
+        Some(kept.clone())
     } else {
         None
     }
