@@ -555,7 +555,7 @@ pub fn _spans_plural(text: &str, names: &[&str]) -> Option<(usize, usize)> {
 }
 
 /// The row whose name covers the most of the line (longest name wins, a tie keeps table order).
-pub fn _longest_row<'t>(text: &str, table: &'t [(Vec<String>, usize)]) -> Option<usize> {
+pub fn _longest_row(text: &str, table: &[(Vec<String>, usize)]) -> Option<usize> {
     let mut best = 0usize;
     let mut found = None;
     for (names, index) in table {
