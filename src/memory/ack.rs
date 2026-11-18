@@ -2385,9 +2385,12 @@ pub fn _an_animal_they_had_once(clean: &str) -> bool {
 /// What having one of these takes, from the knowledge base, or the want's next question. (The
 /// entry's reply gets the real memory, as in Python, so this takes it mutably.)
 pub fn _what_a_wanted_animal_needs(animal: &str, clean: &str, memory: &mut Memory) -> String {
-    let reading = understanding(&format!("what do i need for a {animal}"));
-    let found = py_try(|| crate::knowledge::lookup::find(&reading, None, None, false)).flatten();
-    if let Some(entry) = found {
+    let looked = py_try(|| {
+        let reading = understanding(&format!("what do i need for a {animal}"));
+        let found = crate::knowledge::lookup::find(&reading, None, None, false);
+        (reading, found)
+    });
+    if let Some((reading, Some(entry))) = looked {
         let said = match &entry.reply {
             crate::knowledge::entry::Reply::Text(s) => Some(s.clone()),
             crate::knowledge::entry::Reply::Fn(f) => crate::knowledge::registry::try_reply(f, memory, &reading).ok().flatten(),
