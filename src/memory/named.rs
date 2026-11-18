@@ -479,7 +479,7 @@ pub fn _not_got(text_: &str, memory: &Memory) -> String {
 pub fn _said_the_food(memory: &Memory, food: &str) -> bool {
     let said = _last_reply(memory).to_lowercase();
     let pattern = format!(r"\b{}", crate::py::re::escape(&food.to_lowercase()));
-    !said.is_empty() && crate::understanding::rx(&pattern).is_match(&said)
+    !said.is_empty() && Re::new(&pattern, 0).is_match(&said)
 }
 
 /// `_last_reply(memory)`: the bot's last reply (`holds.last_reply`).
@@ -978,7 +978,7 @@ pub fn the_doing_the_plan_named(word: &str, memory: &Memory) -> bool {
         return false;
     }
     let pattern = A_PLAN_TO_THE_DOING.pattern().replacen("%s", &crate::py::re::escape(&word.to_lowercase()), 1);
-    crate::understanding::rx_flags(&pattern, crate::py::re::I).is_match(&said)
+    Re::new(&pattern, crate::py::re::I).is_match(&said)
 }
 
 /// `_the_plan_said(memory, word)`: the lines of the last four turns that say the word, and the
@@ -1465,7 +1465,8 @@ pub fn _thing_in_hand(memory: &Memory) -> Vec<String> {
 pub fn _only_a_particle(word: &str, text_: &str) -> bool {
     let said = format!(" {} ", low_squash(text_));
     let pattern = format!(r"\b{}\b", crate::py::re::escape(word));
-    let found = crate::understanding::rx(&pattern).finditer(&said);
+    let rx = Re::new(&pattern, 0);
+    let found = rx.finditer(&said);
     if found.is_empty() {
         return false;
     }
@@ -1828,10 +1829,10 @@ pub fn _the_trip_place(memory: &Memory) -> String {
     let said = place.to_lowercase();
     let turns = &memory.turns;
     let mut named_at: i64 = -1;
-    let pattern = format!(r"(?<![a-z]){}(?![a-z])", crate::py::re::escape(&said));
+    let said_there = Re::new(&format!(r"(?<![a-z]){}(?![a-z])", crate::py::re::escape(&said)), 0);
     for index in (0..turns.len()).rev() {
         let line = low_squash(&turns[index].user);
-        if !crate::understanding::rx(&pattern).is_match(&line) {
+        if !said_there.is_match(&line) {
             continue;
         }
         if !_GOING_AWAY.is_match(&line) {

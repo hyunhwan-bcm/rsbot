@@ -5370,7 +5370,8 @@ pub fn the_pronoun_written_as_what_it_stands_for(understood: &Understood, memory
         if thing.is_empty() || ["it", "that", "them", "they", "you", "me", "there"].contains(&thing.to_lowercase().as_str()) {
             continue;
         }
-        let named = crate::understanding::rx(&format!(r"\b{}\b", crate::py::re::escape(&thing.to_lowercase())));
+        // a pattern made of the user's own words is compiled for this call, not kept
+        let named = Re::new(&format!(r"\b{}\b", crate::py::re::escape(&thing.to_lowercase())), 0);
         if named.is_match(&low) {
             continue;
         }
