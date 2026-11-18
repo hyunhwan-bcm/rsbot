@@ -135,7 +135,7 @@ fn choose_seeded(options: &[String], memory: &Memory, clean: &str, seed_text: &s
 }
 
 /// Python's `str.format` with named fields: `{name}` replaced, `{{`/`}}` unescaped.
-fn format_named(template: &str, fields: &[(&str, &str)]) -> String {
+pub(crate) fn format_named(template: &str, fields: &[(&str, &str)]) -> String {
     let mut out = String::with_capacity(template.len() + 16);
     let mut rest = template;
     while let Some(i) = rest.find(['{', '}']) {
@@ -5947,8 +5947,8 @@ pub fn _plain(text_: &str) -> String {
 word_sets!(_ECHO_FILLER);
 
 /// Python: bot/compose/fallback.py:11931 `_the_words(text)`
-/// The words of a line that say something about its subject. (A set in Python; here in the order
-/// the line says them, each once.)
+/// The words of a line that say something about its subject. (A set in Python; here each once,
+/// in sorted order, which is how a set is exported.)
 pub fn _the_words(text_: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for w in az_words(&lower(text_)) {
@@ -5956,6 +5956,7 @@ pub fn _the_words(text_: &str) -> Vec<String> {
             out.push(w);
         }
     }
+    out.sort();
     out
 }
 
@@ -6095,7 +6096,7 @@ regexes!(THE_OUTCOME_ASK, WHO_IS_ILL);
 pools!(SAFETY_WORDS, OUTCOME_LINES);
 
 /// The memory as the plain Python dict `compose.pick` takes in its contract.
-fn memory_value(memory: &Memory) -> Value {
+pub(crate) fn memory_value(memory: &Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
 }
 

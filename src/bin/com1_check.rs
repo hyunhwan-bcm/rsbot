@@ -11,6 +11,15 @@
 //   bot.compose.fallback:_their_own_phrase
 //   bot.compose.fallback:_the_opening_before
 //   bot.compose.fallback:the_plan_and_its_line
+//   bot.compose.fallback:_names
+//   bot.compose.fallback:in_a_pool
+//   bot.compose.fallback:the_view_of
+//   bot.compose.fallback:_about_somebody_else
+//   bot.compose.fallback:_only_manners
+//   bot.compose.fallback:reading_of
+//   bot.compose.fallback:_a_step_word_in
+//   bot.compose.fallback:_a_report_on_the_advice
+//   bot.compose.fallback:_last_turn
 #![allow(unused_mut, unused_variables)]
 
 extern crate rsbot as crate_;
@@ -305,6 +314,219 @@ fn call(name: &str, a: &[Json]) -> Option<Json> {
         "bot.compose.fallback:_the_scope_of_a_standing_ask" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_scope_of_a_standing_ask(&p0))) }
         "bot.compose.fallback:_the_scores_line" => { if a.len() != 0 { return None; }  Some(J::j(&crate_::compose::fallback::_the_scores_line())) }
         "bot.compose.fallback:_the_days_news" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = truthy(&a[1]); Some(J::j(&crate_::compose::fallback::_the_days_news(&p0, p1))) }
+        "bot.compose.fallback:_what_no_eyes_already_says" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_what_no_eyes_already_says(&p0))) }
+        "bot.compose.fallback:what_no_eyes_already_says" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::what_no_eyes_already_says(&p0))) }
+        "bot.compose.fallback:_a_no_from_the_bot" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_a_no_from_the_bot(&p0))) }
+        "bot.compose.fallback:_the_live_thing_named" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_live_thing_named(&p0))) }
+        "bot.compose.fallback:_the_bot_says_it_cannot" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_bot_says_it_cannot(&p0))) }
+        "bot.compose.fallback:_taste_lines" => { if a.len() != 0 { return None; }  Some(J::j(&crate_::compose::fallback::_taste_lines())) }
+        "bot.compose.fallback:reads_as_a_taste" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::reads_as_a_taste(&p0, &p1))) }
+        "bot.compose.fallback:_a_trip_is_on_the_table" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_a_trip_is_on_the_table(&p0))) }
+        "bot.compose.fallback:_the_sky_and_nothing_else" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_sky_and_nothing_else(&p0))) }
+        "bot.compose.fallback:_a_road_named_with_traffic" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_a_road_named_with_traffic(&p0))) }
+        "bot.compose.fallback:_their_own_count" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_their_own_count(&p0))) }
+        "bot.compose.fallback:_their_own_thing" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_their_own_thing(&p0))) }
+        "bot.compose.fallback:_their_own_count_fell" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_their_own_count_fell(&p0))) }
+        "bot.compose.fallback:_live" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = truthy(&a[1]); let p2 = mem(&a[2]); Some(J::j(&crate_::compose::fallback::_live(&p0, p1, &p2))) }
+        "bot.compose.fallback:_the_ask_for_words_behind_a_doubt" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_ask_for_words_behind_a_doubt(&p0))) }
+        "bot.compose.fallback:_asks_for_words" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::fallback::_asks_for_words(&p0, &p1))) }
+        "bot.compose.fallback:_reads_as_greeting" => { if a.len() != 2 { return None; } let p0 = strs(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_reads_as_greeting(&p0, &p1))) }
+        "bot.compose.fallback:_reads_as_taste" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::fallback::_reads_as_taste(&p0, &p1))) }
+        "bot.compose.fallback:_blackout_words" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::fallback::_blackout_words(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_action" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_action(&p0, &p1))) }
+        "bot.compose.fallback:_is_a_form" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_is_a_form(&p0, &p1))) }
+        "bot.compose.fallback:_name_given_before" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_name_given_before(&p0, &p1))) }
+        "bot.compose.fallback:_asks_a_name_back" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::fallback::_asks_a_name_back(&p0, &p1))) }
+        "bot.compose.fallback:_asks_for_the_move" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_asks_for_the_move(&p0))) }
+        "bot.compose.fallback:_says_it_already" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); let p2 = mem(&a[2]); Some(J::j(&crate_::compose::fallback::_says_it_already(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_names_a_new_thing" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_names_a_new_thing(&p0, &p1))) }
+        "bot.compose.fallback:content_words" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::content_words(&p0))) }
+        "bot.compose.fallback:_flat_words" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_flat_words(&p0))) }
+        "bot.compose.fallback:memory_bot" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::memory_bot(&p0))) }
+        "bot.compose.fallback:says_it_already" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::says_it_already(&p0, &p1))) }
+        "bot.compose.fallback:is_the_answer_shorter" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::is_the_answer_shorter(&p0, &p1))) }
+        "bot.compose.fallback:is_said_it_already" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::is_said_it_already(&p0))) }
+        "bot.compose.fallback:_points_at_nothing" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::fallback::_points_at_nothing(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_nothing_to_point_at" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_nothing_to_point_at(&p0))) }
+        "bot.compose.fallback:_a_previous_line_named_something" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = Value::from_plain(&a[1]); Some(J::j(&crate_::compose::fallback::_a_previous_line_named_something(&p0, &p1))) }
+        "bot.compose.fallback:_offers_to_fix_themselves" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_offers_to_fix_themselves(&p0))) }
+        "bot.compose.fallback:is_a_forecast" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::is_a_forecast(&p0))) }
+        "bot.compose.fallback:_the_forecast_subject" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_the_forecast_subject(&p0, &p1))) }
+        "bot.compose.fallback:_without_the_things_named_after_a_body" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_without_the_things_named_after_a_body(&p0))) }
+        "bot.compose.fallback:_whose_body" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::fallback::_whose_body(&p0, &p1))) }
+        "bot.compose.fallback:_without_the_forecast_verb" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_without_the_forecast_verb(&p0))) }
+        "bot.compose.fallback:_thread_said" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = Value::from_plain(&a[1]); Some(J::j(&crate_::compose::fallback::_thread_said(&p0, &p1))) }
+        "bot.compose.fallback:_a_body_in_the_thread" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = a[1].as_i64().unwrap_or(0); Some(J::j(&crate_::compose::fallback::_a_body_in_the_thread(&p0, p1))) }
+        "bot.compose.fallback:_a_hard_patch_in_the_thread" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); let p2 = a[2].as_i64().unwrap_or(0); Some(J::j(&crate_::compose::fallback::_a_hard_patch_in_the_thread(&p0, &p1, p2))) }
+        "bot.compose.fallback:_forecast_pool" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = mem(&a[2]); Some(J::j(&crate_::compose::fallback::_forecast_pool(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_unknown" => { if a.len() != 3 { return None; } let p0 = und(&a[0])?; let p1 = mem(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::fallback::_unknown(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_is_a_tips_ask" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_is_a_tips_ask(&p0))) }
+        "bot.compose.fallback:_hedged_recently" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = a[1].as_i64().unwrap_or(0); Some(J::j(&crate_::compose::fallback::_hedged_recently(&p0, p1))) }
+        "bot.compose.fallback:_in_a_pool" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = Value::from_plain(&a[1]); Some(J::j(&crate_::compose::fallback::_in_a_pool(&p0, &p1))) }
+        "bot.compose.fallback:_the_thing_alone" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_thing_alone(&p0))) }
+        "bot.compose.fallback:_what_to_do_about" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_what_to_do_about(&p0, &p1))) }
+        "bot.compose.fallback:_a_question_about_the_bot" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_a_question_about_the_bot(&p0, &p1))) }
+        "bot.compose.fallback:_only_the_floor" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_only_the_floor(&p0))) }
+        "bot.compose.fallback:_plain" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_plain(&p0))) }
+        "bot.compose.fallback:_the_words" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_words(&p0))) }
+        "bot.compose.fallback:_an_echo_of" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_an_echo_of(&p0, &p1))) }
+        "bot.compose.fallback:_only_a_reaction" => { if a.len() != 2 { return None; } let p0 = Value::from_plain(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_only_a_reaction(&p0, &p1))) }
+        "bot.compose.fallback:_the_answer_in_reply" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_the_answer_in_reply(&p0, &p1))) }
+        "bot.compose.fallback:the_answer_in_reply" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::the_answer_in_reply(&p0, &p1))) }
+        "bot.compose.fallback:_reads_as_a_claim" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_reads_as_a_claim(&p0))) }
+        "bot.compose.fallback:_nothing_to_stand_behind" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_nothing_to_stand_behind(&p0))) }
+        "bot.compose.fallback:_is_a_view_ask" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_is_a_view_ask(&p0))) }
+        "bot.compose.fallback:_the_view_asked_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_the_view_asked_for(&p0, &p1))) }
+        "bot.compose.fallback:_after_a_colon" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_after_a_colon(&p0))) }
+        "bot.compose.fallback:_is_an_ask_which_bit" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_is_an_ask_which_bit(&p0))) }
+        "bot.compose.fallback:_is_a_hedge" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_is_a_hedge(&p0))) }
+        "bot.compose.fallback:an_outcome_asked_about_someone" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::an_outcome_asked_about_someone(&p0, &p1))) }
+        "bot.compose.fallback:is_a_hedge" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::is_a_hedge(&p0))) }
+        "bot.compose.fallback:_the_view_of" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_view_of(&p0))) }
+        "bot.compose.fallback:_a_said_claim" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_a_said_claim(&p0))) }
+        "bot.compose.fallback:asks_for_more" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::asks_for_more(&p0, &p1))) }
+        "bot.compose.fallback:_named_recently" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); let p2 = a[2].as_i64().unwrap_or(0); Some(J::j(&crate_::compose::fallback::_named_recently(&p0, &p1, p2))) }
+        "bot.compose.fallback:_answered_recently" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_answered_recently(&p0))) }
+        "bot.compose.fallback:_only_takes_the_answer" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_only_takes_the_answer(&p0))) }
+        "bot.compose.fallback:_told_them_something" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_told_them_something(&p0))) }
+        "bot.compose.fallback:_the_answer_above" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_the_answer_above(&p0))) }
+        "bot.compose.fallback:_answered_already" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_answered_already(&p0))) }
+        "bot.compose.fallback:_tips_spoken" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_tips_spoken(&p0))) }
+        "bot.compose.fallback:_tips_subject" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_tips_subject(&p0))) }
+        "bot.compose.fallback:_tips" => { if a.len() != 3 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::fallback::_tips(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_the_figure_in" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_figure_in(&p0))) }
+        "bot.compose.fallback:_a_price_wants_a_verdict" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_a_price_wants_a_verdict(&p0, &p1))) }
+        "bot.compose.fallback:_a_grown_up_asks" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::fallback::_a_grown_up_asks(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_who_for" => { if a.len() != 4 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = strs(&a[2]); let p3 = opt_s(&a[3]); Some(J::j(&crate_::compose::fallback::_who_for(&p0, &p1, &p2, p3.as_deref()))) }
+        "bot.compose.fallback:who_settles" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::who_settles(&p0, &p1))) }
+        "bot.compose.fallback:who_settles_line" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::who_settles_line(&p0, &p1))) }
+        "bot.compose.fallback:_advisor" => { if a.len() != 4 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); let p3 = strs(&a[3]); Some(J::j(&crate_::compose::fallback::_advisor(&p0, &p1, &p2, &p3))) }
+        "bot.compose.fallback:_a_bad_stretch_above" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = a[1].as_i64().unwrap_or(0); Some(J::j(&crate_::compose::fallback::_a_bad_stretch_above(&p0, p1))) }
+        "bot.compose.fallback:_thread_has_a_health_visit" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = a[1].as_i64().unwrap_or(0); Some(J::j(&crate_::compose::fallback::_thread_has_a_health_visit(&p0, p1))) }
+        "bot.compose.fallback:_in_a_crisis_thread" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_in_a_crisis_thread(&p0))) }
+        "bot.compose.fallback:_who_for_the_thread" => { if a.len() != 3 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = und(&a[2])?; Some(J::j(&crate_::compose::fallback::_who_for_the_thread(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_trouble" => { if a.len() != 3 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = strs(&a[2]); Some(J::j(&crate_::compose::fallback::_trouble(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_reads_as_question" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::fallback::_reads_as_question(&p0, &p1))) }
+        "bot.compose.fallback:_reads_as_a_question_when_repaired" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_reads_as_a_question_when_repaired(&p0))) }
+        "bot.compose.fallback:_help_topic" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = und(&a[1])?; Some(J::j(&crate_::compose::fallback::_help_topic(&p0, &p1))) }
+        "bot.compose.fallback:reads_as_about_itself" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::reads_as_about_itself(&p0, &p1))) }
+        "bot.compose.fallback:reads_as_a_tight_week" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::reads_as_a_tight_week(&p0, &p1))) }
+        "bot.compose.fallback:a_continuation_of_the_tight_week" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::a_continuation_of_the_tight_week(&p0, &p1))) }
+        "bot.compose.fallback:reads_as_small_talk" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::reads_as_small_talk(&p0, &p1))) }
+        "bot.compose.fallback:_a_low_turn_above" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_a_low_turn_above(&p0))) }
+        "bot.compose.fallback:_an_answer_above" => { if a.len() != 1 { return None; } let p0 = turns(&a[0]); Some(J::j(&crate_::compose::fallback::_an_answer_above(&p0))) }
+        "bot.compose.fallback:_a_repair_already_spoken_of" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_a_repair_already_spoken_of(&p0))) }
+        "bot.compose.fallback:_self_line" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_self_line(&p0))) }
+        "bot.compose.fallback:_a_tally_of_its_own_day" => { if a.len() != 1 { return None; } let p0 = und(&a[0])?; Some(J::j(&crate_::compose::fallback::_a_tally_of_its_own_day(&p0))) }
+        "bot.compose.fallback:_spelled_out" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_spelled_out(&p0))) }
+        "bot.compose.fallback:_about" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = opt_und(&a[1])?; Some(J::j(&crate_::compose::fallback::_about(&p0, p1.as_ref()))) }
+        "bot.compose.fallback:_names_the_make" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_names_the_make(&p0))) }
+        "bot.compose.fallback:about_the_bot" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::about_the_bot(&p0))) }
+        "bot.compose.fallback:_a_doubt_about_the_bot" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_a_doubt_about_the_bot(&p0))) }
+        "bot.compose.fallback:_the_bot_itself" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_bot_itself(&p0))) }
+        "bot.compose.fallback:_about_itself" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_about_itself(&p0))) }
+        "bot.compose.fallback:_burn_line" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_burn_line(&p0, &p1))) }
+        "bot.compose.fallback:_the_hazard_is_gas" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_hazard_is_gas(&p0))) }
+        "bot.compose.fallback:_goes_back_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_goes_back_for(&p0, &p1))) }
+        "bot.compose.fallback:_names_a_new_part" => { if a.len() != 3 { return None; } let p0 = strs(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::fallback::_names_a_new_part(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_keeps_thread" => { if a.len() != 4 { return None; } let p0 = und(&a[0])?; let p1 = sv(&a[1]); let p2 = sv(&a[2]); let p3 = truthy(&a[3]); Some(J::j(&crate_::compose::fallback::_keeps_thread(&p0, &p1, &p2, p3))) }
+        "bot.compose.fallback:_reads_as_fear" => { if a.len() != 2 { return None; } let p0 = und(&a[0])?; let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_reads_as_fear(&p0, &p1))) }
+        "bot.compose.fallback:_only_a_worry" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_only_a_worry(&p0))) }
+        "bot.compose.fallback:_wrote_for_them" => { if a.len() != 2 { return None; } let p0 = Value::from_plain(&a[0]); let p1 = Value::from_plain(&a[1]); Some(J::j(&crate_::compose::fallback::_wrote_for_them(&p0, &p1))) }
+        "bot.compose.fallback:_red_flags_in" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_red_flags_in(&p0))) }
+        "bot.compose.fallback:_flag_events_in" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_flag_events_in(&p0))) }
+        "bot.compose.fallback:_the_threshold_words" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_threshold_words(&p0))) }
+        "bot.compose.fallback:_it_is_the_answer_word" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_it_is_the_answer_word(&p0, &p1))) }
+        "bot.compose.fallback:_the_flags_still_standing" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_flags_still_standing(&p0))) }
+        "bot.compose.fallback:_the_threshold_was_crossed" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = turns(&a[2]); Some(J::j(&crate_::compose::fallback::_the_threshold_was_crossed(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_flag_stem" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_flag_stem(&p0))) }
+        "bot.compose.fallback:_it_is_this_files_call" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_it_is_this_files_call(&p0))) }
+        "bot.compose.fallback:_a_newer_answer_asked_them_to_call" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = turns(&a[1]); Some(J::j(&crate_::compose::fallback::_a_newer_answer_asked_them_to_call(&p0, &p1))) }
+        "bot.compose.fallback:_the_route_the_answer_named" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_route_the_answer_named(&p0))) }
+        "bot.compose.fallback:the_route_the_answer_named" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::the_route_the_answer_named(&p0))) }
+        "bot.compose.fallback:_the_answer_asked_them_to_call" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_answer_asked_them_to_call(&p0))) }
+        "bot.compose.fallback:_raises_the_stakes" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_raises_the_stakes(&p0, &p1))) }
+        "bot.compose.fallback:_releasable" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_releasable(&p0))) }
+        "bot.compose.fallback:_named_draft" => { if a.len() != 4 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = strs(&a[2]); let p3 = sv(&a[3]); Some(J::j(&crate_::compose::fallback::_named_draft(&p0, &p1, &p2, &p3))) }
+        "bot.compose.fallback:_after_safety" => { if a.len() != 3 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = opt_und(&a[2])?; Some(J::j(&crate_::compose::fallback::_after_safety(&p0, &p1, p2.as_ref()))) }
+        "bot.compose.fallback:_is_a_hazard" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_is_a_hazard(&p0))) }
+        "bot.compose.fallback:_the_safety_cards" => { if a.len() != 1 { return None; } let p0 = turns(&a[0]); Some(J::j(&crate_::compose::fallback::_the_safety_cards(&p0))) }
+        "bot.compose.fallback:_somebody_is_coming" => { if a.len() != 2 { return None; } let p0 = turns(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_somebody_is_coming(&p0, &p1))) }
+        "bot.compose.fallback:_the_answer_was_an_abuse_card" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_answer_was_an_abuse_card(&p0))) }
+        "bot.compose.fallback:_thread_was_closed" => { if a.len() != 1 { return None; } let p0 = turns(&a[0]); Some(J::j(&crate_::compose::fallback::_thread_was_closed(&p0))) }
+        "bot.compose.fallback:_hold_pool" => { if a.len() != 4 { return None; } let p0 = turns(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); let p3 = truthy(&a[3]); Some(J::j(&crate_::compose::fallback::_hold_pool(&p0, &p1, &p2, p3))) }
+        "bot.compose.fallback:_a_call_is_known" => { if a.len() != 3 { return None; } let p0 = turns(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::fallback::_a_call_is_known(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_the_call_is_conditional" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_call_is_conditional(&p0))) }
+        "bot.compose.fallback:_already_rang" => { if a.len() != 1 { return None; } let p0 = turns(&a[0]); Some(J::j(&crate_::compose::fallback::_already_rang(&p0))) }
+        "bot.compose.fallback:_thanks_carries_emergency" => { if a.len() != 2 { return None; } let p0 = strs(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_thanks_carries_emergency(&p0, &p1))) }
+        "bot.compose.fallback:a_date_of_ours_forgotten" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::a_date_of_ours_forgotten(&p0))) }
+        "bot.compose.fallback:_impact_said" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_impact_said(&p0))) }
+        "bot.compose.fallback:_grief_thread" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_grief_thread(&p0))) }
+        "bot.compose.fallback:_grievance_thread" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_grievance_thread(&p0))) }
+        "bot.compose.fallback:_someone_else_minding" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); let p2 = truthy(&a[2]); Some(J::j(&crate_::compose::fallback::_someone_else_minding(&p0, &p1, p2))) }
+        "bot.compose.fallback:_short_ack" => { if a.len() != 1 { return None; } let p0 = strs(&a[0]); Some(J::j(&crate_::compose::fallback::_short_ack(&p0))) }
+        "bot.compose.fallback:_hard_week_in_the_thread" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_hard_week_in_the_thread(&p0))) }
+        "bot.compose.fallback:_a_verdict" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_a_verdict(&p0, &p1))) }
+        "bot.compose.fallback:_dreading" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_dreading(&p0))) }
+        "bot.compose.fallback:_wants_it_over" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_wants_it_over(&p0))) }
+        "bot.compose.fallback:_a_day_ahead" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_a_day_ahead(&p0))) }
+        "bot.compose.fallback:_the_wait_is_for_someone_to_turn_up" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_wait_is_for_someone_to_turn_up(&p0))) }
+        "bot.compose.fallback:_looking_forward" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_looking_forward(&p0))) }
+        "bot.compose.fallback:_a_good_time" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_a_good_time(&p0, &p1))) }
+        "bot.compose.fallback:_something_funny" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_something_funny(&p0, &p1))) }
+        "bot.compose.fallback:_the_gap_is_all_there_is" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_the_gap_is_all_there_is(&p0))) }
+        "bot.compose.fallback:reads_as_pause" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::reads_as_pause(&p0))) }
+        "bot.compose.fallback:_came_back" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_came_back(&p0))) }
+        "bot.compose.fallback:_a_chat_behind_it" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_a_chat_behind_it(&p0))) }
+        "bot.compose.fallback:nothing_said_yet" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::nothing_said_yet(&p0))) }
+        "bot.compose.fallback:nothing_yet_line" => { if a.len() != 0 { return None; }  Some(J::j(&crate_::compose::fallback::nothing_yet_line())) }
+        "bot.compose.fallback:brings_nothing_of_its_own" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::brings_nothing_of_its_own(&p0))) }
+        "bot.compose.fallback:assumes_an_earlier_turn" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::assumes_an_earlier_turn(&p0))) }
+        "bot.compose.fallback:reads_as_a_return" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::reads_as_a_return(&p0))) }
+        "bot.compose.fallback:_sorry_for_asking" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_sorry_for_asking(&p0))) }
+        "bot.compose.fallback:_am_i_a_nuisance" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_am_i_a_nuisance(&p0))) }
+        "bot.compose.fallback:_thanks_then_said" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_thanks_then_said(&p0))) }
+        "bot.compose.fallback:_thanks_news_went_badly" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_thanks_news_went_badly(&p0))) }
+        "bot.compose.fallback:_acknowledges_alone" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_acknowledges_alone(&p0))) }
+        "bot.compose.fallback:_thanks_with_more" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_thanks_with_more(&p0))) }
+        "bot.compose.fallback:reading" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::reading(&p0, &p1))) }
+        "bot.compose.fallback:_a_refusal_to_answer" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); let p2 = strs(&a[2]); Some(J::j(&crate_::compose::fallback::_a_refusal_to_answer(&p0, &p1, &p2))) }
+        "bot.compose.fallback:reads_as_a_refusal" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::reads_as_a_refusal(&p0, &p1))) }
+        "bot.compose.fallback:_the_answer_above_already_says_what_to_do" => { if a.len() != 2 { return None; } let p0 = turns(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::_the_answer_above_already_says_what_to_do(&p0, &p1))) }
+        "bot.compose.fallback:_a_thread_about_how_somebody_treats_them" => { if a.len() != 1 { return None; } let p0 = turns(&a[0]); Some(J::j(&crate_::compose::fallback::_a_thread_about_how_somebody_treats_them(&p0))) }
+        "bot.compose.fallback:_the_next_move_after_the_advice" => { if a.len() != 3 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = strs(&a[2]); Some(J::j(&crate_::compose::fallback::_the_next_move_after_the_advice(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_a_care_thread" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_a_care_thread(&p0))) }
+        "bot.compose.fallback:in_a_safety_thread" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::in_a_safety_thread(&p0))) }
+        "bot.compose.fallback:_thread_answer" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_thread_answer(&p0))) }
+        "bot.compose.fallback:asks_about_the_last_answer" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = strs(&a[2]); Some(J::j(&crate_::compose::fallback::asks_about_the_last_answer(&p0, &p1, &p2))) }
+        "bot.compose.fallback:asks_about_a_care_answer" => { if a.len() != 4 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = mem(&a[2]); let p3 = strs(&a[3]); Some(J::j(&crate_::compose::fallback::asks_about_a_care_answer(&p0, &p1, &p2, &p3))) }
+        "bot.compose.fallback:how_much_of_the_answer_kept" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::how_much_of_the_answer_kept(&p0, &p1))) }
+        "bot.compose.fallback:_words_kept" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_words_kept(&p0, &p1))) }
+        "bot.compose.fallback:careful" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::careful(&p0, &p1))) }
+        "bot.compose.fallback:_advice_thread_is_about_the_body" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_advice_thread_is_about_the_body(&p0))) }
+        "bot.compose.fallback:_the_outcome_of_the_advice" => { if a.len() != 3 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = strs(&a[2]); Some(J::j(&crate_::compose::fallback::_the_outcome_of_the_advice(&p0, &p1, &p2))) }
+        "bot.compose.fallback:the_advice" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::the_advice(&p0))) }
+        "bot.compose.fallback:reads_as_a_report" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::reads_as_a_report(&p0, &p1))) }
+        "bot.compose.fallback:the_report_reply" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::the_report_reply(&p0, &p1))) }
+        "bot.compose.fallback:a_report_that_says_something" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::fallback::a_report_that_says_something(&p0, &p1))) }
+        "bot.compose.fallback:_after_advice" => { if a.len() != 3 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = strs(&a[2]); Some(J::j(&crate_::compose::fallback::_after_advice(&p0, &p1, &p2))) }
+        "bot.compose.fallback:_in_a_loss_thread" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_in_a_loss_thread(&p0))) }
+        "bot.compose.fallback:_a_loss_in" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_a_loss_in(&p0))) }
+        "bot.compose.fallback:_dead_is_the_only_death_word" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_dead_is_the_only_death_word(&p0))) }
+        "bot.compose.fallback:_we_condoled" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_we_condoled(&p0))) }
+        "bot.compose.fallback:_a_thing_stopped" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_a_thing_stopped(&p0))) }
+        "bot.compose.fallback:_the_last_line_was_bad_news" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_the_last_line_was_bad_news(&p0))) }
+        "bot.compose.fallback:_the_last_line_was_a_fault" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_the_last_line_was_a_fault(&p0))) }
+        "bot.compose.fallback:_a_loss_recently" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_a_loss_recently(&p0))) }
+        "bot.compose.fallback:_the_last_line_was_heavy" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_the_last_line_was_heavy(&p0))) }
+        "bot.compose.fallback:_in_sudden_loss_thread" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::fallback::_in_sudden_loss_thread(&p0))) }
+        "bot.compose.fallback:_reads_as_illness" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_reads_as_illness(&p0))) }
+        "bot.compose.fallback:_in_an_aim" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_in_an_aim(&p0, &p1))) }
+        "bot.compose.fallback:_a_mood_word" => { if a.len() != 2 { return None; } let p0 = strs(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::fallback::_a_mood_word(&p0, &p1))) }
+        "bot.compose.fallback:_is_rumination" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::_is_rumination(&p0))) }
+        "bot.compose.fallback:_opens_a_question" => { if a.len() != 1 { return None; } let p0 = strs(&a[0]); Some(J::j(&crate_::compose::fallback::_opens_a_question(&p0))) }
+        "bot.compose.fallback:is_a_report_reply" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::fallback::is_a_report_reply(&p0))) }
+        "bot.compose.fallback:_flat_pools" => { if a.len() != 0 { return None; }  Some(J::j(&crate_::compose::fallback::_flat_pools())) }
         _ => None,
     }
 }
@@ -318,6 +540,8 @@ fn same(py: &Json, rs: &Json) -> bool {
     match (py, rs) {
         (_, Json::Bool(b)) if !py.is_boolean() => truthy(py) == *b,
         (Json::Null, Json::String(s)) => s.is_empty(),
+        // Python's `()` read as "nothing" where the port's contract is a str
+        (Json::Array(x), Json::String(s)) => x.is_empty() && s.is_empty(),
         _ => false,
     }
 }
