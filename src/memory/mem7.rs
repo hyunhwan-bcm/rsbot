@@ -357,3 +357,27 @@ pub fn py_try<T>(f: impl FnOnce() -> T) -> Option<T> {
 pub fn word_count(text: &str) -> usize {
     pt::split_ref(text).len()
 }
+
+/// Python's `str.isupper()`: at least one cased character, and none lower-case.
+pub fn is_upper(text: &str) -> bool {
+    let mut cased = false;
+    for c in text.chars() {
+        if c.is_lowercase() {
+            return false;
+        }
+        if c.is_uppercase() {
+            cased = true;
+        }
+    }
+    cased
+}
+
+/// `sum(map(ord, text))`.
+pub fn ord_sum(text: &str) -> u64 {
+    text.chars().map(|c| c as u64).sum()
+}
+
+/// An int global of a module, e.g. `bot.memory.carried_on.SHORT`.
+pub fn int_global(name: &str) -> i64 {
+    crate::data::get(name).as_int().unwrap_or_else(|| panic!("{name} is not an int"))
+}
