@@ -42,7 +42,8 @@ impl Args {
         if let Some(k) = self.alias {
             if let Some(topic) = m.get("topic").cloned() {
                 if let Some(list) = m.get_mut("topics").and_then(Value::items_mut) {
-                    if k < list.len() {
+                    // (an older recording could mistake a reading's "topic" for the record)
+                    if k < list.len() && list[k] == topic {
                         list[k] = topic;
                     }
                 }

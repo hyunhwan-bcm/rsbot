@@ -88,7 +88,7 @@ def main():
                 topic, topics = v.get("topic"), v.get("topics")
                 if isinstance(topics, list):
                     for i, t in enumerate(topics):
-                        if t is topic and topic is not None:
+                        if t is topic and isinstance(topic, dict):
                             return i
                 return None
         return None
