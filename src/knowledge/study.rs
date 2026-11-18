@@ -1189,7 +1189,7 @@ pub fn lambda_3055(understood: &Understood) -> bool {
 
 /// The pass-mark row's guard: no unit on the figure, and the degrees are not a temperature.
 pub fn lambda_3244(understood: &Understood) -> bool {
-    !dup::a_figure_with_a_unit(understood, "") && _the_degrees_are_heat(understood)
+    !crate::knowledge::quantity::a_figure_with_a_unit(Some(understood), "") && _the_degrees_are_heat(understood)
 }
 
 /// The strict-teacher row's guard: something in the line is about school.

@@ -2623,23 +2623,11 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The guard factory.
 
-    /// Python: bot/knowledge/dishes.py:848 `not_ruled_out()` (never called on the trace corpus)
-    pub fn not_ruled_out(keys: &[Value]) -> Value {
-        crate::unported!("bot.knowledge.dishes:not_ruled_out")
-    }
-
+/// `not_ruled_out(*keys)`: a row guard - the entry answers unless the line names one of these
+/// dishes to rule it out (`not_ruled_out__guard`).
+pub fn not_ruled_out(keys: &[String]) -> FnRef {
+    crate::knowledge::built::closure("bot.knowledge.dishes:not_ruled_out.<locals>.guard:856", vec![("keys", crate::knowledge::built::words(keys))])
 }
-

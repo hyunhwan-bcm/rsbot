@@ -1,24 +1,51 @@
-//! Port of `bot/knowledge/warm_food.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/knowledge/warm_food.py`: warming bread and pastry - the times, the toaster, and
+//! the defrost first when the pastry is frozen.
 
 use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
+use crate::knowledge::registry::{GuardFn, ReplyFn};
+use crate::py::text;
+use crate::state::Memory;
 use crate::understood::Understood;
-use std::sync::LazyLock;
+use std::collections::HashSet;
 
-/// Python: bot/knowledge/warm_food.py:75 `_bread_reply(memory, reading)` (never called on the trace corpus)
-pub fn _bread_reply(memory: &Memory, reading: &Understood) -> Value {
-    crate::unported!("bot.knowledge.warm_food:_bread_reply")
+fn g(name: &str) -> &'static Value {
+    data::get(&format!("bot.knowledge.warm_food.{name}"))
 }
 
-/// Python: bot/knowledge/warm_food.py:145 `_pastry_reply(memory, reading)` (never called on the trace corpus)
-pub fn _pastry_reply(memory: &Memory, reading: &Understood) -> Value {
-    crate::unported!("bot.knowledge.warm_food:_pastry_reply")
+fn words_of(reading: &Understood) -> HashSet<String> {
+    reading.words.iter().map(|w| text::lower(w)).collect()
 }
 
+fn meets(words: &HashSet<String>, name: &str) -> bool {
+    g(name).items().iter().any(|w| words.contains(w.str()))
+}
+
+/// The bread times, or the toaster ones when the line says toast.
+pub fn _bread_reply(_memory: &Memory, reading: &Understood) -> String {
+    let words = words_of(reading);
+    if meets(&words, "_TOASTING") && !meets(&words, "_OVEN_WORDS") {
+        return g("_TOAST_REPLY").str().to_string();
+    }
+    g("_BREAD_REPLY").str().to_string()
+}
+
+/// The pastry times, leading with the defrost when that is what the line asked for.
+pub fn _pastry_reply(_memory: &Memory, reading: &Understood) -> String {
+    let words = words_of(reading);
+    let said = text::lower(&reading.clean);
+    let cold = meets(&words, "_FROM_FROZEN") || said.contains("frozen");
+    if meets(&words, "_THAWING") && !meets(&words, "_HEATING") {
+        return g("_DEFROST_REPLY").str().to_string();
+    }
+    if cold {
+        return format!("{}{}", g("_PASTRY_REPLY").str(), g("_FROZEN_CLAUSE").str());
+    }
+    g("_PASTRY_REPLY").str().to_string()
+}
+
+pub const GUARDS: &[(&str, GuardFn)] = &[];
+
+pub const REPLIES: &[(&str, ReplyFn)] = &[
+    ("bot.knowledge.warm_food:_bread_reply:75", |_, m, u| Some(_bread_reply(m, u))),
+    ("bot.knowledge.warm_food:_pastry_reply:145", |_, m, u| Some(_pastry_reply(m, u))),
+];

@@ -149,26 +149,6 @@ pub fn example_subject(understood: &Understood) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------
-// bot/knowledge/quantity.py: a figure with a unit on it is an amount, not a code.
-
-static UNITS: LazyLock<std::collections::HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.quantity.UNITS"));
-static AFTER_A_FIGURE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.quantity.AFTER_A_FIGURE"));
-
-/// DUP(bot.knowledge.quantity::a_figure_with_a_unit): the line counts something in a unit
-/// ("2.2 kilos"), so a figure in it is an amount, not a code or a degree class. `text` is the
-/// optional second argument ("" for none).
-pub fn a_figure_with_a_unit(understood: &Understood, text: &str) -> bool {
-    for number in &understood.numbers {
-        let unit = text::strip(number.unit.as_deref().unwrap_or("")).to_lowercase();
-        if UNITS.contains(&unit) {
-            return true;
-        }
-    }
-    let body = if text.is_empty() { crate::knowledge::d1_shared::clean_or_text(understood) } else { text };
-    AFTER_A_FIGURE.is_match(body)
-}
-
-// ---------------------------------------------------------------------------------------------
 // Python's `repr` of a string and of a list of strings (what `str(a_list)` prints).
 
 /// `repr(s)` for a str: single quotes unless the text has a single quote and no double one.

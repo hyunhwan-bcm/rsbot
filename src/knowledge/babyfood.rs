@@ -682,28 +682,84 @@ pub const GUARDS: &[(&str, GuardFn)] = &[
 pub const REPLIES: &[(&str, ReplyFn)] = &[("bot.knowledge.babyfood:_only_for_a_baby.<locals>.gated:2320", gated)];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories (`knowledge::built`): a verdict row, and the gate every row goes through.
 
-    /// Python: bot/knowledge/babyfood.py:1408 `_verdict(names, reply, extra=(), bias=0, own_ask=None, pronoun=False)` (never called on the trace corpus)
-    pub fn _verdict(names: &[String], reply: &str, extra: &Value, bias: &Value, own_ask: &Value, pronoun: &Value) -> Value {
-        crate::unported!("bot.knowledge.babyfood:_verdict")
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, KeyPart, Reply};
+
+static NOT_AN_ID: LazyLock<Re> = LazyLock::new(|| Re::new(r"[^a-z0-9]+", 0));
+
+/// `_verdict(names, reply, extra=(), bias=0, own_ask=None, pronoun=False)`: one verdict row -
+/// the food by name, the baby, and the word that asks for a verdict (`_verdict_answer`).
+pub fn _verdict(names: &[String], reply: &str, extra: &[String], bias: i64, own_ask: Option<FnRef>, pronoun: bool) -> Entry {
+    let answer = built::closure(
+        "bot.knowledge.babyfood:_verdict.<locals>.answer:1426",
+        vec![
+            ("names", built::words(names)),
+            ("own_ask", own_ask.map(|f| Value::Fn(std::sync::Arc::new(f))).unwrap_or(Value::None)),
+            ("reply", Value::from(reply)),
+        ],
+    );
+    let mut child = data::get("bot.knowledge.babyfood.BABY").strs();
+    if pronoun {
+        child.extend(_A_CHILD_PRONOUN.iter().cloned());
     }
-
-    /// Python: bot/knowledge/babyfood.py:2311 `_only_for_a_baby(row)` (never called on the trace corpus)
-    pub fn _only_for_a_baby(row: &'static Entry) -> Value {
-        crate::unported!("bot.knowledge.babyfood:_only_for_a_baby")
-    }
-
+    let ask = data::get("bot.knowledge.babyfood._VERDICT_ASK").strs();
+    built::entry(
+        &format!("babyfood-{}", NOT_AN_ID.sub("-", &names[0])),
+        vec![built::part(names), built::part(&child), built::part(&ask)],
+        Reply::Fn(answer),
+        &[data::get("bot.knowledge.babyfood.STAND_DOWN").clone(), built::words(extra)],
+        bias,
+        ask.into_iter().map(KeyPart::Word).collect(),
+        None,
+    )
 }
 
+/// `_only_for_a_baby(row)`: one gate for the whole table - the row's reply runs only for a
+/// line that feeds a baby, and a row with no guard of its own takes `_a_line_that_feeds_a_baby`.
+pub fn _only_for_a_baby(mut row: Entry) -> Entry {
+    let reply = match &row.reply {
+        Reply::Text(s) => Value::from(s.as_str()),
+        Reply::Fn(f) => Value::Fn(std::sync::Arc::new(f.clone())),
+        Reply::Choices(v) => built::words(v),
+    };
+    row.reply = Reply::Fn(built::closure("bot.knowledge.babyfood:_only_for_a_baby.<locals>.gated:2320", vec![("reply", reply)]));
+    if row.guard.is_none() {
+        row.guard = Some(built::function("bot.knowledge.babyfood:_a_line_that_feeds_a_baby:2291"));
+    }
+    row
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    /// Every verdict row is `_only_for_a_baby(_verdict(...))` of its own values.
+    #[test]
+    fn verdict_rows_rebuild() {
+        data::load();
+        let stand_down = crate::knowledge::lookup::_avoid_words(&[data::get("bot.knowledge.babyfood.STAND_DOWN").clone()]).len();
+        let mut n = 0;
+        for row in built::exported("bot.knowledge.babyfood.ENTRIES") {
+            let Reply::Fn(gated) = &row.reply else { continue };
+            let Some(inner) = gated.cell("reply").and_then(Value::as_fn) else { continue };
+            if inner.name() != "bot.knowledge.babyfood:_verdict.<locals>.answer" {
+                continue;
+            }
+            let names = inner.cell("names").unwrap().strs();
+            let pronoun = match &row.key[1] {
+                KeyPart::Any(v) => v.len() > data::get("bot.knowledge.babyfood.BABY").strs().len(),
+                _ => false,
+            };
+            let extra = row.avoid[stand_down.min(row.avoid.len())..].to_vec();
+            let own_ask = inner.cell("own_ask").and_then(Value::as_fn).cloned();
+            let mut ours = _only_for_a_baby(_verdict(&names, inner.cell("reply").unwrap().str(), &extra, row.bias, own_ask, pronoun));
+            ours.guard = row.guard.clone(); // a row may carry its own guard, set after the factory
+            assert_eq!(built::same_entry(&ours, &row), None);
+            n += 1;
+        }
+        assert!(n > 20, "{n}");
+    }
+}

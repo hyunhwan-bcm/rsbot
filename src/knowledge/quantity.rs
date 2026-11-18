@@ -1,19 +1,30 @@
-//! Port of `bot/knowledge/quantity.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/knowledge/quantity.py`: a figure with a unit on it is an amount, not a code.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
+use crate::data;
 use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
+use crate::py::text;
 use crate::understood::Understood;
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
-/// Python: bot/knowledge/quantity.py:27 `a_figure_with_a_unit(understood=None, text='')`
-pub fn a_figure_with_a_unit(understood: &Value, text: &str) -> bool {
-    crate::unported!("bot.knowledge.quantity:a_figure_with_a_unit")
-}
+static UNITS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.quantity.UNITS"));
+static AFTER_A_FIGURE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.quantity.AFTER_A_FIGURE"));
 
+/// True when the line counts something in a unit, so a figure is an amount, not a code.
+/// `understood` None and `text` "" are Python's defaults.
+pub fn a_figure_with_a_unit(understood: Option<&Understood>, text_: &str) -> bool {
+    if let Some(u) = understood {
+        for number in &u.numbers {
+            let unit = text::lower(text::strip(number.unit.as_deref().unwrap_or("")));
+            if UNITS.contains(&unit) {
+                return true;
+            }
+        }
+    }
+    let body = if !text_.is_empty() {
+        text_.to_string()
+    } else {
+        understood.map(|u| if u.clean.is_empty() { u.text.clone() } else { u.clean.clone() }).unwrap_or_default()
+    };
+    AFTER_A_FIGURE.is_match(&body)
+}

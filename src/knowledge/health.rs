@@ -1476,23 +1476,15 @@ const A_RESULT_REPLY_6: &str = "\\b(?:abnormal|borderline|flagged|outside the ra
 const HERNIA_0: &str = "A hiatus hernia is the top of the stomach sliding up through the hole in the diaphragm that the food pipe comes through, so part of it sits above the muscle that keeps acid down. It is very common and it is not dangerous in itself: what it causes is heartburn and reflux, worse lying flat, bending or after a big meal. Smaller meals, nothing to eat for three hours before bed, the head of the bed up on a couple of books, and losing weight round the middle all help, and a GP can add a tablet that turns the acid down if those are not enough. An operation is only for the few people whose reflux still damages the food pipe on treatment. Trouble swallowing, food sticking, vomiting or weight loss without trying are the reasons to be seen quickly rather than treated at home.";
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The guard factory.
 
-    /// Python: bot/knowledge/health.py:2053 `_not_a_denial_of()`
-    pub fn _not_a_denial_of(subject: &[Value]) -> Value {
-        crate::unported!("bot.knowledge.health:_not_a_denial_of")
-    }
-
+/// `_not_a_denial_of(*subject)`: a guard that stands down when the line says the person has not
+/// got this condition (`_not_a_denial_of_guard` over the pattern it builds).
+pub fn _not_a_denial_of(subject: &[&str]) -> crate::data::FnRef {
+    let pattern = _not_a_denial_of_pattern(subject);
+    crate::knowledge::built::closure(
+        "bot.knowledge.health:_not_a_denial_of.<locals>.guard:2059",
+        vec![("pattern", crate::data::Value::Re(std::sync::Arc::new(pattern)))],
+    )
 }
-
