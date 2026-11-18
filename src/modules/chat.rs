@@ -134,8 +134,6 @@ pub fn attempt<T>(f: impl FnOnce() -> T) -> Option<T> {
     }
 }
 
-const M: &str = "bot.modules.chat.";
-
 macro_rules! res {
     ($($n:ident),* $(,)?) => { $(static $n: LazyLock<&'static Re> = LazyLock::new(|| data::re(concat!("bot.modules.chat.", stringify!($n))));)* };
 }
@@ -153,13 +151,6 @@ macro_rules! inline_re {
     ($name:ident, $pat:expr, $flags:expr) => {
         static $name: LazyLock<Re> = LazyLock::new(|| Re::new($pat, $flags));
     };
-}
-
-static NO_UNDERSTOOD: LazyLock<Understood> = LazyLock::new(Understood::default);
-
-/// `memory.get("understood") or {}`.
-fn understood_of(memory: &Memory) -> &Understood {
-    memory.understood.as_ref().unwrap_or(&NO_UNDERSTOOD)
 }
 
 /// `[turn for turn in (memory.get("turns") or []) if isinstance(turn, dict)]`.
@@ -1355,7 +1346,9 @@ pub fn _a_trip(flat: &str, memory: &Memory) -> bool {
 /// which cannot carry the closure; this is the one place that call is made.
 fn answers_offer_in_context(text_: &str, memory: &Memory, understood: &Understood) -> (bool, Value) {
     let _ = (text_, memory, understood);
-    crate::unported!("bot.modules.answers:_offer (its reader parameter is typed &Value; chat passes a closure over _in_context)")
+    // Counted as a call into an unported function, which is what it is until the contract
+    // can carry the reader.
+    panic!("UNPORTED bot.modules.answers:_offer (its reader parameter is typed &Value; chat passes a closure over _in_context)")
 }
 
 /// Python: bot/modules/chat.py:4791 `_answers_it(text, understood, memory)`
@@ -7113,16 +7106,762 @@ pub fn _somebody_recommended_a_thing(clean: &str) -> Option<String> {
     Some(rest)
 }
 
-// Stubs not yet ported (moved up into the file as each one is ported).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, dead_code)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
+// ---------------------------------------------------------------------------------------------
+// Python lines 15620-16731: `_respond`, the reading of one line.
 
-    /// Python: bot/modules/chat.py:15620 `_respond(text, memory, as_said=True)`
-    pub fn _respond(text: &str, memory: &mut Memory, as_said: bool) -> Option<String> {
-        crate::unported!("bot.modules.chat:_respond")
+res!(SOMEONE_BRING_SOMEONE, ASKS_WHAT_TO_DO, SAID_WRONG_AT_THEMSELVES, FAMILY_NAMED);
+vals!(
+    AMENDS_REPLIES, NOT_TALKING_AFTER_A_REPAIR, SAID_WRONG_NEXT, DEED_NEXT, AT_MYSELF_REPLIES,
+    SAID_WRONG_REPLIES, SAID_UNKINDLY_FAMILY, SAID_UNKINDLY_REPLIES,
+);
+
+/// Python: bot/modules/chat.py:15620 `_respond(text, memory, as_said=True)`
+pub fn _respond(text_: &str, memory: &mut Memory, as_said: bool) -> Option<String> {
+    let planned = py(crate::compose::occasionplan::reply_for(text_, memory));
+    if !planned.is_none() {
+        return opt_str(planned);
     }
+    let mut text_: String = text_.to_string();
+    let mut clean = squash(&text_.to_lowercase().replace('\u{2019}', "'"));
+    clean = crate::understanding::normalize::without_the_figure_of_speech(&clean);
+    clean = _without_the_might(&clean);
+    let mut tokens = _tokens(&text_);
+    if tokens.is_empty() {
+        return None;
+    }
+    if _asked_how_it_went(&clean) {
+        return None;
+    }
+    let still_in = py(crate::memory::tried::in_care_pool(&clean, memory));
+    if still_in.truthy() {
+        return Some(pick(&still_in.strs(), memory, ""));
+    }
+    let news_detail = crate::compose::goodnews::a_detail_of_the_news(&clean, memory);
+    if !news_detail.is_empty() && !_a_death_just_said(memory) {
+        let said_detail = squash(&clean);
+        let kind = match news_detail.as_str() {
+            "attempt" => "more_of_the_news",
+            "arrival" => "more_of_the_news_arrival",
+            _ => "more_of_the_news_score",
+        };
+        let big = upper1(&said_detail);
+        return Some(_say(kind, memory, &[("X", &big)]));
+    }
+    if SOMEONE_BRING_SOMEONE.search(&clean).is_some() {
+        let record = py(crate::memory::topics::about(memory));
+        if record.truthy() && record.get("trouble").and_then(|t| t.as_str()) == Some("hospital") {
+            return None;
+        }
+    }
+    if let Some(doubt) = _a_doubt_about_being_taken_on(&clean, memory).filter(|d| !d.is_empty()) {
+        return Some(doubt);
+    }
+    if let Some(aged) = _the_age_in_a_work_thread(&clean, memory).filter(|a| !a.is_empty()) {
+        return Some(aged);
+    }
+    if truthy(crate::compose::repair::amends_to(&clean)) {
+        return Some(pick(&AMENDS_REPLIES.strs(), memory, &clean));
+    }
+    if _a_repair_is_open(memory) && THEY_ARE_NOT_TALKING.search(&clean).is_some() {
+        return Some(pick(&NOT_TALKING_AFTER_A_REPAIR.strs(), memory, &clean));
+    }
+    if _after_a_repair(memory) && ASKS_FOR_THE_WORDS.search(&clean).is_some() {
+        let deed = _the_deed_before(memory);
+        if deed != **SAID_WRONG_DEED {
+            return Some(pick(&_the_words_pool(&deed), memory, &clean));
+        }
+    }
+    if _after_a_repair(memory) && ASKS_WHAT_TO_DO.search(&clean).is_some() {
+        if _the_deed_before(memory) == **SAID_WRONG_DEED {
+            return Some(pick(&SAID_WRONG_NEXT.strs(), memory, &clean));
+        }
+        return Some(pick(&DEED_NEXT.strs(), memory, &clean));
+    }
+    if _said_wrong(&clean) {
+        if SAID_WRONG_AT_THEMSELVES.search(&clean).is_some() {
+            return Some(pick(&AT_MYSELF_REPLIES.strs(), memory, &clean));
+        }
+        let deed = py(crate::compose::repair::deed_of(&Value::from(clean.as_str())));
+        if deed.truthy() && deed != **SAID_WRONG_DEED && SAID_WRONG.search(&clean).is_none() {
+            let line = pick(&_the_deed_pool(&deed), memory, &clean);
+            return opt_str(crate::compose::repair::with_the_feeling_named(&line, &clean));
+        }
+        return Some(pick(&SAID_WRONG_REPLIES.strs(), memory, &clean));
+    }
+    if _said_unkindly(&clean) {
+        let pool = if FAMILY_NAMED.search(&clean).is_some() { &*SAID_UNKINDLY_FAMILY } else { &*SAID_UNKINDLY_REPLIES };
+        return Some(pick(&pool.strs(), memory, &clean));
+    }
+    if let Some(addressed) = said(crate::memory::warmth::reply(&text_, memory)) {
+        return Some(addressed);
+    }
+    if let Some(company) = said(crate::memory::passing_the_time::reply(&text_, memory)) {
+        return Some(company);
+    }
+    if let Some(years_turn) = said(crate::memory::the_years::reply(&text_, memory)) {
+        return Some(years_turn);
+    }
+    if let Some(a_limit) = said(crate::memory::limits::reply(&text_, memory)) {
+        return Some(a_limit);
+    }
+    let thanks_off = _a_thank_you_taken_off(&clean, memory);
+    if !thanks_off.is_empty() && _a_plain_good_answer(&thanks_off, memory) {
+        let name = _name(memory);
+        return Some(_reply("positive", memory, name.as_deref(), ""));
+    }
+    if !thanks_off.is_empty() {
+        clean = thanks_off.clone();
+        text_ = thanks_off;
+        tokens = _tokens(&clean);
+    }
+    tokens = _without_the_at_all(&tokens);
+    if let Some(step) = _after_lonely(&clean, memory).filter(|s| !s.is_empty()) {
+        return Some(step);
+    }
+    let read_now = memory.understood.clone();
+    if let Some(picked_up) = _after_a_lost_thread(&clean, read_now.as_ref(), memory).filter(|s| !s.is_empty()) {
+        return Some(picked_up);
+    }
+    if let Some(still_at_it) = _laughing_still(&clean, memory).filter(|s| !s.is_empty()) {
+        return Some(still_at_it);
+    }
+    if let Some(laughing) = _laughing_at(&clean, memory) {
+        let name = _name(memory);
+        return Some(_reply(laughing, memory, name.as_deref(), &clean));
+    }
+    if let Some(nothing) = _nothing_helps(&clean, memory).filter(|s| !s.is_empty()) {
+        return Some(nothing);
+    }
+    if let Some(held) = _a_limit(&text_, memory).filter(|s| !s.is_empty()) {
+        return Some(held);
+    }
+    if _their_own_call(&clean).is_some_and(|c| !c.is_empty()) {
+        let name = _name(memory);
+        return Some(_reply("own_call", memory, name.as_deref(), &clean));
+    }
+    if let Some(body_feeling) = _body_is_a_feeling(&clean).filter(|s| !s.is_empty()) {
+        let name = _name(memory);
+        return Some(_reply(&body_feeling, memory, name.as_deref(), ""));
+    }
+    let read = memory.understood.clone();
+    let asks = read.as_ref().is_some_and(|u| u.kind == "question");
+    let symptom = COLD_SYMPTOM.search(&clean).is_some();
+    let cold = symptom || COLD_NAMED.search(&clean).is_some();
+    let part = read.as_ref().and_then(|u| u.body.clone()).filter(|p| !p.is_empty());
+    let bare_complaint = COMPLAINT_ONLY.match_(&clean).is_some() && !asks;
+    if (ILL_SELF.search(&clean).is_some() || (symptom && !asks) || part.is_some() || bare_complaint)
+        && SICK_DEED.search(&clean).is_none()
+        && BODY_BEFORE_AN_EVENT.search(&clean).is_none()
+    {
+        if COLD_SORE.search(&clean).is_some() && COLD_SYMPTOM.search(&clean).is_none() && COLD_SORE_FEELING.search(&clean).is_none() {
+            if COLD_NAMED.search(&COLD_SORE.sub(" ", &clean)).is_none() {
+                return None;
+            }
+        }
+        if let Some(part) = &part {
+            let kind = format!("ill_{part}");
+            if REPLIES.get(&kind).is_some() {
+                let name = _name(memory);
+                return Some(_reply(&kind, memory, name.as_deref(), &text_));
+            }
+        }
+        if cold && _the_same_cold_again(&clean, memory) {
+            return None;
+        }
+        let name = _name(memory);
+        if truthy(crate::compose::says_it_has_lingered(&clean, true)) {
+            return Some(_reply("ill_lasting", memory, name.as_deref(), &text_));
+        }
+        return Some(_reply(if cold { "cold" } else { "ill" }, memory, name.as_deref(), &text_));
+    }
+    if crate::compose::badnews::reads_like_a_symptom(&clean)
+        && truthy(crate::compose::says_it_has_lingered(&clean, false))
+        && SICK_DEED.search(&clean).is_none()
+    {
+        return None;
+    }
+    if let Some(scattered) = _chat_scatter(&clean, memory).filter(|s| !s.is_empty()) {
+        return Some(scattered);
+    }
+    let understood = memory.understood.clone();
+    let mut said_ = if as_said { _as_said(&clean, understood.as_ref()) } else { clean.clone() };
+    let live_emergency = truthy(crate::memory::topics::in_a_safety_thread(memory));
+    if understood.as_ref().is_some_and(|u| u.presence) {
+        if live_emergency {
+            return None;
+        }
+        if truthy(crate::memory::tried::still_going_on(&text_, memory)) {
+            return None;
+        }
+        return Some(_say("presence", memory, &[]));
+    }
+    if understood.as_ref().is_some_and(|u| u.intent == "opening") {
+        let name = _name(memory);
+        return Some(_reply("opening", memory, name.as_deref(), ""));
+    }
+    if understood.as_ref().is_some_and(|u| u.asks_back) && tokens.len() <= 12 && !live_emergency {
+        let polarity = understood.as_ref().map(|u| u.polarity).unwrap_or(0);
+        let low = polarity < 0 || _a_low_word(&clean);
+        let name = _name(memory);
+        return Some(_reply(if low { "back_low" } else { "back" }, memory, name.as_deref(), ""));
+    }
+    let (met, plan) = _just_met(memory);
+    if let Some(met) = met.filter(|m| !m.is_empty()) {
+        said_ = _plan_clause(plan.as_deref().unwrap_or(""));
+        if !said_.is_empty() {
+            let join = if said_.to_lowercase().starts_with("you") { " \u{2014} that" } else { "" };
+            return Some(format!(
+                "Hi {met} \u{2014} good to meet you, and {said_}{join} sounds like a good one. What do you need a hand with?"
+            ));
+        }
+        let kind = understood.as_ref().map(|u| u.kind.as_str());
+        if matches!(kind, None | Some("greeting") | Some("empty")) {
+            return Some(_reply("meet", memory, Some(&met), ""));
+        }
+        memory.set("greet", met);
+    }
+    if tokens.len() <= 6 && _says_nothing_much(&tokens, &clean) {
+        let name = _name(memory);
+        return Some(_reply("notmuch", memory, name.as_deref(), ""));
+    }
+    let laughed = understood.as_ref().is_some_and(|u| u.intent == "laugh")
+        && !tokens.is_empty()
+        && tokens.len() <= 8
+        && tokens.iter().all(|t| {
+            truthy(crate::understanding::lexicon::is_a_laugh(t)) || in_set(&ACK_WORDS, t) || in_set(&THANKS_FILLER, t)
+        });
+    let chatty = laughed
+        || (tokens.len() <= 8
+            && SAYS_TOO_MUCH.search(&clean).is_none()
+            && tokens.iter().all(|t| in_set(&ACK_WORDS, t) || in_set(&LAUGH_WORDS, t) || in_set(&THANKS_FILLER, t)));
+    if _is_bye(&tokens) || _ending_bye(&clean, memory) {
+        let name = _name(memory);
+        return Some(_reply(_bye_kind(&tokens), memory, name.as_deref(), ""));
+    }
+    let bare: Vec<String> = tokens.iter().filter(|t| !in_set(&ADDRESSED, t) && !in_set(&THANKS_NOISE, t)).cloned().collect();
+    if _a_hedge_answering_the_question(memory) {
+        if HEDGED_LOW_LINE.match_(&clean).is_some() {
+            let name = _name(memory);
+            return Some(_reply("hedged_low", memory, name.as_deref(), ""));
+        }
+        if HEDGED_OK_LINE.match_(&clean).is_some() {
+            let name = _name(memory);
+            return Some(_reply("hedged_ok", memory, name.as_deref(), ""));
+        }
+    }
+    if _is_thanks(&bare) || _is_thanks(&tokens) || _is_thanks(&_without_the_nod(&tokens)) {
+        let name = _name(memory);
+        if ANSWERS_HOW_ARE_YOU.match_(&clean).is_some() && THANKS_FOR.search(&clean).is_none() {
+            return Some(_reply("positive", memory, name.as_deref(), ""));
+        }
+        return Some(_reply("thanks", memory, name.as_deref(), ""));
+    }
+    if let Some(moved) = said(crate::memory::limit::move_after_a_limit(&clean, memory)) {
+        return Some(moved);
+    }
+    if let Some(limited) = said(crate::memory::limit::reply_for(&clean, memory)) {
+        return Some(limited);
+    }
+    if let Some(piled) = said(crate::memory::pile::reply_for(&clean, memory)) {
+        return Some(piled);
+    }
+    if let Some(total) = said(crate::memory::portions::the_total_for(&clean, memory)) {
+        return Some(total);
+    }
+    if let Some(portion) = said(crate::memory::portions::reply_for(&clean, memory)) {
+        return Some(portion);
+    }
+    if let Some(came_back) = said(crate::memory::returned::pool_for(&clean, memory)) {
+        let whole = said(crate::memory::returned::the_whole_of_it(&clean, memory)).unwrap_or_else(|| came_back.clone());
+        let _ = crate::memory::repeat::handed_back(memory, &whole);
+        return Some(came_back);
+    }
+    let not_worked = py(crate::memory::tried::pool_for(&clean, memory));
+    if not_worked.truthy() {
+        return Some(pick(&not_worked.strs(), memory, ""));
+    }
+    if let Some(attempt_) = said(crate::memory::remedy::reply_for(&clean, memory)) {
+        return Some(attempt_);
+    }
+    let acted = py(crate::memory::tried::acted_pool(&clean, memory));
+    if acted.truthy() {
+        return Some(pick(&acted.strs(), memory, ""));
+    }
+    if let Some(next_step) = said(crate::memory::carried_on::reply_for(&clean, memory)) {
+        return Some(next_step);
+    }
+    if let Some(verdict) = _about_the_night_out(&clean, &tokens, memory).filter(|s| !s.is_empty()) {
+        return Some(verdict);
+    }
+    if let Some(the_hours) = said(crate::memory::hours::answer_for(&clean, memory)) {
+        return Some(the_hours);
+    }
+    if let Some(conversation) = _conversation(&clean, &tokens, memory).filter(|s| !s.is_empty()) {
+        return Some(conversation);
+    }
+    if let Some(grumble) = _work_grumble(&clean, &tokens, memory).filter(|s| !s.is_empty()) {
+        return Some(grumble);
+    }
+    if KICK_MYSELF.search(&clean).is_some() {
+        return Some(pick(&AT_MYSELF_REPLIES.strs(), memory, &clean));
+    }
+    if _is_greeting(&tokens) {
+        let name = _name(memory);
+        return Some(_reply("greeting", memory, name.as_deref(), ""));
+    }
+    if _is_howareyou(&tokens) {
+        let name = _name(memory);
+        return Some(_reply("howareyou", memory, name.as_deref(), ""));
+    }
+    if let Some(joke) = _joke(&clean, &tokens, memory).filter(|s| !s.is_empty()) {
+        return Some(joke);
+    }
+    let other = _other_feeling(&clean, memory);
+    let fedup_at = FEDUP_AT.search(&said_).map(|m| m.start());
+    let named = OTHER_PERSON.search(&said_).map(|m| m.start());
+    let corrected = FED_UP_DENIED.search(&said_).is_some()
+        && _bare_feeling(&STATE_WHEN.sub(" ", &FED_UP_DENIED.sub(" ", &said_))).is_some_and(|f| !f.is_empty());
+    if let Some(at) = fedup_at {
+        if other.is_none()
+            && !corrected
+            && FED_UP_ABOUT_THE_BOT.search(&said_[..at]).is_none()
+            && FED_UP_WITH_A_PERSON.search(&said_).is_none()
+            && !named.is_some_and(|n| n < at)
+        {
+            let name = _name(memory);
+            if FED_UP_DENIED.search(&said_).is_some() {
+                return Some(_reply("not_feeling", memory, name.as_deref(), ""));
+            }
+            if AT_MYSELF.search(&clean).is_some() {
+                return Some(pick(&AT_MYSELF_REPLIES.strs(), memory, &clean));
+            }
+            if _not_coping(&clean) {
+                return Some(_reply("not_coping", memory, name.as_deref(), ""));
+            }
+            if FED_UP_WHOLE_OF_IT.search(&said_).is_some() {
+                return Some(_reply("not_coping", memory, name.as_deref(), ""));
+            }
+            _the_weight_said(memory, "annoyed");
+            let tired_of = _fed_up_with(&said_);
+            if !tired_of.is_empty() {
+                let options = if tired_of.starts_with("being ") || tired_of.starts_with("having ") {
+                    FEDUP_GERUND_SAFE.strs()
+                } else {
+                    FEDUP_REPLIES.strs()
+                };
+                let lead = FEDUP_LEAD.get(&_fedup_phrase(&said_, at)).map(py_str).unwrap_or_else(|| "Being tired of".into());
+                let lines: Vec<String> = options.iter().map(|o| py_format(o, &[("thing", &tired_of), ("obj", "you"), ("lead", &lead)])).collect();
+                return Some(pick(&lines, memory, &text_));
+            }
+            return Some(pick(&replies("venting"), memory, &text_));
+        }
+    }
+    if MISS_ME.search(&clean).is_some() {
+        return Some(pick(&MISS_YOU_REPLIES.strs(), memory, &text_));
+    }
+    if STILL_ON_THEM.search(&clean).is_some() {
+        let name = _name(memory);
+        return Some(_reply("missing", memory, name.as_deref(), ""));
+    }
+    if _fond_of_the_bot(&clean) {
+        return Some(pick(&FOND_REPLIES.strs(), memory, &text_));
+    }
+    if (KIND_TO_ME.search(&clean).is_some() || _praised_the_answer(&clean)) && DOUBT_FRAME.search(&clean).is_none() {
+        return Some(pick(&KIND_REPLIES.strs(), memory, &text_));
+    }
+    if let Some(judgement) = _judgement(&_as_said(&clean, understood.as_ref()), &tokens) {
+        let seed = if judgement == "own_harsh" || judgement == "own_described" { clean.clone() } else { String::new() };
+        let name = _name(memory);
+        return Some(_reply(&judgement, memory, name.as_deref(), &seed));
+    }
+    if let Some(reaction) = _reaction(&clean, &tokens, memory) {
+        let seed = if !reaction.starts_with("agree") { clean.clone() } else { format!("{clean}|{}", _news_before(memory)) };
+        let name = _name(memory);
+        return Some(_reply(&reaction, memory, name.as_deref(), &seed));
+    }
+    if VENTED.search(&clean).is_some() {
+        let name = _name(memory);
+        return Some(_reply("venting", memory, name.as_deref(), ""));
+    }
+    if crate::compose::goodnews::asks_for_news(&clean)
+        && !(ANY_WORLD_NEWS_ON.search(&clean).is_some() && data::re("bot.compose.fallback.LIVE_NOT_WORLDS").search(&clean).is_none())
+    {
+        return Some(_reply("no_news", memory, None, ""));
+    }
+    if GOOD_NEWS_SAID.search(&clean).is_some() {
+        let name = _name(memory);
+        if NOT_LANDED.search(&clean).is_some() || NOT_GLAD_WORDS.strs().iter().any(|w| truthy(crate::compose::negated(&clean, w, 3))) {
+            return Some(_reply("good_news_not_landed", memory, name.as_deref(), &clean));
+        }
+        return Some(_reply("happy", memory, name.as_deref(), ""));
+    }
+    let now = memory.understood.clone();
+    if let Some(about) = _about_bot(&clean, now.as_ref(), Some(memory)).filter(|p| !p.is_empty()) {
+        return Some(pick(&about, memory, ""));
+    }
+    if now.as_ref().is_some_and(|u| u.about_bot_kind.as_deref().is_some_and(|k| !k.is_empty())) {
+        return None;
+    }
+    if let Some(opinion) = _opinion(&clean, &tokens, memory).filter(|s| !s.is_empty()) {
+        return Some(opinion);
+    }
+    match _worry_someone(&said_, memory) {
+        Some(WorrySomeone::Pass) => return None,
+        Some(WorrySomeone::Pool(pool)) if !pool.is_empty() => return Some(pick(&pool, memory, "")),
+        _ => {}
+    }
+    if let Some(early) = _early_start(&clean, memory).filter(|p| !p.is_empty()) {
+        return Some(pick(&early, memory, ""));
+    }
+    if let Some(row) = _a_row(&clean, memory).filter(|s| !s.is_empty()) {
+        return Some(row);
+    }
+    if let Some(row_next) = _a_row_next(&clean, memory).filter(|s| !s.is_empty()) {
+        return Some(row_next);
+    }
+    if let Some(row_ending) = _a_row_ending(&clean, memory).filter(|s| !s.is_empty()) {
+        return Some(row_ending);
+    }
+    let someone = _about_someone(&clean, memory).filter(|s| !s.is_empty());
+    let follow_up = _context_follow_up(&clean, memory).filter(|s| !s.is_empty());
+    if let Some(someone) = &someone {
+        let ordinary = SOMEONE_NORMAL.pairs().iter().any(|(_, v)| v.as_str() == Some(someone.as_str()));
+        if ordinary && (SOMEONE_IS_IT_NORMAL.search(&clean).is_some() || SOMEONE_NEXT_STEP.search(&clean).is_some()) {
+            return Some(someone.clone());
+        }
+    }
+    if let Some(follow_up) = follow_up {
+        return Some(follow_up);
+    }
+    if let Some(other) = &other {
+        if tokens.len() <= 16 && !crate::compose::badnews::reads_as_news_with_a_name(&clean) {
+            return Some(_someone_reply(memory, &other.feeling, &other.obj, &other.poss, other.plural, &other.thing, &said_));
+        }
+    }
+    if let Some(standing) = _standing(&clean, memory).filter(|s| !s.is_empty()) {
+        return Some(standing);
+    }
+    let bare = _bare_feeling(&STATE_WHEN.sub(" ", &clean));
+    let read_as = if as_said { understood.clone() } else { None };
+    let mut feeling = _feeling(&clean, read_as.as_ref(), bare.clone(), false).filter(|f| !f.is_empty());
+    if feeling.is_none() && KEEPS_HOW_THEY_ARE.search(&clean).is_some() && !_answers_knows(&text_, memory) {
+        feeling = _feeling(&clean, read_as.as_ref(), bare.clone(), true).filter(|f| !f.is_empty());
+    }
+    let mood = |f: &Option<String>| f.as_deref().is_some_and(|f| in_set(&MOOD_KINDS, f));
+    if mood(&feeling) && _going_on(&clean) {
+        feeling = Some(if GOING_ON_LONG.search(&clean).is_some() { "ongoing" } else { "recurring" }.into());
+    }
+    let asks = understood.as_ref().is_some_and(|u| u.kind == "question");
+    if feeling.as_deref() == Some("carrying") {
+        feeling = if _answers_knows(&text_, memory) { None } else { Some("not_coping".into()) };
+    }
+    if mood(&feeling) && A_VERDICT_ASKED.search(&clean).is_some() {
+        feeling = None;
+    }
+    if mood(&feeling) && _answers_knows(&text_, memory) {
+        feeling = None;
+    }
+    if feeling.as_deref() == Some("rough_day") && asks && _answers_knows(&text_, memory) {
+        feeling = None;
+    }
+    let mut like = _feel_like(&clean).filter(|l| !l.is_empty());
+    if like.is_some() && _a_feeling_riding_on_the_thread(&clean, memory) {
+        like = None;
+    }
+    if let Some(l) = like.as_deref().filter(|l| *l != "feel_like") {
+        let name = _name(memory);
+        return Some(_reply(l, memory, name.as_deref(), &clean));
+    }
+    if let Some(someone) = &someone {
+        if asks && tokens.len() <= 22 {
+            return Some(someone.clone());
+        }
+    }
+    if let Some(mut f) = feeling.clone() {
+        if (bare.as_deref().is_some_and(|b| !b.is_empty()) || _about_the_person(understood.as_ref()))
+            && (chatty || tokens.len() <= 12 || !asks)
+        {
+            if f == "ongoing" || f == "recurring" {
+                _the_weight_said(memory, &f);
+                let turn_no = memory.turns.len() as i64;
+                let advice = memory.get("mood_advice").cloned().unwrap_or(Value::None);
+                if advice == Value::Int(turn_no - 1) {
+                    memory.set("mood_advice", turn_no);
+                    return Some(pick(&replies("recurring_next"), memory, &clean));
+                }
+                memory.set("mood_advice", turn_no);
+                return Some(pick(&replies(&f), memory, &clean));
+            }
+            if f == "annoyed" && AT_MYSELF.search(&clean).is_some() {
+                return Some(pick(&AT_MYSELF_REPLIES.strs(), memory, &clean));
+            }
+            if f == "happy" && NOT_PROUD.search(&clean).is_some() {
+                f = "guilty".into();
+            } else if f == "happy" && PROUD_OF_MYSELF.search(&clean).is_some() && PROUD_OF_ANOTHER.search(&clean).is_none() {
+                f = "proud".into();
+            }
+            let mut f = Some(f);
+            if f.as_deref() == Some("happy") && DOUBT_FRAME.search(&clean).is_some() && _praised_the_answer(&clean) {
+                f = None;
+            }
+            if f.as_deref() == Some("confused") {
+                if let Some(plainer) = said(crate::memory::meant::answer_for(&clean, memory)) {
+                    let low = plainer.to_lowercase();
+                    if MEANT_LEADS.strs().iter().any(|lead| low.starts_with(lead.as_str())) {
+                        return Some(plainer);
+                    }
+                }
+            }
+            // Python: `_reply(feeling, ...)` with `feeling` None after the doubt check raises
+            // TypeError in `REPLIES[None]`: the module is skipped for the turn.
+            let f = f.unwrap_or_else(|| panic!("KeyError: None"));
+            let name = _name(memory);
+            if f == "happy" || f == "anxious" || f == "proud" {
+                return Some(_reply(&f, memory, name.as_deref(), &clean));
+            }
+            let seed = if ["not_coping", "bad_day", "tears", "long_stretch"].contains(&f.as_str()) { clean.clone() } else { String::new() };
+            return Some(_reply(&f, memory, name.as_deref(), &seed));
+        }
+    }
+    if let Some(l) = like {
+        let name = _name(memory);
+        return Some(_reply(&l, memory, name.as_deref(), &clean));
+    }
+    if let Some(against) = _against_me(&clean) {
+        let name = _name(memory);
+        return Some(_reply(against, memory, name.as_deref(), &clean));
+    }
+    if let Some(stuck) = _stuck(&clean, memory).filter(|s| !s.is_empty()) {
+        if tokens.len() <= 16 && !(stuck == "effort" && _answers_knows(&text_, memory)) {
+            let own = format!("stuck_{stuck}");
+            let mut kind = if REPLIES.get(&own).is_some() { own } else { "stuck".to_string() };
+            if ["stuck_eating", "stuck_sleep", "stuck"].contains(&kind.as_str()) && LONG_SPAN.search(&clean).is_some() {
+                for days in [format!("stuck_{stuck}_days"), "stuck_sleep_days".to_string()] {
+                    if REPLIES.get(&days).is_some() {
+                        kind = days;
+                        break;
+                    }
+                }
+            }
+            let name = _name(memory);
+            return Some(_reply(&kind, memory, name.as_deref(), ""));
+        }
+    }
+    if _my_night(&clean) && tokens.len() <= 18 {
+        return Some(pick(&replies("stuck_sleep"), memory, &clean));
+    }
+    if let Some(someone) = _about_someone(&clean, memory).filter(|s| !s.is_empty()) {
+        if tokens.len() <= 22 {
+            return Some(someone);
+        }
+    }
+    if let Some(news) = _news(&clean, &tokens, memory).filter(|s| !s.is_empty()) {
+        return Some(news);
+    }
+    if _question_coming(understood.as_ref()) {
+        let name = _name(memory);
+        return Some(_reply("opening", memory, name.as_deref(), ""));
+    }
+    if let Some(thing) = _their_thing(&clean, &tokens, memory, understood.as_ref()).filter(|s| !s.is_empty()) {
+        return Some(thing);
+    }
+    if SAY_SOMETHING.search(&THOUGH_AT_THE_END.sub("", &clean)).is_some() && ASK_WHETHER_TO_SPEAK.search(&clean).is_none() {
+        let name = _name(memory);
+        return Some(_reply("say_something", memory, name.as_deref(), ""));
+    }
+    if _says_dont_know(&clean, &tokens) {
+        let name = _name(memory);
+        return Some(_reply(_idk_kind(memory), memory, name.as_deref(), ""));
+    }
+    if let Some(carried_on) = said(crate::memory::more::reply_for(&text_, memory)) {
+        return Some(carried_on);
+    }
+    if let Some(plan) = _intent(&clean, &tokens, memory).filter(|p| !p.is_empty()) {
+        if plan == "next_up" || plan == "next_rest" || plan == "next_act" {
+            return Some(pick(&replies(&plan), memory, &clean));
+        }
+        let name = _name(memory);
+        return Some(_reply(&plan, memory, name.as_deref(), ""));
+    }
+    if let Some(reading) = said(crate::compose::reading::reply_for(&clean, memory)) {
+        return Some(reading);
+    }
+    if let Some(doubted) = said(crate::compose::doubt::reply_for(&clean, memory)) {
+        return Some(doubted);
+    }
+    let verdict = said(crate::compose::verdict::reply_for(&clean, memory)).or_else(|| said(crate::compose::verdict::next_step(&clean, memory)));
+    if let Some(v) = &verdict {
+        if !data::get("bot.compose.verdict.QUESTION_BACK_LINES").contains_str(v) {
+            return Some(v.clone());
+        }
+    }
+    let mut comfort: Vec<String> = FEELING_SAID.iter().cloned().collect();
+    for line in data::strs("bot.compose.fallback.COMFORT_SAID") {
+        if !FEELING_SAID.contains(&line) {
+            comfort.push(line);
+        }
+    }
+    if let Some(step) = said(crate::compose::step_when_low(&clean, memory, &comfort)) {
+        return Some(step);
+    }
+    if let Some(v) = verdict {
+        return Some(v);
+    }
+    if let Some(held) = said(crate::memory::thread::checking_the_verdict(&clean, memory)) {
+        return Some(held);
+    }
+    if let Some(checked) = said(crate::memory::thread::checking_a_fact(&clean, memory)) {
+        return Some(checked);
+    }
+    if let Some(judged) = _judged(&clean, memory).filter(|s| !s.is_empty()) {
+        return Some(judged);
+    }
+    if tokens.iter().any(|t| t == "help") && tokens.iter().all(|t| in_set(&HELP_ONLY, t)) {
+        let (nod, _) = _the_nod(memory);
+        if nod == "ack" {
+            let name = _name(memory);
+            return Some(_reply("help_ask", memory, name.as_deref(), &clean));
+        }
+    }
+    if !live_emergency {
+        if let Some(job_step) = _the_ask_after_a_job_that_went(&clean, memory).filter(|s| !s.is_empty()) {
+            return Some(job_step);
+        }
+    }
+    let steps = if live_emergency { Value::None } else { py(crate::memory::stuck::pool(&clean, memory)) };
+    if steps.truthy() {
+        if let Some(again_steps) = said(crate::memory::repeat::answer_for(&text_, memory)) {
+            return Some(again_steps);
+        }
+        return Some(pick(&steps.strs(), memory, &clean));
+    }
+    if data::re("bot.memory.repeat.A_TOLD_BACK").search(&clean).is_some() {
+        if let Some(told) = said(crate::memory::repeat::the_figure_they_gave(&text_, memory)) {
+            return Some(told);
+        }
+    }
+    if let Some(short) = _short_talk(&clean, &tokens, memory).filter(|s| !s.is_empty()) {
+        if short == "again_what" {
+            if let Some(steps) = _the_steps_again(memory).filter(|s| !s.is_empty()) {
+                return Some(steps);
+            }
+        }
+        let name = _name(memory);
+        let seed = if short == "overloaded" { clean.clone() } else { String::new() };
+        return Some(_reply(&short, memory, name.as_deref(), &seed));
+    }
+    if let Some(again) = said(crate::memory::repeat::answer_for(&text_, memory)) {
+        return Some(again);
+    }
+    if let Some(what) = said(crate::memory::meant::answer_for(&clean, memory)) {
+        return Some(what);
+    }
+    let heavy = if _a_bare_acknowledgement(&clean) { _the_heavy_line(memory) } else { String::new() };
+    if !heavy.is_empty() {
+        let name = _name(memory);
+        return Some(_reply("nod_after_news", memory, name.as_deref(), &heavy));
+    }
+    if _a_plain_good_answer(&clean, memory) {
+        let name = _name(memory);
+        return Some(_reply("positive", memory, name.as_deref(), ""));
+    }
+    if HOW_THEY_ARE_LINE.match_(&clean).is_some() && !_denies_a_good_word(&tokens) {
+        let name = _name(memory);
+        return Some(_reply("positive", memory, name.as_deref(), ""));
+    }
+    if NOT_TOO_BAD.search(&clean).is_some() && tokens.len() <= 8 {
+        let (nod, nod_seed) = _the_nod(memory);
+        let name = _name(memory);
+        return Some(_reply(nod, memory, name.as_deref(), &nod_seed));
+    }
+    if understood.as_ref().is_some_and(|u| u.agrees_to_try) && tokens.len() <= 10 {
+        let name = _name(memory);
+        return Some(_reply("try_ack", memory, name.as_deref(), &clean));
+    }
+    if !_mid_chat(memory) {
+        let asked = _a_judgement_asked(&clean);
+        if !asked.is_empty() {
+            let name = _name(memory);
+            return Some(_reply(&asked, memory, name.as_deref(), &clean));
+        }
+    }
+    if let Some(u) = understood.as_ref() {
+        if u.asks_a_verdict {
+            let on = if u.clean.is_empty() { text_.as_str() } else { u.clean.as_str() };
+            if crate::compose::verdict::answers_the_ask(on, memory) {
+                return None;
+            }
+        }
+    }
+    if let Some((who, _)) = _somebody_thinks_i_should(&clean) {
+        if !crate::compose::fallback::_a_relationship_ending(&clean) {
+            return Some(pick(&_thinks_pool(&who), memory, &text_));
+        }
+    }
+    if _somebody_recommended_a_thing(&clean).is_some_and(|r| !r.is_empty()) {
+        return Some(pick(&SECONDHAND_PRAISE_REPLIES.strs(), memory, &text_));
+    }
+    if !chatty || live_emergency {
+        if !live_emergency {
+            if let Some(carried) = said(crate::memory::repeat::carried_on(&text_, memory)) {
+                return Some(carried);
+            }
+        }
+        return None;
+    }
+    if understood.as_ref().is_some_and(|u| u.agreement.as_deref().is_some_and(|a| !a.is_empty())) {
+        return None;
+    }
+    if understood.as_ref().is_some_and(|u| u.about_bot_kind.as_deref().is_some_and(|k| !k.is_empty())) {
+        return None;
+    }
+    let name = _name(memory);
+    if laughed || tokens.iter().any(|t| in_set(&LAUGH_WORDS, t)) {
+        return Some(_reply("laugh", memory, name.as_deref(), ""));
+    }
+    if tokens.iter().any(|t| t == "worries" || t == "problem") {
+        let (nod, nod_seed) = _the_nod(memory);
+        return Some(_reply(nod, memory, name.as_deref(), &nod_seed));
+    }
+    if _only_a_refusal(&clean, &tokens) {
+        return Some(_reply("no", memory, name.as_deref(), ""));
+    }
+    let has = |w: &str| tokens.iter().any(|t| t == w);
+    if has("idk") || has("dunno") || (has("not") && has("sure")) || (has("dont") && has("know")) {
+        return Some(_reply(_idk_kind(memory), memory, name.as_deref(), ""));
+    }
+    if NOT_GOOD.match_(&clean).is_some() {
+        return Some(_reply("bad_day", memory, name.as_deref(), ""));
+    }
+    const SELF_POSITIVE: [&str; 15] =
+        ["i", "im", "am", "so", "very", "really", "doing", "today", "feeling", "feel", "too", "not", "bad", "ok", "okay"];
+    let self_positive = (has("i") || has("im"))
+        && !_denies_a_good_word(&tokens)
+        && tokens.iter().all(|t| in_set(&POSITIVE, t) || SELF_POSITIVE.contains(&t.as_str()));
+    if self_positive {
+        return Some(_reply("positive", memory, name.as_deref(), ""));
+    }
+    if let Some(answered) = said(crate::compose::reaction::reply_for(&clean, memory)) {
+        return Some(answered);
+    }
+    let (nod, nod_seed) = _the_nod(memory);
+    if NOT_A_NOD.match_(&clean).is_some() && crate::compose::fallback::_a_good_time(&clean, memory) {
+        return None;
+    }
+    Some(_reply(nod, memory, name.as_deref(), &nod_seed))
 }
+
+inline_re!(FEDUP_AT, r"\b(done with|fed up|browned off|peeved|sick of|tired of|had enough|had it with)\b");
+inline_re!(THOUGH_AT_THE_END, r"\s+(?:though|tho)$");
+inline_re!(NOT_TOO_BAD, r"\bnot (?:too |half )?bad\b");
+res!(
+    COLD_SYMPTOM, COLD_NAMED, COMPLAINT_ONLY, ILL_SELF, COLD_SORE, COLD_SORE_FEELING,
+    BODY_BEFORE_AN_EVENT, HEDGED_LOW_LINE, HEDGED_OK_LINE, ANSWERS_HOW_ARE_YOU, THANKS_FOR,
+    KICK_MYSELF, MISS_ME, STILL_ON_THEM, KIND_TO_ME, DOUBT_FRAME, ANY_WORLD_NEWS_ON,
+    GOOD_NEWS_SAID, AT_MYSELF, FED_UP_DENIED, FED_UP_ABOUT_THE_BOT, FED_UP_WITH_A_PERSON,
+    FED_UP_WHOLE_OF_IT, KEEPS_HOW_THEY_ARE, GOING_ON_LONG, A_VERDICT_ASKED, NOT_PROUD,
+    PROUD_OF_MYSELF, PROUD_OF_ANOTHER, LONG_SPAN, HOW_THEY_ARE_LINE, NOT_GOOD, SAY_SOMETHING,
+    ASK_WHETHER_TO_SPEAK,
+);
+sets!(ADDRESSED, THANKS_NOISE, ACK_WORDS, LAUGH_WORDS, MOOD_KINDS, HELP_ONLY, FEELING_SAID);
+vals!(MISS_YOU_REPLIES, FOND_REPLIES, KIND_REPLIES, NOT_GLAD_WORDS, SECONDHAND_PRAISE_REPLIES);
