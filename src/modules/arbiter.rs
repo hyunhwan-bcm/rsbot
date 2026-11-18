@@ -4618,6 +4618,14 @@ mod tests {
             "_declares_topics" => json!(_declares_topics(&s(0))),
             "_declares_instead" => json!(_declares_instead(&s(0))),
             "_declared" => sorted(_declared(&s(0))),
+            "_made_of_the_answer" => json!(_made_of_the_answer(&s(0), &set(&a[1]))),
+            "_run_in_the_answer" => {
+                let tokens: Vec<(String, usize)> =
+                    a[1].as_array().unwrap().iter().map(|t| (t[0].as_str().unwrap().to_string(), t[1].as_u64().unwrap() as usize)).collect();
+                _run_in_the_answer(&strs(&a[0]), &tokens, &s(2)).map(|(tail, end, next)| json!([tail, end, next])).unwrap_or(J::Null)
+            }
+            "_carries_on" => json!(_carries_on(&strs(&a[0]), &strs(&a[1]))),
+            "_a_run_of" => json!(_a_run_of(&strs(&a[0]), &strs(&a[1]))),
             other => panic!("no dispatch for {other}"),
         }
     }
@@ -4708,5 +4716,62 @@ mod tests {
             }
         }
         eprintln!("small module readings against the reference: {ok} same, {bad} different");
+    }
+
+    /// `_choose` on every oracle turn it can run to the end with the lanes ported so far, against
+    /// the module PyBot chose. Run with `ARBITER_INPUT=<oracle .gz>`.
+    #[test]
+    #[ignore]
+    fn choose_where_it_runs() {
+        let Ok(input) = std::env::var("ARBITER_INPUT") else { return };
+        crate::runtime::quiet_panics();
+        let reader = std::io::BufReader::new(flate2::read::GzDecoder::new(std::fs::File::open(&input).unwrap()));
+        let (mut ran, mut same, mut panicked) = (0, 0, std::collections::BTreeMap::<String, usize>::new());
+        for line in reader.lines() {
+            let Ok(line) = line else { break };
+            let Ok(rec) = serde_json::from_str::<J>(&line) else { break };
+            let mut mem = rec["mem_in"].as_object().cloned().unwrap_or_default();
+            for o in rec["observe"].as_array().unwrap() {
+                for (k, v) in o["diff"]["set"].as_object().unwrap() {
+                    mem.insert(k.clone(), v.clone());
+                }
+                for k in o["diff"]["del"].as_array().unwrap() {
+                    mem.shift_remove(k.as_str().unwrap());
+                }
+            }
+            let cands: Vec<Candidate> = rec["respond"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|r| r["reply"].as_str().map(|s| !text::strip(s).is_empty()).unwrap_or(false))
+                .map(|r| {
+                    let def = crate::modules::registry().iter().find(|d| d.name == r["module"].as_str().unwrap()).unwrap();
+                    Candidate { module: def.name, priority: def.priority, reply: r["reply"].as_str().unwrap().to_string() }
+                })
+                .collect();
+            if cands.len() < 2 {
+                continue;
+            }
+            let memory: Mem = RefCell::new(Memory::from_plain(&mem));
+            let said = rec["text"].as_str().unwrap();
+            match guarded(|| _choose(said, &memory, &cands)) {
+                Some(Pick::At(i)) => {
+                    ran += 1;
+                    if Some(cands[i].module) == rec["chosen"].as_str() {
+                        same += 1;
+                    } else if ran - same <= 15 {
+                        eprintln!("{}#{} {said:?} rust {} py {} from {:?}", rec["conv"], rec["turn"], cands[i].module, rec["chosen"], cands.iter().map(|c| c.module).collect::<Vec<_>>());
+                    }
+                }
+                Some(Pick::Nonsense) => ran += 1,
+                None => *panicked.entry(crate::runtime::take_last_panic().unwrap_or_default()).or_default() += 1,
+            }
+        }
+        let mut stopped: Vec<(usize, String)> = panicked.into_iter().map(|(k, v)| (v, k)).collect();
+        stopped.sort_by(|a, b| b.cmp(a));
+        for (n, p) in stopped.iter().take(12) {
+            eprintln!("  stopped by {p}: {n}");
+        }
+        eprintln!("_choose ran to the end on {ran} turns, {same} the same module as PyBot");
     }
 }
