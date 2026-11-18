@@ -49,7 +49,7 @@ pub fn _last_module(memory: &Memory) -> String {
 
 /// Python: bot/compose/who.py:149 `_last_reply(memory)`
 pub fn _last_reply(memory: &Memory) -> String {
-    earlier::last_reply(memory).str().to_string()
+    earlier::last_reply(memory)
 }
 
 /// Python: bot/compose/who.py:153 `_names_no_subject(line)`

@@ -101,7 +101,7 @@ static THEIR_RELATION: LazyLock<Re> = LazyLock::new(|| Re::new(&format!(r"\b(?:m
 
 /// `compose.pick(options, memory, seed_text)`, through the one wrapper this file has.
 fn pick(options: &[String], memory: &Memory, clean: &str) -> String {
-    crate::compose::pick(options, &crate::compose::fallback::memory_value(memory), clean)
+    crate::compose::pick(options, memory, clean)
 }
 
 /// `set(words) & names` is not empty.

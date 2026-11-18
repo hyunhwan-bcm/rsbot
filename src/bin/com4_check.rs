@@ -38,6 +38,17 @@
 //   bot.compose.plan_ask:_the_plan_the_thread_holds
 //   bot.compose.plans:_the_plan_told
 //   bot.compose.plans:_the_ask
+//   bot.compose.still:_continues_an_answer
+//   bot.compose.taste:_split_manner
+//   bot.compose.taste:_read
+//   bot.compose.the_course_of_it:_the_card_in_the_chat
+//   bot.compose.what_decides_it:_turns
+//   bot.compose.who:_the_subject
+//   bot.compose.who:_sentence_at
+//   bot.compose.who:_person_in
+//   bot.compose.who:_cut_the_preamble
+//   bot.compose.who_to_see:_a_sign_not_a_step
+//   bot.compose.who_to_see:_the_call
 #![allow(unused_mut, unused_variables, dead_code)]
 
 extern crate rsbot as crate_;
@@ -425,6 +436,16 @@ fn call(name: &str, a: &[Json]) -> Option<Json> {
         "bot.compose.reaction:_an_answer" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::reaction::_an_answer(&p0))) }
         "bot.compose.reaction:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::reaction::reply_for(&p0, &p1))) }
         "bot.compose.reaction:main" => { if a.len() != 1 { return None; } let p0 = opt_strs(&a[0]); Some(J::j(&crate_::compose::reaction::main(p0.as_deref()))) }
+        "bot.compose.rotten_luck:_a_pile_of_chores" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::rotten_luck::_a_pile_of_chores(&p0))) }
+        "bot.compose.rotten_luck:reads_as_stuck_with_it" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::rotten_luck::reads_as_stuck_with_it(&p0))) }
+        "bot.compose.rotten_luck:reads_as_not_good" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::rotten_luck::reads_as_not_good(&p0))) }
+        "bot.compose.rotten_luck:reads_the_shake" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::rotten_luck::reads_the_shake(&p0))) }
+        "bot.compose.rotten_luck:reads_the_shake_of_someone_else" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::rotten_luck::reads_the_shake_of_someone_else(&p0))) }
+        "bot.compose.rotten_luck:reads_as_glad" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::rotten_luck::reads_as_glad(&p0))) }
+        "bot.compose.rotten_luck:reads_as_a_meal_missed" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::rotten_luck::reads_as_a_meal_missed(&p0))) }
+        "bot.compose.rotten_luck:reads_as_a_no_they_had" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::rotten_luck::reads_as_a_no_they_had(&p0))) }
+        "bot.compose.rotten_luck:_who_said_no" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::rotten_luck::_who_said_no(&p0, &p1))) }
+        "bot.compose.rotten_luck:answer_for" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::rotten_luck::answer_for(&p0, &p1, &p2))) }
         "bot.compose.routes:options" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::routes::options(&p0))) }
         "bot.compose.said_about_me:reads_as_somebody_elses_words" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::said_about_me::reads_as_somebody_elses_words(&p0))) }
         "bot.compose.said_about_me:_kind" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::said_about_me::_kind(&p0))) }
@@ -434,6 +455,134 @@ fn call(name: &str, a: &[Json]) -> Option<Json> {
         "bot.compose.said_about_me:answer_followup" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::said_about_me::answer_followup(&p0, &p1))) }
         "bot.compose.said_about_me:speaks_to_a_self_judgement" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::said_about_me::speaks_to_a_self_judgement(&p0))) }
         "bot.compose.said_about_me:answer_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::said_about_me::answer_for(&p0, &p1))) }
+        "bot.compose.saidby:the_quotation" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::saidby::the_quotation(&p0))) }
+        "bot.compose.saidby:_the_one_who_said_it" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::saidby::_the_one_who_said_it(&p0))) }
+        "bot.compose.saidby:_before_the_quotation" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::saidby::_before_the_quotation(&p0))) }
+        "bot.compose.saidby:said_by_the_person" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::saidby::said_by_the_person(&p0))) }
+        "bot.compose.saidby:reads_as_somebody_elses_wish" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::saidby::reads_as_somebody_elses_wish(&p0))) }
+        "bot.compose.saidby:_who_phrase" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::saidby::_who_phrase(&p0))) }
+        "bot.compose.saidby:_fits_the_head" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::saidby::_fits_the_head(&p0, &p1))) }
+        "bot.compose.saidby:_the_card_keeps_its_turn" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let mut p1 = mem(&a[1]); Some(J::j(&crate_::compose::saidby::_the_card_keeps_its_turn(&p0, &mut p1))) }
+        "bot.compose.saidby:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let mut p1 = mem(&a[1]); Some(J::j(&crate_::compose::saidby::reply_for(&p0, &mut p1))) }
+        "bot.compose.still:_flat" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::still::_flat(&p0))) }
+        "bot.compose.still:_is_a_nudge" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::still::_is_a_nudge(&p0))) }
+        "bot.compose.still:_ours" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::still::_ours(&p0))) }
+        "bot.compose.still:_answer_behind" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::still::_answer_behind(&p0))) }
+        "bot.compose.still:_a_hand_back" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::still::_a_hand_back(&p0))) }
+        "bot.compose.still:_sorrow_behind" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::still::_sorrow_behind(&p0))) }
+        "bot.compose.still:_the_rest_is_anothers" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::still::_the_rest_is_anothers(&p0, &p1))) }
+        "bot.compose.still:takes_as_it_comes" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::still::takes_as_it_comes(&p0, &p1))) }
+        "bot.compose.still:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::still::reply_for(&p0, &p1))) }
+        "bot.compose.stretches:_the_stretch_said_back" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::stretches::_the_stretch_said_back(&p0))) }
+        "bot.compose.stretches:_names_one_of" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::stretches::_names_one_of(&p0, &p1))) }
+        "bot.compose.stretches:_the_shape" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::stretches::_the_shape(&p0, &p1, &p2))) }
+        "bot.compose.stretches:reads_as_a_long_stretch" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::stretches::reads_as_a_long_stretch(&p0))) }
+        "bot.compose.stretches:the_stretch_pool" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::stretches::the_stretch_pool(&p0, &p1, &p2))) }
+        "bot.compose.stretches:_only_a_placeholder" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::stretches::_only_a_placeholder(&p0, &p1))) }
+        "bot.compose.stretches:the_stretch_said_back" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::stretches::the_stretch_said_back(&p0, &p1, &p2))) }
+        "bot.compose.taste:_a_manner_kind" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_a_manner_kind(&p0))) }
+        "bot.compose.taste:_a_doing" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_a_doing(&p0))) }
+        "bot.compose.taste:_the_doing" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_the_doing(&p0))) }
+        "bot.compose.taste:_is_an_animal" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_is_an_animal(&p0))) }
+        "bot.compose.taste:_the_stance" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = truthy(&a[1]); Some(J::j(&crate_::compose::taste::_the_stance(&p0, p1))) }
+        "bot.compose.taste:_clean" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_clean(&p0))) }
+        "bot.compose.taste:_a_pointed_at_thing" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_a_pointed_at_thing(&p0))) }
+        "bot.compose.taste:_the_thing" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_the_thing(&p0))) }
+        "bot.compose.taste:_the_manner" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_the_manner(&p0))) }
+        "bot.compose.taste:reads_as_a_taste" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::reads_as_a_taste(&p0))) }
+        "bot.compose.taste:_as_a_name" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_as_a_name(&p0))) }
+        "bot.compose.taste:_in_a_sentence" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_in_a_sentence(&p0))) }
+        "bot.compose.taste:_as_yours" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_as_yours(&p0))) }
+        "bot.compose.taste:_at_the_front" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::taste::_at_the_front(&p0))) }
+        "bot.compose.taste:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::taste::reply_for(&p0, &p1))) }
+        "bot.compose.the_course_of_it:_words" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::the_course_of_it::_words(&p0))) }
+        "bot.compose.the_course_of_it:_same_as_the_last_answer" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::the_course_of_it::_same_as_the_last_answer(&p0, &p1))) }
+        "bot.compose.the_course_of_it:_an_answer_worth_quoting" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::the_course_of_it::_an_answer_worth_quoting(&p0))) }
+        "bot.compose.the_course_of_it:_the_first_bit" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = a[1].as_i64().unwrap_or(0); let p2 = truthy(&a[2]); Some(J::j(&crate_::compose::the_course_of_it::_the_first_bit(&p0, p1, p2))) }
+        "bot.compose.the_course_of_it:_leans_on" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::the_course_of_it::_leans_on(&p0))) }
+        "bot.compose.the_course_of_it:_recent" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::the_course_of_it::_recent(&p0, &p1))) }
+        "bot.compose.the_course_of_it:reads" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::the_course_of_it::reads(&p0, &p1))) }
+        "bot.compose.the_course_of_it:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::the_course_of_it::reply_for(&p0, &p1))) }
+        "bot.compose.the_shape_without_the_fact:_the_two_things_are_on_the_table" => { if a.len() != 2 { return None; } let p0 = und(&a[0])?; let p1 = mem(&a[1]); Some(J::j(&crate_::compose::the_shape_without_the_fact::_the_two_things_are_on_the_table(&p0, &p1))) }
+        "bot.compose.the_shape_without_the_fact:_the_figures_are_in_the_thread" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::the_shape_without_the_fact::_the_figures_are_in_the_thread(&p0))) }
+        "bot.compose.the_shape_without_the_fact:_the_bot_just_said_a_lot" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::the_shape_without_the_fact::_the_bot_just_said_a_lot(&p0))) }
+        "bot.compose.the_shape_without_the_fact:_a_count_of_the_thing_just_named" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::the_shape_without_the_fact::_a_count_of_the_thing_just_named(&p0, &p1))) }
+        "bot.compose.the_shape_without_the_fact:_on_paper" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::the_shape_without_the_fact::_on_paper(&p0, &p1))) }
+        "bot.compose.the_shape_without_the_fact:_the_thing_is_theirs" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::the_shape_without_the_fact::_the_thing_is_theirs(&p0))) }
+        "bot.compose.the_shape_without_the_fact:_the_thread_is_heavy" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::the_shape_without_the_fact::_the_thread_is_heavy(&p0))) }
+        "bot.compose.the_shape_without_the_fact:the_shape_without_the_fact" => { if a.len() != 2 { return None; } let p0 = und(&a[0])?; let p1 = mem(&a[1]); Some(J::j(&crate_::compose::the_shape_without_the_fact::the_shape_without_the_fact(&p0, &p1))) }
+        "bot.compose.the_shape_without_the_fact:_a_placeholder" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::the_shape_without_the_fact::_a_placeholder(&p0))) }
+        "bot.compose.the_shape_without_the_fact:_a_thread_with_a_person_in_trouble" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::the_shape_without_the_fact::_a_thread_with_a_person_in_trouble(&p0))) }
+        "bot.compose.the_shape_without_the_fact:answer_for" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::the_shape_without_the_fact::answer_for(&p0, &p1, &p2))) }
+        "bot.compose.their_day:pool_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = truthy(&a[1]); Some(J::j(&crate_::compose::their_day::pool_for(&p0, p1))) }
+        "bot.compose.their_day:reads" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = opt_s(&a[1]); Some(J::j(&crate_::compose::their_day::reads(&p0, p1.as_deref()))) }
+        "bot.compose.their_day:own_fact" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::their_day::own_fact(&p0, &p1))) }
+        "bot.compose.their_day:own_fact_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::their_day::own_fact_for(&p0, &p1))) }
+        "bot.compose.their_detail:_about_food" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::their_detail::_about_food(&p0))) }
+        "bot.compose.their_detail:_asked" => { if a.len() != 3 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::their_detail::_asked(&p0, &p1, &p2))) }
+        "bot.compose.their_detail:_the_read" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::their_detail::_the_read(&p0))) }
+        "bot.compose.their_detail:_a_real_answer" => { if a.len() != 1 { return None; } let p0 = opt_s(&a[0]); Some(J::j(&crate_::compose::their_detail::_a_real_answer(p0.as_deref()))) }
+        "bot.compose.their_detail:_said_already" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::their_detail::_said_already(&p0))) }
+        "bot.compose.their_detail:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::their_detail::reply_for(&p0, &p1))) }
+        "bot.compose.thread_detail:_clean_line" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::thread_detail::_clean_line(&p0))) }
+        "bot.compose.thread_detail:the_thread_is_serious" => { if a.len() != 2 { return None; } let p0 = turns(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::thread_detail::the_thread_is_serious(&p0, &p1))) }
+        "bot.compose.thread_detail:fallback_heavy" => { if a.len() != 1 { return None; } let p0 = turns(&a[0]); Some(J::j(&crate_::compose::thread_detail::fallback_heavy(&p0))) }
+        "bot.compose.thread_detail:the_clause_said_back" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::thread_detail::the_clause_said_back(&p0))) }
+        "bot.compose.thread_detail:the_kind_of_detail" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::thread_detail::the_kind_of_detail(&p0))) }
+        "bot.compose.thread_detail:detail_pool" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::thread_detail::detail_pool(&p0, &p1))) }
+        "bot.compose.thread_detail:_second_person" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::thread_detail::_second_person(&p0))) }
+        "bot.compose.thread_detail:says_nothing_about_the_line" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::thread_detail::says_nothing_about_the_line(&p0, &p1))) }
+        "bot.compose.tone_again:_clean" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::tone_again::_clean(&p0))) }
+        "bot.compose.tone_again:_tones" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::tone_again::_tones(&p0))) }
+        "bot.compose.tone_again:_is_tone_only" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::tone_again::_is_tone_only(&p0))) }
+        "bot.compose.tone_again:_the_draft" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::tone_again::_the_draft(&p0))) }
+        "bot.compose.tone_again:_the_draft_near" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::tone_again::_the_draft_near(&p0))) }
+        "bot.compose.tone_again:_firm" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::tone_again::_firm(&p0))) }
+        "bot.compose.tone_again:_polite" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::tone_again::_polite(&p0))) }
+        "bot.compose.tone_again:_short" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::tone_again::_short(&p0))) }
+        "bot.compose.tone_again:_formal" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::tone_again::_formal(&p0))) }
+        "bot.compose.tone_again:_casual" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::tone_again::_casual(&p0))) }
+        "bot.compose.tone_again:retone" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::tone_again::retone(&p0, &p1))) }
+        "bot.compose.urgent:_not_a_body" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::urgent::_not_a_body(&p0, &p1))) }
+        "bot.compose.urgent:_fed_and_unresponsive" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::urgent::_fed_and_unresponsive(&p0, &p1))) }
+        "bot.compose.urgent:reads_as_a_story" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::urgent::reads_as_a_story(&p0))) }
+        "bot.compose.urgent:_named_a_gait" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = a[1].as_u64().unwrap_or(0) as usize; Some(J::j(&crate_::compose::urgent::_named_a_gait(&p0, p1))) }
+        "bot.compose.urgent:_walking" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::urgent::_walking(&p0))) }
+        "bot.compose.urgent:_signs_a_body" => { if a.len() != 4 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); let p3 = a[3].as_u64().unwrap_or(0) as usize; Some(J::j(&crate_::compose::urgent::_signs_a_body(&p0, &p1, &p2, p3))) }
+        "bot.compose.urgent:_first" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::urgent::_first(&p0, &p1))) }
+        "bot.compose.urgent:_pet_is_the_subject" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::urgent::_pet_is_the_subject(&p0))) }
+        "bot.compose.urgent:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::urgent::reply_for(&p0, &p1))) }
+        "bot.compose.what_decides_it:_clean" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::what_decides_it::_clean(&p0))) }
+        "bot.compose.what_decides_it:_answer_above" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::what_decides_it::_answer_above(&p0))) }
+        "bot.compose.what_decides_it:_is_a_qualifier" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::what_decides_it::_is_a_qualifier(&p0))) }
+        "bot.compose.what_decides_it:_content" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::what_decides_it::_content(&p0))) }
+        "bot.compose.what_decides_it:_sentences" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::what_decides_it::_sentences(&p0))) }
+        "bot.compose.what_decides_it:_is_a_test" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::what_decides_it::_is_a_test(&p0))) }
+        "bot.compose.what_decides_it:_the_test" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::what_decides_it::_the_test(&p0))) }
+        "bot.compose.what_decides_it:_in_contact" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::what_decides_it::_in_contact(&p0, &p1))) }
+        "bot.compose.what_decides_it:answer_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::what_decides_it::answer_for(&p0, &p1))) }
+        "bot.compose.who:_flat" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::who::_flat(&p0))) }
+        "bot.compose.who:asks_who" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::who::asks_who(&p0))) }
+        "bot.compose.who:_last_module" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::who::_last_module(&p0))) }
+        "bot.compose.who:_last_reply" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::who::_last_reply(&p0))) }
+        "bot.compose.who:_names_no_subject" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::who::_names_no_subject(&p0))) }
+        "bot.compose.who:_thread_text" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::who::_thread_text(&p0, &p1))) }
+        "bot.compose.who:_tidy" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::who::_tidy(&p0))) }
+        "bot.compose.who:_lead_of" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::who::_lead_of(&p0))) }
+        "bot.compose.who:_the_way_in" => { if a.len() != 4 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); let p2 = sv(&a[2]); let p3 = sv(&a[3]); Some(J::j(&crate_::compose::who::_the_way_in(&p0, &p1, &p2, &p3))) }
+        "bot.compose.who:_says_it_again" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::who::_says_it_again(&p0, &p1))) }
+        "bot.compose.who:_person_for_the_topic" => { if a.len() != 3 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); let p2 = sv(&a[2]); Some(J::j(&crate_::compose::who::_person_for_the_topic(&p0, &p1, &p2))) }
+        "bot.compose.who:_from_the_answer" => { if a.len() != 6 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); let p2 = a[2].as_u64().unwrap_or(0) as usize; let p3 = mem(&a[3]); let p4 = sv(&a[4]); let p5 = truthy(&a[5]); Some(J::j(&crate_::compose::who::_from_the_answer(&p0, &p1, p2, &p3, &p4, p5))) }
+        "bot.compose.who:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::who::reply_for(&p0, &p1))) }
+        "bot.compose.who:takes_as_it_comes" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::who::takes_as_it_comes(&p0, &p1))) }
+        "bot.compose.who_to_see:_clean" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::who_to_see::_clean(&p0))) }
+        "bot.compose.who_to_see:_the_answer_in_hand" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::who_to_see::_the_answer_in_hand(&p0))) }
+        "bot.compose.who_to_see:_the_condition" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::who_to_see::_the_condition(&p0))) }
+        "bot.compose.who_to_see:_the_question" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::who_to_see::_the_question(&p0, &p1))) }
+        "bot.compose.who_to_see:_the_condition_reply" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::who_to_see::_the_condition_reply(&p0, &p1))) }
+        "bot.compose.who_to_see:_a_sentence_that_names_someone" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::who_to_see::_a_sentence_that_names_someone(&p0))) }
+        "bot.compose.who_to_see:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::who_to_see::reply_for(&p0, &p1))) }
+        "bot.compose.who_to_see:replies_to_a_who_to_see" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::who_to_see::replies_to_a_who_to_see(&p0, &p1))) }
         _ => None,
     }
 }

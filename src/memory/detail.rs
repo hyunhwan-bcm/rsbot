@@ -139,8 +139,7 @@ fn is_empty(memory: &Memory) -> bool {
 
 /// `pick(options, memory, seed_text)` from `bot.compose` (`repeat.pick`).
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    let memory_value = Value::from_plain(&serde_json::Value::Object(memory.to_plain()));
-    crate::compose::pick(options, &memory_value, seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// `str.format` for the `{name}` fields these leads use (unused fields are ignored).

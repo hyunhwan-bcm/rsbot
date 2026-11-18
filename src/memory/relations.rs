@@ -202,13 +202,14 @@ fn user_list(memory: &mut Memory, key: &str) -> Vec<Value> {
 }
 
 /// The memory as a Python-like dict value (for the contract functions that take one).
+#[allow(dead_code)]
 fn memory_value(memory: &Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
 }
 
 /// `pick(options, memory)` from `bot.compose` (no seed text).
 fn pick(options: &[String], memory: &Memory) -> String {
-    crate::compose::pick(options, &memory_value(memory), "")
+    crate::compose::pick(options, memory, "")
 }
 
 /// A Python `try` whose `except Exception` gives a fallback. A function another workstream has

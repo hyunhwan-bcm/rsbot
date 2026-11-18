@@ -118,7 +118,7 @@ pub(crate) fn memory_value(memory: &Memory) -> Value {
 /// `pick(options, memory, seed_text)` from `bot.compose`.
 pub(crate) fn pick<S: AsRef<str>>(options: &[S], memory: &Memory, seed_text: &str) -> String {
     let owned: Vec<String> = options.iter().map(|o| o.as_ref().to_string()).collect();
-    crate::compose::pick(&owned, &memory_value(memory), seed_text)
+    crate::compose::pick(&owned, memory, seed_text)
 }
 
 /// `len(s.split())`.
