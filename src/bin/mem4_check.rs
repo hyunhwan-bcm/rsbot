@@ -414,12 +414,8 @@ fn call(fid: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out> {
 
 /// The ack adapters (kept apart, so the list above stays readable).
 fn ack_call(name: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out> {
-    let _ = (a, memory_after);
-    let out = match name {
-        _ => return None,
-    };
-    #[allow(unreachable_code)]
-    Some(out)
+    let _ = (name, a, memory_after);
+    None
 }
 
 fn truthy(v: &J) -> bool {
