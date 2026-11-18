@@ -52,6 +52,9 @@ static REPLIES: LazyLock<HashMap<&'static str, ReplyFn>> = LazyLock::new(|| {
 fn guard_tables() -> Vec<&'static [(&'static str, GuardFn)]> {
     vec![
         // e.g. crate::knowledge::cooking::GUARDS,
+        // D2
+        crate::knowledge::differences::GUARDS,
+        crate::knowledge::icing::GUARDS,
     ]
 }
 
@@ -59,6 +62,9 @@ fn guard_tables() -> Vec<&'static [(&'static str, GuardFn)]> {
 fn reply_tables() -> Vec<&'static [(&'static str, ReplyFn)]> {
     vec![
         // e.g. crate::knowledge::cooking::REPLIES,
+        // D2
+        crate::knowledge::differences::REPLIES,
+        crate::knowledge::icing::REPLIES,
     ]
 }
 
