@@ -328,11 +328,15 @@ fn main() {
     // fn -> [same, differ, unported, shape/raised, no port]
     let mut tally: BTreeMap<String, [usize; 5]> = BTreeMap::new();
     let mut shown: BTreeMap<String, usize> = BTreeMap::new();
+    let mut blockers: BTreeMap<String, usize> = BTreeMap::new();
     for path in paths {
         let file = std::fs::File::open(&path).unwrap();
         for line in std::io::BufReader::new(flate2::read::GzDecoder::new(file)).lines() {
             let Ok(line) = line else { break };
             let Ok(row) = serde_json::from_str::<J>(&line) else { break };
+            if row.get("dep").is_some() {
+                continue; // a dependency's answer, for the mock crate (harness/mem5_mockpatch.py)
+            }
             let name = row["fn"].as_str().unwrap_or("").to_string();
             if !fns.is_empty() && !fns.iter().any(|f| name.contains(f.as_str())) {
                 continue;
@@ -386,6 +390,7 @@ fn main() {
                     let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
                     if msg.starts_with("UNPORTED") {
                         t[2] += 1;
+                        *blockers.entry(msg.clone()).or_default() += 1;
                     } else if row["raised"].is_string() {
                         t[0] += 1;
                     } else {
@@ -407,6 +412,9 @@ fn main() {
         for k in 0..5 {
             total[k] += t[k];
         }
+    }
+    for (name, n) in &blockers {
+        println!("blocked by {name} x{n}");
     }
     println!("TOTAL same {} differ {} unported {} skipped {} no-port {}", total[0], total[1], total[2], total[3], total[4]);
 }

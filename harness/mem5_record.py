@@ -17,6 +17,21 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import run_python  # noqa: E402
 
 ALL = ("detail", "enough", "pile", "relations", "saving", "tried", "trips", "when")
+# Functions of other workstreams the MEM5 files call and that were not ported when this was
+# written: recorded with no cap, keyed by their arguments with any dict (a memory) left out, so
+# the test-only mock crate (harness/mem5_mockpatch.py) can answer them from the recording.
+DEPS = {
+    "bot.compose": ("pick",),
+    "bot.compose.trouble": ("reads_as_trouble",),
+    "bot.memory.not_a_trip": ("not_a_destination", "the_visit"),
+    "bot.memory": ("plan_line", "last_bot"),
+    "bot.memory.topics": ("content",),
+    "bot.memory.condition": ("conditions",),
+    "bot.memory.history": ("is_their_news",),
+    "bot.memory.spoken": ("_spoken_as_numbers",),
+    "bot.memory.purse": ("against_the_bands",),
+    "bot.memory.places": ("_a_place",),
+}
 
 
 def lines_of(f):
@@ -83,8 +98,22 @@ def main():
     seen, counts = set(), {}
     out = gzip.open(a.out, "wt")
 
-    def wrap(name, fn, cap):
+    def keyed(args):
+        return [None if isinstance(a, dict) or (isinstance(a, (list, tuple)) and any(isinstance(x, dict) for x in a)) else a for a in args]
+
+    def wrap(name, fn, cap, dep=False):
         def wrapper(*args, **kwargs):
+            if dep:
+                result = fn(*args, **kwargs)
+                try:
+                    key = json.dumps([name, enc(keyed(args))], ensure_ascii=False)
+                except Exception:  # noqa: BLE001
+                    return result
+                if key not in seen:
+                    seen.add(key)
+                    out.write(json.dumps({"dep": name, "key": enc(keyed(args)), "result": enc(result)},
+                                         ensure_ascii=False) + "\n")
+                return result
             fresh = counts.get(name, 0) < cap
             key = before = None
             if fresh:
@@ -129,6 +158,13 @@ def main():
                 w = wrap(f"{modname}:{attr}", fn, a.cap)
                 wrapped[id(fn)] = w
                 setattr(mod, attr, w)
+    for modname, names in DEPS.items():
+        mod = importlib.import_module(modname)
+        for attr in names:
+            fn = getattr(mod, attr)
+            w = wrap(f"{modname}:{attr}", fn, 0, dep=True)
+            wrapped[id(fn)] = w
+            setattr(mod, attr, w)
     # Modules that imported a function by name hold the function itself: point them at the wrapper.
     for modname, mod in list(sys.modules.items()):
         if not modname.startswith("bot") or mod is None:
