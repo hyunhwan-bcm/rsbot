@@ -121,3 +121,184 @@ pub fn is_digit_char(c: char) -> bool {
     c.is_ascii_digit()
         || (c.is_numeric() && !('\u{00BC}'..='\u{00BE}').contains(&c) && !('\u{2150}'..='\u{218F}').contains(&c))
 }
+
+// ---- bot.knowledge.money ------------------------------------------------------------------
+
+fn money_f(name: &str) -> f64 {
+    data::get(&format!("bot.knowledge.money.{name}")).as_f64().unwrap_or(0.0)
+}
+/// `money._MONEY`: a sum of money as a pattern string (group 1 the figure, 2 "k"/"grand").
+pub static MONEY_PATTERN: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.money._MONEY"));
+static MONEY_RE: LazyLock<Re> = LazyLock::new(|| Re::new(&MONEY_PATTERN, 0));
+static _SALARY_NUMBER: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.money._SALARY_NUMBER"));
+static _PERSONAL_ALLOWANCE: LazyLock<f64> = LazyLock::new(|| money_f("_PERSONAL_ALLOWANCE"));
+static _TAX_TOP: LazyLock<f64> = LazyLock::new(|| money_f("_TAX_TOP"));
+static _NI_MAIN_TO: LazyLock<f64> = LazyLock::new(|| money_f("_NI_MAIN_TO"));
+static _TAX_BANDS: LazyLock<Vec<(f64, f64)>> = LazyLock::new(|| {
+    data::get("bot.knowledge.money._TAX_BANDS")
+        .items()
+        .iter()
+        .map(|b| (b.items()[0].as_f64().unwrap_or(0.0), b.items()[1].as_f64().unwrap_or(0.0)))
+        .collect()
+});
+static PER_MONTH_RE: LazyLock<Re> = LazyLock::new(|| {
+    Re::new(
+        &format!(
+            r"{}{}\s*(?:a|per|each|every)\s*(month|week|fortnight|year)",
+            *MONEY_PATTERN,
+            data::string("bot.knowledge.money.BETWEEN_THE_SUM_AND_THE_RATE")
+        ),
+        0,
+    )
+});
+static GOING_OUT: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.money.GOING_OUT"));
+static GOING_IN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.money.GOING_IN"));
+
+/// DUP(bot.knowledge.money::_salary_in): the largest yearly salary the text names (a figure of
+/// 3,000 or more, or one with "k"/"grand"), or None.
+pub fn _salary_in(text: &str) -> Option<i64> {
+    let mut best: Option<f64> = None;
+    for m in _SALARY_NUMBER.finditer(text) {
+        let raw = m.str(1).replace(',', "");
+        let Ok(mut value) = raw.parse::<f64>() else { continue };
+        if m.get(2).is_some_and(|g| !g.is_empty()) {
+            value *= 1000.0;
+        } else if value < 3000.0 {
+            continue;
+        }
+        if value >= 1000.0 && best.is_none_or(|b| value > b) {
+            best = Some(value);
+        }
+    }
+    best.filter(|b| *b != 0.0).map(|b| b as i64)
+}
+
+/// DUP(bot.knowledge.money::_income_tax_and_ni): UK income tax and employee National Insurance
+/// on a yearly income, as (tax, ni).
+pub fn _income_tax_and_ni(income: f64) -> (f64, f64) {
+    let pa = *_PERSONAL_ALLOWANCE;
+    let mut allowance = pa;
+    if income > 100000.0 {
+        allowance = (allowance - (income - 100000.0) / 2.0).max(0.0);
+    }
+    let taxable = (income - allowance).max(0.0);
+    let (mut tax, mut left) = (0.0, taxable);
+    for (width, rate) in _TAX_BANDS.iter() {
+        let part = left.min(*width);
+        tax += part * rate;
+        left -= part;
+        if left <= 0.0 {
+            break;
+        }
+    }
+    if left > 0.0 {
+        tax += left * *_TAX_TOP;
+    }
+    let mut ni = 0.0;
+    if income > pa {
+        ni += (income.min(*_NI_MAIN_TO) - pa) * 0.08;
+    }
+    if income > *_NI_MAIN_TO {
+        ni += (income - *_NI_MAIN_TO) * 0.02;
+    }
+    (tax, ni)
+}
+
+/// DUP(bot.knowledge.money::_clause_about): the clause of `text` around [start, end) (byte
+/// offsets; the marks are ASCII, so this is Python's code-point slicing), lower-cased; when it
+/// joins halves with "and"/"but"/"so"/"then", the first half that holds a sum of money.
+pub fn _clause_about(text: &str, start: usize, end: usize) -> String {
+    let marks = ['.', ';', ',', '?'];
+    let left = marks.iter().filter_map(|m| text[..start].rfind(*m)).max().map(|i| i + 1).unwrap_or(0);
+    let right = marks.iter().filter_map(|m| text.get(end..).and_then(|t| t.find(*m)).map(|i| i + end)).min();
+    let stop = right.unwrap_or(text.len());
+    let clause = if left <= stop { text[left..stop].to_lowercase() } else { String::new() };
+    for joiner in [" and ", " but ", " so ", " then "] {
+        if clause.contains(joiner) {
+            for piece in clause.split(joiner) {
+                if MONEY_RE.is_match(piece) {
+                    return piece.to_string();
+                }
+            }
+        }
+    }
+    clause
+}
+
+/// DUP(bot.knowledge.money::_said_a_month): the figure a money match names (times 1,000 for
+/// "k"/"grand").
+pub fn _said_a_month(m: &crate::py::re::Match) -> f64 {
+    let amount: f64 = m.str(1).replace(',', "").parse().unwrap_or(0.0);
+    if m.get(2).is_some_and(|g| !g.is_empty()) { amount * 1000.0 } else { amount }
+}
+
+/// DUP(bot.knowledge.money::_per_month): a sum "a month/week/fortnight/year" in the text, as a
+/// monthly figure (0 when there is none, or the clause is a cost going out).
+pub fn _per_month(text: &str) -> i64 {
+    let Some(m) = PER_MONTH_RE.search(text) else { return 0 };
+    let clause = _clause_about(text, m.start(), m.end());
+    if GOING_OUT.iter().any(|w| clause.contains(w.as_str())) && !GOING_IN.iter().any(|w| clause.contains(w.as_str())) {
+        return 0;
+    }
+    let factor = match m.str(3) {
+        "month" => 1.0,
+        "week" => 52.0 / 12.0,
+        "fortnight" => 26.0 / 12.0,
+        _ => 1.0 / 12.0,
+    };
+    text::round_half_even(_said_a_month(&m) * factor)
+}
+
+// ---- the pinned clock and civil dates ---------------------------------------------------------
+// PyBot runs with the clock pinned (harness/run_python.py `pin_clock`): `date.today()` is
+// 2026-11-17 and `datetime.now()` is 2026-11-17 12:00:00 (naive).
+
+/// `date.today()` as (year, month, day).
+pub const TODAY: (i64, i64, i64) = (2026, 11, 17);
+/// The hour `datetime.now()` gives on the pinned day.
+pub const NOW_HOUR: i64 = 12;
+
+/// Days since 1970-01-01 of a proleptic Gregorian date (Howard Hinnant's algorithm).
+pub fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let mp = (m + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146097 + doe - 719468
+}
+
+/// The date (year, month, day) of a day count since 1970-01-01.
+pub fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719468;
+    let era = z.div_euclid(146097);
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    (if m <= 2 { yoe + era * 400 + 1 } else { yoe + era * 400 }, m, d)
+}
+
+/// `strftime("%A")` of a day count since 1970-01-01.
+pub fn weekday_name(days: i64) -> &'static str {
+    ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][(days + 3).rem_euclid(7) as usize]
+}
+
+/// `strftime("%B")` of a month number.
+pub fn month_name(m: i64) -> &'static str {
+    ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+        [(m - 1).clamp(0, 11) as usize]
+}
+
+/// Whether a (year, month, day) is a real date (`datetime.date(y, m, d)` does not raise).
+pub fn valid_date(y: i64, m: i64, d: i64) -> bool {
+    if !(1..=9999).contains(&y) || !(1..=12).contains(&m) || d < 1 {
+        return false;
+    }
+    let leap = (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;
+    let len = [31, if leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][(m - 1) as usize];
+    d <= len
+}
