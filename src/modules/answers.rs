@@ -1835,7 +1835,7 @@ pub fn _offer_with(reader: &mut Reader, memory: &mut Memory, reading: &Understoo
 
 /// Python: bot/modules/answers.py:6178 `_reply_of(item, reading, memory)`
 /// What this entry would say, without keeping it, so a reply can be read before it is given.
-pub fn _reply_of(item: &Entry, reading: &Understood, memory: &Memory) -> String {
+pub fn _reply_of(item: &Entry, reading: &Understood, memory: &mut Memory) -> String {
     use crate::knowledge::entry::Reply;
     match &item.reply {
         Reply::Text(s) => s.clone(),
@@ -1845,8 +1845,8 @@ pub fn _reply_of(item: &Entry, reading: &Understood, memory: &Memory) -> String 
             if !knowledge::registry::has_reply(&f.id) {
                 panic!("UNPORTED {}", f.id);
             }
-            let mut scratch = memory.clone();
-            match knowledge::registry::try_reply(f, &mut scratch, reading) {
+            // the reply runs on the caller's own memory: what it writes there is kept, as in Python
+            match knowledge::registry::try_reply(f, memory, reading) {
                 Ok(v) => v.unwrap_or_default(),
                 Err(()) => {
                     reraise_unported();
@@ -5082,7 +5082,7 @@ pub fn _the_interests(text_: &str, memory: &Memory, item: Option<&Entry>) -> Vec
 
 /// Python: bot/modules/answers.py:6580 `_the_entry_reply(item, memory, reading)`
 /// What the entry says, without being said: the price it already names, or an empty string.
-pub fn _the_entry_reply(item: &Entry, memory: &Memory, reading: &Understood) -> String {
+pub fn _the_entry_reply(item: &Entry, memory: &mut Memory, reading: &Understood) -> String {
     use crate::knowledge::entry::Reply;
     match &item.reply {
         Reply::Text(s) => s.clone(),
@@ -5092,8 +5092,8 @@ pub fn _the_entry_reply(item: &Entry, memory: &Memory, reading: &Understood) -> 
             if !knowledge::registry::has_reply(&f.id) {
                 panic!("UNPORTED {}", f.id);
             }
-            let mut scratch = memory.clone();
-            match knowledge::registry::try_reply(f, &mut scratch, reading) {
+            // the reply runs on the caller's own memory: what it writes there is kept, as in Python
+            match knowledge::registry::try_reply(f, memory, reading) {
                 Ok(v) => v.unwrap_or_default(),
                 Err(()) => {
                     reraise_unported();
@@ -5106,7 +5106,7 @@ pub fn _the_entry_reply(item: &Entry, memory: &Memory, reading: &Understood) -> 
 
 /// Python: bot/modules/answers.py:6590 `_the_present_with_a_price(text, reading, memory)`
 /// A present at the price the line gives, or the limit on the present just suggested.
-pub fn _the_present_with_a_price(text_: &str, reading: &Understood, memory: &Memory) -> Option<String> {
+pub fn _the_present_with_a_price(text_: &str, reading: &Understood, memory: &mut Memory) -> Option<String> {
     let (money, cheaper) = _price_limit(text_);
     if money.is_none() && !cheaper {
         return None;
@@ -5614,7 +5614,7 @@ pub fn _filling_in_an_emergency(understood: Option<&Understood>, memory: &Memory
 
 /// Python: bot/modules/answers.py:7469 `_usable(item, reading, memory)`
 /// False when the answer needs something the line says the kitchen has not got.
-pub fn _usable(item: &Entry, reading: &Understood, memory: &Memory) -> bool {
+pub fn _usable(item: &Entry, reading: &Understood, memory: &mut Memory) -> bool {
     if item.fault {
         return true;
     }
@@ -5623,7 +5623,7 @@ pub fn _usable(item: &Entry, reading: &Understood, memory: &Memory) -> bool {
 
 /// Python: bot/modules/answers.py:7479 `_next_usable(item, reading, memory)`
 /// The best entry that answers the same line without what the line has not got.
-pub fn _next_usable(item: &Entry, reading: &Understood, memory: &Memory) -> Option<&'static Entry> {
+pub fn _next_usable(item: &Entry, reading: &Understood, memory: &mut Memory) -> Option<&'static Entry> {
     let kept: Vec<&'static Entry> =
         knowledge::entry::entries().iter().filter(|one| !std::ptr::eq(*one, item) && _usable(one, reading, memory)).collect();
     if kept.is_empty() {
