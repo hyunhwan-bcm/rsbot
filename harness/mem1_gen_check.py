@@ -298,8 +298,27 @@ fn falsy(j: &J) -> bool {
     }
 }
 
+/// The oracles were recorded with the clock pinned to 2026-11-17 (`RSBOT_TODAY`); without it, run
+/// this binary again with it set (setting it in-process would take `unsafe`).
+fn pinned_or_rerun(args: &[&str]) -> bool {
+    if std::env::var_os("RSBOT_TODAY").is_some() {
+        return true;
+    }
+    let status = std::process::Command::new(std::env::current_exe().expect("own path"))
+        .args(args)
+        .env("RSBOT_TODAY", "2026-11-17")
+        .status()
+        .expect("rerun with the clock pinned");
+    assert!(status.success(), "the pinned run failed");
+    false
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    let rest: Vec<&str> = args[1..].iter().map(String::as_str).collect();
+    if !pinned_or_rerun(&rest) {
+        return;
+    }
     let path = &args[1];
     let show: usize = args.iter().position(|x| x == "--show").map(|i| args[i + 1].parse().unwrap()).unwrap_or(0);
     let only: Option<String> = args.iter().position(|x| x == "--fn").map(|i| args[i + 1].clone());
@@ -415,6 +434,9 @@ mod tests {
     /// does not reach among them): none may differ or panic; an UNPORTED dependency is skipped.
     #[test]
     fn python_expectations() {
+        if !super::pinned_or_rerun(&["tests::python_expectations", "--exact", "--nocapture"]) {
+            return;
+        }
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/harness/mem1_expect.jsonl");
         let t = super::replay(path, 5, None, true);
         assert_eq!(t[2], 0, "results that differ from PyBot");
