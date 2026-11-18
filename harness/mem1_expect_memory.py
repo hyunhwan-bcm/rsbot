@@ -86,6 +86,9 @@ cases = [
  ("_a_whole_answer_to_hand_back", [{"turns": [T("how do i boil an egg", "Bring a pan of water to the boil and lower the egg in for six minutes for a soft yolk.", "answers")]}, "in full"]),
  ("_said_lines" if False else "_hearing_again", [[T("how do i boil an egg", "Bring a pan of water to the boil and lower the egg in.", "answers"), T("thanks", "Glad that helped.", "chat")], "say that again"]),
 ]
+if len(sys.argv) > 1:
+    # Cases from a JSON file instead: [[name, [args...]], ...].
+    cases = [tuple(c) for c in json.load(open(sys.argv[1]))]
 out = []
 for name, args in cases:
     f = getattr(sr, name)

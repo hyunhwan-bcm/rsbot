@@ -281,3 +281,9 @@
 {"fn": "_the_fact_said_against", "args": ["diet", "vegan", " either"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
 {"fn": "_the_fact_said_against", "args": ["allergies", ["nuts"], " allergic to nuts"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
 {"fn": "_the_fact_said_against", "args": ["condition", ["coeliac"], " well today"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_is_a_question", "args": ["my dad is in hospital with pneumonia"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_is_a_question", "args": ["is it going to rain tomorrow"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_is_a_question", "args": ["what time is it?"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_feeling_about_what_they_said", "args": [null, "im scared for him"], "kwargs": {}, "memory": [0, {"turns": [{"user": "my dad is in hospital with pneumonia", "bot": "Oh no, I'm sorry to hear that.", "module": null}]}], "result": "It is all right to be frightened for your dad. You do not have to be the calm one all the time.", "raised": null, "after": {}}
+{"fn": "_a_feeling_about_what_they_said", "args": [null, "so scared"], "kwargs": {}, "memory": [0, {"turns": [{"user": "my brother is in hospital after the crash", "bot": "That sounds frightening.", "module": null}]}], "result": "That is a lot to be carrying, and being frightened for your brother does not make you any less help to him.", "raised": null, "after": {}}
+{"fn": "_a_feeling_about_what_they_said", "args": [null, "im worried"], "kwargs": {}, "memory": [0, {"turns": [{"user": "what should i cook tonight", "bot": "Pasta.", "module": null}]}], "result": null, "raised": null, "after": {}}
