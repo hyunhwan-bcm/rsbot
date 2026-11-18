@@ -1,101 +1,111 @@
 # Porting PyBot to Rust: conventions for every workstream
 
-rsbot is a hand-written Rust port of PyBot's hot path (github.com/huggingface/pybot at commit
-24cbc0439e07, in `../upstream/pybot`). The goal is the **same reply as PyBot** for every
-SmolTalkBench prompt, written as readable, idiomatic Rust (not transpiled code).
+rsbot is an **exact, complete** hand-written Rust port of PyBot (github.com/huggingface/pybot at
+commit 24cbc0439e07, source in `../upstream/pybot/bot/`): every module, every function, every
+branch, and multi-turn conversations with memory. The target is the same reply and the same
+memory as PyBot on every turn of every conversation. The SmolTalkBench numbers are only a sanity
+check. Write readable, idiomatic Rust that a reviewer can compare with the Python side by side.
 
-## What to port: the sliced spec
+## The skeleton and its contract
 
-`../slice/spec/bot/...` is PyBot with everything removed that did not run on the 1,000 gold
-prompts: branches never taken, functions never called, comments and docstrings. It reproduces
-PyBot's gold replies exactly, so **porting the spec faithfully is enough**. Each workstream has its
-own subset (`../slice/ws/<WS>/` with an `index.json`, or a module list). Read the original file in
-`../upstream/pybot/bot/` when a comment would help you understand intent; port the spec's logic.
+`src/<package>/<file>.rs` exists for every `bot/<package>/<file>.py` (`__init__.py` is
+`mod.rs`), with one stub per Python top-level function:
 
-Port **only what the spec contains**. Do not tune behaviour against held-out prompts: the
-held-out set measures how well a port built from gold generalises.
+```rust
+/// Python: bot/memory/facts.py:123 `extract(text, memory=None)`
+pub fn extract(text: &str, memory: Option<&Memory>) -> Value { crate::unported!("bot.memory.facts:extract") }
+```
 
-## Layout and naming
+- **Port every stub in your files** by reading the original Python (with its comments) and
+  writing the full logic: every branch, not only the ones the test corpus reaches. Done means
+  `grep -c 'unported!' <your files>` is 0.
+- **Signatures are a contract.** Other workstreams call your functions with these signatures
+  while you port them, so do not change the signature of a function another file calls (see
+  `../slice/cross_api.json`: "module:function" -> calling modules). A function only your own file
+  calls may get a better signature. If a contract signature truly cannot express the Python
+  behaviour, keep it and add a second function, and say so in your report.
+- Types were chosen from what each parameter held when PyBot ran: `&str`, `&Understood`,
+  `&Memory` (or `&mut Memory` when the function writes memory), `&[String]`, `&'static Entry`,
+  `i64`, `bool`; anything mixed is `Value` / `&Value` (`crate::data::Value`, a Python-like value).
+  Python default arguments are in the doc comment; Rust callers pass them explicitly.
+- Calling a function another workstream has not ported yet is fine: it panics with
+  `UNPORTED <name>`, which the runtime treats like a Python exception (the module is skipped),
+  and the checkers count separately.
+- Runtime hooks have fixed signatures: `observe(text, &mut Memory)`, `respond(text, &mut Memory)
+  -> Option<String>`, `after(text, reply, &mut Memory)`, `choose(text, &Memory, &[Candidate]) ->
+  usize`. `modules::registry()` lists all 109 modules in PyBot's order.
 
-- `bot/<package>/<file>.py` is `src/<package>/<file>.rs` (`__init__.py` is `mod.rs`). Add
-  `pub mod <file>;` to the package's `mod.rs`.
-- Keep Python function names (a leading underscore stays: `fn _forms(...)`), so a reader can go
-  from Rust to Python by name. Module-level constants keep their names too.
-- PyBot's data is **not retyped**. Module-level tables, word lists, reply pools and compiled
-  regexes come from the bundle by Python name, held in `LazyLock` statics:
+## Data
 
-  ```rust
-  static ENDINGS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.ENDINGS"));
-  static BACK_OF_THE_HOUSE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.BACK_OF_THE_HOUSE"));
-  ```
+PyBot's module-level data is **not retyped**: tables, word lists, reply pools and compiled
+regexes come from the exported bundle by Python name, held in `LazyLock` statics:
 
-  `data::get(name)` returns a `data::Value` (None/Bool/Int/Float/Str/List/Tuple/Set/Dict/Re/Fn/Obj)
-  with helpers: `.str()`, `.strs()`, `.str_set()`, `.items()`, `.pairs()`, `.get(key)`,
-  `.attr(name)` (object attributes, e.g. an `Entry`), `.as_re()`, `.as_fn()`. Sets are exported
-  in sorted order. `data::names_with_prefix("bot.knowledge.cooking.")` lists a module's globals.
-- A regex written inline in a function (`re.search(r"...", text)`) becomes a `LazyLock<Re>`
-  static built with `Re::new(pattern, flags)`. Copy the pattern text exactly.
+```rust
+static ENDINGS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.ENDINGS"));
+static BACK: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.BACK_OF_THE_HOUSE"));
+```
+
+`data::get(name)` gives a `Value`: `.str()`, `.strs()`, `.str_set()`, `.items()`, `.pairs()`,
+`.get(key)`, `.attr(name)`, `.as_re()`, `.as_fn()`, `.as_int()`, `.truthy()`. A regex written
+inline in a function becomes a `LazyLock<Re>` built with `Re::new(pattern, flags)` (copy the
+pattern text exactly). If a module-level value is computed at import time by a function, it is
+already in the bundle with its computed value: read it, do not port the builder (the builder
+still gets ported if anything calls it at run time).
+
+Knowledge entries: `knowledge::entry::{Entry, entries(), by_id()}` (the canonical list PyBot's
+`bot.knowledge.entries()` returns, domains set, guard folds applied). Entry guards / replies /
+shape functions run through `knowledge::registry` by Python id "module:qualname:line"; closure
+values via `FnRef::cell(name)`.
+
+## Memory
+
+`state::Memory` is PyBot's memory dict: typed `understood: Option<Understood>`, `intent_wants`,
+`asked_now`, `turns: Vec<Turn>`, and every other key in `extra` as a `Value`:
+`memory.get("facts")`, `memory.set("topic", v)`, `memory.setdefault(key, Value::dict())`,
+`memory.remove(key)`, `memory.has(key)`. `Value` containers are copy-on-write: `set_key`,
+`del_key`, `get_mut`, `push`, `items_mut`, `setdefault`, `contains_str`, `len`. Python's runtime
+deep-copies memory for every module; in Rust that is `memory.clone()` (cheap).
 
 ## Python behaviour you must keep
 
-- **Regex**: `crate::py::re::Re` runs CPython's patterns unchanged (PCRE2, verified identical to
-  CPython on all 10,024 PyBot patterns). It has `search`, `search_at`, `match_`, `fullmatch`,
-  `finditer`, `findall`, `findall_str`, `sub` (Python templates `\1`, `\g<name>`), `sub_fn`,
-  `subn`, `split`, `is_match`; `Match` has `get(i)`, `str(i)` (= `group(i) or ""`), `name(..)`,
-  `start()`, `end()`, `span(i)`. Flags are Python's bits (`re::I`, `re::X`, ...).
-- **Offsets**: `Match` positions are byte offsets. Python's are code points. They agree on ASCII;
-  where Python does arithmetic on indices (`text[m.end():m.end() + 24]`), convert with
-  `py::text::byte_at` / `char_index` / `slice`.
-- **str methods**: `crate::py::text` (`split` = `str.split()`, `squash` = `" ".join(s.split())`,
-  `strip`, `capitalize`, `title`, `upper_first`, `partition`, `find`/`rfind` (char indices),
-  `is_digit`, `float_repr` (Python's float printing), `round_half_even` (Python's `round`)...).
-- **random**: `crate::py::random` is CPython's Mersenne Twister bit for bit. `random.Random(seed)`
-  is `Random::new(seed)`; `ord_sum(text)` is `sum(ord(c) for c in text)`. Module-level
-  `random.choice` uses `py::random::choice` (seeded per conversation like Python).
-- **Exceptions**: where Python would raise (IndexError, KeyError, a None attribute...) and a
-  caller catches it, return the caller's fallback. Where nothing in the module catches it, a Rust
-  panic is acceptable: the runtime catches a panicking module and skips it, exactly as Python's
-  runtime skips a module that raised. Guards/replies run through the registry are also caught.
-- **Truthiness**: Python `x or y`, `if x:` on strings/lists/None. Be careful with `0`, `""`, `[]`.
-- **Dict order**: Python dicts keep insertion order; use `IndexMap` or `Vec<(K, V)>` where order
-  is observable. **Set order**: Python's set iteration order for strings depends on a per-process
-  hash seed. If a mismatch comes from iterating a set, note it and move on.
-- **Dates**: the clock is pinned to 2026-11-17 in every oracle run.
+- **Regex** (`py::re::Re`): CPython's patterns unchanged, via PCRE2; identical to CPython on all
+  10,024 PyBot patterns. `search`, `search_at`, `match_`, `fullmatch`, `finditer`, `findall`,
+  `findall_str`, `sub` (Python templates), `sub_fn`, `subn`, `split`, `is_match`; `Match::get(i)`,
+  `str(i)` (= `group(i) or ""`), `name(..)`, `start()`, `end()`, `span(i)`.
+- **Offsets** are bytes in Rust, code points in Python: convert with `py::text::byte_at`,
+  `char_index`, `slice` wherever Python does arithmetic on indices.
+- **str methods** (`py::text`): `split`, `squash`, `strip*`, `capitalize`, `title`,
+  `upper_first`, `partition`, `find`/`rfind` (char indices), `is_digit`, `float_repr`,
+  `round_half_even`, `thousands`...
+- **random** (`py::random`): CPython's generator bit for bit; `Random::new(seed)`, `ord_sum`,
+  module-level `seed`/`choice`/`randrange`/`getstate`/`setstate`. The global generator is
+  consumed in module order across a turn exactly as in Python: keep every call.
+- **Exceptions**: where Python raises and a caller catches it, return the caller's fallback;
+  where nothing catches it, a panic is right (the runtime skips the module, as Python's does).
+- **Truthiness, dict order** (insertion order: use `IndexMap` or `Vec<(K, V)>`), **set order**
+  (Python's string-set order depends on a per-process hash seed: if output depends on it, note it).
+- **Clock**: pinned to 2026-11-17 in every oracle run.
 
-## Shared types
-
-- `understood::Understood`: the reading (`memory["understood"]`), typed. `Option<String>` for
-  values that can be None; `Vec<String>` for lists; `serde(default)` fills fields a partial
-  reading lacks. `.wants` is written by the intent observer.
-- `state::Memory`: `understood`, `intent_wants`, `asked_now`, `turns` (empty in single-turn
-  replies), `extra` (anything else, by Python key, as `data::Value`).
-- `knowledge::registry`: entry guards (`guard(reading) -> bool`) and function replies
-  (`reply(memory, reading) -> str`) by Python id `"module:qualname:line"`. A ported module
-  exposes `pub const GUARDS: &[(&str, GuardFn)]` and `pub const REPLIES: &[(&str, ReplyFn)]`
-  and adds them to `guard_tables()` / `reply_tables()`. Closure values: `f.cell("name")`;
-  default arguments: `f.defaults`. One Rust function can serve every entry made by one factory.
-- `runtime`: `turn`, `answer`, `guarded` (catch a panic). `modules::hooks` wires each module.
-
-## Checking your work
-
-All checks compare against PyBot's own results, recorded on the benchmark prompts:
+## Checking
 
 ```sh
-cargo build --release
-./target/release/oracle_check understood gold --show 5     # the reading, field by field
-./target/release/oracle_check module answers gold --show 5 # one module's candidate reply
-./target/release/oracle_check all gold                     # every stage
-./target/release/entry_check gold --module bot.knowledge.cooking --show 3   # guards/replies
-RSBOT_ORACLE_UNDERSTAND=1 ...  # understanding::understand(text) answers from PyBot's recorded results
+cargo build --profile fast        # iteration build (target/fast/); --release for benchmarks
+# every stage of every turn of 4,577 conversations, fed PyBot's own inputs:
+./target/fast/turn_check ../data/export/turn_oracle.jsonl.gz --module <name> --show 5
+./target/fast/turn_check ../data/export/turn_oracle.jsonl.gz --e2e          # whole conversations
+./target/fast/oracle_check understood gold                                 # first-turn reading
+./target/fast/entry_check gold --module bot.knowledge.cooking              # entry guards/replies
+# any Python function on any input, to compare with your port:
+python3 ../harness/pycall.py bot.memory.facts extract '["i have a dog called rex"]'
 ```
 
-`oracle_check` feeds each stage PyBot's own inputs, so a stage can be checked before the stages
-in front of it are ported. Commit to your branch often (`git commit -am ...`); the integrator
-merges branches into `main`.
+The corpus does not reach every branch; a branch it does not reach must still be ported by
+careful reading. Add `#[cfg(test)]` tests with expected values from `pycall.py` for logic the
+corpus does not exercise.
 
-## Style
+## Working in a workstream
 
-Idiomatic Rust: plain functions, `&str` in, `String`/`Option` out, iterators, early returns.
-Keep the Python structure where it carries the logic, so a reviewer can compare the two side by
-side. No `unsafe`. Add a one-line doc comment saying what a function decides, in the bot's terms.
-No new dependencies without a strong reason.
+Work only in your git worktree and only on your files (plus `mod.rs` lines and registry tables
+when you add modules). Commit often with `git -c user.name=rsbot -c user.email=rsbot@localhost
+commit`; keep the crate compiling at every commit; run `git merge main` now and then to pick up
+other workstreams' ports. No `unsafe`, no new dependencies without a strong reason.

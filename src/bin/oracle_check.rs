@@ -118,7 +118,7 @@ fn check_arbiter(rows: &[Row], o: &Opts) -> (usize, usize) {
             .collect();
         random::seed(0);
         let m = memory_from(row);
-        let i = guarded(|| rsbot::modules::arbiter::choose(&row.text, &m, &cands)).unwrap_or(0);
+        let i = guarded(|| rsbot::modules::choose(&row.text, &m, &cands)).unwrap_or(0);
         let got = cands.get(i).map(|c| c.module.to_string());
         if got == row.chosen {
             ok += 1;

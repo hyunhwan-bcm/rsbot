@@ -1,0 +1,7 @@
+rsbot - a Rust port of PyBot.
+
+This product is a port of PyBot (https://github.com/huggingface/pybot, commit
+24cbc0439e07fd015c0747ab3be6e782a42b5c5b), Copyright Hugging Face, licensed under the Apache
+License 2.0. PyBot's data (word lists, reply pools, regular expressions, knowledge entries) is
+exported from that source by harness/export_data.py at build-data time; it is not
+redistributed in this repository.

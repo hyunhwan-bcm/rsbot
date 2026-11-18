@@ -298,3 +298,215 @@ pub fn names_with_prefix(prefix: &str) -> Vec<&'static str> {
     v.sort();
     v
 }
+
+// ---------------------------------------------------------------------------------------------
+// Values as mutable Python objects (conversation memory).
+//
+// Containers are `Arc`-shared and copied on write (`Arc::make_mut`), so cloning a whole memory
+// for every module (Python's deepcopy per module) costs almost nothing until a module writes.
+
+impl From<&str> for Value {
+    fn from(s: &str) -> Value {
+        Value::Str(Arc::from(s))
+    }
+}
+impl From<String> for Value {
+    fn from(s: String) -> Value {
+        Value::Str(Arc::from(s.as_str()))
+    }
+}
+impl From<&String> for Value {
+    fn from(s: &String) -> Value {
+        Value::Str(Arc::from(s.as_str()))
+    }
+}
+impl From<bool> for Value {
+    fn from(b: bool) -> Value {
+        Value::Bool(b)
+    }
+}
+impl From<i64> for Value {
+    fn from(i: i64) -> Value {
+        Value::Int(i)
+    }
+}
+impl From<usize> for Value {
+    fn from(i: usize) -> Value {
+        Value::Int(i as i64)
+    }
+}
+impl From<f64> for Value {
+    fn from(f: f64) -> Value {
+        Value::Float(f)
+    }
+}
+impl<T: Into<Value>> From<Option<T>> for Value {
+    fn from(o: Option<T>) -> Value {
+        o.map(Into::into).unwrap_or(Value::None)
+    }
+}
+impl From<Vec<Value>> for Value {
+    fn from(v: Vec<Value>) -> Value {
+        Value::List(Arc::new(v))
+    }
+}
+impl From<Vec<String>> for Value {
+    fn from(v: Vec<String>) -> Value {
+        Value::List(Arc::new(v.into_iter().map(Value::from).collect()))
+    }
+}
+
+impl PartialEq for Value {
+    /// Python `==` on these values (lists and tuples compare by items; a regex by its source).
+    fn eq(&self, other: &Value) -> bool {
+        use Value::*;
+        match (self, other) {
+            (None, None) => true,
+            (Bool(a), Bool(b)) => a == b,
+            (Int(a), Int(b)) => a == b,
+            (Float(a), Float(b)) => a == b,
+            (Int(a), Float(b)) | (Float(b), Int(a)) => (*a as f64) == *b,
+            (Bool(a), Int(b)) | (Int(b), Bool(a)) => (*a as i64) == *b,
+            (Str(a), Str(b)) => a == b,
+            (List(a), List(b)) | (Tuple(a), Tuple(b)) => a == b,
+            (Set(a), Set(b)) => a.len() == b.len() && a.iter().all(|x| b.contains(x)),
+            (Dict(a), Dict(b)) => a.len() == b.len() && a.iter().all(|(k, v)| b.iter().any(|(k2, v2)| k == k2 && v == v2)),
+            (Re(a), Re(b)) => a.pattern() == b.pattern() && a.flags() == b.flags(),
+            (Fn(a), Fn(b)) => a.id == b.id,
+            (Obj(c, a), Obj(d, b)) => c == d && a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| x.0 == y.0 && x.1 == y.1),
+            (Module(a), Module(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
+impl Value {
+    /// An empty dict.
+    pub fn dict() -> Value {
+        Value::Dict(Arc::new(Vec::new()))
+    }
+    /// An empty list.
+    pub fn list() -> Value {
+        Value::List(Arc::new(Vec::new()))
+    }
+    /// `d[key] = v` (insertion order kept, as in Python). Turns a non-dict into a dict.
+    pub fn set_key(&mut self, key: impl Into<Value>, v: impl Into<Value>) {
+        let key = key.into();
+        let v = v.into();
+        if !matches!(self, Value::Dict(_)) {
+            *self = Value::dict();
+        }
+        if let Value::Dict(d) = self {
+            let d = Arc::make_mut(d);
+            match d.iter_mut().find(|(k, _)| *k == key) {
+                Some(slot) => slot.1 = v,
+                None => d.push((key, v)),
+            }
+        }
+    }
+    /// `d.pop(key, None)`.
+    pub fn del_key(&mut self, key: &str) -> Option<Value> {
+        if let Value::Dict(d) = self {
+            let d = Arc::make_mut(d);
+            if let Some(i) = d.iter().position(|(k, _)| k.as_str() == Some(key)) {
+                return Some(d.remove(i).1);
+            }
+        }
+        None
+    }
+    /// A mutable reference to `d[key]` (a str key), if present.
+    pub fn get_mut(&mut self, key: &str) -> Option<&mut Value> {
+        match self {
+            Value::Dict(d) => Arc::make_mut(d).iter_mut().find(|(k, _)| k.as_str() == Some(key)).map(|(_, v)| v),
+            _ => None,
+        }
+    }
+    /// `d.setdefault(key, default)`, returning the value now there.
+    pub fn setdefault(&mut self, key: &str, default: impl Into<Value>) -> &mut Value {
+        if self.get(key).is_none() {
+            self.set_key(key, default);
+        }
+        self.get_mut(key).unwrap()
+    }
+    /// `lst.append(v)`. Turns a non-list into a list.
+    pub fn push(&mut self, v: impl Into<Value>) {
+        if !matches!(self, Value::List(_)) {
+            *self = Value::list();
+        }
+        if let Value::List(l) = self {
+            Arc::make_mut(l).push(v.into());
+        }
+    }
+    /// The items of a list/tuple/set, mutable (lists only).
+    pub fn items_mut(&mut self) -> Option<&mut Vec<Value>> {
+        match self {
+            Value::List(l) => Some(Arc::make_mut(l)),
+            _ => None,
+        }
+    }
+    /// `len(x)` for str (characters), containers; 0 otherwise.
+    pub fn len(&self) -> usize {
+        match self {
+            Value::Str(s) => s.chars().count(),
+            Value::List(v) | Value::Tuple(v) | Value::Set(v) => v.len(),
+            Value::Dict(d) => d.len(),
+            _ => 0,
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    pub fn is_str(&self) -> bool {
+        matches!(self, Value::Str(_))
+    }
+    pub fn is_list(&self) -> bool {
+        matches!(self, Value::List(_) | Value::Tuple(_))
+    }
+    pub fn is_dict(&self) -> bool {
+        matches!(self, Value::Dict(_))
+    }
+    /// `x in container` for a str item (list/tuple/set items, dict keys, or a substring of a str).
+    pub fn contains_str(&self, item: &str) -> bool {
+        match self {
+            Value::Str(s) => s.contains(item),
+            Value::List(v) | Value::Tuple(v) | Value::Set(v) => v.iter().any(|x| x.as_str() == Some(item)),
+            Value::Dict(d) => d.iter().any(|(k, _)| k.as_str() == Some(item)),
+            _ => false,
+        }
+    }
+
+    /// Plain JSON (what the oracle files hold): sequences as arrays, str-keyed dicts as objects,
+    /// other dicts as [[k, v], ...], objects/regexes/functions in their export tags.
+    pub fn to_plain(&self) -> serde_json::Value {
+        use serde_json::{json, Value as J};
+        match self {
+            Value::None => J::Null,
+            Value::Bool(b) => J::Bool(*b),
+            Value::Int(i) => json!(i),
+            Value::Float(f) => json!(f),
+            Value::Str(s) => J::String(s.to_string()),
+            Value::List(v) | Value::Tuple(v) | Value::Set(v) => J::Array(v.iter().map(Value::to_plain).collect()),
+            Value::Dict(d) => {
+                if d.iter().all(|(k, _)| k.is_str()) {
+                    J::Object(d.iter().map(|(k, v)| (k.str().to_string(), v.to_plain())).collect())
+                } else {
+                    J::Array(d.iter().map(|(k, v)| J::Array(vec![k.to_plain(), v.to_plain()])).collect())
+                }
+            }
+            Value::Re(r) => json!({"re": r.pattern(), "flags": r.flags()}),
+            Value::Fn(f) => json!({"fn": f.id}),
+            Value::Obj(c, a) => json!({"obj": &**c, "attrs": a.iter().map(|(k, v)| (k.clone(), v.to_plain())).collect::<serde_json::Map<_, _>>()}),
+            Value::Module(m) => json!({"mod": &**m}),
+            Value::Opaque(o) => json!({"opaque": &**o}),
+        }
+    }
+}
+
+/// Mark a function that has not been ported yet. Panics like a Python exception: the runtime
+/// skips the module that hit it, and the checkers count it by name.
+#[macro_export]
+macro_rules! unported {
+    ($name:expr) => {
+        panic!("UNPORTED {}", $name)
+    };
+}
