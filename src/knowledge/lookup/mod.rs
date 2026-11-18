@@ -225,35 +225,3 @@ pub(crate) fn first_text<'a>(u: &'a Understood, keys: &[&str]) -> &'a str {
     }
     ""
 }
-
-
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
-
-    /// Python: bot/knowledge/lookup.py:823 `the_fault(template, when_unnamed, table=THE_FAULT)` (never called on the trace corpus)
-    pub fn the_fault(template: &Value, when_unnamed: &Value, table: &Value) -> Value {
-        crate::unported!("bot.knowledge.lookup:the_fault")
-    }
-
-    /// Python: bot/knowledge/lookup.py:1506 `all_of()` (never called on the trace corpus)
-    pub fn all_of(guards: &[Value]) -> Value {
-        crate::unported!("bot.knowledge.lookup:all_of")
-    }
-
-    /// Python: bot/knowledge/lookup.py:6462 `_rows_key(forms, typed, named, frame, framed=False, asked=(), ask_said=())`
-    pub fn _rows_key(forms: &Value, typed: &[String], named: &[String], frame: bool, framed: bool, asked: &[String], ask_said: &[String]) -> Value {
-        crate::unported!("bot.knowledge.lookup:_rows_key")
-    }
-
-}
-
