@@ -23,6 +23,9 @@
 //   bot.compose.is_it_worth_it:_with_what_they_said
 //   bot.compose.lead:_the_own_sentence_holding
 //   bot.compose.leaving:_wish_pool
+//   bot.compose.limit:_the_parts_left
+//   bot.compose.missing_half:_the_ages
+//   bot.compose.missing_half:_the_known_list
 #![allow(unused_mut, unused_variables, dead_code)]
 
 extern crate rsbot as crate_;
@@ -311,6 +314,28 @@ fn call(name: &str, a: &[Json]) -> Option<Json> {
         "bot.compose.leaving:_a_state_not_an_errand" => { if a.len() != 1 { return None; } let p0 = strs(&a[0]); Some(J::j(&crate_::compose::leaving::_a_state_not_an_errand(&p0))) }
         "bot.compose.leaving:_is_a_bedtime" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::leaving::_is_a_bedtime(&p0))) }
         "bot.compose.leaving:lines" => { if a.len() != 0 { return None; }  Some(J::j(&crate_::compose::leaving::lines())) }
+        "bot.compose.limit:restates_the_answer" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::limit::restates_the_answer(&p0))) }
+        "bot.compose.limit:forms_of" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::limit::forms_of(&p0))) }
+        "bot.compose.limit:_carries" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::limit::_carries(&p0, &p1))) }
+        "bot.compose.limit:_last_answer" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::limit::_last_answer(&p0))) }
+        "bot.compose.limit:_pick" => { if a.len() != 2 { return None; } let p0 = strs(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::limit::_pick(&p0, &p1))) }
+        "bot.compose.limit:_take_out" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = strs(&a[1]); Some(J::j(&crate_::compose::limit::_take_out(&p0, &p1))) }
+        "bot.compose.limit:steps_left" => { if a.len() != 2 { return None; } let p0 = und(&a[0])?; let p1 = mem(&a[1]); Some(J::j(&crate_::compose::limit::steps_left(&p0, &p1))) }
+        "bot.compose.limit:_joined" => { if a.len() != 1 { return None; } let p0 = strs(&a[0]); Some(J::j(&crate_::compose::limit::_joined(&p0))) }
+        "bot.compose.limit:_a_fact_put_right" => { if a.len() != 1 { return None; } let p0 = mem(&a[0]); Some(J::j(&crate_::compose::limit::_a_fact_put_right(&p0))) }
+        "bot.compose.limit:a_limit_on_the_answer" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::limit::a_limit_on_the_answer(&p0))) }
+        "bot.compose.limit:a_limit_the_reading_missed" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::limit::a_limit_the_reading_missed(&p0, &p1))) }
+        "bot.compose.limit:reply_for" => { if a.len() != 2 { return None; } let p0 = und(&a[0])?; let p1 = mem(&a[1]); Some(J::j(&crate_::compose::limit::reply_for(&p0, &p1))) }
+        "bot.compose.missing_half:_choose" => { if a.len() != 2 { return None; } let p0 = strs(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::missing_half::_choose(&p0, &p1))) }
+        "bot.compose.missing_half:_a_sentence" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::missing_half::_a_sentence(&p0))) }
+        "bot.compose.missing_half:_fits" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::missing_half::_fits(&p0, &p1))) }
+        "bot.compose.missing_half:_given_beside" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::missing_half::_given_beside(&p0, &p1))) }
+        "bot.compose.missing_half:the_missing_half" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::missing_half::the_missing_half(&p0, &p1))) }
+        "bot.compose.nearby_one:_the_thing" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::nearby_one::_the_thing(&p0))) }
+        "bot.compose.nearby_one:_a_place" => { if a.len() != 1 { return None; } let p0 = strs(&a[0]); Some(J::j(&crate_::compose::nearby_one::_a_place(&p0))) }
+        "bot.compose.nearby_one:_the_thread_thing" => { if a.len() != 2 { return None; } let p0 = mem(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::nearby_one::_the_thread_thing(&p0, &p1))) }
+        "bot.compose.nearby_one:_pick" => { if a.len() != 2 { return None; } let p0 = strs(&a[0]); let p1 = sv(&a[1]); Some(J::j(&crate_::compose::nearby_one::_pick(&p0, &p1))) }
+        "bot.compose.nearby_one:reply_for" => { if a.len() != 2 { return None; } let p0 = sv(&a[0]); let p1 = mem(&a[1]); Some(J::j(&crate_::compose::nearby_one::reply_for(&p0, &p1))) }
         "bot.compose.said_about_me:reads_as_somebody_elses_words" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::said_about_me::reads_as_somebody_elses_words(&p0))) }
         "bot.compose.said_about_me:_kind" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::said_about_me::_kind(&p0))) }
         "bot.compose.said_about_me:reads_as_reported_judgement" => { if a.len() != 1 { return None; } let p0 = sv(&a[0]); Some(J::j(&crate_::compose::said_about_me::reads_as_reported_judgement(&p0))) }
@@ -340,6 +365,8 @@ fn same(py: &Json, rs: &Json) -> bool {
             b.sort();
             a == b
         }
+        // Python's `(None, None)` (or `(None, None, None)`) for "nothing", an Option's None here
+        (Json::Array(x), Json::Null) => !x.is_empty() && x.iter().all(Json::is_null),
         // Python's `{}` for "no turn"
         (Json::Object(o), Json::Null) => o.is_empty(),
         (Json::Object(o), Json::Object(r)) if r.contains_key("__turn__") => {
