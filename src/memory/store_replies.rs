@@ -11171,7 +11171,12 @@ pub fn _a_stay_in_a_place(text_: &str) -> bool {
 ///
 /// The kind of thing an ask names, or "" when the word is a thing of its own. (The earlier
 /// `_kind(item)` at line 770 is shadowed by this one in the module.)
-pub fn _kind(thing: &str) -> String {
+pub fn _kind(thing: &str) -> Value {
+    Value::from(_kind_s(thing))
+}
+
+/// `_kind` as the str it is.
+fn _kind_s(thing: &str) -> String {
     KINDS.iter().find(|(_, words)| words.contains(thing)).map(|(k, _)| k.clone()).unwrap_or_default()
 }
 
@@ -11205,7 +11210,7 @@ pub fn _a_place_they_go(text_: &str) -> String {
 ///
 /// True when `text` is about the kind of thing the ask names ("trip" -> "Lisbon in may").
 pub fn _about_kind(thing: &str, text_: &str, memory: Option<&mut Memory>, phrase: bool) -> bool {
-    let kind = _kind(thing);
+    let kind = _kind_s(thing);
     if kind.is_empty() || text::strip(text_).is_empty() {
         return false;
     }
