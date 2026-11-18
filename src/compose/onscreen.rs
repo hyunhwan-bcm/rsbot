@@ -3,7 +3,7 @@
 
 use crate::compose::fallback;
 use crate::compose::fallback_chain::{_choose_opt, caught};
-use crate::data::{self, Value};
+use crate::data;
 use crate::memory::history;
 use crate::py::re::Re;
 use crate::py::text;

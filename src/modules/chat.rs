@@ -824,7 +824,7 @@ pub fn _a_limit(text_: &str, memory: &mut Memory) -> Option<String> {
     }
     attempt(|| {
         if crate::knowledge::lookup::find(&read, None, None, false).is_some()
-            && !truthy(crate::memory::limit::only_a_limit(text_, &NO_MEMORY))
+            && !truthy(crate::memory::limit::only_a_limit(text_, None))
         {
             return None;
         }

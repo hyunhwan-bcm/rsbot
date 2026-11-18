@@ -3631,6 +3631,7 @@ fn opt_pool_exact<T: PyRet>(v: T) -> Option<Vec<String>> {
 }
 
 /// The memory as a plain Python value, for a reader whose contract takes one.
+#[allow(dead_code)]
 fn memory_value(memory: &Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
 }
