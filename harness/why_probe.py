@@ -9,9 +9,10 @@ functions: the string readers on the answer and on its sentences, parts and colo
 turn readers on the turn; and the replies (`respond`, `respond_to_a_saying_ask`,
 `takes_as_it_comes`, `said_again`) on a memory of the turns up to it, for a set of follow-ups.
 Writes OUT_DIR/calls.jsonl in com1_calls.py's format (arguments inline) and an empty
-OUT_DIR/objs.jsonl.
+OUT_DIR/objs.jsonl. Each function keeps its first 100 calls, then up to 600 when the result is
+one it has kept fewer than 12 times, so the file stays small and rare outcomes are kept.
 """
-import argparse, gzip, json, os, re, sys
+import argparse, collections, gzip, json, os, re, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_python
@@ -24,6 +25,7 @@ FOLLOW_UPS = ("why?", "why", "why not?", "but why?", "why is that?", "how come?"
               "why is it doing that?", "what's causing it?", "why does that happen?",
               "say that again", "say that again?", "come again?", "why do you say that?",
               "why would you say that", "what makes you think that?", "why's that")
+FIRST, MOST, PER_RESULT = 100, 600, 12
 
 
 def main():
@@ -67,6 +69,8 @@ def main():
 
     out = open(os.path.join(a.out, "calls.jsonl"), "w")
     kept = 0
+    per_fn = collections.Counter()
+    per_result = collections.Counter()
 
     def call(name, *args):
         nonlocal kept
@@ -75,8 +79,14 @@ def main():
             res = getattr(why, name)(*args)
         except Exception as e:  # noqa: BLE001
             raised = type(e).__name__
+        result = plain(encode(res))
+        rkey = (name, json.dumps(result, sort_keys=True, ensure_ascii=False))
+        if per_fn[name] >= MOST or (per_fn[name] >= FIRST and per_result[rkey] >= PER_RESULT):
+            return res
+        per_fn[name] += 1
+        per_result[rkey] += 1
         rec = {"fn": f"bot.compose.why:{name}", "args": [plain(encode(x)) for x in args],
-               "result": plain(encode(res)), "raised": raised}
+               "result": result, "raised": raised}
         out.write(json.dumps(rec, ensure_ascii=False) + "\n")
         kept += 1
         return res
@@ -147,7 +157,7 @@ def main():
             call("_is_bare_why", clean)
             call("asks_about_the_last_answer", clean)
         if reason:
-            for frame in why.WHY_NAMED[:3] + why.WHY_NAMED_BECAUSE[:2]:
+            for frame in list(why.WHY_NAMED[:3]) + list(why.WHY_NAMED_BECAUSE[:2]):
                 call("_in_frame", frame, reason)
     out.close()
     open(os.path.join(a.out, "objs.jsonl"), "w").close()
