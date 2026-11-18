@@ -356,11 +356,10 @@ pub fn pick<S: AsRef<str>>(options: &[S], memory: &Memory, seed_text: &str) -> S
     // happened. On the opening turn there is none, so they are passed over for one that can open
     // a conversation.
     if !crate::memory::history::an_earlier_turn(memory, "") {
-        let plain = com4::memory_value(memory);
         let backed: Vec<&str> = options
             .iter()
             .copied()
-            .filter(|o| !crate::memory::history::a_past_that_is_not_there(o, &plain, None))
+            .filter(|o| !crate::memory::history::a_past_that_is_not_there(o, Some(memory), None))
             .collect();
         if !backed.is_empty() {
             options = backed;
