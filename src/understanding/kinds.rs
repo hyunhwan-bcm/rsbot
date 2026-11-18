@@ -4043,24 +4043,10 @@ fn s_a_broken_heart_shape(_: &crate::data::FnRef, line: &str) -> bool {
 /// The figure-shape readers kinds.py defines that entries name (`Entry.shape`).
 pub const SHAPES: &[(&str, crate::knowledge::registry::ShapeFn)] = &[("bot.understanding.kinds:a_broken_heart_shape:1676", s_a_broken_heart_shape)];
 
-
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
-
-    /// Python: bot/understanding/kinds.py:377 `_a_class_of_thing()` (never called on the trace corpus)
-    pub fn _a_class_of_thing() -> Value {
-        crate::unported!("bot.understanding.kinds:_a_class_of_thing")
-    }
-
+/// `_a_class_of_thing()`: the words of a class a refusal can be handed back inside ("not a
+/// thriller", "not tablets"). Python's frozenset, as a Value set (sorted).
+pub fn _a_class_of_thing() -> crate::data::Value {
+    let mut words: Vec<&String> = _A_CLASS_OF_THING.iter().collect();
+    words.sort();
+    crate::data::Value::Set(std::sync::Arc::new(words.into_iter().map(|w| crate::data::Value::from(w.as_str())).collect()))
 }
-

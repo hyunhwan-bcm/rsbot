@@ -242,6 +242,42 @@ pub fn the_fault_reply(f: &FnRef, _memory: &mut Memory, reading: &Understood) ->
     Some(when_unnamed)
 }
 
+/// `the_fault(template, when_unnamed, table=THE_FAULT)`: the reply closure, as the function the
+/// registry runs (`the_fault_reply`) with what it captured. `table` None is THE_FAULT.
+pub fn the_fault(template: &Value, when_unnamed: &Value, table: &Value) -> Value {
+    let pairs: Vec<(String, String)> = if table.is_none() {
+        THE_FAULT.clone()
+    } else {
+        table
+            .items()
+            .iter()
+            .map(|p| (p.items()[0].str().to_string(), p.items()[1].str().to_string()))
+            .collect()
+    };
+    let wanted: Vec<Value> = the_fault_wanted(&pairs)
+        .into_iter()
+        .map(|(re, noun)| Value::Tuple(Arc::new(vec![Value::Re(Arc::new(Re::new(re.pattern(), re.flags()))), Value::from(noun.as_str())])))
+        .collect();
+    Value::Fn(Arc::new(FnRef {
+        id: "bot.knowledge.lookup:the_fault.<locals>.reply:837".to_string(),
+        cells: vec![
+            ("template".to_string(), template.clone()),
+            ("wanted".to_string(), Value::List(Arc::new(wanted))),
+            ("when_unnamed".to_string(), when_unnamed.clone()),
+        ],
+        defaults: vec![],
+    }))
+}
+
+/// `all_of(*guards)`: the guard that passes when every guard does (`all_of_test`).
+pub fn all_of(guards: &[Value]) -> Value {
+    Value::Fn(Arc::new(FnRef {
+        id: "bot.knowledge.lookup:all_of.<locals>.test:1513".to_string(),
+        cells: vec![("guards".to_string(), Value::Tuple(Arc::new(guards.to_vec())))],
+        defaults: vec![],
+    }))
+}
+
 /// `the_fault`'s table as patterns, the longest word first.
 pub fn the_fault_wanted(table: &[(String, String)]) -> Vec<(&'static Re, String)> {
     let mut sorted: Vec<&(String, String)> = table.iter().collect();
