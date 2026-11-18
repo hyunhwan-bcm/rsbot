@@ -54,6 +54,7 @@ fn guard_tables() -> Vec<&'static [(&'static str, GuardFn)]> {
         // e.g. crate::knowledge::cooking::GUARDS,
         // U: the guards defined in bot/knowledge/__init__.py, lookup.py and understanding/
         crate::knowledge::GUARDS,
+        crate::knowledge::lookup::GUARDS,
         crate::understanding::cars::GUARDS,
         crate::understanding::car_glass::GUARDS,
         // D2
@@ -170,6 +171,8 @@ fn guard_tables() -> Vec<&'static [(&'static str, GuardFn)]> {
 /// Every ported module's reply table. A workstream adds its module's line here.
 fn reply_tables() -> Vec<&'static [(&'static str, ReplyFn)]> {
     vec![
+        // U: the replies lookup.py builds (about_them, the_fault)
+        crate::knowledge::lookup::REPLIES,
         // e.g. crate::knowledge::cooking::REPLIES,
         // D2
         crate::knowledge::differences::REPLIES,
@@ -306,6 +309,58 @@ pub fn reply(f: &FnRef, memory: &mut Memory, reading: &Understood) -> String {
         None => {
             miss(&f.id);
             String::new()
+        }
+    }
+}
+
+/// `reply(memory, reading)` as Python calls it inside a `try`: `Err` when it raises (or has no
+/// port), else what it returned (None for a reply that is not a string).
+pub fn try_reply(f: &FnRef, memory: &mut Memory, reading: &Understood) -> Result<Option<String>, ()> {
+    match REPLIES.get(f.id.as_str()) {
+        Some(r) => crate::runtime::guarded(|| r(f, memory, reading)).ok_or(()),
+        None => {
+            miss(&f.id);
+            Err(())
+        }
+    }
+}
+
+/// `shape(line) -> bool`: an entry's figure reader (`Entry.shape`).
+pub type ShapeFn = fn(&FnRef, &str) -> bool;
+
+static SHAPES: LazyLock<HashMap<&'static str, ShapeFn>> = LazyLock::new(|| {
+    let mut m: HashMap<&'static str, ShapeFn> = HashMap::new();
+    for table in shape_tables() {
+        for (k, f) in table.iter() {
+            m.insert(k, *f);
+        }
+    }
+    m
+});
+
+/// Every ported module's figure-shape readers.
+fn shape_tables() -> Vec<&'static [(&'static str, ShapeFn)]> {
+    vec![
+        crate::understanding::kinds::SHAPES,
+        crate::knowledge::takes::SHAPES,
+        crate::knowledge::family::SHAPES,
+        crate::knowledge::pets::SHAPES,
+        crate::knowledge::body::SHAPES,
+        crate::knowledge::wording::SHAPES,
+        crate::knowledge::pregnancy::SHAPES,
+        crate::knowledge::cars::SHAPES,
+        crate::knowledge::technology::SHAPES,
+        crate::knowledge::language::SHAPES,
+    ]
+}
+
+/// `_says_a_shape`'s `shape(line)` inside its `try`: false when it raises or has no port.
+pub fn shape(f: &FnRef, line: &str) -> bool {
+    match SHAPES.get(f.id.as_str()) {
+        Some(s) => crate::runtime::guarded(|| s(f, line)).unwrap_or(false),
+        None => {
+            miss(&f.id);
+            false
         }
     }
 }

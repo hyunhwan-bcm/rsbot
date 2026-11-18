@@ -4035,3 +4035,10 @@ pub fn over_time(line: &Line, read: &dyn ReadView, previous: Option<&Understood>
     }
     unknown
 }
+
+fn s_a_broken_heart_shape(_: &crate::data::FnRef, line: &str) -> bool {
+    a_broken_heart_shape(line)
+}
+
+/// The figure-shape readers kinds.py defines that entries name (`Entry.shape`).
+pub const SHAPES: &[(&str, crate::knowledge::registry::ShapeFn)] = &[("bot.understanding.kinds:a_broken_heart_shape:1676", s_a_broken_heart_shape)];

@@ -265,6 +265,32 @@ fn main() {
             }
             println!("understand ok {ok} bad {bad} {fields:?}");
         }
+        "find" => {
+            // u_check find FIND.jsonl [show]: lookup.find on PyBot's own reading, plain and with
+            // use_context, against PyBot's answers (corpus made by find/make_find.py).
+            rsbot::runtime::quiet_panics();
+            let show: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(10);
+            let (mut ok, mut bad, mut shown) = (0, 0, 0);
+            let t0 = std::time::Instant::now();
+            for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
+                let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+                let u: rsbot::understood::Understood = match serde_json::from_value(v["understood"].clone()) {
+                    Ok(u) => u,
+                    Err(e) => { println!("-- unreadable {:?}: {e}", v["text"]); bad += 1; continue; }
+                };
+                for (key, ctx) in [("find", false), ("ctx", true)] {
+                    let got = rsbot::runtime::guarded(|| lookup::find(&u, None, None, ctx).map(|e| e.id.clone()));
+                    let got = match got { Some(Some(id)) => serde_json::Value::String(id), Some(None) => serde_json::Value::Null, None => serde_json::Value::String(format!("!panic {}", rsbot::runtime::take_last_panic().unwrap_or_default())) };
+                    if got == v[key] { ok += 1 } else {
+                        bad += 1;
+                        if shown < show { println!("-- {key} {:?}\n   rust {got}\n   py   {}", v["text"], v[key]); shown += 1; }
+                    }
+                }
+            }
+            println!("find ok {ok} bad {bad} in {:?}", t0.elapsed());
+            let misses = rsbot::knowledge::registry::misses();
+            if !misses.is_empty() { println!("unported functions called: {}", misses.len()); for (k, n) in misses.iter().take(40) { println!("  {n} {k}"); } }
+        }
         x => panic!("unknown check {x}"),
     }
 }
