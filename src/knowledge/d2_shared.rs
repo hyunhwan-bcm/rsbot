@@ -79,6 +79,36 @@ pub fn re(name: &str) -> &'static Re {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Calls into code other workstreams own
+
+/// Run another module's registered reply by its Python id ("module:qualname:line"), for a plain
+/// function (no captured values). "" when it declines, fails, or has no port yet (as
+/// `registry::reply`). Use it for a reply/guard another workstream ports (e.g.
+/// "bot.knowledge.meals:suggest:1997") instead of duplicating it.
+pub fn call_reply(id: &str, memory: &mut crate::state::Memory, u: &Understood) -> String {
+    let f = crate::data::FnRef { id: id.to_string(), cells: Vec::new(), defaults: Vec::new() };
+    crate::knowledge::registry::reply(&f, memory, u)
+}
+
+/// Run another module's registered guard by its Python id (plain function, no captured values).
+pub fn call_guard(id: &str, u: &Understood) -> bool {
+    let f = crate::data::FnRef { id: id.to_string(), cells: Vec::new(), defaults: Vec::new() };
+    crate::knowledge::registry::guard(&f, u)
+}
+
+// NEEDS(U: bot.understanding::understand)
+/// `understanding.understand(text)`: until U's engine is merged, PyBot's recorded reading when
+/// RSBOT_ORACLE_UNDERSTAND is set, else a bare reading of the text.
+pub fn understand(text: &str) -> Understood {
+    if crate::oracle::use_oracle_understand() {
+        if let Some(u) = crate::oracle::UNDERSTAND_CALLS.get(text) {
+            return u.clone();
+        }
+    }
+    Understood { text: text.to_string(), clean: text.to_lowercase(), ..Default::default() }
+}
+
+// ---------------------------------------------------------------------------------------------
 // bot/knowledge/lookup.py
 
 static WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.WORD"));
