@@ -4239,6 +4239,1394 @@ pub fn _recent_plural(memory: &Memory) -> bool {
     JOINED_PERSON.search(&said).is_some()
 }
 
+// ---------------------------------------------------------------------------------------------
+// Python lines 10650-12380: somebody else's feelings, fed up, places, news, nights out.
+
+res!(
+    OTHER_BAD_NIGHT, OTHER_PRONOUN, CRY_WOLF, OTHER_STOP, OTHER_QUESTION, _A_HELP_ASK_AT_END,
+    OTHER_ADVERB, OTHER_VERB, OTHER_NEG, THING_THAT_STAYS, FED_UP_THING, FED_UP_STOPS,
+    FED_UP_BARE, SECOND_PERSON_RE, FEDUP_SAID_PHRASE, PLACE_TIME_OPENS, PLACE_THING_OPENS,
+    PLACE_LAST, PLACE_TIME, PLACE_NOBODY, STUCK_ON_A_FORM, STUCK_ON_A_THING, STUCK_FEELING,
+    _HOW_LONG_AT_IT, LOST_ONLY, PRESENCE, PAUSE, RETURNED, AWAY_WORDS, BID, HOME_AGAIN, LEAVING,
+    UNDERWAY, IN_BED, AWAKE_SINCE, ERRAND, PUT_ON, _A_DRESSING, TAKEN_OUT, HAD_A_THING_DONE,
+    RESULT_CLEAR, DOCTOR_SAID, NIGHT, LONG_AGO, PART_FINE, REST_WORD, GOT_RESULTS, WEARER,
+    BACK_FROM_CARE, WENT_TO_CARE, WAS_IN_CARE, THIS_WEEK, WISH_LUCK, RETIRED, RETIRED_ASKING,
+    OUT_OF_WORK, AGE_BEFORE_A_ROLE, ROLE_WORK, ROLE, ROLE_TO_PEOPLE, COMPARED_ROLE, PLACE,
+    PLACE_SPAN, GROWN_IN, MOVING, TRIP, PET, PET_ANY, LOST_WEIGHT, STATUS, CAME_BACK,
+    JUST_STARTED, JUST_DONE, A_MOVE, VERDICT_THING, WENT_TO_SEE, WENT_TO_SEE_COMPANY, WENT_TO,
+    WENT_TO_COMPANY, VERDICT_WELL, WENT_BAD_WEATHER, VERDICT_POOR, WENT_WRONG, WENT_WELL,
+    TRIP_TIME_TAIL, SOME_WHEN, TRIP_NOT_YET, BACK_FROM, BEEN_TO, WENT_TO_ANY, GOOD_TIME,
+    WANTS_A_THING, ASKS_ALOUD, JOKE_ADVICE, SELF_JOKE, JOKE_ASKED, RUNTIME_LIMIT, JOKE_ASK,
+);
+sets!(
+    SHE_WORDS, HE_WORDS, OTHER_FEELING_VERB, FED_UP_THIN, NOT_A_THING, NOT_A_THING_FIRST,
+    NOTHING_NAMED, CONFUSION_IDIOM_WORDS, FED_UP_FILLER, PLACE_IDIOM, PLACE_POINTS,
+    ARTICLE_PLACES, NOT_A_SUBJECT, A_FEELING_SAID, RESTED, NOT_A_DIAGNOSIS, A_BODY, ROLE_STOP,
+    PLACE_NONE, PLACE_POSITION, WATCHED_THINGS, WATCHED_DESCRIBER, SAID_POOR, KNOWN_PLACES,
+    TRIP_SHORT_COUNTRIES, NOT_A_PLACE_START, PICK_WORDS,
+);
+vals!(
+    GENERIC_OTHER_REPLIES, OTHER_REPLIES, ABOUT_REPLIES, FEDUP_LEAD, FEDUP_REPLIES,
+    FEDUP_GERUND_SAFE, SECOND_PERSON, OTHER_REPLIES_SMALL_CHILD, JOKES, SHORT_JOKES, PLACE_TAIL,
+    PLACE_MOST, COUNTRY_CAPS, INITIALISMS, BAD_NEWS, GOOD_TIME_LINES, DETAIL_LINES,
+);
+
+/// A dict's value for an int key (`KID_NUMBER_WORDS.get(n)`).
+fn get_int_key(table: &Value, key: i64) -> Option<&Value> {
+    table.pairs().iter().find(|(k, _)| k.as_int() == Some(key)).map(|(_, v)| v)
+}
+
+/// The `(name, value)` fields a format call takes, borrowed.
+fn kv<'a>(fields: &'a [(&'a str, String)]) -> Vec<(&'a str, &'a str)> {
+    fields.iter().map(|(k, v)| (*k, v.as_str())).collect()
+}
+
+/// Python: bot/modules/chat.py:10653 `_pronouns(word)`: (object, possessive, plural).
+pub fn _pronouns(word: &str) -> (&'static str, &'static str, bool) {
+    let word = word.to_lowercase();
+    if in_set(&PLURAL_WORDS, &word) {
+        return ("them", "their", true);
+    }
+    if in_set(&SHE_WORDS, &word) {
+        return ("her", "her", false);
+    }
+    if in_set(&HE_WORDS, &word) {
+        return ("him", "his", false);
+    }
+    ("them", "their", true)
+}
+
+/// What `_other_feeling` reads: the feeling, the person's pronouns, and the thing it is about.
+#[derive(Clone, Debug, PartialEq)]
+pub struct OtherFeeling {
+    pub feeling: String,
+    pub obj: String,
+    pub poss: String,
+    pub plural: bool,
+    pub thing: String,
+}
+
+fn other(feeling: &str, p: (&str, &str, bool), thing: &str) -> OtherFeeling {
+    OtherFeeling { feeling: feeling.into(), obj: p.0.into(), poss: p.1.into(), plural: p.2, thing: thing.into() }
+}
+
+inline_re!(OTHER_FED_TAIL, r"\b(?:sick of|tired of|fed up with|fed up of|done with|had enough of|had it with)\s+[^.!?]*$");
+inline_re!(BE_VERB_END, r"(?:'s|'re|s|re)$");
+inline_re!(AT_THEM_ME, r"\b(?:with|at|about|of|by)\s+(?:me|us)\b");
+inline_re!(SHE_LATER, r"\b(she|her|hers)\b");
+inline_re!(HE_LATER, r"\b(he|him|his)\b");
+inline_re!(OTHER_FED, r"\b(?:sick of|done with|had enough of|had it with)\b\s*(.*)$");
+inline_re!(SPEAKER_BETWEEN, r"\b(?:i'm|im|i am|i feel|i've|i have|me|my)\b");
+inline_re!(SPEAKER_HAD, r"\b(?:i'm|im|i am|i feel|i've|i had)\b");
+
+/// Python: bot/modules/chat.py:10680 `_other_feeling(clean, memory=None)`
+pub fn _other_feeling(clean: &str, memory: &Memory) -> Option<OtherFeeling> {
+    let body = OTHER_FED_TAIL.sub("", clean);
+    let asked_ = _A_HELP_ASK_AT_END.sub("", clean);
+    let asked_ = text::strip(&asked_);
+    if clean.ends_with('?') && asked_ == clean {
+        return None;
+    }
+    if OTHER_STOP.search(&body).is_some() || OTHER_QUESTION.search(asked_).is_some() {
+        return None;
+    }
+    if CRY_WOLF.search(clean).is_some() {
+        return None;
+    }
+    let mut be_verb = false;
+    let (mut word, start) = match OTHER_PERSON.search(clean) {
+        Some(m) => (m.str(1).to_string(), m.end()),
+        None => {
+            let m = OTHER_PRONOUN.match_(clean)?;
+            let pronoun = m.as_str();
+            let word = text::rstrip_chars(pronoun.split('\'').next().unwrap_or(""), "s").to_string();
+            if ["they", "them", "their", "we", "us", "you"].contains(&word.to_lowercase().as_str()) && !_recent_plural(memory) {
+                return None;
+            }
+            be_verb = BE_VERB_END.search(pronoun).is_some() && text::len(pronoun) > 2;
+            (word, m.end())
+        }
+    };
+    let rest = &clean[start..];
+    if AT_THEM_ME.search(rest).is_some() {
+        return None;
+    }
+    let low = word.to_lowercase();
+    if !in_set(&SHE_WORDS, &low) && !in_set(&HE_WORDS, &low) {
+        if SHE_LATER.search(rest).is_some() {
+            word = "she".into();
+        } else if HE_LATER.search(rest).is_some() {
+            word = "he".into();
+        }
+    }
+    if let Some(fed) = OTHER_FED.search(rest) {
+        let thing = _the_thing(fed.str(1));
+        let pronouns = _pronouns(&word);
+        if !thing.is_empty() && _thing_that_stays(&thing) {
+            return Some(other("fedup", pronouns, &thing));
+        }
+        return Some(other("annoyed", pronouns, ""));
+    }
+    if OTHER_BAD_NIGHT.search(rest).is_some() {
+        return Some(other("tired", _pronouns(&word), ""));
+    }
+    for row in FEELINGS.items() {
+        let name = row.items()[0].str();
+        for feeling in row.items()[1].items() {
+            let feeling = feeling.str();
+            let Some(hit) = word_re(feeling).search(rest).map(|h| (h.start(), h.end())) else { continue };
+            let between = &rest[..hit.0];
+            if _names_a_kind_of_thing(between, &rest[hit.0 + feeling.len()..]) {
+                continue;
+            }
+            let glue_ = OTHER_ADVERB.sub("", between);
+            let glue = text::strip(&glue_);
+            let their_verb = glue.is_empty() && !be_verb && in_set(&OTHER_FEELING_VERB, feeling);
+            if !(their_verb || OTHER_VERB.search(between).is_some() || (be_verb && glue.is_empty())) {
+                continue;
+            }
+            if !their_verb && !truthy(crate::understanding::kinds::cue_about_person(clean, feeling)) {
+                continue;
+            }
+            if in_set(&WEARS_OTHER_PEOPLE_OUT, feeling) {
+                continue;
+            }
+            if SPEAKER_BETWEEN.search(between).is_some() {
+                return None;
+            }
+            if OTHER_NEG.search(between).is_some() {
+                continue;
+            }
+            let after = &rest[hit.0..];
+            let esc = crate::py::re::escape(feeling);
+            if dyn_re(&format!(r"\b{esc}\s+with\s+(?:me|us|him|her|them)\b"), 0).match_(after).is_some() {
+                return None;
+            }
+            let caused_re = dyn_re(&format!(r"\b{esc}\s+(?:of|about|with)\s+(.+)$"), 0);
+            if let Some(caused) = caused_re.match_(after) {
+                let thing = _the_thing(caused.str(1));
+                if ["tired", "bored", "sick", "worn out", "done in", "fed up", "browned off", "peeved"].contains(&feeling) {
+                    let pronouns = _pronouns(&word);
+                    if !thing.is_empty() && _thing_that_stays(&thing) {
+                        return Some(other("fedup", pronouns, &thing));
+                    }
+                    return Some(other(if feeling == "bored" { "bored" } else { "annoyed" }, pronouns, ""));
+                }
+                if ABOUT_REPLIES.get(name).is_some() {
+                    return Some(other(&format!("{name}_about"), _pronouns(&word), &thing));
+                }
+                continue;
+            }
+            if feeling == "low" && dyn_re(r"\blow\s+(?:on|in)\b", 0).search(after).is_some() {
+                continue;
+            }
+            if feeling == "spent" && dyn_re(r"\bspent\s+(?:up|all|it|my|the|every)\b", 0).search(after).is_some() {
+                continue;
+            }
+            let joined = &clean[..start + hit.0];
+            if JOINED_PERSON.search(joined).is_some() {
+                return Some(other(name, ("them", "their", true), ""));
+            }
+            return Some(other(name, _pronouns(&word), ""));
+        }
+    }
+    if ROUGH_DAY.search(rest).is_some() && SPEAKER_HAD.search(rest).is_none() {
+        return Some(other("tired", _pronouns(&word), ""));
+    }
+    None
+}
+
+inline_re!(THING_CUT, r"\b(?:because|but|so|and|since|when|after|before|which|that)\b");
+
+/// Python: bot/modules/chat.py:10825 `_the_thing(phrase)`
+pub fn _the_thing(phrase: &str) -> String {
+    let squashed = squash(phrase);
+    let phrase = text::strip_chars(&squashed, " .,!?;:");
+    let first = match THING_CUT.search(phrase) {
+        Some(m) => &phrase[..m.start()],
+        None => phrase,
+    };
+    let phrase = text::strip(first);
+    let n = n_words(phrase);
+    if n == 0 || n > 5 {
+        return String::new();
+    }
+    phrase.to_string()
+}
+
+/// Python: bot/modules/chat.py:10848 `_thing_that_stays(thing)`
+pub fn _thing_that_stays(thing: &str) -> bool {
+    THING_THAT_STAYS.match_(thing).is_some()
+}
+
+/// Python: bot/modules/chat.py:10902 `_confusion_names_a_thing(understood)`
+pub fn _confusion_names_a_thing(understood: &Understood) -> bool {
+    for word in &understood.keywords {
+        let word = text::strip_chars(word, ".,!?;:'\"()").to_lowercase();
+        if !word.is_empty() && !in_set(&NOTHING_NAMED, &word) && !in_set(&CONFUSION_IDIOM_WORDS, &word) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/modules/chat.py:10975 `_fedup_phrase(said, at)` (`at` a byte offset into `said`).
+pub fn _fedup_phrase(said: &str, at: usize) -> String {
+    match FEDUP_SAID_PHRASE.match_(&said[at.min(said.len())..]) {
+        Some(hit) => hit.str(1).to_string(),
+        None => "tired of".into(),
+    }
+}
+
+inline_re!(MY_OR_OUR, r"^(?:my|our)\b(.*)$");
+
+/// Python: bot/modules/chat.py:10981 `_fed_up_with(clean)`
+pub fn _fed_up_with(clean: &str) -> String {
+    let line = squash(clean);
+    let Some(hit) = FED_UP_THING.search(&line) else { return String::new() };
+    let parts0 = FED_UP_STOPS.split(hit.str(1));
+    let tail = text::strip_chars(&parts0[0], " .");
+    if tail.is_empty() {
+        return String::new();
+    }
+    let mut parts: Vec<&str> = text::split_ref(tail);
+    while parts.first().is_some_and(|p| in_set(&FED_UP_FILLER, p)) {
+        parts.remove(0);
+    }
+    while parts.last().is_some_and(|p| in_set(&FED_UP_FILLER, p)) {
+        parts.pop();
+    }
+    let mut tail = parts.join(" ");
+    if tail.is_empty() {
+        return String::new();
+    }
+    let owner = MY_OR_OUR.match_(&tail).map(|m| m.str(1).to_string());
+    if owner.is_none() && FED_UP_BARE.match_(&tail).is_none() {
+        return String::new();
+    }
+    let first = text::split_ref(&tail)[0].to_string();
+    if in_set(&NOT_A_THING, &tail) || in_set(&NOT_A_THING_FIRST, &first) {
+        return String::new();
+    }
+    if text::split_ref(&tail).iter().all(|w| in_set(&FED_UP_THIN, w)) {
+        return String::new();
+    }
+    if let Some(rest) = owner {
+        tail = format!("your{rest}");
+    }
+    SECOND_PERSON_RE.sub_fn(&tail, |hit| table_str(&SECOND_PERSON, hit.str(1)))
+}
+
+/// Python: bot/modules/chat.py:11026 `_the_small_child(memory)`
+pub fn _the_small_child(memory: &Memory) -> Option<i64> {
+    let others: Vec<&Value> = match memory.get("others") {
+        Some(v) => v.items().iter().filter(|e| e.is_dict()).collect(),
+        None => Vec::new(),
+    };
+    if others.len() != 1 {
+        return None;
+    }
+    let age = match others[0].get("age") {
+        Some(Value::Int(i)) => *i,
+        Some(Value::Bool(b)) => *b as i64,
+        _ => return None,
+    };
+    if 0 < age && age < 9 {
+        Some(age)
+    } else {
+        None
+    }
+}
+
+inline_re!(FED_LEAD_SAID, r"\b(fed up with|fed up of|fed up|sick and tired of|sick of|tired of|done with|had enough of|had it with)\b");
+
+/// Python: bot/modules/chat.py:11045 `_someone_reply(memory, feeling, obj, poss, plural, thing="", said="")`
+pub fn _someone_reply(memory: &Memory, feeling: &str, obj: &str, poss: &str, plural: bool, thing: &str, said: &str) -> String {
+    let subj = match obj {
+        "her" => "she",
+        "him" => "he",
+        _ => "they",
+    };
+    let they = subj == "they";
+    let mut values: Vec<(&str, String)> = vec![
+        ("obj", obj.into()),
+        ("poss", poss.into()),
+        ("plate", if plural { "plates" } else { "plate" }.into()),
+        ("target", if plural { "to carry" } else { "for one person to be carrying" }.into()),
+        ("thing", thing.into()),
+        ("subj", subj.into()),
+        ("subj_is", if they { "are" } else { "is" }.into()),
+        ("Subj_is", if they { "Are" } else { "Is" }.into()),
+        ("subj_does", if they { "do" } else { "does" }.into()),
+        ("Subj_has", if they { "Have" } else { "Has" }.into()),
+    ];
+    if feeling == "sad" && _the_small_child(memory).is_some() {
+        return pick(&OTHER_REPLIES_SMALL_CHILD.strs(), memory, said);
+    }
+    let pool: Vec<String> = if feeling == "fedup" {
+        let fed = FED_LEAD_SAID.search(said).map(|m| m.str(1).to_string()).unwrap_or_else(|| "fed up".into());
+        let lead = FEDUP_LEAD.get(&fed).map(py_str).unwrap_or_else(|| "Being fed up with".into());
+        values.push(("lead", lead));
+        if thing.starts_with("being ") || thing.starts_with("having ") {
+            FEDUP_GERUND_SAFE.strs()
+        } else {
+            FEDUP_REPLIES.strs()
+        }
+    } else if let Some(base) = feeling.strip_suffix("_about") {
+        ABOUT_REPLIES.get(base).filter(|p| p.truthy()).map(|p| p.strs()).unwrap_or_else(|| GENERIC_OTHER_REPLIES.strs())
+    } else {
+        OTHER_REPLIES.get(feeling).filter(|p| p.truthy()).map(|p| p.strs()).unwrap_or_else(|| GENERIC_OTHER_REPLIES.strs())
+    };
+    let fields = kv(&values);
+    let options: Vec<String> = pool.iter().map(|o| py_format(o, &fields)).collect();
+    pick(&options, memory, "").replace("  ", " ")
+}
+
+/// Python: bot/modules/chat.py:11084 `_last_was_joke(memory)`
+pub fn _last_was_joke(memory: &Memory) -> bool {
+    let Some(last) = memory.turns.last() else { return false };
+    if last.module.as_deref() != Some("chat") {
+        return false;
+    }
+    JOKES.pairs().iter().any(|(_, v)| v.as_str() == Some(last.bot.as_str())) || SHORT_JOKES.contains_str(&last.bot)
+}
+
+inline_re!(DANGLING_PREPOSITION, r"\s+(?:in|to|at|near|from|of|on)\s*$");
+
+/// Python: bot/modules/chat.py:11091 `_drop_tail(phrase)`
+pub fn _drop_tail(phrase: &str) -> String {
+    let mut phrase = squash(phrase);
+    let mut changed = true;
+    while !phrase.is_empty() && changed {
+        changed = false;
+        for tail in PLACE_TAIL.items() {
+            let Some(re) = tail.as_re() else { continue };
+            let cut = re.sub("", &phrase);
+            let shorter = text::strip_chars(&cut, " ,.;:-'").to_string();
+            if shorter != phrase {
+                phrase = shorter;
+                changed = true;
+            }
+        }
+    }
+    DANGLING_PREPOSITION.sub("", &phrase)
+}
+
+const PLACE_STRIP: &str = " ,.;:-'";
+
+/// Python: bot/modules/chat.py:11108 `_place_of(phrase)`
+pub fn _place_of(phrase: &str) -> String {
+    let mut phrase = _drop_tail(phrase);
+    if PLACE_TIME_OPENS.match_(text::strip_chars(&phrase, PLACE_STRIP)).is_some() {
+        return String::new();
+    }
+    phrase = text::strip_chars(&py_str(&py(crate::memory::facts::take_back_cut(&phrase))), PLACE_STRIP).to_string();
+    if PLACE_THING_OPENS.match_(&phrase).is_some() {
+        if let Some(inner) = PLACE_LAST.match_(&phrase) {
+            let inside = inner.str(1).to_string();
+            phrase = _drop_tail(&inside);
+        }
+    } else {
+        phrase = text::strip_chars(&PLACE_TIME.sub("", &phrase), PLACE_STRIP).to_string();
+    }
+    if ["in", "on", "at", "to"].contains(&text::strip_chars(&phrase, PLACE_STRIP).to_lowercase().as_str()) {
+        return String::new();
+    }
+    if PLACE_NOBODY.match_(&phrase).is_some() {
+        return String::new();
+    }
+    if phrase.is_empty() || phrase.chars().any(|c| text::is_digit(&c.to_string())) {
+        return String::new();
+    }
+    let words = text::split_ref(&phrase);
+    if words.len() as i64 > PLACE_MOST.as_int().unwrap_or(4) {
+        return String::new();
+    }
+    if in_set(&PLACE_IDIOM, &words[0].to_lowercase()) || in_set(&PLACE_IDIOM, &phrase.to_lowercase()) {
+        return String::new();
+    }
+    if in_set(&PLACE_POINTS, &phrase.to_lowercase()) {
+        return String::new();
+    }
+    phrase
+}
+
+/// Python: bot/modules/chat.py:11151 `_tidy(phrase)`
+pub fn _tidy(phrase: &str) -> String {
+    let words = text::split_ref(phrase);
+    if let Some(first) = words.first() {
+        if let Some(caps) = COUNTRY_CAPS.get(&first.to_lowercase()) {
+            return format!("{}{}", caps.str(), text::slice(phrase, text::len(first) as isize, None));
+        }
+        if first.to_lowercase() == "the" {
+            let rest = words[1..].join(" ");
+            if in_set(&ARTICLE_PLACES, &rest.to_lowercase()) {
+                return format!("The {}", _tidy(&rest));
+            }
+            return if rest.is_empty() { "The".into() } else { format!("The {rest}") };
+        }
+        if ["a", "an", "my", "our", "this"].contains(first) {
+            let tail = if words.len() > 1 { format!(" {}", words[1..].join(" ")) } else { String::new() };
+            return format!("{}{}", upper1(first), tail);
+        }
+    }
+    const SMALL: [&str; 12] = ["in", "of", "the", "and", "at", "on", "by", "near", "upon", "under", "next", "to"];
+    words.iter().map(|w| if SMALL.contains(w) { w.to_string() } else { upper1(w) }).collect::<Vec<_>>().join(" ")
+}
+
+/// Python: bot/modules/chat.py:11169 `_numbers(values)`
+pub fn _numbers(values: &[Value]) -> String {
+    let table = data::get("bot.memory.facts.KID_NUMBER_WORDS");
+    let words: Vec<String> = values
+        .iter()
+        .map(|v| {
+            let n = py_int(v);
+            get_int_key(table, n).map(py_str).unwrap_or_else(|| match v {
+                Value::Str(s) => s.to_string(),
+                other => py_str(other),
+            })
+        })
+        .collect();
+    if words.len() <= 1 {
+        return words.concat();
+    }
+    format!("{} and {}", words[..words.len() - 1].join(", "), words[words.len() - 1])
+}
+
+/// Python: bot/modules/chat.py:11177 `_place_values(named)`
+pub fn _place_values(named: &str) -> Vec<(&'static str, String)> {
+    let words = text::split_ref(named);
+    let inside = match words.first() {
+        Some(first) if first.chars().next().is_some_and(|c| c.is_uppercase()) && ["the", "a", "an"].contains(&first.to_lowercase().as_str()) => {
+            let rest = if words.len() > 1 { format!(" {}", words[1..].join(" ")) } else { String::new() };
+            format!("{}{}", first.to_lowercase(), rest)
+        }
+        _ => named.to_string(),
+    };
+    vec![("X", named.to_string()), ("x", inside)]
+}
+
+/// `NEWS_REPLIES[kind]` (KeyError when there is none).
+fn news_replies(kind: &str) -> Vec<String> {
+    NEWS_REPLIES.get(kind).unwrap_or_else(|| panic!("KeyError: {kind:?}")).strs()
+}
+
+/// Python: bot/modules/chat.py:11194 `_say(kind, memory, **values)`
+pub fn _say(kind: &str, memory: &mut Memory, values: &[(&str, &str)]) -> String {
+    if !_mid_chat(memory) {
+        if let Some(opening) = FIRST_LINE_POOL.get(kind).filter(|o| o.truthy()) {
+            let opening = py_str(opening);
+            return _reply(&opening, memory, None, "");
+        }
+        let all = news_replies(kind);
+        let fresh: Vec<&String> = all.iter().filter(|o| !crate::compose::onscreen::talks_about_the_conversation(o)).collect();
+        if !fresh.is_empty() && fresh.len() < all.len() {
+            let options: Vec<String> = fresh.iter().map(|o| py_format(o, values)).collect();
+            return pick(&options, memory, "");
+        }
+    }
+    if in_set(&CHEER_KINDS, kind) && _a_death_just_said(memory) {
+        return pick(&CHEER_IN_LOSS.strs(), memory, "");
+    }
+    let options: Vec<String> = news_replies(kind).iter().map(|o| py_format(o, values)).collect();
+    if kind == "good_news" {
+        _note_the_pool(memory, kind);
+    }
+    pick(&options, memory, "")
+}
+
+/// Python: bot/modules/chat.py:11216 `_cheer_or_the_question(flat, memory)`
+pub fn _cheer_or_the_question(flat: &str, memory: &mut Memory) -> String {
+    if let Some(years_back) = said(crate::compose::goodnews::reply_for_a_win_from_a_past_year(flat)) {
+        _note_the_pool(memory, "good_news_gone_by");
+        return years_back;
+    }
+    _say("good_news", memory, &[])
+}
+
+/// Python: bot/modules/chat.py:11231 `_note_the_pool(memory, kind)`
+pub fn _note_the_pool(memory: &mut Memory, kind: &str) {
+    let mut note = Value::dict();
+    note.set_key("kind", kind);
+    note.set_key("turn", memory.turns.len());
+    memory.set("said_kind", note);
+}
+
+/// Python: bot/modules/chat.py:11242 `_just_named(memory, name)`
+pub fn _just_named(memory: &mut Memory, name: &str) -> Option<Value> {
+    if name.is_empty() {
+        return None;
+    }
+    let user = py(crate::memory::user(memory));
+    let pets: Vec<Value> = user.get("pets").map(|p| p.items().iter().filter(|p| p.is_dict()).cloned().collect()).unwrap_or_default();
+    let low = name.to_lowercase();
+    pets.into_iter().filter(|p| py_str(p.get("name").unwrap_or(&Value::None)).to_lowercase() == low).last()
+}
+
+/// Python: bot/modules/chat.py:11257 `_name_said(name)`
+pub fn _name_said(name: &str) -> String {
+    let name = text::strip(name);
+    if !name.is_empty() && !name.chars().any(|c| c.is_uppercase()) {
+        return text::split_ref(name).iter().map(|w| upper1(w)).collect::<Vec<_>>().join(" ");
+    }
+    name.to_string()
+}
+
+inline_re!(CALLED_NAME, r"\b(?:called|named)\s+(?:([a-z][a-z'-]+)\s+)?([a-z][a-z'-]+)");
+
+/// `facts._with_title(match)`: its contract takes the match as a `Value`, given here as the
+/// match's groups by name.
+fn with_title(m: &Match) -> String {
+    let mut groups = Value::dict();
+    groups.set_key("title", m.name("title").map(Value::from).unwrap_or(Value::None));
+    groups.set_key("name", m.name("name").map(Value::from).unwrap_or(Value::None));
+    py_str(&py(crate::memory::facts::_with_title(&groups)))
+}
+
+/// Python: bot/modules/chat.py:11268 `_pet_name(flat, match)`
+pub fn _pet_name(flat: &str, m: &Match) -> String {
+    let rest = &flat[m.end()..];
+    let mut stop = rest.len();
+    for other in PET_ANY.finditer(rest) {
+        stop = stop.min(other.start());
+    }
+    let window = &rest[..stop];
+    let found = CALLED_NAME.search(window);
+    if let Some(f) = &found {
+        if let Some(first) = f.get(1) {
+            if data::get("bot.memory.facts.NOT_A_PRONOUN_NAME").contains_str(&first.to_lowercase()) {
+                return f.str(2).to_string();
+            }
+        }
+    }
+    if let Some(titled) = data::re("bot.memory.facts.PET_NAME").search(window) {
+        return with_title(&titled);
+    }
+    if let Some(f) = &found {
+        return f.str(2).to_string();
+    }
+    let start = text::char_index(flat, m.start()) as i64;
+    said(crate::memory::facts::pet_appositive(flat, start)).unwrap_or_default()
+}
+
+/// Python: bot/modules/chat.py:11295 `_question_coming(understood)`
+pub fn _question_coming(understood: Option<&Understood>) -> bool {
+    understood.is_some_and(|u| u.asks.iter().any(|a| a == "question_coming"))
+}
+
+/// Python: bot/modules/chat.py:11318 `_the_not_knowing_has_a_subject(memory)`
+pub fn _the_not_knowing_has_a_subject(memory: &Memory) -> bool {
+    let Some(u) = memory.understood.as_ref() else { return false };
+    if u.topic_own.as_deref().is_some_and(|t| in_set(&A_FEELING_SAID, t)) {
+        return false;
+    }
+    match u.topic.as_deref() {
+        Some(topic) if !topic.is_empty() => !in_set(&NOT_A_SUBJECT, topic),
+        _ => false,
+    }
+}
+
+inline_re!(BED_WORDS, r"\b(?:bed|sleep|sleeping|kip|nap)\b");
+
+/// Python: bot/modules/chat.py:11337 `_conversation(clean, tokens, memory)`
+pub fn _conversation(clean: &str, tokens: &[String], memory: &mut Memory) -> Option<String> {
+    if tokens.len() > 8 {
+        return None;
+    }
+    let replaced = clean.replace('\'', "");
+    let flat = text::strip_chars(&replaced, " .,!;:").to_string();
+    if truthy(crate::memory::topics::in_a_safety_thread(memory)) {
+        return None;
+    }
+    if STUCK_ON_A_FORM.match_(&flat).is_some() {
+        return Some(_say("on_a_form", memory, &[]));
+    }
+    if STUCK_ON_A_THING.match_(&flat).is_some() {
+        return Some(_say("on_the_thing", memory, &[]));
+    }
+    if STUCK_FEELING.match_(&flat).is_some() {
+        return Some(_say("a_stuck_feeling", memory, &[]));
+    }
+    if AT_IT.match_(&flat).is_some() {
+        return Some(_say("at_it", memory, &[]));
+    }
+    if _HOW_LONG_AT_IT.match_(&flat).is_some() && _asked_about_the_effort(memory) {
+        return Some(_say("the_long_haul", memory, &[]));
+    }
+    if LOST_ONLY.match_(&flat).is_some()
+        && !_the_not_knowing_has_a_subject(memory)
+        && !truthy(crate::memory::stuck::_the_answer_gave_a_step(memory))
+    {
+        return Some(_say("lost", memory, &[]));
+    }
+    if PRESENCE.search(&flat).is_some() {
+        if !truthy(crate::memory::tried::still_going_on(clean, memory)) {
+            return Some(_say("presence", memory, &[]));
+        }
+    }
+    if PAUSE.search(&flat).is_some() {
+        return Some(_say("pause", memory, &[]));
+    }
+    if RETURNED.search(&flat).is_some() && AWAY_WORDS.search(&flat).is_none() && _a_thread_to_come_back_to(memory) {
+        return Some(_say("returned", memory, &[]));
+    }
+    if BID.search(&flat).is_some() {
+        return Some(_say("bid", memory, &[]));
+    }
+    if HOME_AGAIN.search(&flat).is_some() && AWAY_WORDS.search(&flat).is_none() {
+        return Some(_say("home_again", memory, &[]));
+    }
+    if LEAVING.search(&flat).is_some() {
+        if BED_WORDS.search(&flat).is_some() {
+            return Some(_say("leaving_bed", memory, &[]));
+        }
+        return Some(_say("leaving", memory, &[]));
+    }
+    if UNDERWAY.search(&flat).is_some() {
+        return Some(_say("underway", memory, &[]));
+    }
+    if IN_BED.search(&flat).is_some() {
+        return Some(_say("in_bed", memory, &[]));
+    }
+    if let Some(awake) = AWAKE_SINCE.search(&flat) {
+        let when = text::strip(awake.name_str("when")).to_string();
+        return Some(_say("awake", memory, &[("when", &when)]));
+    }
+    if let Some(chore) = ERRAND.search(&flat) {
+        let what = text::strip(chore.name_str("what")).to_string();
+        return Some(_say("chore", memory, &[("what", &what)]));
+    }
+    None
+}
+
+/// Python: bot/modules/chat.py:11426 `_the_visit_was_this_week(flat)`
+pub fn _the_visit_was_this_week(flat: &str) -> bool {
+    if THIS_WEEK.search(flat).is_some() {
+        return true;
+    }
+    LONG_AGO.search(flat).is_none() && n_words(flat) <= 8
+}
+
+inline_re!(DOCTORS, r"\bdoctors\b", crate::py::re::I);
+inline_re!(NOT_A_TO_Z_AMP, r"[^a-z&]");
+
+/// Python: bot/modules/chat.py:11525 `_a_thing_of_care(phrase, article=True)`
+pub fn _a_thing_of_care(phrase: &str, article: bool) -> Vec<(&'static str, String)> {
+    let pieces = ANY_SPACE_SPLIT.split(text::strip(phrase));
+    let words: Vec<&str> = pieces.iter().map(String::as_str).filter(|w| !w.is_empty()).collect();
+    let bare_ = words.iter().filter(|w| !["the", "a", "an"].contains(&w.to_lowercase().as_str())).cloned().collect::<Vec<_>>().join(" ");
+    let mut bare_ = DOCTORS.sub("doctor", &bare_);
+    if bare_.is_empty() {
+        bare_ = "visit".into();
+    }
+    if ["a&e", "aande", "ande", "ae"].contains(&NOT_A_TO_Z_AMP.sub("", &bare_.to_lowercase()).as_str()) {
+        return vec![
+            ("X", "A&E".into()),
+            ("x", "A&E".into()),
+            ("Xb", "A&E".into()),
+            ("xb", "A&E".into()),
+            ("A", "An".into()),
+            ("a", "an".into()),
+        ];
+    }
+    let inside = if article { format!("the {bare_}") } else { bare_.clone() };
+    let first = text::slice(&bare_, 0, Some(1)).to_lowercase();
+    let low = bare_.to_lowercase();
+    let vowel = (!first.is_empty() && "aeiouw".contains(first.as_str()) && !["uni", "one", "once", "use"].iter().any(|p| low.starts_with(p)))
+        || ["MRI", "ECG", "EEG", "EKG", "x-ray"].contains(&_keep_the_letters(&bare_).as_str());
+    vec![
+        ("X", _keep_the_letters(&upper1(&inside))),
+        ("x", _keep_the_letters(&inside.to_lowercase())),
+        ("Xb", _keep_the_letters(&upper1(&bare_))),
+        ("xb", _keep_the_letters(&bare_.to_lowercase())),
+        ("A", if vowel { "An" } else { "A" }.into()),
+        ("a", if vowel { "an" } else { "a" }.into()),
+    ]
+}
+
+inline_re!(ANY_SPACE_SPLIT, r"\s+");
+
+/// Python: bot/modules/chat.py:11550 `_ends_plural(phrase)`
+pub fn _ends_plural(phrase: &str) -> bool {
+    let word = text::split_ref(phrase).last().map(|w| w.to_lowercase()).unwrap_or_default();
+    word.ends_with('s') && !(word.ends_with("ss") || word.ends_with("us") || word.ends_with("is"))
+}
+
+/// Python: bot/modules/chat.py:11556 `_keep_the_letters(text)`
+pub fn _keep_the_letters(text_: &str) -> String {
+    let mut out = text_.to_string();
+    for (word, letters) in INITIALISMS.pairs() {
+        let re = dyn_re(&format!(r"\b{}\b", crate::py::re::escape(word.str())), crate::py::re::I);
+        out = re.sub(letters.str(), &out);
+    }
+    out
+}
+
+inline_re!(POSSESSIVE_S, r"'?s$", crate::py::re::I);
+
+/// Python: bot/modules/chat.py:11578 `_wearer_is_themselves(flat, match)`
+pub fn _wearer_is_themselves(flat: &str, m: &Match) -> bool {
+    // `match.end() - 1`, one character back.
+    let at = text::byte_at(flat, text::char_index(flat, m.end()).saturating_sub(1));
+    let Some(found) = WEARER.search_at(flat, at) else { return true };
+    if found.name("owner").unwrap_or("").to_lowercase() != "my" {
+        return false;
+    }
+    let owner_end = found.name_span("owner").map(|s| s.1).unwrap_or(found.end());
+    let rest: Vec<String> = text::split_ref(&flat[owner_end..]).iter().map(|w| text::strip_chars(w, ".,!?").to_string()).take(2).collect();
+    if rest.len() >= 2 && SOMEBODY_ELSE.match_(&POSSESSIVE_S.sub("", &rest[0])).is_some() {
+        return false;
+    }
+    !rest.is_empty() && in_set(&A_BODY, &rest[0].to_lowercase())
+}
+
+/// Python: bot/modules/chat.py:11596 `_names_a_person(word)`
+pub fn _names_a_person(word: &str) -> bool {
+    let low = text::strip(word).to_lowercase();
+    if low.is_empty() {
+        return false;
+    }
+    if data::get("bot.memory.facts.RELATIONS").contains_str(&low)
+        || data::get("bot.memory.facts.KIN_WORDS").contains_str(&low)
+        || data::get("bot.memory.facts._BUILT_KIN").contains_str(&low)
+    {
+        return true;
+    }
+    SOMEBODY_ELSE.match_(&low).is_some()
+}
+
+/// Python: bot/modules/chat.py:11611 `_own_medical_news(flat, memory, clean="")`
+pub fn _own_medical_news(flat: &str, memory: &mut Memory, clean: &str) -> Option<String> {
+    if _reads_as_distress(if clean.is_empty() { flat } else { clean }) {
+        return None;
+    }
+    if let Some(m) = PART_FINE.search(flat) {
+        let part = squash(m.name("part").unwrap_or(""));
+        if !part.is_empty()
+            && n_words(&part) <= 2
+            && !data::get("bot.memory.facts.NOT_A_PRONOUN_NAME").contains_str(&part.to_lowercase())
+            && !_names_a_person(&part)
+        {
+            let last = text::split_ref(&part).last().map(|w| w.to_lowercase()).unwrap_or_default();
+            let pool = if REST_WORD.search(flat).is_some() || in_set(&RESTED, &last) { "med_part_fine" } else { "med_part_fine_result" };
+            let fields = _a_thing_of_care(&part, false);
+            return Some(_say(pool, memory, &kv(&fields)));
+        }
+    }
+    if let Some(m) = PUT_ON.search(flat) {
+        if LONG_AGO.search(flat).is_none() && _wearer_is_themselves(flat, &m) {
+            let thing = m.name_str("thing");
+            let pool = if _A_DRESSING.search(thing).is_some() { "med_dressing" } else { "med_wearing" };
+            let fields = _a_thing_of_care(thing, true);
+            return Some(_say(pool, memory, &kv(&fields)));
+        }
+    }
+    if SOMEBODY_ELSE.search(flat).is_some() {
+        return None;
+    }
+    if let Some(m) = RESULT_CLEAR.search(flat) {
+        let thing = m.name_str("thing");
+        let plural = _ends_plural(thing);
+        let fields = _a_thing_of_care(thing, !plural);
+        return Some(_say(if plural { "med_clear_plural" } else { "med_clear" }, memory, &kv(&fields)));
+    }
+    if let Some(m) = DOCTOR_SAID.search(flat) {
+        let dx_ = squash(m.name("dx").unwrap_or(""));
+        let dx = text::strip_chars(&dx_, " .,;!");
+        if !dx.is_empty() && !in_set(&NOT_A_DIAGNOSIS, &dx.to_lowercase()) && n_words(dx) <= 3 {
+            let fields = _a_thing_of_care(dx, false);
+            return Some(_say("med_diagnosis", memory, &kv(&fields)));
+        }
+    }
+    let visit = if NIGHT.search(flat).is_some() { "med_visit_night" } else { "med_visit" };
+    if let Some(m) = BACK_FROM_CARE.search(flat) {
+        let fields = _a_thing_of_care(m.name_str("place"), true);
+        return Some(_say(visit, memory, &kv(&fields)));
+    }
+    if let Some(m) = WENT_TO_CARE.search(flat) {
+        if _the_visit_was_this_week(flat) {
+            let fields = _a_thing_of_care(m.name_str("place"), true);
+            return Some(_say(visit, memory, &kv(&fields)));
+        }
+    }
+    if let Some(m) = WAS_IN_CARE.search(flat) {
+        if _the_visit_was_this_week(flat) {
+            let fields = _a_thing_of_care(m.name_str("place"), true);
+            return Some(_say(visit, memory, &kv(&fields)));
+        }
+    }
+    if let Some(m) = TAKEN_OUT.search(flat) {
+        if LONG_AGO.search(flat).is_none() {
+            let fields = _a_thing_of_care(m.name_str("thing"), true);
+            return Some(_say("med_out", memory, &kv(&fields)));
+        }
+    }
+    if let Some(m) = GOT_RESULTS.search(flat) {
+        let thing = m.name("thing").filter(|t| !t.is_empty()).unwrap_or("results");
+        let fields = _a_thing_of_care(thing, true);
+        return Some(_say("med_results", memory, &kv(&fields)));
+    }
+    if let Some(m) = HAD_A_THING_DONE.search(flat) {
+        if LONG_AGO.search(flat).is_none() {
+            let fields = _a_thing_of_care(m.name_str("thing"), true);
+            return Some(_say(visit, memory, &kv(&fields)));
+        }
+    }
+    None
+}
+
+inline_re!(NOTHING_ON, r"\bnothing (on|to watch)\b|\bnothing on (the )?(tv|telly)\b");
+
+/// Python: bot/modules/chat.py:11685 `_news(clean, tokens, memory)`
+pub fn _news(clean: &str, tokens: &[String], memory: &mut Memory) -> Option<String> {
+    if clean.ends_with('?') || !(1..=14).contains(&tokens.len()) {
+        return None;
+    }
+    let better = py(crate::memory::ack::a_person_getting_better(clean, memory));
+    if better.truthy() {
+        return Some(pick(&better.strs(), memory, clean));
+    }
+    if truthy(crate::memory::topics::in_a_safety_thread(memory)) {
+        return None;
+    }
+    if memory.understood.as_ref().is_some_and(|u| u.kind == "question") {
+        return None;
+    }
+    let clean = _as_said(clean, memory.understood.as_ref());
+    if crate::compose::loss::reads_as_loss(&clean, None, false) {
+        return None;
+    }
+    if crate::compose::loss::lost_thing_to_find(&clean) {
+        return None;
+    }
+    let replaced = clean.replace('\'', "");
+    let flat = text::strip_chars(&replaced, " .,!;:").to_string();
+    if let Some(medical) = _own_medical_news(&flat, memory, &clean) {
+        if !medical.is_empty() {
+            return Some(medical);
+        }
+    }
+    if WISH_LUCK.search(&flat).is_some() {
+        return Some(_say("wish_luck", memory, &[]));
+    }
+    if data::re("bot.memory.facts.CONDITION").search(&flat).is_some() {
+        return None;
+    }
+    if RETIRED.search(&flat).is_some() && RETIRED_ASKING.search(&flat).is_none() {
+        return Some(_say("retired", memory, &[]));
+    }
+    if OUT_OF_WORK.search(&flat).is_some() {
+        return Some(_say("out_of_work", memory, &[]));
+    }
+    if truthy(crate::compose::circumstance::reads_as_situation(&flat)) {
+        return None;
+    }
+    if crate::compose::said_about_me::reads_as_somebody_elses_words(&flat) {
+        return None;
+    }
+    let role_line = AGE_BEFORE_A_ROLE.subn("im ", &flat, 1);
+    let (m, is_role) = match ROLE_WORK.search(&role_line) {
+        Some(m) => (Some(m), false),
+        None => (ROLE.search(&role_line), true),
+    };
+    if let Some(m) = m {
+        let mut phrase = py_str(&py(crate::memory::facts::no_tone(m.str(1))));
+        if phrase.is_empty() {
+            return None;
+        }
+        let mut words: Vec<String> = text::split(&phrase);
+        if !(!words.is_empty() && words.iter().all(|w| !in_set(&ROLE_STOP, w))) {
+            return None;
+        }
+        if ROLE_TO_PEOPLE.search(&phrase).is_some() || (COMPARED_ROLE.search(&flat).is_some() && is_role) {
+            return None;
+        }
+        let mut rest = if is_role { m.get(2).map(str::to_string) } else { None };
+        if let Some(r) = rest.take().filter(|r| !r.is_empty()) {
+            let place = _place_of(&r);
+            if !place.is_empty() {
+                rest = Some(place);
+            }
+        }
+        if let Some(r) = rest.filter(|r| !r.is_empty()) {
+            phrase = format!("{phrase} in {}", _tidy(&r));
+            words = text::split(&phrase);
+        }
+        if words.len() <= 5 && !words.iter().any(|w| ["of", "with", "about", "that", "too", "and"].contains(&w.as_str())) {
+            let big = upper1(&phrase);
+            return Some(_say("job", memory, &[("x", &phrase), ("X", &big)]));
+        }
+        return None;
+    }
+    if let Some(m) = PLACE.search(&clean) {
+        let said_ = m.str(1).to_string();
+        let note = py(crate::memory::facts::qualified_by(&clean));
+        let source = if note.truthy() {
+            match data::re("bot.memory.facts.TAKE_BACK_SPLIT").search(&said_) {
+                Some(cut) => said_[..cut.start()].to_string(),
+                None => said_.clone(),
+            }
+        } else {
+            said_.clone()
+        };
+        let mut place = _place_of(&source);
+        if !place.is_empty() && PLACE_SPAN.match_(&text::strip(&place).to_lowercase()).is_some() {
+            place.clear();
+        }
+        let grown = GROWN_IN.search(&flat).is_some() && !truthy(crate::memory::facts::grown_up_in_a_place(&place));
+        let low = place.to_lowercase();
+        let ordinary = !in_set(&PLACE_NONE, &low) && !in_set(&PLACE_POSITION, &low);
+        if note.truthy() && !place.is_empty() && ordinary && !grown {
+            let tidy = _tidy(&place);
+            let near = py_str(&note);
+            return Some(_say("place_near", memory, &[("place", &tidy), ("near", &near)]));
+        }
+        if !place.is_empty() && ordinary && !grown {
+            let tidy = _tidy(&place);
+            if MOVING.search(&clean).is_some() {
+                return Some(_say("moving", memory, &[("place", &tidy)]));
+            }
+            return Some(_say("place", memory, &[("place", &tidy)]));
+        }
+    }
+    if TRIP.search(&flat).is_some() {
+        return Some(_say("trip", memory, &[]));
+    }
+    let kids = py(crate::memory::facts::kid_count(&flat));
+    if kids.truthy() {
+        let n = py_int(&kids);
+        let word = get_int_key(data::get("bot.memory.facts.KID_NUMBER_WORDS"), n).map(py_str).unwrap_or_else(|| n.to_string());
+        let kids_word = if n == 1 { "kid" } else { "kids" };
+        let ages = py(crate::memory::facts::kid_ages(&flat));
+        if ages.truthy() && ages.len() as i64 == n {
+            let said_ages = _numbers(ages.items());
+            let x = format!("{word} {kids_word}, {said_ages}");
+            let big = format!("{} {kids_word}, {said_ages}", upper1(&word));
+            return Some(_say("kids_aged", memory, &[("x", &x), ("X", &big)]));
+        }
+        let x = format!("{word} {kids_word}");
+        let big = format!("{} {kids_word}", upper1(&word));
+        return Some(_say("kids", memory, &[("x", &x), ("X", &big)]));
+    }
+    if let Some(m) = PET.search(&flat) {
+        let pet = m.str(1).to_string();
+        // `flat[match.end():match.end() + 20].lstrip()`, in characters.
+        let at = text::char_index(&flat, m.end());
+        let window = text::slice(&flat, at as isize, Some(at as isize + 20));
+        let after = data::re("bot.memory.facts.AFTER_ANIMAL").match_(text::lstrip(&window)).map(|a| a.as_str().to_lowercase());
+        let compound = after.is_some_and(|a| data::get("bot.memory.facts.PET_COMPOUND").contains_str(&a));
+        if !compound && !truthy(crate::memory::facts::another_animal(&flat, &pet)) {
+            let named = _pet_name(&flat, &m);
+            if !named.is_empty() {
+                let name = _name_said(&named);
+                return Some(_say("pet_named", memory, &[("pet", &pet), ("name", &name)]));
+            }
+            return Some(_say("pet", memory, &[("pet", &pet)]));
+        }
+    }
+    let name = said(crate::memory::facts::pet_name_only(&flat, false))
+        .or_else(|| said(crate::memory::facts::pet_name_only(&flat, true)))
+        .or_else(|| said(crate::memory::facts::bare_name(&flat)))
+        .unwrap_or_default();
+    if let Some(named_pet) = _just_named(memory, &name) {
+        let tidy = _tidy(&py_str(named_pet.get("name").unwrap_or_else(|| panic!("KeyError: 'name'"))));
+        let animal = named_pet.get("animal").map(py_str).unwrap_or_else(|| "pet".into());
+        let said_name = _name_said(&tidy);
+        return Some(_say("pet_named", memory, &[("pet", &animal), ("name", &said_name)]));
+    }
+    if LOST_WEIGHT.search(&flat).is_some() {
+        let planned = py(crate::memory::goals::the_loss_that_was_the_plan(&flat, memory));
+        if planned.truthy() {
+            return Some(py_str(&planned));
+        }
+        return Some(_say("lost_weight", memory, &[]));
+    }
+    if _a_job_that_went(&flat) {
+        return Some(_say("lost_job", memory, &[]));
+    }
+    if BAD_NEWS.items().iter().any(|p| p.as_re().is_some_and(|re| re.search(&flat).is_some())) {
+        return Some(_say("bad_news", memory, &[]));
+    }
+    if !crate::compose::badnews::reads_as_bad_news(&flat)
+        && !crate::compose::goodnews::reads_as_a_win_nobody_noticed(&flat)
+        && !crate::compose::goodnews::reads_as_a_prize_in_a_message(&flat)
+    {
+        if crate::compose::goodnews::reads_as_a_pass(&flat) {
+            return Some(_cheer_or_the_question(&flat, memory));
+        }
+        for pattern in GOOD_NEWS.items() {
+            let Some(re) = pattern.as_re() else { continue };
+            if let Some(m) = re.search(&flat) {
+                if !truthy(crate::compose::negated(&flat, m.as_str(), 3)) && !truthy(crate::compose::doubted(&flat, 4)) {
+                    return Some(_cheer_or_the_question(&flat, memory));
+                }
+            }
+        }
+    }
+    if STATUS.search(&flat).is_some() {
+        return Some(_say("status", memory, &[]));
+    }
+    if NOTHING_ON.search(&flat).is_some() {
+        return Some(_say("nothing_on", memory, &[]));
+    }
+    if CAME_BACK.search(&flat).is_some() {
+        if let Some(trip) = _told_a_trip(&flat, memory) {
+            return Some(trip);
+        }
+        return Some(_say("came_back", memory, &[]));
+    }
+    if let Some(trip) = _told_a_trip(&flat, memory) {
+        return Some(trip);
+    }
+    if let Some(night) = _night_out(&flat, memory) {
+        return Some(night);
+    }
+    if JUST_STARTED.search(&flat).is_some() {
+        return Some(_say("just_started", memory, &[]));
+    }
+    if JUST_DONE.search(&flat).is_some() {
+        if truthy(crate::memory::ack::nobody_around(&flat.to_lowercase(), memory)) {
+            return None;
+        }
+        return Some(_say(if A_MOVE.search(&flat).is_some() { "move_done" } else { "just_done" }, memory, &[]));
+    }
+    None
+}
+
+inline_re!(NOT_A_NAME_CHAR, r"[^a-z'-]+");
+
+/// Python: bot/modules/chat.py:11925 `_head_word(phrase)`
+pub fn _head_word(phrase: &str) -> String {
+    NOT_A_NAME_CHAR.split(&phrase.to_lowercase()).into_iter().filter(|w| !w.is_empty()).last().unwrap_or_default()
+}
+
+/// Python: bot/modules/chat.py:11931 `_the_poor_describer(phrase)`
+pub fn _the_poor_describer(phrase: &str) -> String {
+    let low = phrase.to_lowercase();
+    text::split_ref(&low).into_iter().find(|w| in_set(&SAID_POOR, w)).map(str::to_string).unwrap_or_default()
+}
+
+/// Python: bot/modules/chat.py:11939 `_the_thing_this_line_names(clean)`
+pub fn _the_thing_this_line_names(clean: &str) -> String {
+    let Some(m) = VERDICT_THING.search(clean) else { return String::new() };
+    let thing = m.name_str("thing");
+    let singular = if thing.ends_with('s') { text::slice(thing, 0, Some(-1)) } else { String::new() };
+    for word in [thing.to_string(), singular] {
+        if in_set(&WATCHED_THINGS, &word) {
+            return word;
+        }
+    }
+    String::new()
+}
+
+/// `memory[key]["turn"] + 1 == len(turns)` for a note this module keeps (`.get("turn", -9)`).
+fn noted_last_turn(note: &Value, memory: &Memory) -> bool {
+    let turn = match note.get("turn") {
+        None => -9,
+        Some(v) => py_int(v),
+    };
+    memory.turns.len() as i64 == turn + 1
+}
+
+/// Python: bot/modules/chat.py:11951 `_about_the_night_out(clean, tokens, memory)`
+pub fn _about_the_night_out(clean: &str, tokens: &[String], memory: &mut Memory) -> Option<String> {
+    let seen = memory.get("night_out")?.clone();
+    if !seen.is_dict() || !seen.get("place").is_some_and(|p| p.truthy()) {
+        return None;
+    }
+    if !noted_last_turn(&seen, memory) {
+        return None;
+    }
+    if clean.ends_with('?') || !(1..=8).contains(&tokens.len()) {
+        return None;
+    }
+    if WENT_TO_SEE.search(clean).is_some()
+        || WENT_TO_SEE_COMPANY.search(clean).is_some()
+        || WENT_TO.search(clean).is_some()
+        || WENT_TO_COMPANY.search(clean).is_some()
+    {
+        return None;
+    }
+    let own_thing = _the_thing_this_line_names(clean);
+    let named = if own_thing.is_empty() { py_str(seen.get("place").unwrap()) } else { format!("the {own_thing}") };
+    let values = _place_values(&named);
+    if VERDICT_WELL.search(clean).is_some() {
+        return Some(_say("night_out_well", memory, &kv(&values)));
+    }
+    if WENT_BAD_WEATHER.search(clean).is_some() {
+        return Some(_say("night_out_weather", memory, &kv(&values)));
+    }
+    if VERDICT_POOR.search(clean).is_some() {
+        return Some(_say("night_out_poor", memory, &kv(&values)));
+    }
+    None
+}
+
+fn note_night_out(memory: &mut Memory, place: &str) {
+    let mut note = Value::dict();
+    note.set_key("place", place);
+    note.set_key("turn", memory.turns.len());
+    memory.set("night_out", note);
+}
+
+/// Python: bot/modules/chat.py:11983 `_saw_something(flat, memory)`
+pub fn _saw_something(flat: &str, memory: &mut Memory) -> Option<String> {
+    let m = WENT_TO_SEE.search(flat).or_else(|| WENT_TO_SEE_COMPANY.search(flat))?;
+    let thing_ = squash(m.str(1));
+    let thing = text::strip_chars(&thing_, " .,!;:").to_string();
+    let mut words: Vec<&str> = text::split_ref(&thing).into_iter().filter(|w| !["the", "a", "an"].contains(w)).collect();
+    let mut said_how = 0;
+    while words.len() > 1 && in_set(&WATCHED_DESCRIBER, words[0]) {
+        words.remove(0);
+        said_how += 1;
+    }
+    if words.is_empty() || !in_set(&WATCHED_THINGS, words[0]) {
+        return None;
+    }
+    if said_how > 0 {
+        let named = _tidy(&text::split_ref(&thing).into_iter().filter(|w| !in_set(&WATCHED_DESCRIBER, w)).collect::<Vec<_>>().join(" "));
+        note_night_out(memory, &named);
+        let poor_describer = _the_poor_describer(&thing);
+        let lower = lower1(&named);
+        if !poor_describer.is_empty() {
+            return Some(_say("saw_it_poor", memory, &[("p", &poor_describer), ("X", &named), ("x", &lower)]));
+        }
+        return Some(_say("saw_it_told", memory, &[("X", &named), ("x", &lower)]));
+    }
+    let named = _tidy(&thing);
+    let lower = lower1(&named);
+    if let Some(poor) = _poor_word(flat).filter(|p| !p.is_empty()) {
+        let big = upper1(&poor);
+        return Some(_say("night_out_poor_said", memory, &[("p", &poor), ("P", &big), ("X", &named), ("x", &lower)]));
+    }
+    if WENT_WRONG.search(flat).is_some() || WENT_WELL.search(flat).is_some() {
+        return None;
+    }
+    note_night_out(memory, &named);
+    Some(_say("saw_it", memory, &[("X", &named), ("x", &lower)]))
+}
+
+fn is_a_place_word(word: &str) -> bool {
+    in_set(&KNOWN_PLACES, word)
+        || data::get("bot.memory.facts.COUNTRIES").contains_str(word)
+        || data::get("bot.knowledge.travel.CITIES").contains_str(word)
+}
+
+/// Python: bot/modules/chat.py:12031 `_trip_place(phrase, memory)`
+pub fn _trip_place(phrase: &str, memory: &Memory) -> String {
+    let name = _place_of(phrase);
+    if name.is_empty() {
+        return String::new();
+    }
+    let words = text::split_ref(&name);
+    if words.len() > 4 {
+        return String::new();
+    }
+    let low: Vec<String> = words.iter().map(|w| text::strip_chars(&w.to_lowercase(), "-'\u{2019}").to_string()).collect();
+    if !low.iter().all(|w| text::is_alpha(w)) {
+        return String::new();
+    }
+    let article = ["the", "a", "an"].contains(&low[0].as_str());
+    let bare_ = low.iter().filter(|w| !["the", "a", "an"].contains(&w.as_str())).cloned().collect::<Vec<_>>().join(" ");
+    if is_a_place_word(&bare_) {
+        return name;
+    }
+    if article && in_set(&TRIP_SHORT_COUNTRIES, &bare_) {
+        return name;
+    }
+    let typed = memory.understood.as_ref().map(|u| u.text.clone()).unwrap_or_default();
+    if text::split_ref(&typed).iter().any(|w| text::is_upper(&text::slice(w, 0, Some(1))) && low.contains(&w.to_lowercase())) {
+        return name;
+    }
+    let shorter = _place_of(&TRIP_TIME_TAIL.sub("", &name));
+    if !shorter.is_empty() && is_a_place_word(&shorter.to_lowercase()) {
+        return shorter;
+    }
+    if SOME_WHEN.search(phrase).is_some() {
+        if low.len() == 1 && !article {
+            return name;
+        }
+        let short_ = _place_of(&TRIP_TIME_TAIL.sub("", &name));
+        let short = text::split_ref(&short_);
+        if short.len() == 1 && !["the", "a", "an"].contains(&short[0].to_lowercase().as_str()) {
+            return short[0].to_string();
+        }
+    }
+    String::new()
+}
+
+/// Python: bot/modules/chat.py:12078 `_told_a_trip(flat, memory)`
+pub fn _told_a_trip(flat: &str, memory: &mut Memory) -> Option<String> {
+    if TRIP_NOT_YET.search(flat).is_some() {
+        return None;
+    }
+    for (pattern, kind) in [(&*BACK_FROM, "back_from"), (&*BEEN_TO, "been_to"), (&*WENT_TO_ANY, "day_out")] {
+        let Some(m) = pattern.search(flat) else { continue };
+        let place = _trip_place(m.str(1), memory);
+        if place.is_empty() {
+            continue;
+        }
+        if _not_a_night_out(&place) {
+            continue;
+        }
+        let low = place.to_lowercase();
+        let bare_: Vec<&str> = text::split_ref(&low).into_iter().filter(|w| !["the", "a", "an"].contains(w)).collect();
+        let first = bare_.first().copied().unwrap_or_else(|| panic!("IndexError: list index out of range"));
+        if in_set(&NOT_A_PLACE_START, first) {
+            continue;
+        }
+        let named = _tidy(&place);
+        note_night_out(memory, &named);
+        return Some(_say(kind, memory, &kv(&_place_values(&named))));
+    }
+    None
+}
+
+/// Python: bot/modules/chat.py:12221 `_the_thread_is_heavy_here(memory)`
+pub fn _the_thread_is_heavy_here(memory: &Memory) -> bool {
+    attempt(|| truthy(crate::compose::fallback::_the_thread_is_heavy(memory))).unwrap_or(false)
+}
+
+/// Python: bot/modules/chat.py:12229 `_a_good_time_they_had(flat, memory)` (the second definition,
+/// which replaces the first).
+pub fn _a_good_time_they_had(flat: &str, memory: &mut Memory) -> Option<String> {
+    let m = GOOD_TIME.search(flat)?;
+    if _the_thread_is_heavy_here(memory) {
+        return None;
+    }
+    let said_ = format!("a {} {}", m.name_str("good"), m.name_str("thing"));
+    let mut note = Value::dict();
+    note.set_key("thing", m.name_str("thing"));
+    note.set_key("turn", memory.turns.len());
+    memory.set("good_time", note);
+    let x = _tidy(&said_);
+    let options: Vec<String> = GOOD_TIME_LINES.strs().iter().map(|l| py_format(l, &[("X", &x)])).collect();
+    Some(pick(&options, memory, ""))
+}
+
+inline_re!(TURNS_ROUND, r"\b(?:but|however|though|except|apart from)\b");
+
+/// Python: bot/modules/chat.py:12244 `_the_detail_of_the_good_time(flat, clean, tokens, memory)`
+/// (the second definition, which replaces the first).
+pub fn _the_detail_of_the_good_time(flat: &str, clean: &str, tokens: &[String], memory: &Memory) -> Option<String> {
+    let seen = memory.get("good_time")?;
+    if !seen.is_dict() || !seen.get("thing").is_some_and(|t| t.truthy()) {
+        return None;
+    }
+    if !noted_last_turn(seen, memory) {
+        return None;
+    }
+    if clean.ends_with('?') || !(3..=30).contains(&tokens.len()) {
+        return None;
+    }
+    if TURNS_ROUND.search(clean).is_some() {
+        return None;
+    }
+    if _the_thread_is_heavy_here(memory) {
+        return None;
+    }
+    if BAD_NEWS.items().iter().any(|p| p.as_re().is_some_and(|re| re.search(flat).is_some())) {
+        return None;
+    }
+    let thing = py_str(seen.get("thing").unwrap());
+    let article = if "aeiou".contains(&text::slice(&thing, 0, Some(1)) as &str) { "an" } else { "a" };
+    let options: Vec<String> = DETAIL_LINES.strs().iter().map(|l| py_format(l, &[("thing", &thing), ("article", article)])).collect();
+    Some(pick(&options, memory, ""))
+}
+
+/// Python: bot/modules/chat.py:12266 `_night_out(flat, memory)`
+pub fn _night_out(flat: &str, memory: &mut Memory) -> Option<String> {
+    let tokens = text::split(flat);
+    if let Some(detail) = _the_detail_of_the_good_time(flat, flat, &tokens, memory) {
+        return Some(detail);
+    }
+    if let Some(good_time) = _a_good_time_they_had(flat, memory) {
+        return Some(good_time);
+    }
+    if let Some(detail) = _the_detail_of_the_good_time(flat, flat, &tokens, memory) {
+        return Some(detail);
+    }
+    if let Some(good_time) = _a_good_time_they_had(flat, memory) {
+        return Some(good_time);
+    }
+    if let Some(seen) = _saw_something(flat, memory) {
+        return Some(seen);
+    }
+    let m = WENT_TO.search(flat).or_else(|| WENT_TO_COMPANY.search(flat))?;
+    let place_ = squash(m.str(1));
+    let place = text::strip_chars(&place_, " .,!;:").to_string();
+    let words = text::split_ref(&place);
+    if place.is_empty() || ["my", "our", "his", "her", "their"].contains(&words[0]) {
+        return None;
+    }
+    if _not_a_night_out(&place) {
+        return None;
+    }
+    let bare_: Vec<&str> = words.iter().copied().filter(|w| !["the", "a", "an"].contains(w)).collect();
+    let first = bare_.first().copied().unwrap_or_else(|| panic!("IndexError: list index out of range"));
+    if in_set(&NOT_A_PLACE_START, first) {
+        return None;
+    }
+    let named = _tidy(&place);
+    let values = vec![("X", named.clone()), ("x", lower1(&named))];
+    let poor_describer = _the_poor_describer(&place);
+    if !poor_describer.is_empty() && _poor_word(flat).is_none_or(|p| p.is_empty()) {
+        let bare_place = _tidy(&words.iter().copied().filter(|w| !in_set(&SAID_POOR, w)).collect::<Vec<_>>().join(" "));
+        if !bare_place.is_empty() {
+            note_night_out(memory, &bare_place);
+            let mut fields = vec![("p", poor_describer.clone())];
+            fields.extend(_place_values(&bare_place));
+            return Some(_say("day_out_poor", memory, &kv(&fields)));
+        }
+    }
+    if let Some(poor) = _poor_word(flat).filter(|p| !p.is_empty()) {
+        let mut fields = vec![("p", poor.clone()), ("P", upper1(&poor))];
+        fields.extend(values.clone());
+        return Some(_say("night_out_poor_said", memory, &kv(&fields)));
+    }
+    if WENT_WRONG.search(flat).is_some() {
+        return None;
+    }
+    note_night_out(memory, &named);
+    if WENT_WELL.search(flat).is_some() {
+        return Some(_say("day_out_well", memory, &kv(&values)));
+    }
+    Some(_say("day_out", memory, &kv(&values)))
+}
+
+/// Python: bot/modules/chat.py:12333 `_a_pick_is_in_hand(memory)`
+pub fn _a_pick_is_in_hand(memory: &Memory) -> bool {
+    let Some(last) = memory.turns.last() else { return false };
+    let said_ = format!("{} {}", last.user, last.bot).to_lowercase();
+    az_words(&said_).iter().any(|w| in_set(&PICK_WORDS, w))
+}
+
+/// Python: bot/modules/chat.py:12350 `_asks_for_a_joke(clean, tokens, memory=None)`
+pub fn _asks_for_a_joke(clean: &str, tokens: &[String], memory: &Memory) -> bool {
+    if WANTS_A_THING.search(clean).is_some() && ASKS_ALOUD.search(clean).is_none() && _a_pick_is_in_hand(memory) {
+        return false;
+    }
+    if JOKE_ADVICE.search(clean).is_some() {
+        return false;
+    }
+    if SELF_JOKE.search(clean).is_some() {
+        return false;
+    }
+    if _fond_of_the_bot(clean) {
+        return false;
+    }
+    if JOKE_ASKED.search(clean).is_some() {
+        return true;
+    }
+    if RUNTIME_LIMIT.search(clean).is_some() {
+        return false;
+    }
+    if JOKE_ASK.search(clean).is_none() {
+        return false;
+    }
+    !tokens.iter().any(|t| in_set(&PICK_WORDS, t))
+}
+
 // Stubs not yet ported (moved up into the file as each one is ported).
 pub use self::skeleton_stubs::*;
 #[allow(unused_imports, unused_variables, dead_code)]
@@ -4246,231 +5634,6 @@ mod skeleton_stubs {
     use super::*;
     use crate::knowledge::entry::Entry;
     use crate::runtime::Candidate;
-
-    /// Python: bot/modules/chat.py:10653 `_pronouns(word)` (never called on the trace corpus)
-    pub fn _pronouns(word: &str) -> Value {
-        crate::unported!("bot.modules.chat:_pronouns")
-    }
-
-    /// Python: bot/modules/chat.py:10680 `_other_feeling(clean, memory=None)`
-    pub fn _other_feeling(clean: &str, memory: &Memory) {
-        crate::unported!("bot.modules.chat:_other_feeling")
-    }
-
-    /// Python: bot/modules/chat.py:10825 `_the_thing(phrase)` (never called on the trace corpus)
-    pub fn _the_thing(phrase: &str) -> Value {
-        crate::unported!("bot.modules.chat:_the_thing")
-    }
-
-    /// Python: bot/modules/chat.py:10848 `_thing_that_stays(thing)` (never called on the trace corpus)
-    pub fn _thing_that_stays(thing: &str) -> bool {
-        crate::unported!("bot.modules.chat:_thing_that_stays")
-    }
-
-    /// Python: bot/modules/chat.py:10902 `_confusion_names_a_thing(understood)`
-    pub fn _confusion_names_a_thing(understood: &Understood) -> bool {
-        crate::unported!("bot.modules.chat:_confusion_names_a_thing")
-    }
-
-    /// Python: bot/modules/chat.py:10975 `_fedup_phrase(said, at)` (never called on the trace corpus)
-    pub fn _fedup_phrase(said: &str, at: i64) -> Value {
-        crate::unported!("bot.modules.chat:_fedup_phrase")
-    }
-
-    /// Python: bot/modules/chat.py:10981 `_fed_up_with(clean)` (never called on the trace corpus)
-    pub fn _fed_up_with(clean: &str) -> Value {
-        crate::unported!("bot.modules.chat:_fed_up_with")
-    }
-
-    /// Python: bot/modules/chat.py:11026 `_the_small_child(memory)` (never called on the trace corpus)
-    pub fn _the_small_child(memory: &Memory) -> Value {
-        crate::unported!("bot.modules.chat:_the_small_child")
-    }
-
-    /// Python: bot/modules/chat.py:11045 `_someone_reply(memory, feeling, obj, poss, plural, thing='', said='')` (never called on the trace corpus)
-    pub fn _someone_reply(memory: &Memory, feeling: &Value, obj: &Value, poss: &Value, plural: &Value, thing: &str, said: &str) -> Value {
-        crate::unported!("bot.modules.chat:_someone_reply")
-    }
-
-    /// Python: bot/modules/chat.py:11084 `_last_was_joke(memory)`
-    pub fn _last_was_joke(memory: &Memory) -> bool {
-        crate::unported!("bot.modules.chat:_last_was_joke")
-    }
-
-    /// Python: bot/modules/chat.py:11091 `_drop_tail(phrase)` (never called on the trace corpus)
-    pub fn _drop_tail(phrase: &str) -> String {
-        crate::unported!("bot.modules.chat:_drop_tail")
-    }
-
-    /// Python: bot/modules/chat.py:11108 `_place_of(phrase)` (never called on the trace corpus)
-    pub fn _place_of(phrase: &str) -> Value {
-        crate::unported!("bot.modules.chat:_place_of")
-    }
-
-    /// Python: bot/modules/chat.py:11151 `_tidy(phrase)` (never called on the trace corpus)
-    pub fn _tidy(phrase: &str) -> Value {
-        crate::unported!("bot.modules.chat:_tidy")
-    }
-
-    /// Python: bot/modules/chat.py:11169 `_numbers(values)` (never called on the trace corpus)
-    pub fn _numbers(values: &Value) -> String {
-        crate::unported!("bot.modules.chat:_numbers")
-    }
-
-    /// Python: bot/modules/chat.py:11177 `_place_values(named)` (never called on the trace corpus)
-    pub fn _place_values(named: &Value) -> Value {
-        crate::unported!("bot.modules.chat:_place_values")
-    }
-
-    /// Python: bot/modules/chat.py:11194 `_say(kind, memory)`
-    pub fn _say(kind: &str, memory: &mut Memory) -> String {
-        crate::unported!("bot.modules.chat:_say")
-    }
-
-    /// Python: bot/modules/chat.py:11216 `_cheer_or_the_question(flat, memory)` (never called on the trace corpus)
-    pub fn _cheer_or_the_question(flat: &Value, memory: &mut Memory) -> Value {
-        crate::unported!("bot.modules.chat:_cheer_or_the_question")
-    }
-
-    /// Python: bot/modules/chat.py:11231 `_note_the_pool(memory, kind)` (never called on the trace corpus)
-    pub fn _note_the_pool(memory: &mut Memory, kind: &str) {
-        crate::unported!("bot.modules.chat:_note_the_pool")
-    }
-
-    /// Python: bot/modules/chat.py:11242 `_just_named(memory, name)`
-    pub fn _just_named(memory: &mut Memory, name: &str) {
-        crate::unported!("bot.modules.chat:_just_named")
-    }
-
-    /// Python: bot/modules/chat.py:11257 `_name_said(name)` (never called on the trace corpus)
-    pub fn _name_said(name: &str) -> Value {
-        crate::unported!("bot.modules.chat:_name_said")
-    }
-
-    /// Python: bot/modules/chat.py:11268 `_pet_name(flat, match)`
-    pub fn _pet_name(flat: &str, r#match: &Value) -> String {
-        crate::unported!("bot.modules.chat:_pet_name")
-    }
-
-    /// Python: bot/modules/chat.py:11295 `_question_coming(understood)`
-    pub fn _question_coming(understood: &Understood) -> bool {
-        crate::unported!("bot.modules.chat:_question_coming")
-    }
-
-    /// Python: bot/modules/chat.py:11318 `_the_not_knowing_has_a_subject(memory)` (never called on the trace corpus)
-    pub fn _the_not_knowing_has_a_subject(memory: &Memory) -> bool {
-        crate::unported!("bot.modules.chat:_the_not_knowing_has_a_subject")
-    }
-
-    /// Python: bot/modules/chat.py:11337 `_conversation(clean, tokens, memory)`
-    pub fn _conversation(clean: &str, tokens: &[String], memory: &mut Memory) {
-        crate::unported!("bot.modules.chat:_conversation")
-    }
-
-    /// Python: bot/modules/chat.py:11426 `_the_visit_was_this_week(flat)` (never called on the trace corpus)
-    pub fn _the_visit_was_this_week(flat: &Value) -> bool {
-        crate::unported!("bot.modules.chat:_the_visit_was_this_week")
-    }
-
-    /// Python: bot/modules/chat.py:11525 `_a_thing_of_care(phrase, article=True)` (never called on the trace corpus)
-    pub fn _a_thing_of_care(phrase: &str, article: &Value) -> Value {
-        crate::unported!("bot.modules.chat:_a_thing_of_care")
-    }
-
-    /// Python: bot/modules/chat.py:11550 `_ends_plural(phrase)` (never called on the trace corpus)
-    pub fn _ends_plural(phrase: &str) -> bool {
-        crate::unported!("bot.modules.chat:_ends_plural")
-    }
-
-    /// Python: bot/modules/chat.py:11556 `_keep_the_letters(text)` (never called on the trace corpus)
-    pub fn _keep_the_letters(text: &str) -> Value {
-        crate::unported!("bot.modules.chat:_keep_the_letters")
-    }
-
-    /// Python: bot/modules/chat.py:11578 `_wearer_is_themselves(flat, match)` (never called on the trace corpus)
-    pub fn _wearer_is_themselves(flat: &Value, r#match: &Value) -> bool {
-        crate::unported!("bot.modules.chat:_wearer_is_themselves")
-    }
-
-    /// Python: bot/modules/chat.py:11596 `_names_a_person(word)` (never called on the trace corpus)
-    pub fn _names_a_person(word: &str) -> bool {
-        crate::unported!("bot.modules.chat:_names_a_person")
-    }
-
-    /// Python: bot/modules/chat.py:11611 `_own_medical_news(flat, memory, clean='')`
-    pub fn _own_medical_news(flat: &str, memory: &mut Memory, clean: &str) {
-        crate::unported!("bot.modules.chat:_own_medical_news")
-    }
-
-    /// Python: bot/modules/chat.py:11685 `_news(clean, tokens, memory)`
-    pub fn _news(clean: &str, tokens: &[String], memory: &mut Memory) {
-        crate::unported!("bot.modules.chat:_news")
-    }
-
-    /// Python: bot/modules/chat.py:11925 `_head_word(phrase)` (never called on the trace corpus)
-    pub fn _head_word(phrase: &str) -> Value {
-        crate::unported!("bot.modules.chat:_head_word")
-    }
-
-    /// Python: bot/modules/chat.py:11931 `_the_poor_describer(phrase)` (never called on the trace corpus)
-    pub fn _the_poor_describer(phrase: &str) -> Value {
-        crate::unported!("bot.modules.chat:_the_poor_describer")
-    }
-
-    /// Python: bot/modules/chat.py:11939 `_the_thing_this_line_names(clean)` (never called on the trace corpus)
-    pub fn _the_thing_this_line_names(clean: &str) -> Value {
-        crate::unported!("bot.modules.chat:_the_thing_this_line_names")
-    }
-
-    /// Python: bot/modules/chat.py:11951 `_about_the_night_out(clean, tokens, memory)`
-    pub fn _about_the_night_out(clean: &str, tokens: &[String], memory: &mut Memory) {
-        crate::unported!("bot.modules.chat:_about_the_night_out")
-    }
-
-    /// Python: bot/modules/chat.py:11983 `_saw_something(flat, memory)`
-    pub fn _saw_something(flat: &str, memory: &mut Memory) {
-        crate::unported!("bot.modules.chat:_saw_something")
-    }
-
-    /// Python: bot/modules/chat.py:12031 `_trip_place(phrase, memory)` (never called on the trace corpus)
-    pub fn _trip_place(phrase: &str, memory: &Memory) -> Value {
-        crate::unported!("bot.modules.chat:_trip_place")
-    }
-
-    /// Python: bot/modules/chat.py:12078 `_told_a_trip(flat, memory)`
-    pub fn _told_a_trip(flat: &str, memory: &mut Memory) {
-        crate::unported!("bot.modules.chat:_told_a_trip")
-    }
-
-    /// Python: bot/modules/chat.py:12221 `_the_thread_is_heavy_here(memory)` (never called on the trace corpus)
-    pub fn _the_thread_is_heavy_here(memory: &Memory) -> Option<bool> {
-        crate::unported!("bot.modules.chat:_the_thread_is_heavy_here")
-    }
-
-    /// Python: bot/modules/chat.py:12229 `_a_good_time_they_had(flat, memory)`
-    pub fn _a_good_time_they_had(flat: &str, memory: &mut Memory) {
-        crate::unported!("bot.modules.chat:_a_good_time_they_had")
-    }
-
-    /// Python: bot/modules/chat.py:12244 `_the_detail_of_the_good_time(flat, clean, tokens, memory)`
-    pub fn _the_detail_of_the_good_time(flat: &str, clean: &str, tokens: &[String], memory: &Memory) {
-        crate::unported!("bot.modules.chat:_the_detail_of_the_good_time")
-    }
-
-    /// Python: bot/modules/chat.py:12266 `_night_out(flat, memory)`
-    pub fn _night_out(flat: &str, memory: &mut Memory) {
-        crate::unported!("bot.modules.chat:_night_out")
-    }
-
-    /// Python: bot/modules/chat.py:12333 `_a_pick_is_in_hand(memory)`
-    pub fn _a_pick_is_in_hand(memory: &Memory) -> bool {
-        crate::unported!("bot.modules.chat:_a_pick_is_in_hand")
-    }
-
-    /// Python: bot/modules/chat.py:12350 `_asks_for_a_joke(clean, tokens, memory=None)`
-    pub fn _asks_for_a_joke(clean: &str, tokens: &[String], memory: &Memory) -> bool {
-        crate::unported!("bot.modules.chat:_asks_for_a_joke")
-    }
 
     /// Python: bot/modules/chat.py:12515 `_without_a_filler_tail(thing)`
     pub fn _without_a_filler_tail(thing: &str) -> String {
