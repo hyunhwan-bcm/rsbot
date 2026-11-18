@@ -162,10 +162,11 @@ pub struct Moment {
     pub minute: i64,
 }
 
-// NEEDS(runtime clock: datetime.datetime.now(datetime.timezone.utc))
-/// `datetime.now(timezone.utc)`: pinned to 2026-11-17 12:00 UTC, as in every oracle run.
+/// `datetime.now(timezone.utc)`, from the shared clock (`py::clock`), to the minute.
 pub fn now_utc() -> Moment {
-    Moment { year: 2026, month: 11, day: 17, hour: 12, minute: 0 }
+    use chrono::{Datelike, Timelike};
+    let now = crate::py::clock::now_utc();
+    Moment { year: now.year() as i64, month: now.month() as i64, day: now.day() as i64, hour: now.hour() as i64, minute: now.minute() as i64 }
 }
 
 /// Days since 1970-01-01 of a civil date (proleptic Gregorian).

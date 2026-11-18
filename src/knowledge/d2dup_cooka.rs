@@ -163,29 +163,36 @@ pub fn dishes_dish_in(text: &str) -> Option<String> {
     crate::knowledge::dishes::dish_in(text).map(str::to_string)
 }
 
-// NEEDS(bot.knowledge.dishes::ask_kind) — which kind of follow-up the line is.
+/// `dishes.ask_kind`: which kind of follow-up the line is.
 pub fn dishes_ask_kind(u: &Understood) -> Option<String> {
     crate::knowledge::dishes::ask_kind(u).map(str::to_string)
 }
 
-// NEEDS(bot.knowledge.dishes::reply) — the plan's answer to a follow-up of that kind.
-pub fn dishes_reply(_kind: &str, _memory: &mut Memory, _u: &Understood) -> Option<String> {
-    None
+/// `dishes.reply`: the plan's answer to a follow-up of that kind.
+pub fn dishes_reply(kind: &str, memory: &mut Memory, u: &Understood) -> Option<String> {
+    crate::knowledge::dishes::reply(kind, memory, u)
 }
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.lookup (U)
 
-// NEEDS(bot.knowledge.lookup::find) — the id of the entry the matcher finds for the line, with
-// the rows of these ids rejected. Until U's matcher is merged: None.
-pub fn lookup_find_id(_u: &Understood, _reject_ids: &[&str]) -> Option<String> {
-    None
+/// `find(understood, reject=lambda item: item.id in ids)`: the id of the entry the matcher finds
+/// for the line with the rows of these ids turned down.
+pub fn lookup_find_id(u: &Understood, reject_ids: &[&str]) -> Option<String> {
+    let reject = |item: &crate::knowledge::entry::Entry| reject_ids.contains(&item.id.as_str());
+    crate::knowledge::lookup::find(u, None, Some(&reject), false).map(|e| e.id.clone())
 }
 
-// NEEDS(bot.knowledge.lookup::find) with the garden's entries: whether the garden table answers
-// the line. Until U's matcher is merged: False.
-pub fn lookup_find_in_garden(_line: &str) -> bool {
-    false
+/// `find(reading, entries=garden.ENTRIES) is not None`, on the reading cooking builds from the
+/// clean line alone: whether the garden table answers the line.
+pub fn lookup_find_in_garden(line: &str) -> bool {
+    static GARDEN: LazyLock<Vec<&'static crate::knowledge::entry::Entry>> = LazyLock::new(|| {
+        data::get("bot.knowledge.garden.ENTRIES").items().iter().filter_map(crate::knowledge::entry::canonical).collect()
+    });
+    static NOT_A_WORD: LazyLock<crate::py::re::Re> = LazyLock::new(|| crate::py::re::Re::new(r"[^a-z0-9']+", 0));
+    let words: Vec<String> = NOT_A_WORD.split(&line.to_lowercase()).into_iter().filter(|w| !w.is_empty()).collect();
+    let reading = Understood { clean: line.to_string(), text: line.to_string(), words, kind: "ask".to_string(), ..Default::default() };
+    crate::knowledge::lookup::find(&reading, Some(&GARDEN), None, false).is_some()
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -369,4 +376,19 @@ pub fn meals_unknown_food(u: &Understood) -> bool {
         return false;
     }
     !tail.iter().any(|w| known_word(w, &known))
+}
+
+#[cfg(test)]
+mod wired_tests {
+    use super::*;
+
+    /// Expected values from `pycall.py bot.knowledge.cooking _the_garden_has_this_plant`.
+    #[test]
+    fn the_garden_table_answers() {
+        data::load();
+        assert!(lookup_find_in_garden("i bought a blueberry bush"));
+        assert!(lookup_find_in_garden("when do i prune roses"));
+        assert!(!lookup_find_in_garden("how long to boil an egg"));
+        assert!(lookup_find_in_garden("my tomato plants have yellow leaves"));
+    }
 }

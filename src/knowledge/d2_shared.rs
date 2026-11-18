@@ -121,18 +121,6 @@ pub fn call_guard(id: &str, u: &Understood) -> bool {
     crate::knowledge::registry::guard(&f, u)
 }
 
-// NEEDS(U: bot.understanding::understand)
-/// `understanding.understand(text)`: until U's engine is merged, PyBot's recorded reading when
-/// RSBOT_ORACLE_UNDERSTAND is set, else a bare reading of the text.
-pub fn understand(text: &str) -> Understood {
-    if crate::oracle::use_oracle_understand() {
-        if let Some(u) = crate::oracle::UNDERSTAND_CALLS.get(text) {
-            return u.clone();
-        }
-    }
-    Understood { text: text.to_string(), clean: text.to_lowercase(), ..Default::default() }
-}
-
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/lookup.py
 

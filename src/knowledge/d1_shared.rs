@@ -202,16 +202,6 @@ pub fn health_the_line(u: &Understood) -> String {
     u.clean.to_lowercase()
 }
 
-/// DUP(bot.understanding::understand): PyBot's reading of another piece of text. Until the
-/// understanding engine is ported this answers only from PyBot's recorded readings
-/// (RSBOT_ORACLE_UNDERSTAND=1); None otherwise, which a caller treats as Python raising.
-pub fn understand(text: &str) -> Option<Understood> {
-    if !crate::oracle::use_oracle_understand() {
-        return None;
-    }
-    crate::oracle::UNDERSTAND_CALLS.get(text).cloned()
-}
-
 // ---------------------------------------------------------------------------------------------
 // Entry callables other than guard/reply. The registry runs guards and replies; an entry's
 // `shape` and `lead` are functions too (`Entry.shape`: given the line's words as one string,

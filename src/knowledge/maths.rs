@@ -1046,20 +1046,11 @@ impl Date {
     }
 }
 
-/// `datetime.date.today()`: the pinned clock of the oracle runs (2026-11-17), or RSBOT_TODAY.
+/// `datetime.date.today()`, from the shared clock (`py::clock`).
 pub fn today() -> Date {
-    static TODAY: LazyLock<Date> = LazyLock::new(|| {
-        if let Ok(s) = std::env::var("RSBOT_TODAY") {
-            let p: Vec<i64> = s.split('-').filter_map(|x| x.parse().ok()).collect();
-            if p.len() == 3 {
-                if let Some(d) = Date::new(p[0], p[1], p[2]) {
-                    return d;
-                }
-            }
-        }
-        Date { year: 2026, month: 11, day: 17 }
-    });
-    *TODAY
+    use chrono::Datelike;
+    let d = crate::py::clock::today();
+    Date { year: d.year() as _, month: d.month() as _, day: d.day() as _ }
 }
 
 // =============================================================================================

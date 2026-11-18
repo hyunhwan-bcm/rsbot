@@ -300,16 +300,11 @@ impl Date {
     }
 }
 
-// NEEDS(shared clock): `datetime.date.today()`. PyBot's oracle runs pin the clock to 2026-11-17;
-// RSBOT_TODAY=YYYY-MM-DD overrides it.
+/// `datetime.date.today()`, from the shared clock (`py::clock`).
 pub fn today() -> Date {
-    if let Ok(s) = std::env::var("RSBOT_TODAY") {
-        let parts: Vec<i64> = s.split('-').filter_map(|p| p.parse().ok()).collect();
-        if parts.len() == 3 {
-            return Date::new(parts[0], parts[1] as u32, parts[2] as u32);
-        }
-    }
-    Date::new(2026, 11, 17)
+    use chrono::Datelike;
+    let d = crate::py::clock::today();
+    Date::new(d.year() as i64, d.month(), d.day())
 }
 
 #[cfg(test)]

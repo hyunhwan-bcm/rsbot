@@ -250,13 +250,26 @@ pub fn _per_month(text: &str) -> i64 {
 }
 
 // ---- the pinned clock and civil dates ---------------------------------------------------------
-// PyBot runs with the clock pinned (harness/run_python.py `pin_clock`): `date.today()` is
-// 2026-11-17 and `datetime.now()` is 2026-11-17 12:00:00 (naive).
+// Read from the shared clock (`py::clock`), which the checkers pin to the oracle's day.
 
 /// `date.today()` as (year, month, day).
-pub const TODAY: (i64, i64, i64) = (2026, 11, 17);
-/// The hour `datetime.now()` gives on the pinned day.
-pub const NOW_HOUR: i64 = 12;
+pub fn today() -> (i64, i64, i64) {
+    use chrono::Datelike;
+    let d = crate::py::clock::today();
+    (d.year() as i64, d.month() as i64, d.day() as i64)
+}
+
+/// `datetime.now()` (naive local time) as (days since 1970-01-01, seconds into the day). On a
+/// pinned day it is noon, as the harness pins it (`run_python.pin_clock`).
+pub fn now_local() -> (i64, i64) {
+    use chrono::{Datelike, Timelike};
+    if std::env::var_os("RSBOT_TODAY").is_some() {
+        let (y, m, d) = today();
+        return (days_from_civil(y, m, d), 12 * 3600);
+    }
+    let now = crate::py::clock::now_utc().with_timezone(&chrono::Local).naive_local();
+    (days_from_civil(now.year() as i64, now.month() as i64, now.day() as i64), now.num_seconds_from_midnight() as i64)
+}
 
 /// Days since 1970-01-01 of a proleptic Gregorian date (Howard Hinnant's algorithm).
 pub fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {

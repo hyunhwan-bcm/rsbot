@@ -8,12 +8,11 @@ use crate::understood::Understood;
 use std::sync::LazyLock;
 
 // ---------------------------------------------------------------------------------------------
-// The pinned clock PyBot runs under: `date.today()` is 2026-11-17, `datetime.now()` is
-// 2026-11-17 12:00:00.
-
-/// `date.today()` as (year, month, day): the pinned day every oracle run answers on.
+/// `date.today()` as (year, month, day), from the shared clock (`py::clock`).
 pub fn today() -> (i64, u32, u32) {
-    (2026, 11, 17)
+    use chrono::Datelike;
+    let d = crate::py::clock::today();
+    (d.year() as i64, d.month(), d.day())
 }
 
 /// `date.today().month`.

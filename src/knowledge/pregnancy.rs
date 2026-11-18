@@ -249,7 +249,7 @@ pub fn _the_weeks_named(line: &str) -> Option<i64> {
 /// the line gives neither).
 pub fn _preg_due_date(_memory: &Memory, understood: &Understood) -> String {
     let line = text::squash(&understood.clean);
-    let (y, m, d) = dup::TODAY;
+    let (y, m, d) = dup::today();
     let today = dup::days_from_civil(y, m, d);
     if let Some(weeks) = _the_weeks_named(&line) {
         let left = 40 - weeks;

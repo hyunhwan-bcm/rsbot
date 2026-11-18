@@ -39,30 +39,19 @@ impl Date {
     }
 }
 
-// NEEDS(clock: datetime.date.today) — PyBot's runs (and every oracle) pin the date to
-// 2026-11-17; RSBOT_TODAY=YYYY-MM-DD overrides it.
-/// `datetime.date.today()`.
+/// `datetime.date.today()`, from the shared clock (`py::clock`).
 pub fn today() -> Date {
-    if let Ok(s) = std::env::var("RSBOT_TODAY") {
-        let p: Vec<&str> = s.split('-').collect();
-        if p.len() == 3 {
-            if let (Ok(y), Ok(m), Ok(d)) = (p[0].parse(), p[1].parse(), p[2].parse()) {
-                return Date { year: y, month: m, day: d };
-            }
-        }
-    }
-    Date { year: 2026, month: 11, day: 17 }
+    use chrono::Datelike;
+    let d = crate::py::clock::today();
+    Date { year: d.year() as _, month: d.month() as _, day: d.day() as _ }
 }
 
 // ---------------------------------------------------------------------------------------------
 // bot/memory/facts.py
 
-// NEEDS(bot.memory.facts::extract) — the facts reader is a 10k-line module owned elsewhere;
-// `money._a_first_meeting` only reads `extract(text).get("name")`. Until the port is merged
-// this reads no name, so the saving answer is never held back for a welcome.
-/// `extract(text).get("name")`.
-pub fn extract_name(_text: &str) -> Option<String> {
-    None
+/// `extract(text).get("name")`: the name the memory owner's own reader finds in the line.
+pub fn extract_name(text: &str) -> Option<String> {
+    crate::memory::facts::extract(text, false).get("name").filter(|n| n.truthy()).map(|n| n.str().to_string())
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -168,5 +157,17 @@ mod tests {
         assert_eq!(d.weekday(), 1); // a Tuesday
         assert_eq!(Date { year: 2026, month: 12, day: 1 }.days_since(&d), 14);
         assert_eq!(Date { year: 2027, month: 1, day: 1 }.days_since(&d), 45);
+    }
+}
+
+#[cfg(test)]
+mod wired_tests {
+    /// Expected values from `pycall.py bot.knowledge.money _a_first_meeting`.
+    #[test]
+    #[ignore = "facts::extract still reaches bot.memory.taste:read_other, which is not ported yet"]
+    fn a_name_in_the_line() {
+        crate::data::load();
+        assert!(super::extract_name("hi im jess, im saving for a car").is_some_and(|n| !n.is_empty()));
+        assert!(super::extract_name("im saving for a car").is_none());
     }
 }
