@@ -13,10 +13,10 @@ use std::sync::{Arc, LazyLock};
 ///
 /// This line is the one to answer as it comes: a month said out loud, and the sum of it.
 pub fn TAKES_AS_IT_COMES(text: &str, memory: &mut Memory) -> bool {
-    ret_true(crate::memory::outgoings::reply_for(text, memory))
+    ret_true(crate::memory::outgoings::reply_for(text, Some(&mut *memory)))
 }
 
 /// Python: bot/modules/the_month_they_have.py `respond(text, memory)` - a runtime hook; its signature is the runtime's.
 pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
-    or_none(crate::memory::outgoings::reply_for(text, memory))
+    or_none(crate::memory::outgoings::reply_for(text, Some(&mut *memory)))
 }

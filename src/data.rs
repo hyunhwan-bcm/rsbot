@@ -45,7 +45,12 @@ pub struct FnRef {
 impl FnRef {
     /// "module:qualname" without the line number.
     pub fn name(&self) -> &str {
-        self.id.rsplit_once(':').map(|(a, _)| a).unwrap_or(&self.id)
+        // "module:qualname:line" -> "module:qualname"; an id built by hand without the line
+        // ("module:qualname") is already the name.
+        match self.id.rsplit_once(':') {
+            Some((a, line)) if !line.is_empty() && line.bytes().all(|b| b.is_ascii_digit()) => a,
+            _ => &self.id,
+        }
     }
     /// A captured variable's value.
     pub fn cell(&self, name: &str) -> Option<&Value> {

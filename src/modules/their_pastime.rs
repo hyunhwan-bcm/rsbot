@@ -108,11 +108,7 @@ pub fn _does_pool(thing: &str) -> Vec<String> {
 /// {has}, {is} and {it} are this pool's.
 pub fn _fill_it(line: &str, person_word: &str, it_word: &str) -> String {
     // `they, them, their, do, are = person_pronouns(person_word)`
-    let pronouns = remark::person_pronouns(person_word).val();
-    let (do_, are) = match pronouns.items() {
-        [_, _, _, do_, are] => (py_str(do_), py_str(are)),
-        _ => panic!("ValueError: not enough values to unpack (expected 5)"),
-    };
+    let [_they, _them, _their, do_, are] = remark::person_pronouns(person_word);
     let said = ret_str(remark::fill_person(line, person_word));
     let said = said.replace("{has}", if do_ == "do" { "have" } else { "has" }).replace("{is}", if are == "are" { "are" } else { "is" }).replace("{it}", it_word);
     let said = said

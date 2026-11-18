@@ -41,7 +41,7 @@ pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
 
 /// `favourite.their_words(value)` as the text it is.
 fn their_words(value: &Value) -> String {
-    ret_str(favourite::their_words(value))
+    ret_str(favourite::their_words(&s_or(Some(value))))
 }
 
 /// `read_tastes(memory)`: PyBot hands the taste reader the memory itself, and the reader reads

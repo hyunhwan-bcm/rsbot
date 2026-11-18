@@ -80,19 +80,7 @@ fn remember_other(memory: &mut Memory, entry: &Value, text_: &str) {
 /// Vec<String>`, which cannot hold the pet records Python passes and returns; this wrapper is the
 /// one place to adapt when the owner of `bot/memory/__init__.py` lands the real signature.
 fn forget(memory: &mut Memory, key: &str, values: &Value, why: Option<&str>) -> Value {
-    let wanted: Vec<String> = match values {
-        Value::List(_) | Value::Tuple(_) | Value::Set(_) => values.items().iter().map(forget_arg).collect(),
-        one => vec![forget_arg(one)],
-    };
-    crate::memory::forget(memory, key, &wanted, why.unwrap_or("")).val()
-}
-
-/// One value handed to the `&[String]` contract of `forget`: a record travels as its JSON text.
-fn forget_arg(v: &Value) -> String {
-    match v {
-        Value::Dict(_) => v.to_plain().to_string(),
-        other => py_str(other),
-    }
+    crate::memory::forget(memory, key, values, why.unwrap_or("")).val()
 }
 
 /// `bot.memory.stem(word)`.
@@ -1401,8 +1389,8 @@ pub fn _the_store_readings(text_: &str, memory: &mut Memory) -> bool {
         || _their_fact_ask(text_, memory)
         || _a_kept_fact_read(text_, memory)
         || ret_true(crate::memory::decided::asks(text_))
-        || ret_true(crate::memory::told::ABOUT_THE_CHAT(text_, memory))
-        || ret_true(crate::memory::told::A_CALLBACK(text_, memory))
+        || ret_true(crate::memory::told::ABOUT_THE_CHAT(text_, Some(&*memory)))
+        || ret_true(crate::memory::told::A_CALLBACK(text_, Some(&*memory)))
     {
         return true;
     }
@@ -1551,7 +1539,7 @@ static MY_RELATION: LazyLock<Re> = LazyLock::new(|| Re::new(&format!(r"\bmy\s+(?
 /// CONTRACT NOTE: the skeleton contract takes `&mut Memory` and cannot say "no memory"; an empty
 /// one is handed over until the owner of `bot/memory/relations.py` lands `Option<&mut Memory>`.
 fn _named_person_alone(low: &str) -> String {
-    ret_str(relations::_named_person(low, &mut Memory::new()))
+    ret_str(relations::_named_person(low, None))
 }
 
 /// Python: bot/modules/memory_store.py:1865 `_their_fact_ask(text, memory=None)`
@@ -3622,7 +3610,7 @@ pub fn TAKES_AS_IT_COMES(text_: &str, memory: &mut Memory) -> bool {
         // would replace this hook at import and every reading under it would stop answering.
         return true;
     }
-    if ret_true(crate::memory::told::A_CALLBACK(text_, memory)) {
+    if ret_true(crate::memory::told::A_CALLBACK(text_, Some(&*memory))) {
         // "remember when i said my knee hurt": the store is the part that can say what was
         // actually said, and an entry that reads the word in it ("knee") would serve the advice
         // again. This hook is the one the arbiter reads - the store has an older definition

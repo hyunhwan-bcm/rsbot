@@ -28,7 +28,7 @@ pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
     let last = memory.turns.last().map(|turn| turn.bot.clone()).unwrap_or_default();
     // CONTRACT NOTE: the skeleton types `said` as `&str`; the count goes over as Python's `str()`
     // of it until the owner of `bot/memory/amounts.py` types the value.
-    let against = amounts::against_the_last_answer(&py_str(&said), &last).val();
+    let against = amounts::against_the_last_answer(&said, &last).val();
     if against.is_none() {
         return None;
     }
