@@ -310,6 +310,14 @@ fn call(fid: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out> {
             Some(J::Object(_)) => b(repair::amends_to(&a.value(0).get("clean").map(|v| v.str().to_string()).unwrap_or_default())),
             _ => b(repair::amends_to(&a.s(0))),
         },
+        ("repair", "line_of") => match a.get(0) {
+            Some(J::String(s)) => text(s.clone()),
+            Some(J::Object(o)) => match o.get("__reading__").and_then(|r| serde_json::from_value::<rsbot::understood::Understood>(r.clone()).ok()) {
+                Some(reading) => text(repair::line_of(&reading)),
+                None => return None,
+            },
+            _ => text(String::new()),
+        },
         ("repair", "a_repair_is_open") => b(repair::a_repair_is_open(&a.mem(0))),
         ("rule", "_said") => text(rule::_said(&a.s(0))),
         ("rule", "_a_court_of_law") => b(rule::_a_court_of_law(&a.s(0))),
