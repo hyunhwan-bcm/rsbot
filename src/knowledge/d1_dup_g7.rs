@@ -56,3 +56,35 @@ pub fn _starting_out_names_a_thing(line: &str) -> bool {
     }
     !STARTING_BACK.contains(first)
 }
+
+static KEEPING_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEEPING_WORDS"));
+static KEPT_FOODS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEPT_FOODS"));
+static CONTAINERS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.CONTAINERS"));
+
+/// DUP(bot.knowledge.lookup::a_food_is_being_kept): the line is about storing a food (a keeping
+/// word and a kept food both named).
+pub fn a_food_is_being_kept(understood: &Understood) -> bool {
+    let text = format!(" {} ", crate::knowledge::d1_shared::or(&understood.norm_text, &understood.clean).to_lowercase());
+    if !KEEPING_WORDS.iter().any(|w| text.contains(w.as_str())) {
+        return false;
+    }
+    let said: HashSet<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
+    for food in KEPT_FOODS.iter() {
+        if food.contains(' ') {
+            if text.contains(food.as_str()) {
+                return true;
+            }
+        } else if said.contains(food) || text.contains(&format!(" {food} ")) {
+            return true;
+        }
+    }
+    false
+}
+
+/// DUP(bot.knowledge.lookup::only_a_container): every one of `names` the line holds is a
+/// container (a bag, a tub), and it holds at least one.
+pub fn only_a_container<S: AsRef<str>>(understood: &Understood, names: &[S]) -> bool {
+    let text = format!(" {} ", understood.words.iter().map(|w| w.to_lowercase()).collect::<Vec<_>>().join(" "));
+    let found: Vec<&str> = names.iter().map(|n| n.as_ref()).filter(|one| text.contains(&format!(" {one} "))).collect();
+    !found.is_empty() && found.iter().all(|one| CONTAINERS.contains(*one))
+}
