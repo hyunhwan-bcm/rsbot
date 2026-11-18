@@ -330,6 +330,32 @@ pub mod pyv {
         }
     }
 
+    /// What another file's function gave back, read as Python's `str or None` whatever its
+    /// contract type is today (a stub that returns `()` is None, "" is None).
+    pub trait OptStr {
+        fn opt_str(self) -> Option<String>;
+    }
+    impl OptStr for () {
+        fn opt_str(self) -> Option<String> {
+            None
+        }
+    }
+    impl OptStr for String {
+        fn opt_str(self) -> Option<String> {
+            if self.is_empty() { None } else { Some(self) }
+        }
+    }
+    impl OptStr for Option<String> {
+        fn opt_str(self) -> Option<String> {
+            self.filter(|s| !s.is_empty())
+        }
+    }
+    impl OptStr for Value {
+        fn opt_str(self) -> Option<String> {
+            if self.truthy() { Some(str_of(&self)) } else { None }
+        }
+    }
+
     /// `try: f() except Exception: None`: a panic (Python's exception) is caught.
     pub fn attempt<T>(f: impl FnOnce() -> T) -> Option<T> {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).ok()
