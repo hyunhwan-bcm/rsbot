@@ -485,6 +485,79 @@ pub fn _nutrient_food(clean: &str) -> Option<(String, f64)> {
     None
 }
 
+// --- bot.understanding.topics::the_bin_is_on_a_machine, bot.memory.topics::context ----------
+
+/// DUP(bot.understanding.topics::the_bin_is_on_a_machine): the sentence's bin is the one on a
+/// computer (a machine word in the line, or the technology topic).
+pub fn the_bin_is_on_a_machine(understood: &Understood) -> bool {
+    static MACHINE_BIN_WORDS: LazyLock<HashSet<String>> =
+        LazyLock::new(|| data::set("bot.understanding.topics.MACHINE_BIN_WORDS"));
+    if understood.words.iter().any(|w| MACHINE_BIN_WORDS.contains(w)) {
+        return true;
+    }
+    understood.topics.iter().any(|t| t == "technology")
+}
+
+/// DUP(bot.memory.topics::context): the last `n` topic texts, oldest first
+/// (`memory["topics"]`, a list of records with a "text").
+pub fn memory_topics_context(memory: &Memory, n: usize) -> Vec<String> {
+    let Some(Value::List(records)) = memory.extra.get("topics") else { return Vec::new() };
+    records[records.len().saturating_sub(n)..]
+        .iter()
+        .filter_map(|r| r.get("text").and_then(Value::as_str))
+        .filter(|t| !t.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+/// Python's `repr()` of an exported value (`str()` of a container is its repr): enough to
+/// search the printed form the way PyBot does with `str(memory.get(key))`.
+pub fn py_repr(v: &Value) -> String {
+    fn quote(s: &str) -> String {
+        let q = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
+        let mut out = String::new();
+        out.push(q);
+        for c in s.chars() {
+            match c {
+                '\\' => out.push_str("\\\\"),
+                '\n' => out.push_str("\\n"),
+                '\r' => out.push_str("\\r"),
+                '\t' => out.push_str("\\t"),
+                c if c == q => {
+                    out.push('\\');
+                    out.push(c);
+                }
+                c if (c as u32) < 0x20 || c as u32 == 0x7f => out.push_str(&format!("\\x{:02x}", c as u32)),
+                c => out.push(c),
+            }
+        }
+        out.push(q);
+        out
+    }
+    let join = |xs: &[Value]| xs.iter().map(py_repr).collect::<Vec<_>>().join(", ");
+    match v {
+        Value::None => "None".into(),
+        Value::Bool(b) => if *b { "True".into() } else { "False".into() },
+        Value::Int(i) => i.to_string(),
+        Value::Float(f) => crate::py::text::float_repr(*f),
+        Value::Str(s) => quote(s),
+        Value::List(xs) => format!("[{}]", join(xs)),
+        Value::Tuple(xs) if xs.len() == 1 => format!("({},)", py_repr(&xs[0])),
+        Value::Tuple(xs) => format!("({})", join(xs)),
+        Value::Set(xs) if xs.is_empty() => "set()".into(),
+        Value::Set(xs) => format!("{{{}}}", join(xs)),
+        Value::Dict(d) => format!(
+            "{{{}}}",
+            d.iter().map(|(k, v)| format!("{}: {}", py_repr(k), py_repr(v))).collect::<Vec<_>>().join(", ")
+        ),
+        Value::Re(r) => format!("re.compile({})", quote(r.pattern())),
+        Value::Fn(f) => format!("<function {}>", f.name()),
+        Value::Obj(c, _) => format!("<{c} object>"),
+        Value::Module(m) => format!("<module '{m}'>"),
+        Value::Opaque(o) => format!("<{o}>"),
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // A differential check for the group's modules (test only): replays calls recorded by calling
 // every function guard / reply / shape of a module's entries on many readings, whether or not
@@ -541,7 +614,7 @@ mod g6_diff {
     }
 
     fn shape(f: &FnRef, arg: &str) -> Option<bool> {
-        let tables: Vec<&[(&str, crate::knowledge::d1_shared::ShapeFn)]> = vec![crate::knowledge::cars::SHAPES];
+        let tables: Vec<&[(&str, crate::knowledge::d1_shared::ShapeFn)]> = vec![crate::knowledge::cars::SHAPES, crate::knowledge::technology::SHAPES];
         for t in tables {
             if let Some((_, s)) = t.iter().find(|(k, _)| *k == f.id) {
                 return Some(crate::runtime::guarded(|| s(f, arg)).unwrap_or(false));
@@ -635,6 +708,9 @@ mod g6_diff {
             let mut memory = Memory::new();
             if !s("user").is_empty() || !s("bot").is_empty() {
                 memory.turns.push(crate::state::Turn { user: s("user"), bot: s("bot"), module: None });
+            }
+            for (k, v) in c["extra"].as_object().into_iter().flatten() {
+                memory.extra.insert(k.clone(), Value::from_plain(v));
             }
             for t in c["turns"].as_array().into_iter().flatten() {
                 let (user, bot) = (t[0].as_str().unwrap_or("").to_string(), t[1].as_str().unwrap_or("").to_string());
