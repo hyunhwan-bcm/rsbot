@@ -509,6 +509,21 @@ fn call(name: &str, a: &Args) -> Option<(J, Option<J>)> {
                 return Some((r, Some(J::Object(m.to_plain()))));
             }
             "_a_step_back" => topics::_a_step_back(&a.s(0, "reply")).py(),
+            "_the_words_this_turn" => {
+                let mut m = a.mem(0, "memory");
+                let before: indexmap::IndexMap<String, Vec<String>> = a
+                    .j(1, "before")
+                    .as_object()
+                    .map(|o| o.iter().map(|(k, v)| (k.clone(), v.as_array().map(|x| x.iter().map(|w| w.as_str().unwrap_or("").to_string()).collect()).unwrap_or_default())).collect())
+                    .unwrap_or_default();
+                let prev = a.val(3, "previous");
+                topics::_the_words_this_turn(&mut m, &before, &a.val(2, "record"), (!prev.is_none()).then_some(&prev));
+                return Some((J::Null, Some(J::Object(m.to_plain()))));
+            }
+            "_the_words_before_the_turn" => {
+                let held = topics::_the_words_before_the_turn(&a.mem(0, "memory"));
+                J::Object(held.into_iter().map(|(k, v)| (k, json!(v))).collect())
+            }
             _ => return None,
         },
         ("bot.memory.thread", f) => match f {
@@ -524,6 +539,8 @@ fn call(name: &str, a: &Args) -> Option<(J, Option<J>)> {
             "_is_subject_phrase" => thread::_is_subject_phrase(&a.s(0, "phrase")).py(),
             "_from_topics" => thread::_from_topics(&a.mem(0, "memory")).py(),
             "_is_wh" => thread::_is_wh(&a.s(0, "word")).py(),
+            "_with_wh" => thread::_with_wh(&a.und(0, "reading"), &a.strs(1, "words")).py(),
+            "_subjects_at" => thread::_subjects_at(&a.strs(0, "words"), a.int(1, "index", 0), &a.strs(2, "names")).py(),
             "_strip_lead" => thread::_strip_lead(&a.strs(0, "words")).py(),
             "_with_you" => thread::_with_you(&a.strs(0, "words")).py(),
             "_first_person_aux" => thread::_first_person_aux(&a.s(0, "word")).py(),

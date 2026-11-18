@@ -6416,3 +6416,259 @@ pub mod deps {
         json!([a])
     }
 }
+
+/// Expected values from PyBot (`python3 harness/pycall.py`-style, one process), for branches the
+/// corpus reaches rarely.
+#[cfg(test)]
+mod mem3_py_tests {
+    use crate::memory::{deadline, named, thread, topics};
+
+    #[test]
+    fn py_topics___gerund() {
+        assert_eq!(topics::_gerund("make"), "making");
+        assert_eq!(topics::_gerund("get"), "getting");
+        assert_eq!(topics::_gerund("die"), "dying");
+        assert_eq!(topics::_gerund("see"), "seeing");
+        assert_eq!(topics::_gerund("fix"), "fixing");
+        assert_eq!(topics::_gerund("plan"), "planning");
+        assert_eq!(topics::_gerund("visit"), "visitting");
+        assert_eq!(topics::_gerund("bake"), "baking");
+        assert_eq!(topics::_gerund("flee"), "fleeing");
+    }
+    #[test]
+    fn py_topics___the_aim_without_its_deadline() {
+        assert_eq!(topics::_the_aim_without_its_deadline("im trying to get fit before the holiday"), "Get fit");
+        assert_eq!(topics::_the_aim_without_its_deadline("we're hoping to save 2000 by june"), "Save 2000");
+        assert_eq!(topics::_the_aim_without_its_deadline("so im planning to move house before christmas."), "Move house");
+        assert_eq!(topics::_the_aim_without_its_deadline("im going to portugal in may"), "");
+        assert_eq!(topics::_the_aim_without_its_deadline("im trying to x by june"), "");
+        assert_eq!(topics::_the_aim_without_its_deadline("i am learning to drive until march"), "Drive");
+    }
+    #[test]
+    fn py_topics__return_target() {
+        assert_eq!(topics::return_target("ok back to the boiler"), "the boiler");
+        assert_eq!(topics::return_target("anyway, the laptop"), "the laptop");
+        assert_eq!(topics::return_target("back to lisbon, whats good to see"), "lisbon");
+        assert_eq!(topics::return_target("back to work tomorrow"), "");
+        assert_eq!(topics::return_target("anyway my knee has been clicking up the stairs"), "");
+        assert_eq!(topics::return_target("back to the promotion, would asking why hurt my chances"), "the promotion");
+        assert_eq!(topics::return_target("as i was saying, rome"), "rome");
+        assert_eq!(topics::return_target("anyway the"), "");
+    }
+    #[test]
+    fn py_topics__gist() {
+        assert_eq!(topics::gist("A birthday cake for my son, 8, this weekend."), "birthday cake");
+        assert_eq!(topics::gist("Cook a turkey for Christmas."), "turkey");
+        assert_eq!(topics::gist("the tap in the kitchen keeps dripping"), "tap kitchen keep dripping");
+        assert_eq!(topics::gist("im trying to save 500 pounds for a trip to spain"), "trip spain");
+        assert_eq!(topics::gist("we're getting married next year"), "getting married");
+        assert_eq!(topics::gist("one more thing, my car failed its mot on a tyre"), "car failed mot tyre");
+        assert_eq!(topics::gist("never mind, how do i boil an egg"), "boil egg");
+        assert_eq!(topics::gist("my son's birthday is next saturday and i want to bake him a cake"), "cake");
+        assert_eq!(topics::gist("im thinking of getting a dog"), "dog");
+        assert_eq!(topics::gist("how do i get rid of slugs"), "slug");
+        assert_eq!(topics::gist("im in the market for a sofa"), "sofa");
+        assert_eq!(topics::gist("whats the weather like"), "weather");
+        assert_eq!(topics::gist("i'm after a new phone, mine is four years old"), "new phone");
+        assert_eq!(topics::gist("actually it's a funeral"), "funeral");
+        assert_eq!(topics::gist("im trying to save 3000 for a trip to iceland next summer"), "trip iceland summer");
+    }
+    #[test]
+    fn py_topics___room_limit() {
+        assert_eq!(topics::_room_limit("my flat is small"), "my flat");
+        assert_eq!(topics::_room_limit("the kitchen is really tiny"), "the kitchen");
+        assert_eq!(topics::_room_limit("my kitchen is tiny and the oven is broken"), "");
+        assert_eq!(topics::_room_limit("the garden is small"), "");
+    }
+    #[test]
+    fn py_topics___option_range() {
+        assert_eq!(topics::_option_range("6 minutes for a runny yolk, 7 for jammy, 9 to 10 for hard"), "6 to 10 minutes");
+        assert_eq!(topics::_option_range("15 to 20 minutes for a chicken or a turkey, 10 to 20 for a joint of beef, 5 to 10 for a steak"), "");
+        assert_eq!(topics::_option_range("boil it for 10 minutes"), "");
+    }
+    #[test]
+    fn py_topics___in_grams() {
+        assert_eq!(topics::_in_grams("2kg"), Some(2000.0));
+        assert_eq!(topics::_in_grams("1.5lb"), Some(680.4));
+        assert_eq!(topics::_in_grams("500 g"), Some(500.0));
+        assert_eq!(topics::_in_grams("3 oz"), Some(85.0));
+        assert_eq!(topics::_in_grams("two kilos"), None);
+    }
+    #[test]
+    fn py_topics___rate_said() {
+        assert_eq!(topics::_rate_said("Roast it at 190C. About 20 minutes per 500g plus 20 minutes, so a 2kg bird takes roughly 1 hour 40."), "20 minutes per 500g plus 20 minutes");
+        assert_eq!(topics::_rate_said("Nothing here."), "");
+    }
+    #[test]
+    fn py_topics___the_period_in() {
+        assert_eq!(topics::_the_period_in("and in october"), "october");
+        assert_eq!(topics::_the_period_in("i may go to spain"), "");
+        assert_eq!(topics::_the_period_in("what about may"), "may");
+        assert_eq!(topics::_the_period_in("in may"), "may");
+        assert_eq!(topics::_the_period_in("march on"), "march");
+        assert_eq!(topics::_the_period_in("the fall is nice"), "fall");
+        assert_eq!(topics::_the_period_in("next summer"), "summer");
+    }
+    #[test]
+    fn py_topics__elided_ask() {
+        assert_eq!(topics::elided_ask("any games"), true);
+        assert_eq!(topics::elided_ask("what about drinks"), true);
+        assert_eq!(topics::elided_ask("any idea how long"), false);
+        assert_eq!(topics::elided_ask("any games for a party of ten people please"), false);
+        assert_eq!(topics::elided_ask("and drinks"), false);
+        assert_eq!(topics::elided_ask("how about pudding"), true);
+    }
+    #[test]
+    fn py_topics__adds_only_a_constraint() {
+        assert_eq!(topics::adds_only_a_constraint("i only have ten minutes").as_deref(), Some("ten minutes"));
+        assert_eq!(topics::adds_only_a_constraint("its a 2kg one").as_deref(), Some("2kg"));
+        assert_eq!(topics::adds_only_a_constraint("im in a hurry").as_deref(), Some("in a hurry"));
+        assert_eq!(topics::adds_only_a_constraint("i only have ten minutes and no oven").as_deref(), None);
+    }
+    #[test]
+    fn py_topics__trouble() {
+        assert_eq!(topics::trouble("my mum is out of hospital").as_deref(), Some("homeward"));
+        assert_eq!(topics::trouble("my dad is out of hospital but he is still very weak").as_deref(), Some("ill"));
+        assert_eq!(topics::trouble("my mum works at the hospital").as_deref(), None);
+        assert_eq!(topics::trouble("she keeps forgetting where things are").as_deref(), Some("memory"));
+        assert_eq!(topics::trouble("my four year old says the same story every night").as_deref(), None);
+        assert_eq!(topics::trouble("me and my mum fell out").as_deref(), None);
+        assert_eq!(topics::trouble("my dad fell and was fine").as_deref(), Some("falls"));
+        assert_eq!(topics::trouble("he has dementia").as_deref(), Some("memory"));
+        assert_eq!(topics::trouble("he was diagnosed with dementia recently").as_deref(), Some("known"));
+        assert_eq!(topics::trouble("my baby is not sleeping").as_deref(), Some("sleep"));
+        assert_eq!(topics::trouble("he keeps getting chest infections").as_deref(), Some("ill"));
+        assert_eq!(topics::trouble("my grandad went to the hospital to visit his sister").as_deref(), Some("ill"));
+    }
+    #[test]
+    fn py_topics___time_in_words() {
+        assert_eq!(topics::_time_in_words(80.0), "1 hour 20");
+        assert_eq!(topics::_time_in_words(50.0), "50 minutes");
+        assert_eq!(topics::_time_in_words(62.5), "1 hour");
+        assert_eq!(topics::_time_in_words(57.5), "1 hour");
+        assert_eq!(topics::_time_in_words(120.0), "2 hours");
+        assert_eq!(topics::_time_in_words(65.0), "1 hour 5");
+    }
+    #[test]
+    fn py_topics__time_for_amount() {
+        assert_eq!(topics::time_for_amount("About 20 minutes per 500g plus 20 minutes.", "how long for a 1.5kg one").as_deref(), Some("1 hour 20"));
+        assert_eq!(topics::time_for_amount("About 20 minutes per 500g.", "how long for 700g").as_deref(), Some("30 minutes"));
+        assert_eq!(topics::time_for_amount("About 45 minutes per kg.", "how long for 10kg").as_deref(), None);
+        assert_eq!(topics::time_for_amount("20 minutes per pound.", "and for 3lb").as_deref(), None);
+    }
+    #[test]
+    fn py_topics___shorten() {
+        assert_eq!(topics::_shorten("you should roast it in the hot oven for about 40 minutes"), "40 minutes.");
+        assert_eq!(topics::_shorten("one lesson a week is what makes the rest of it stick for good"), "one lesson a week is what makes the rest of it stick for good");
+        assert_eq!(topics::_shorten("short one"), "short one");
+    }
+    #[test]
+    fn py_topics___clauses_of() {
+        assert_eq!(topics::_clauses_of("the pendulum swing (lean forward, let the arm hang, circle it slowly) a few times a day"), vec!["the pendulum swing (lean forward, let the arm hang, circle it slowly) a few times a day".to_string()]);
+        assert_eq!(topics::_clauses_of("a week or two; then rest"), vec!["a week or two".to_string(), "then rest".to_string()]);
+        assert_eq!(topics::_clauses_of("boil it - then drain: done"), vec!["boil it".to_string(), "then drain".to_string(), "done".to_string()]);
+    }
+    #[test]
+    fn py_thread___past() {
+        assert_eq!(thread::_past("say"), "said");
+        assert_eq!(thread::_past("try"), "tried");
+        assert_eq!(thread::_past("play"), "played");
+        assert_eq!(thread::_past("bake"), "baked");
+        assert_eq!(thread::_past("ask,"), "asked,");
+        assert_eq!(thread::_past("go."), "went.");
+    }
+    #[test]
+    fn py_thread___third() {
+        assert_eq!(thread::_third("need"), "needs");
+        assert_eq!(thread::_third("try"), "tries");
+        assert_eq!(thread::_third("have"), "has");
+        assert_eq!(thread::_third("fix"), "fixes");
+        assert_eq!(thread::_third("go"), "goes");
+        assert_eq!(thread::_third("play"), "plays");
+        assert_eq!(thread::_third("can"), "can");
+    }
+    #[test]
+    fn py_thread___first_clause() {
+        assert_eq!(thread::_first_clause("a satay is made with nuts, and that is off the table for you. Pick another.", 13), "a satay is made with nuts");
+        assert_eq!(thread::_first_clause("one; two", 13), "one");
+        assert_eq!(thread::_first_clause("", 13), "");
+    }
+    #[test]
+    fn py_thread___the_thing_they_had() {
+        assert_eq!(thread::_the_thing_they_had("i had an interview today"), "interview");
+        assert_eq!(thread::_the_thing_they_had("i had a dentist appointment today"), "dentist appointment");
+        assert_eq!(thread::_the_thing_they_had("my first day at the new job was today"), "first day");
+        assert_eq!(thread::_the_thing_they_had("i had a really bad day today"), "");
+        assert_eq!(thread::_the_thing_they_had("i had my blood test done today"), "blood test");
+        assert_eq!(thread::_the_thing_they_had("i had my hair cut today"), "");
+        assert_eq!(thread::_the_thing_they_had("i had a go at my boss today"), "");
+        assert_eq!(thread::_the_thing_they_had("i have an interview tomorrow"), "");
+    }
+    #[test]
+    fn py_thread__only_the_arrival() {
+        assert_eq!(thread::only_the_arrival("im back"), true);
+        assert_eq!(thread::only_the_arrival("back from work!"), true);
+        assert_eq!(thread::only_the_arrival("hi, we're back home"), true);
+        assert_eq!(thread::only_the_arrival("my back hurts"), false);
+    }
+    #[test]
+    fn py_thread__points_back() {
+        assert_eq!(thread::points_back("same as before"), true);
+        assert_eq!(thread::points_back("and the other one then"), true);
+        assert_eq!(thread::points_back("the other flat"), false);
+        assert_eq!(thread::points_back("like last time please"), true);
+    }
+    #[test]
+    fn py_thread__points_at_a_word_alone() {
+        assert_eq!(thread::points_at_a_word_alone("how do i do it"), true);
+        assert_eq!(thread::points_at_a_word_alone("how do i fix a bike"), false);
+        assert_eq!(thread::points_at_a_word_alone("how do i stop it"), true);
+        assert_eq!(thread::points_at_a_word_alone("what about that"), false);
+        assert_eq!(thread::points_at_a_word_alone("which one should i buy"), false);
+        assert_eq!(thread::points_at_a_word_alone("how do i cook this chicken"), false);
+    }
+    #[test]
+    fn py_named__takes_back() {
+        assert_eq!(named::takes_back("forget the chicken"), true);
+        assert_eq!(named::takes_back("take that back"), true);
+        assert_eq!(named::takes_back("ok never mind"), true);
+        assert_eq!(named::takes_back("drop the whole trip please"), true);
+        assert_eq!(named::takes_back("forget"), true);
+        assert_eq!(named::takes_back("i will forget about it all later on today"), false);
+    }
+    #[test]
+    fn py_named__the_one_asked_about() {
+        assert_eq!(named::the_one_asked_about("tell me about rex"), "rex");
+        assert_eq!(named::the_one_asked_about("who is priya"), "priya");
+        assert_eq!(named::the_one_asked_about("what about them"), "them");
+        assert_eq!(named::the_one_asked_about("can you tell me again about the big red bike"), "");
+        assert_eq!(named::the_one_asked_about("what is it"), "");
+    }
+    #[test]
+    fn py_named__thing() {
+        assert_eq!(named::thing("and a pudding"), "pudding");
+        assert_eq!(named::thing("what about drinks"), "");
+        assert_eq!(named::thing("and what about it"), "");
+        assert_eq!(named::thing("some cake please"), "cake please");
+        assert_eq!(named::thing("and how long"), "");
+        assert_eq!(named::thing("two"), "two");
+    }
+    #[test]
+    fn py_named___the_ing() {
+        assert_eq!(named::_the_ing("make"), "making");
+        assert_eq!(named::_the_ing("run"), "running");
+        assert_eq!(named::_the_ing("swim"), "swimming");
+        assert_eq!(named::_the_ing("play"), "playing");
+        assert_eq!(named::_the_ing("read"), "reading");
+        assert_eq!(named::_the_ing("knit"), "knitting");
+    }
+    #[test]
+    fn py_deadline__the_deadline() {
+        assert_eq!(deadline::the_deadline("by december"), "december");
+        assert_eq!(deadline::the_deadline("and by the end of the year"), "the end of the year");
+        assert_eq!(deadline::the_deadline("by the way"), "");
+        assert_eq!(deadline::the_deadline("before christmas!"), "christmas");
+        assert_eq!(deadline::the_deadline("by december i want to be in a flat"), "");
+        assert_eq!(deadline::the_deadline("in two weeks"), "");
+    }
+}
