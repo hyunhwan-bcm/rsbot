@@ -327,3 +327,33 @@ pub fn as_int(value: Option<&Value>) -> Option<i64> {
 pub fn lower_of(entry: &Value, key: &str) -> String {
     pt::lower(&text_of(entry.get(key)))
 }
+
+/// `bot.compose.pick(options, memory, seed_text)` (its contract takes the memory as a value).
+pub fn pick<S: AsRef<str>>(options: &[S], memory: &Memory, seed_text: &str) -> String {
+    let owned: Vec<String> = options.iter().map(|s| s.as_ref().to_string()).collect();
+    crate::compose::pick(&owned, &Value::from_plain(&serde_json::Value::Object(memory.to_plain())), seed_text)
+}
+
+/// Python's `try: ... except Exception:` around a call: a panic that stands for a Python
+/// exception gives None. An `UNPORTED` stub is not a Python exception, so it is passed on.
+pub fn py_try<T>(f: impl FnOnce() -> T) -> Option<T> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(value) => Some(value),
+        Err(payload) => {
+            let message = payload
+                .downcast_ref::<String>()
+                .cloned()
+                .or_else(|| payload.downcast_ref::<&str>().map(|s| s.to_string()))
+                .unwrap_or_default();
+            if message.starts_with("UNPORTED") {
+                std::panic::resume_unwind(payload);
+            }
+            None
+        }
+    }
+}
+
+/// `len(text.split())`.
+pub fn word_count(text: &str) -> usize {
+    pt::split_ref(text).len()
+}
