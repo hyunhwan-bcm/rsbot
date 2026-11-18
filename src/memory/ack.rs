@@ -4415,3 +4415,39 @@ pub fn _tidy(text_: &str) -> String {
 }
 
 data_set!(FIRST_WORD);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn chat(lines: &[(&str, &str, &str)]) -> Memory {
+        let mut memory = Memory::new();
+        memory.turns = lines
+            .iter()
+            .map(|(user, bot, module)| Turn { user: user.to_string(), bot: bot.to_string(), module: Some(module.to_string()) })
+            .collect();
+        memory
+    }
+
+    /// Expected values from PyBot (`harness/pycall.py`).
+    #[test]
+    fn readers_of_a_line() {
+        let birthday = chat(&[("my mums birthday is in may", "Noted.", "memory_store")]);
+        assert_eq!(a_second_person("and my dads", &birthday), "And your dad's birthday \u{2014} when is that?");
+        let wedding = chat(&[("my brother is getting married in june", "Noted.", "memory_store")]);
+        assert_eq!(a_second_person("and my sister", &wedding), "And your sister \u{2014} when's she getting?");
+        let gym = chat(&[("i go to the gym three times a week", "ok", "chat")]);
+        assert_eq!(_the_unit_before(&gym), "times a week");
+        assert_eq!(_the_bare_value("sorry 1150, i got it wrong"), "1150");
+        assert_eq!(_the_bare_value("1150, not 1200"), "");
+        assert_eq!(_strip_lead_in("ok so, no wait, its tuesday", false), "its tuesday");
+        assert_eq!(_contrast_off("hes not 4 hes 5"), "hes 5");
+        assert_eq!(_contrast_off("my budget is 400 a month not 300"), "my budget is 400 a month");
+        assert_eq!(_contrast_off("my son is not 4 hes 5"), "my son is 5");
+        assert_eq!(
+            _spoken("im 2 dogs n my son got 3 a stars and 2 as, a 2 1 in his degree, going 2 spain w/ the kids"),
+            "i'm two dogs and my son got three A*s and two As, a 2:1 in his degree, going to spain with the kids"
+        );
+        assert_eq!(_a_day_coming("the vets at 4 tomorrow and we are going"), Some(SOON_TAIL.clone()));
+    }
+}

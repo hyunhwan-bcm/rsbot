@@ -2376,4 +2376,62 @@ mod tests {
         assert_eq!(_unit_stem("Mins."), "minute");
         assert_eq!(words_of("How do I get the potatoes crisp?"), vec!["potatoe", "crisp"]);
     }
+
+    /// Expected values from PyBot (`harness/pycall.py`), for readers the corpus rarely reaches.
+    #[test]
+    fn the_part_asked_for() {
+        let n = |reply: &str, question: &str| narrow(reply, question, "");
+        assert_eq!(
+            n("Roast at 190C (170C fan) for 20 minutes per 500g plus 20 minutes. Rest it for 15 minutes before carving.", "how long should i rest it"),
+            Some("15 minutes.".into())
+        );
+        assert_eq!(
+            n("Green tea wants water at about 80C for 2 to 3 minutes; black tea wants it just off the boil for 3 to 5.", "how long for black tea"),
+            Some("Black tea wants it just off the boil for 3 to 5.".into())
+        );
+        assert_eq!(
+            n("Rest it loosely under foil: 15 to 20 minutes for a chicken or a turkey, 10 to 20 for a joint of beef, 5 to 10 for a steak or chops, and 20 to 30 for a brisket.", "how long should i rest a steak"),
+            None
+        );
+        assert_eq!(
+            n("Most back pain is muscular and settles in two to six weeks; keep moving, and take paracetamol or ibuprofen if you can.", "what can i take for it"),
+            Some("Take paracetamol or ibuprofen if you can.".into())
+        );
+        assert_eq!(
+            n("Ice it for 20 minutes at a time with a cloth round it for the first two days. Most sprains settle in a couple of weeks.", "how long will it last"),
+            Some("A couple of weeks.".into())
+        );
+        assert_eq!(
+            n("The Romans arrived in 43 AD and the legions left in 410 AD. They held Britain for nearly 400 years.", "when did they leave"),
+            Some("The Romans arrived in 43 AD and the legions left in 410 AD.".into())
+        );
+        assert_eq!(
+            n("Descale it every month or two in a hard-water area. Half fill the kettle with equal parts water and white vinegar, boil it and leave it half an hour.", "how often"),
+            Some("Descale it every month or two in a hard-water area.".into())
+        );
+        assert_eq!(
+            n("For a baby over six months, a consistent wind-down helps; feedings at night are normal for much longer.", "how long will this last"),
+            Some("No set time on that one - feedings at night are normal for much longer.".into())
+        );
+        assert_eq!(
+            n("Paying within 14 days usually gets a 50% discount. You can appeal within 28 days if you think it is wrong.", "when do i have to pay"),
+            Some("14 days.".into())
+        );
+        assert_eq!(n("A dog costs about £1,500 to £2,000 a year to keep, more for a big breed.", "and how much does one cost"), None);
+        assert_eq!(
+            the_doings_length("Ice it for 20 minutes at a time with a cloth round it for the first two days. Raise it when you sit.", "how long will it last"),
+            "ice it for 20 minutes at a time with a cloth round it for the first two days"
+        );
+        assert_eq!(
+            _how_often(&["Feed it twice a day.".into(), "Weigh the portion.".into()], "how often should i feed it", "feed it twice a day. weigh the portion."),
+            Some("Feed it twice a day.".into())
+        );
+        assert_eq!(
+            _freq_clause("Water it deeply once a week in summer and only when the compost is dry all the way down in winter, not on a fixed day, and feed it monthly from spring to autumn with a balanced liquid feed diluted to half strength.", false, &HashSet::new()),
+            Some("Water it deeply once a week in summer and only when the compost is dry all the way down in winter, not on a fixed day".into())
+        );
+        assert_eq!(_clause("Soak the beans overnight, rinse them, and boil hard for ten minutes before simmering.", "how long do i boil them"), None);
+        assert_eq!(_named_clause("A sponge in a round tin takes 20 to 25 minutes; a loaf tin needs 45 to 55, so check it with a skewer.", "and if i use a loaf tin?"), None);
+        assert_eq!(_with_unit("A loaf tin needs 45 to 55", "A sponge takes 20 to 25 minutes; a loaf tin needs 45 to 55."), "A loaf tin needs 45 to 55 minutes");
+    }
 }

@@ -4322,3 +4322,88 @@ pub fn the_same_question_again_text(text_: &str, memory: &Memory) -> Option<Stri
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn chat(lines: &[(&str, &str, &str)]) -> Memory {
+        let mut memory = Memory::new();
+        memory.turns = lines
+            .iter()
+            .map(|(user, bot, module)| Turn { user: user.to_string(), bot: bot.to_string(), module: Some(module.to_string()) })
+            .collect();
+        memory
+    }
+
+    /// Expected values from PyBot (`harness/pycall.py`).
+    #[test]
+    fn readers_of_an_answer() {
+        let washer = "Stop the cycle, unplug it and turn the water off. Check the door seal for a tear, then run a hot 60C service wash with a washing-machine cleaner because the smell comes from the drum. If it still leaks, call an engineer.";
+        assert_eq!(_the_first_step(washer), Some("stop the cycle".into()));
+        assert_eq!(_the_next_step(washer, &Memory::new()), Some("unplug it and turn the water off".into()));
+        assert_eq!(
+            a_move("Most bad posture is the chair and the sitting still: set the screen so the top of it is at eye level, and get up every half hour.", false),
+            Some("set the screen so the top of it is at eye level, and get up every half hour".into())
+        );
+        assert_eq!(
+            _short_enough("Most back pain is muscular and settles in two to six weeks, and staying active is what helps most: keep walking, take paracetamol or ibuprofen if you need it, and use heat for the stiffness in the morning and evening for a week or two."),
+            "Most back pain is muscular and settles in two to six weeks, and staying active is what helps most."
+        );
+        assert_eq!(
+            _most_condensed("Most back pain is muscular and settles in two to six weeks. Staying active is what helps most. Keep walking and take paracetamol if you need it.", Some(&Memory::new())),
+            "Staying active is what helps most."
+        );
+        assert_eq!(
+            _closing_the_quote("Ask early, name the dates and say who covers: \"Could I take 12-16 May off?", "Ask early, name the dates and say who covers: \"Could I take 12-16 May off? I've arranged cover with Priya.\" Then send it."),
+            "Ask early, name the dates and say who covers: \"Could I take 12-16 May off? I've arranged cover with Priya.\""
+        );
+        assert_eq!(
+            _a_conditional_move("That's disappointing, especially after an interview. When you're ready, ask for one line of feedback (was there anything I could strengthen?) and keep applying."),
+            Some("when you're ready, ask for one line of feedback".into())
+        );
+        assert_eq!(_opening_move("Blot, don't rub, then dab a little hand sanitiser into the mark with a cotton bud and blot again."), Some("blot, don't rub".into()));
+        assert_eq!(
+            _opening_move("Start with run-walk: one minute of easy jogging, two minutes of walking, repeated for 20 minutes, three times a week."),
+            Some("one minute of easy jogging, two minutes of walking, repeated for 20 minutes, three times a week".into())
+        );
+        assert_eq!(after_an_ack("cheers. also im skint till friday and theres nothing in the fridge"), "also im skint till friday and theres nothing in the fridge");
+        assert!(asks_for_less("make it shorter please"));
+        assert!(carries_the_figure(&Value::from("£1,500"), "It costs about £1,500 a year."));
+        assert_eq!(_whether_to("can i still eat the ones that look alright"), "whether i can still eat the ones that look alright");
+    }
+
+    #[test]
+    fn readers_of_a_card_in_hand() {
+        let freezer = chat(&[(
+            "my freezer door was left open overnight",
+            "Food that still has ice crystals in it is safe to refreeze. Anything fully thawed should be cooked and eaten within a day or binned.",
+            "answers",
+        )]);
+        assert_eq!(the_part_asked_text("is the food still ok", &freezer), Some("Food that still has ice crystals in it is safe to refreeze.".into()));
+        let phone = chat(&[(
+            "i dropped my phone in water",
+            "Wipe it, shake out the port, and leave it in a warm dry place for 24 hours. Rice does nothing for it, so do not bother.",
+            "answers",
+        )]);
+        assert_eq!(the_figure_asked_text("how long should i leave it", &phone), Some("Wipe it, shake out the port, and leave it in a warm dry place for 24 hours.".into()));
+        let eggs = chat(&[(
+            "how do i soft boil an egg",
+            "Lower the eggs into boiling water and cook for 6 minutes for a runny yolk, then put them in cold water for a minute so they peel.",
+            "answers",
+        )]);
+        assert_eq!(
+            what_it_knows_text("do i need to prick them", &eggs),
+            Some("Lower the eggs into boiling water and cook for 6 minutes for a runny yolk, then put them in cold water for a minute so they peel. On whether to prick them, the packet or a cookery site will know more than I can.".into())
+        );
+        let mut washer = chat(&[
+            ("my washing machine is leaking", "Stop the cycle, unplug it and turn the water off. Check the door seal for a tear. Run a hot service wash with a cleaner while you are out.", "answers"),
+            ("what do i do", "Start with this: Stop the cycle, unplug it and turn the water off.", "answers"),
+        ]);
+        washer.set("repeated", Value::from(vec!["Start with this: Stop the cycle, unplug it and turn the water off.".to_string()]));
+        assert_eq!(
+            _another_part("Stop the cycle, unplug it and turn the water off. Check the door seal for a tear. Run a hot service wash with a cleaner while you are out.", &washer),
+            ("Check the door seal for a tear".into(), true)
+        );
+    }
+}
