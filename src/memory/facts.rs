@@ -1,19 +1,4003 @@
-//! STUB for `bot/memory/facts.py` (owned by another workstream): only the two functions the
-//! understanding engine calls (`kinds._says_what_they_are`, `kinds._a_name`), so this branch
-//! compiles. The integrator replaces this file with the real port.
+//! Port of `bot/memory/facts.py`: facts about the user, pulled out of what they say.
+//!
+//! `extract(text)` returns only the facts a line clearly states, e.g.
+//! {"name": "Jess", "job": "nurse", "city": "Leeds", "allergies": ["nuts"]}. Callers merge the
+//! result into memory["user"]. Nothing here replies; it is data extraction only.
+//!
+//! Module data (word lists, regexes, tables) comes from the exported bundle by Python name.
+//! Positions inside this file are byte offsets into the text (Python's are code points); where
+//! Python does arithmetic on a position in characters, the port counts characters too.
+#![allow(non_snake_case, clippy::all)]
 
+use crate::data::{self, Value};
+use crate::py::re::{Match, Re};
+use crate::py::text as pt;
+use crate::state::Memory;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, LazyLock};
+
+/// A set (or a dict's keys) from the bundle, under `bot.memory.facts.<NAME>` unless the name
+/// has a dot in it.
+fn bundle_set(name: &str) -> HashSet<String> {
+    let full = if name.contains('.') { name.to_string() } else { format!("bot.memory.facts.{name}") };
+    let v = data::get(&full);
+    match v {
+        Value::Dict(d) => d.iter().filter_map(|(k, _)| k.as_str().map(str::to_string)).collect(),
+        _ => v.str_set(),
+    }
+}
+
+fn bundle_strs(name: &str) -> Vec<String> {
+    let full = if name.contains('.') { name.to_string() } else { format!("bot.memory.facts.{name}") };
+    data::strs(&full)
+}
+
+fn bundle_map(name: &str) -> HashMap<String, String> {
+    let full = if name.contains('.') { name.to_string() } else { format!("bot.memory.facts.{name}") };
+    data::str_map(&full)
+}
+
+/// `bot.memory.facts.<NAME>` sets, as `LazyLock<HashSet<String>>` statics.
+macro_rules! fsets {
+    ($($n:ident),* $(,)?) => { $(
+        pub static $n: LazyLock<HashSet<String>> = LazyLock::new(|| bundle_set(stringify!($n)));
+    )* };
+}
+/// `bot.memory.facts.<NAME>` compiled regexes.
+macro_rules! fres {
+    ($($n:ident),* $(,)?) => { $(
+        pub static $n: LazyLock<&'static Re> =
+            LazyLock::new(|| data::re(concat!("bot.memory.facts.", stringify!($n))));
+    )* };
+}
+/// `bot.memory.facts.<NAME>` tuples of strings, in order.
+macro_rules! fstrs {
+    ($($n:ident),* $(,)?) => { $(
+        pub static $n: LazyLock<Vec<String>> = LazyLock::new(|| bundle_strs(stringify!($n)));
+    )* };
+}
+/// `bot.memory.facts.<NAME>` {str: str} dicts.
+macro_rules! fmaps {
+    ($($n:ident),* $(,)?) => { $(
+        pub static $n: LazyLock<HashMap<String, String>> = LazyLock::new(|| bundle_map(stringify!($n)));
+    )* };
+}
+
+/// An inline `re.compile(pattern, flags)` (or a `re.search(pattern, ...)` in a function body).
+macro_rules! inline_re {
+    ($name:ident, $pat:expr, $flags:expr) => {
+        static $name: LazyLock<Re> = LazyLock::new(|| Re::new($pat, $flags));
+    };
+}
+
+const I: u32 = crate::py::re::I;
+
+// ---------------------------------------------------------------------------------------------
+// Small Python idioms
+
+/// `" ".join(str(text or "").split())`.
+fn squash(text: &str) -> String {
+    pt::squash(text)
+}
+
+/// `" ".join(str(text or "").lower().split())`.
+fn low_squash(text: &str) -> String {
+    pt::squash(&pt::lower(text))
+}
+
+/// `text.lower()`.
+fn lower(text: &str) -> String {
+    pt::lower(text)
+}
+
+/// The byte offset `n` characters before byte `pos` (Python's `max(0, start - n)`).
+fn back_chars(text: &str, pos: usize, n: usize) -> usize {
+    let head = &text[..pos];
+    match head.char_indices().rev().nth(n.saturating_sub(1)) {
+        Some((b, _)) if n > 0 => b,
+        _ if n == 0 => pos,
+        _ => 0,
+    }
+}
+
+/// The byte offset `n` characters after byte `pos`, clamped to the end (`text[pos:pos + n]`).
+fn fwd_chars(text: &str, pos: usize, n: usize) -> usize {
+    let pos = pos.min(text.len());
+    match text[pos..].char_indices().nth(n) {
+        Some((b, _)) => pos + b,
+        None => text.len(),
+    }
+}
+
+/// A dict value from (key, value) pairs, in order.
+fn dict(pairs: Vec<(&str, Value)>) -> Value {
+    Value::Dict(Arc::new(pairs.into_iter().map(|(k, v)| (Value::from(k), v)).collect()))
+}
+
+/// A list of strings as a Value.
+fn str_list<S: AsRef<str>>(items: &[S]) -> Value {
+    Value::List(Arc::new(items.iter().map(|s| Value::from(s.as_ref())).collect()))
+}
+
+/// `word[:1].upper() + word[1:]`.
+fn up1(word: &str) -> String {
+    pt::upper_first(word)
+}
+
+/// `any(char.isupper() for char in s)`.
+fn any_upper(s: &str) -> bool {
+    s.chars().any(char::is_uppercase)
+}
+
+/// The value of a dict key, or None.
+fn vget<'a>(v: &'a Value, key: &str) -> &'a Value {
+    static NONE: Value = Value::None;
+    v.get(key).unwrap_or(&NONE)
+}
+
+// PLACEHOLDERS (from before the skeleton) until the real ports land below.
 /// `about_themselves(said)`: the facts a line says about the person, or None.
 pub fn about_themselves(said: &str) -> Option<Vec<String>> {
     let _ = said;
     None
 }
 
-/// `reads_as_a_name(word)`: the name in its spelled form, or None.
+
+// ---------------------------------------------------------------------------------------------
+// names
+
+fsets!(
+    NOT_NAMES, NAMES_THAT_LOOK_LIKE_STATES, NOT_NAMES_EXTRA, NOT_A_NAME_FEELING, NOT_A_NAME_LAUGH,
+    CONDITIONS_OF_THE_MIND, NOT_A_NAME_ILLNESS, NOT_A_NAME_TRAIT, NOT_A_NAME_DESCRIBING,
+    NOT_A_NAME_CONDITION, NOT_A_NAME_STATE, NAME_FILLER, NAME_FOLLOWERS, NAME_PLACE_WORDS,
+    PLACE_JOIN, NAME_SAYS_ABOUT_ME, GO_BY_WAYS, MONTHS, DAYS, COUNTRIES, NOT_POSITIONS, NOT_PLACES,
+    NOT_A_FACT, ASK_WORDS, AFTER_THEN, HOME_STOP, GROWN_NOT_PLACE, GROWN_ARTICLE, PLACE_MIDDLE,
+    PLACE_NAME_FIRST, COUNTRY_ARTICLE, PLACE_VERBS, NOT_AN_ALLERGEN, DRINK, MEAT, ANIMALS,
+    DIET_FREE_WORDS, ONE_MORE_FOODS, DIET_WORDS, SOBER_WORDS, DIET_WHAT, EATING_VERB,
+    DIET_STOP_A_WAY_OF_EATING, NO_EAT_QUALIFIER, NOT_A_NAME, NOT_THEIR_DETERMINER,
+    NOT_THE_VERB_NAME, NOT_A_PRONOUN_NAME, NAME_AFTER_TITLE, NOT_A_NAME_MIDDLE, PET_ANIMALS,
+    NOT_A_PET_NAME, A_COMMENT_ON_THE_NAME, NOT_A_NAME_THING, JOB_WORDS, NUMBER_WORDS,
+    PLURAL_PRONOUN,
+);
+fstrs!(NAME_FILLER_PHRASES, NAME_ASIDES, DIET_WHAT_TWO);
+fmaps!(COUNTRY_CAPS, DIET_NAMES, ALLERGEN_PLURALS, QUIT_AS_DOING, ANIMAL_KINDS);
+fres!(
+    NAME_ANSWER_HEDGES, GOES_BY_NAME, CLAUSE_SPLIT, PLACE_AFTER, PLACE_LOWER, HOME_DWELL,
+    HOME_PLACE, FROM_PLACE, FROM_MORE, FROM_GROWN, GROWN_NEAR, PLACE_LOWER_NAMED, HOME_LOOSE,
+    SHORT_LIST, DENIAL_WORDS, DENIAL_OF, DIET_OFF, CLAUSE_EDGE, NOT_HAVE, NOT_HAVE_LONGER,
+    HAVE_NONE, A_COMPOUND_AFTER, WITHOUT_ANIMAL, NOT_JUST, TAKEN_BACK_BEFORE, BARE_NO,
+    NO_THEN_A_THING, GIVEN_AWAY, NO_PETS, DIED, ANIMAL_DEATH, LOSS_ALL, PET_PRONOUN, HEDGE,
+    ALLERGY, CONTRAST, CANNOT_EAT, X_ALLERGY, VEGETARIAN, NO_MEAT, NO_DRINK, GAVE_UP_DRINK,
+    GAVE_UP_DRINK_THING, NOT_DRINKING, NO_DRINK_THING, OTHER_DIET, THEIR_BACK, A_CORRECTION,
+    A_NEGATOR_IN_BETWEEN, ONE_MORE_HEAD, ONE_MORE_TAIL, NOT_THEIRS, A_WISH, NOT_THEIRS_AFTER,
+    THEIRS_WORD, COMING_HOME, ON_ITS_WAY_BETWEEN, CONDITION, DIET_NAMED, DIET_UNDERWAY,
+    DIET_BARE, DIET_DOING, DIET_QUIT, DIET_BACK, PETS, PET_COUNT, NAME_WORD, ANOTHER_ANIMAL,
+    ALSO_HAVE, PET_TITLE, PET_VERB_NAME, PET_PRONOUN_NAME, PET_NAME, PET_IS_NAME,
+    PET_POSSESSIVE_NAME, PET_APPOSITIVE, PET_BEFORE_FACT, PET_NAME_ONLY, PET_NAME_ONLY_LOWER,
+    PET_NAME_ASKED, USER_NAME_ASKED,
+);
+
+/// `ANNOUNCED_NAME_PATTERNS` and `GUESSED_NAME_PATTERNS` (tuples of compiled patterns).
+pub static ANNOUNCED_NAME_PATTERNS: LazyLock<Vec<&'static Re>> = LazyLock::new(|| {
+    data::get("bot.memory.facts.ANNOUNCED_NAME_PATTERNS").items().iter().map(|v| v.as_re().unwrap()).collect()
+});
+pub static GUESSED_NAME_PATTERNS: LazyLock<Vec<&'static Re>> = LazyLock::new(|| {
+    data::get("bot.memory.facts.GUESSED_NAME_PATTERNS").items().iter().map(|v| v.as_re().unwrap()).collect()
+});
+
+/// `PET_COUNT_WORDS`: the count each word gives.
+pub static PET_COUNT_WORDS: LazyLock<HashMap<String, i64>> = LazyLock::new(|| {
+    data::get("bot.memory.facts.PET_COUNT_WORDS")
+        .pairs()
+        .iter()
+        .filter_map(|(k, v)| Some((k.as_str()?.to_string(), v.as_int()?)))
+        .collect()
+});
+
+pub const EVERYTHING: &str = "*";
+
+/// Python: bot/memory/facts.py:168 `_health_words()`: the words the reading engine already uses
+/// for an illness, as whole words.
+pub fn _health_words() -> Value {
+    let strong = data::get("bot.understanding.topics.STRONG");
+    let phrases = data::get("bot.understanding.topics.PHRASES");
+    let mut words: HashSet<String> = pt::split(strong.get("health").map(Value::str).unwrap_or(""))
+        .into_iter()
+        .collect();
+    if let Some(p) = phrases.get("health") {
+        for phrase in p.items() {
+            words.extend(pt::split(phrase.str()));
+        }
+    }
+    words.extend(bundle_set("bot.understanding.topics.CONDITIONS"));
+    words.extend(CONDITIONS_OF_THE_MIND.iter().cloned());
+    let mut sorted: Vec<String> = words.into_iter().collect();
+    sorted.sort();
+    Value::Set(Arc::new(sorted.into_iter().map(Value::from).collect()))
+}
+
+/// Python: bot/memory/facts.py:266 `without_the_hedges(text)`: a name answer with its hedges
+/// taken off: "its sam by the way" -> "its sam".
+pub fn without_the_hedges(text: &str) -> String {
+    let low = low_squash(text);
+    let cut = NAME_ANSWER_HEDGES.sub(" ", &low);
+    pt::strip_chars(&squash(&cut), " ,.:;!?").to_string()
+}
+
+inline_re!(SPACE_OR_COMMA_RUN, r"([\s,]+)", 0);
+
+/// Python: bot/memory/facts.py:356 `_fact_value(word)`: the thing a pattern caught, cut short
+/// where the question starts: "" when there is none.
+pub fn _fact_value(word: &str) -> String {
+    let parts = SPACE_OR_COMMA_RUN.split(pt::strip(word));
+    let words: Vec<&String> = parts.iter().step_by(2).collect();
+    let piece = |i: usize| -> String {
+        let mut s = parts[2 * i].clone();
+        if 2 * i + 1 < parts.len() {
+            s.push_str(&parts[2 * i + 1]);
+        }
+        s
+    };
+    let mut kept: Vec<String> = Vec::new();
+    for (i, value) in words.iter().enumerate() {
+        let vlow = lower(value);
+        if AFTER_THEN.contains(&vlow) && i > 0 && lower(words[i - 1]) == "then" {
+            kept.push(piece(i));
+            continue;
+        }
+        if ASK_WORDS.contains(&vlow) {
+            if vlow == "then" && i + 1 < words.len() {
+                kept.push(piece(i));
+                continue;
+            }
+            break;
+        }
+        kept.push(piece(i));
+    }
+    let joined = kept.concat();
+    let mut out = pt::strip_chars(&joined, " ,;:").to_string();
+    if lower(&out).ends_with(" then") {
+        out = pt::rstrip_chars(&pt::slice(&out, 0, Some(-5)), " ,;:").to_string();
+    }
+    out
+}
+
+/// Python: bot/memory/facts.py:502 `grown_up_in_a_place(phrase)`: true when what follows "grew
+/// up in" names a place, so "care" and "a council estate" do not.
+pub fn grown_up_in_a_place(phrase: &str) -> bool {
+    _grown_up_in_a_place(phrase, "")
+}
+
+/// Python: bot/memory/facts.py:511 `_grown_up_in_a_place(phrase, text)`.
+pub fn _grown_up_in_a_place(phrase: &str, text: &str) -> bool {
+    let _ = text;
+    let words = pt::split(phrase);
+    if words.is_empty() {
+        return false;
+    }
+    let low: Vec<String> = words.iter().map(|w| pt::strip_chars(&lower(w), ".,!?;:'\"").to_string()).collect();
+    if low.iter().any(|w| GROWN_NOT_PLACE.contains(w)) {
+        return false;
+    }
+    if let Some(near) = GROWN_NEAR.search(phrase) {
+        if !_place_name(near.str(1)).is_empty() {
+            return true;
+        }
+    }
+    if GROWN_ARTICLE.contains(&low[0]) {
+        return false;
+    }
+    if low[0] == "the" {
+        return low.len() > 1 && COUNTRY_ARTICLE.contains(&low[1]);
+    }
+    true
+}
+
+static LEXICON: LazyLock<HashSet<String>> = LazyLock::new(|| bundle_set("bot.understanding.normalize.LEXICON"));
+
+/// Python: bot/memory/facts.py:552 `_an_everyday_word(word)`: whether the word is one of the
+/// language's own, so it is not part of a place's name.
+pub fn _an_everyday_word(word: &str) -> bool {
+    let low = lower(word);
+    if low.is_empty() {
+        return true;
+    }
+    if LEXICON.contains(&low) {
+        return true;
+    }
+    for tail in ["es", "s"] {
+        if low.ends_with(tail) && pt::len(&low) - tail.len() > 2 && LEXICON.contains(&low[..low.len() - tail.len()]) {
+            return true;
+        }
+    }
+    false
+}
+
+inline_re!(SPACE_COMMA_SPLIT, r"[ ,]+", 0);
+
+/// Python: bot/memory/facts.py:849 `_the_drink_they_do_not_take(text)`: what the line says they
+/// do not drink, as the word a diet says "no" to, or "".
+pub fn _the_drink_they_do_not_take(text: &str) -> String {
+    let low = squash(text);
+    if low.is_empty() {
+        return String::new();
+    }
+    if NOT_DRINKING.is_match(&low) || GAVE_UP_DRINK.is_match(&low) || NO_DRINK.is_match(&low) {
+        return "alcohol".to_string();
+    }
+    for pattern in [&*NO_DRINK_THING, &*GAVE_UP_DRINK_THING] {
+        if let Some(drank) = pattern.search(&low) {
+            let thing = _finish(drank.name_str("thing"));
+            let words: Vec<String> =
+                SPACE_COMMA_SPLIT.split(&lower(&thing)).into_iter().filter(|w| w != "or" && w != "and").collect();
+            if !words.is_empty() && words.iter().all(|w| DRINK.contains(w)) {
+                return thing;
+            }
+        }
+    }
+    String::new()
+}
+
+/// `CLAUSE_EDGE.split(text[max(0, start - 60):start])[-1]`: the clause the position ends.
+fn clause_before(text: &str, start: usize) -> String {
+    let from = back_chars(text, start, 60);
+    CLAUSE_EDGE.split(&text[from..start]).pop().unwrap_or_default()
+}
+
+/// Python: bot/memory/facts.py:1016 `_coming_home(text, start)`: true when the animal in the
+/// line is one they are getting, not one they have. (`start` is a byte offset.)
+pub fn _coming_home(text: &str, start: usize) -> bool {
+    let window = clause_before(text, start);
+    for cue in COMING_HOME.finditer(&window) {
+        let between = &window[cue.end()..];
+        if ON_ITS_WAY_BETWEEN.match_(between).is_none() {
+            continue;
+        }
+        return true;
+    }
+    false
+}
+
+/// Python: bot/memory/facts.py:1027 `_only_wanted(text, start, end)`: true when the animal is one
+/// they want, dislike or had once, not one they have. (Byte offsets.)
+pub fn _only_wanted(text: &str, start: usize, end: usize) -> bool {
+    let window = clause_before(text, start);
+    for cue in NOT_THEIRS.finditer(&window) {
+        if THEIRS_WORD.is_match(&window[cue.end()..]) {
+            continue;
+        }
+        return true;
+    }
+    let end = end.min(text.len());
+    NOT_THEIRS_AFTER.match_(&text[end..fwd_chars(text, end, 30)]).is_some()
+}
+
+/// Python: bot/memory/facts.py:1045 `_not_theirs(animal, text, start, end)`: the record for an
+/// animal the person does not have, marked, and a wish marked as a wish.
+pub fn _not_theirs(animal: &str, text: &str, start: usize, end: usize) -> Value {
+    let _ = end;
+    let mut record = dict(vec![("animal", animal.into()), ("name", Value::None), ("not_theirs", true.into())]);
+    if _a_wish_for(text, start) {
+        record.set_key("wanted", true);
+    }
+    record
+}
+
+/// Python: bot/memory/facts.py:1053 `_a_wish_for(text, start)`: true when the animal is one they
+/// would like rather than one taken away.
+pub fn _a_wish_for(text: &str, start: usize) -> bool {
+    let window = clause_before(text, start);
+    if THEIRS_WORD.is_match(&window) {
+        return false;
+    }
+    A_WISH.is_match(&window)
+}
+
+/// Python: bot/memory/facts.py:1122 `_the_food_named(raw)`: the food a phrase about eating names,
+/// or "" when the words are not something to eat.
+pub fn _the_food_named(raw: &str) -> String {
+    let words = pt::split(&low_squash(raw));
+    if words.is_empty() {
+        return String::new();
+    }
+    let two = words.iter().take(2).cloned().collect::<Vec<_>>().join(" ");
+    if !DIET_WHAT.contains(&words[0]) && !DIET_WHAT_TWO.contains(&two) {
+        return String::new();
+    }
+    let mut kept: Vec<&str> = Vec::new();
+    for word in &words {
+        if DIET_STOP_A_WAY_OF_EATING.contains(word) {
+            break;
+        }
+        kept.push(word);
+    }
+    kept.join(" ")
+}
+
+/// Python: bot/memory/facts.py:1167 `_a_way_of_eating_said_with_a_verb(text)`: the way of eating
+/// a line says with a verb, as they said it, or "".
+pub fn _a_way_of_eating_said_with_a_verb(text: &str) -> String {
+    for m in DIET_DOING.finditer(text) {
+        let food = _the_food_named(m.name_str("what"));
+        if food.is_empty() {
+            continue;
+        }
+        return lower(m.name_str("doing")) + " " + &food;
+    }
+    for m in DIET_QUIT.finditer(text) {
+        let what = pt::split(m.name_str("what"));
+        let mut food = _the_food_named(&what.join(" "));
+        if food.is_empty() && EATING_VERB.contains(&what[0]) {
+            food = _the_food_named(&what[1..].join(" "));
+        }
+        if food.is_empty() {
+            continue;
+        }
+        let doing = lower(m.name_str("doing"));
+        let said = QUIT_AS_DOING.get(&doing).cloned().unwrap_or(doing);
+        return said + " " + &food;
+    }
+    String::new()
+}
+
+/// Python: bot/memory/facts.py:1300 `_with_title(match)` for a match given as a Value: a dict
+/// holding the match's "title" and "name" groups (`match.groupdict()`).
+pub fn _with_title(r#match: &Value) -> String {
+    let title = r#match.get("title").and_then(Value::as_str).filter(|s| !s.is_empty());
+    let name = r#match.get("name").map(Value::str).unwrap_or("");
+    with_title(title, name)
+}
+
+/// `_with_title(match)` on a regex match with "title" and "name" groups.
+pub fn _with_title_m(m: &Match) -> String {
+    with_title(m.name("title").filter(|s| !s.is_empty()), m.name_str("name"))
+}
+
+/// The name a "called"/"named" match gives, with its title kept: "Mr Whiskers", "Lady Grey".
+pub fn with_title(title: Option<&str>, name: &str) -> String {
+    let Some(title) = title else {
+        return name.to_string();
+    };
+    let nlow = lower(name);
+    if NOT_A_NAME.contains(&nlow) && !NAME_AFTER_TITLE.contains(&nlow) {
+        return pt::rstrip_chars(title, ".").to_string();
+    }
+    let both = format!("{title} {name}");
+    if any_upper(&both) {
+        both
+    } else {
+        pt::split(&both).iter().map(|w| up1(w)).collect::<Vec<_>>().join(" ")
+    }
+}
+
+/// Python: bot/memory/facts.py:1319 `_name_at(match)`: where a "called" match names the animal
+/// (a byte offset): the title, when there is one, comes first.
+pub fn _name_at(m: &Match) -> usize {
+    if m.name("title").is_some_and(|t| !t.is_empty()) {
+        m.name_span("title").unwrap().0
+    } else {
+        m.name_span("name").map(|s| s.0).unwrap_or(0)
+    }
+}
+
+inline_re!(LETTER_RUNS, r"[a-z]+", 0);
+
+/// Python: bot/memory/facts.py:1380 `another_animal(text, animal)`: a second, different kind of
+/// animal in the same line, or "".
+pub fn another_animal(text: &str, animal: &str) -> String {
+    let kind = ANIMAL_KINDS.get(&lower(pt::strip(animal))).cloned().unwrap_or_default();
+    if kind.is_empty() {
+        return String::new();
+    }
+    for word in LETTER_RUNS.findall_str(&lower(text)) {
+        if let Some(other) = ANIMAL_KINDS.get(&word) {
+            if !other.is_empty() && *other != kind {
+                return other.clone();
+            }
+        }
+    }
+    String::new()
+}
+
+/// Python: bot/memory/facts.py:1429 `_a_name_for_the_pet(word, strict_ly=True)`: the word a pet's
+/// name was given as, or None when the word only comments on the name.
+pub fn _a_name_for_the_pet(word: &str, strict_ly: bool) -> Option<String> {
+    let low = lower(word);
+    if word.is_empty() || _not_a_name(word, strict_ly) || A_COMMENT_ON_THE_NAME.contains(&low) {
+        return None;
+    }
+    Some(word.to_string())
+}
+
+static TRAVEL_CITIES: LazyLock<HashSet<String>> = LazyLock::new(|| bundle_set("bot.knowledge.travel.CITIES"));
+static COSTS_JOBS: LazyLock<HashSet<String>> = LazyLock::new(|| bundle_set("bot.knowledge.costs.JOBS"));
+
+/// Python: bot/memory/facts.py:1475 `_names_something_else(low)`: whether a word on its own
+/// names a thing rather than a person.
+pub fn _names_something_else(low: &str) -> bool {
+    if low.is_empty() {
+        return true;
+    }
+    if DAYS.contains(low)
+        || MONTHS.contains(low)
+        || COUNTRIES.contains(low)
+        || NOT_PLACES.contains(low)
+        || NUMBER_WORDS.contains(low)
+        || JOB_WORDS.contains(low)
+    {
+        return true;
+    }
+    TRAVEL_CITIES.contains(low) || COSTS_JOBS.contains(low)
+}
+
+// ---------------------------------------------------------------------------------------------
+// a name said on its own, budgets, ages, heights, birthdays, weights, relations
+
+fres!(
+    NAME_ANSWER_ANNOUNCED, NAME_ANSWER_ANNOUNCED_LAST, NAMES_OFFERED, NAME_PICK_ASK, BUDGET,
+    SPEND_BUDGET, INTENDED_SPEND, THE_THING_MAY_COST, ALL_I_CAN_DO, SPEND_FOR, ONLY_HAVE,
+    SPEND_BUDGET_NOW, STRETCH_BUDGET, INCOME_PERIOD, INCOME_QUALIFIER, INCOME_RATE, INCOME,
+    INCOME_BARE, BARE_BUDGET, CEILING_BUDGET, BUDGET_THOUGHT, BUDGET_ASKED, VAGUE_BUDGET, MONEY,
+    AGE, HEIGHT_FEET, HEIGHT_BARE, HEIGHT_CM, AGE_IN_WORDS, BEFORE_A_FIGURE, AFTER_A_FIGURE,
+    NOT_YEARS_AFTER, BIRTHDAY, A_DATE_CLAUSE_ENDS, WEIGH, WEIGH_IM, WEIGH_MY, MY_AGE, PEOPLE_WORD,
+    IN_LAW_WORD, IN_LAW_AFTER, RELATION_NAME, RELATION_HAVE_NAME, RELATION_POSSESSIVE_NAME,
+    RELATION_NAMED_AGE, RELATION_POSSESSIVE_AGE, RELATION_AGE, THE_PLACE_AGE, BABY_AGE,
+    MONTH_OLD_BABY, RELATION_BARE_NAME, RELATION_PAIR_NAMES, GROUP_NAMED_NAMES, GROUP_NAMED_AGES,
+    RELATION_WHOS_AGE, CHAINED_RELATION_AGE, CHAINED_PERSON, HOW_THEY_FEEL, PRONOUN_AGE,
+);
+fsets!(COMPOUND_AFTER, COMPOUND_THAT_IS_THEIRS, TITLE_WORDS, _A_WORD_FOR_A_PERSON);
+fstrs!(_STEP_OF, _GRAND_OF, _BUILT_KIN, RELATIONS, ROLE_PEOPLE, KIN, ALONE_PERSON, PERSON_MODIFIER, KIN_WORDS);
+fmaps!(INCH_WORDS, BIRTHDAY_PRONOUN, WEIGH_UNITS, SPOKEN_RELATION, TITLE_GENDER);
+
+/// `INCOME_A_YEAR`: a tuple of compiled patterns.
+pub static INCOME_A_YEAR: LazyLock<Vec<&'static Re>> = LazyLock::new(|| {
+    data::get("bot.memory.facts.INCOME_A_YEAR").items().iter().map(|v| v.as_re().unwrap()).collect()
+});
+
+/// `_NUMBER_IN_WORDS`: the number each word for one says.
+pub static _NUMBER_IN_WORDS: LazyLock<Vec<(String, i64)>> = LazyLock::new(|| {
+    data::get("bot.memory.facts._NUMBER_IN_WORDS")
+        .pairs()
+        .iter()
+        .filter_map(|(k, v)| Some((k.as_str()?.to_string(), v.as_int()?)))
+        .collect()
+});
+
+fn number_in_words(word: &str) -> i64 {
+    _NUMBER_IN_WORDS.iter().find(|(k, _)| k == word).map(|(_, v)| *v).unwrap_or(0)
+}
+
+/// Python: bot/memory/facts.py:1498 `reads_as_a_name(word)`: whether a word on its own, in
+/// answer to a name question, is what a person is called. Returns the name in its spelled
+/// form, or None.
 pub fn reads_as_a_name(word: &str) -> Option<String> {
-    let _ = word;
+    if bare_name(word).is_none() {
+        return None;
+    }
+    let low = _finish(word);
+    if low.is_empty() || NOT_A_NAME_THING.contains(&low) || NOT_A_NAME_TRAIT.contains(&low) || _names_something_else(&low) {
+        return None;
+    }
+    let name = _name(&format!("im {low}"));
+    if let Some(name) = name {
+        if !name.is_empty() && _finish(&name) == low {
+            return Some(name);
+        }
+    }
     None
 }
 
+/// Python: bot/memory/facts.py:1724 `vague_budget(text)`: the limit a line states with no figure
+/// in it, as the store says it back, or None.
+pub fn vague_budget(text: &str) -> Option<String> {
+    let m = VAGUE_BUDGET.match_(text)?;
+    let said = pt::strip_chars(&low_squash(m.as_str()), " .,;:!").to_string();
+    if said.contains("cheap") && said.starts_with("on ") {
+        return Some("on the cheap".into());
+    }
+    if said.contains("cheap") || said.contains("reasonable") {
+        return Some("cheap".into());
+    }
+    if said.starts_with("budget") {
+        return Some(said);
+    }
+    Some("not too expensive".into())
+}
+
+inline_re!(DASH_OR_SPACE_RUN, r"[-\s]+", 0);
+
+/// Python: bot/memory/facts.py:1809 `_the_numbers_in_words(text)`: the line with an age said in
+/// words written as figures, so the age readers can read it.
+pub fn _the_numbers_in_words(text: &str) -> String {
+    if text.is_empty() {
+        return text.to_string();
+    }
+    let tl = lower(text);
+    if !_NUMBER_IN_WORDS.iter().any(|(w, _)| tl.contains(w.as_str())) {
+        return text.to_string();
+    }
+    AGE_IN_WORDS.sub_fn(text, |m| {
+        if !BEFORE_A_FIGURE.is_match(&text[..m.start()]) {
+            return m.as_str().to_string();
+        }
+        let after = &text[m.end()..];
+        if NOT_YEARS_AFTER.match_(after).is_some() || AFTER_A_FIGURE.match_(after).is_none() {
+            return m.as_str().to_string();
+        }
+        let total: i64 = DASH_OR_SPACE_RUN.split(&lower(m.name_str("words"))).iter().map(|p| number_in_words(p)).sum();
+        if total != 0 {
+            total.to_string()
+        } else {
+            m.as_str().to_string()
+        }
+    })
+}
+
+/// Python's `int(s)` for a string of digits (None when it is not one).
+fn py_int(s: &str) -> Option<i64> {
+    let t = pt::strip(s);
+    if t.is_empty() {
+        return None;
+    }
+    let mut n: i64 = 0;
+    for c in t.chars() {
+        let d = c.to_digit(10)? as i64;
+        n = n.checked_mul(10)?.checked_add(d)?;
+    }
+    Some(n)
+}
+
+/// Python: bot/memory/facts.py:1827 `_how_tall(text)`: the height a line states as the words to
+/// say it back in, or "".
+pub fn _how_tall(text: &str) -> String {
+    if let Some(m) = HEIGHT_CM.search(text) {
+        return format!("{}cm", m.name_str("cm"));
+    }
+    let Some(m) = HEIGHT_FEET.search(text).or_else(|| HEIGHT_BARE.match_(text)) else {
+        return String::new();
+    };
+    let raw = m.name_str("inches");
+    let inches = INCH_WORDS.get(&lower(raw)).cloned().unwrap_or_else(|| raw.to_string());
+    if !inches.is_empty() && !pt::is_digit(&inches) {
+        return String::new();
+    }
+    let n = if inches.is_empty() { None } else { py_int(&inches) };
+    if let Some(n) = n {
+        if n >= 12 {
+            return String::new();
+        }
+    }
+    let mut out = format!("{} foot", m.name_str("feet"));
+    if let Some(n) = n {
+        out.push_str(&format!(" {n}"));
+    }
+    out
+}
+
+/// Python: bot/memory/facts.py:1868 `_the_date_clause(date)`: the date as far as the clause it
+/// is said in goes: "may and my sons is in july" -> "may".
+pub fn _the_date_clause(date: &str) -> String {
+    A_DATE_CLAUSE_ENDS.split(date).into_iter().next().unwrap_or_default()
+}
+
+inline_re!(IN_OR_ON_FIRST, r"^(?:in|on)\s+", 0);
+inline_re!(NOT_ALNUM_RUN, r"[^a-z0-9]+", 0);
+inline_re!(A_DIGIT, r"\d", 0);
+inline_re!(NOT_A_DATE_WORD, r"\b(?:to be|going|quiet|coming|soon|weekend|week|tomorrow|today)\b", 0);
+
+/// Python: bot/memory/facts.py:1873 `_a_birthday_date(after)`: the date words of a birthday
+/// clause, or "" when they name no date at all.
+pub fn _a_birthday_date(after: &str) -> String {
+    let date = _the_date_clause(&low_squash(after));
+    let date = pt::rstrip_chars(pt::strip(&date), " .,;:").to_string();
+    let date = IN_OR_ON_FIRST.sub("", &date);
+    let looks_like_a_date =
+        NOT_ALNUM_RUN.split(&date).iter().any(|w| MONTHS.contains(w)) || A_DIGIT.is_match(&date);
+    if date.is_empty() || !looks_like_a_date {
+        return String::new();
+    }
+    if NOT_A_DATE_WORD.is_match(&date) {
+        return String::new();
+    }
+    date
+}
+
+/// Python: bot/memory/facts.py:1898 `_weight_unit(word)`: the unit a weight was said in, however
+/// they pluralised it, or None.
+pub fn _weight_unit(word: &str) -> Option<String> {
+    let word = lower(word);
+    let mut unit = WEIGH_UNITS.get(&word).cloned();
+    if unit.is_none() && word.ends_with('s') {
+        unit = WEIGH_UNITS.get(&word[..word.len() - 1]).cloned();
+    }
+    unit
+}
+
+/// Python: bot/memory/facts.py:2041 `an_in_law(word)`: whether a person's word names an in-law.
+pub fn an_in_law(word: &str) -> bool {
+    IN_LAW_WORD.match_(pt::strip(word)).is_some()
+}
+
+inline_re!(POSSESSIVE_END, "(?:'s|\u{2019}s|s)$", 0);
+
+/// Python: bot/memory/facts.py:2206 `a_chained_person(text)`: "partner's mum" for "my partners
+/// mum", or "" when the line names no pair of people.
+pub fn a_chained_person(text: &str) -> String {
+    let Some(found) = CHAINED_PERSON.search(text) else {
+        return String::new();
+    };
+    let first = POSSESSIVE_END.sub("", &lower(found.name_str("first")));
+    format!("{first}'s {}", lower(found.name_str("second")))
+}
+
+/// Python: bot/memory/facts.py:2256 `a_stated_number(word)`: the number a person wrote as a word
+/// or a digit, or None when it says no number at all.
+pub fn a_stated_number(word: &str) -> Option<i64> {
+    let said = lower(pt::strip(word));
+    if said.is_empty() {
+        return None;
+    }
+    if pt::is_digit(&said) {
+        return py_int(&said);
+    }
+    let total: i64 = DASH_OR_SPACE_RUN.split(&said).iter().map(|p| number_in_words(p)).sum();
+    if total != 0 {
+        Some(total)
+    } else {
+        None
+    }
+}
+
+inline_re!(SPACED_DASH, r"[ \t]*-[ \t]*", 0);
+inline_re!(IN_LAWS_END, r"\bin laws$", 0);
+
+/// Python: bot/memory/facts.py:2267 `a_person_word(word)`: a person's word said plainly:
+/// "brother in law" and "brother-in-law" are one person.
+pub fn a_person_word(word: &str) -> String {
+    let plain = squash(&SPACED_DASH.sub(" ", &lower(pt::strip(word))));
+    IN_LAWS_END.sub("in law", &plain)
+}
+
+/// Python: bot/memory/facts.py:2277 `_the_person(found, who, name="")`: the entry for one person
+/// (its index in `found`), when the word for the relation can be more than one of them.
+pub fn _the_person(found: &[Value], who: &str, name: &str) -> Option<usize> {
+    let who = a_person_word(who);
+    for (i, one) in found.iter().enumerate() {
+        if one.get("who").and_then(Value::as_str) != Some(who.as_str()) {
+            continue;
+        }
+        if !name.is_empty() {
+            if let Some(n) = one.get("name") {
+                if n.truthy() && lower(&value_str(n)) != lower(name) {
+                    continue;
+                }
+            }
+        }
+        return Some(i);
+    }
+    None
+}
+
+/// Python's `str(value)` for the values a fact holds (strings, numbers, None).
+fn value_str(v: &Value) -> String {
+    match v {
+        Value::Str(s) => s.to_string(),
+        Value::Int(i) => i.to_string(),
+        Value::Float(f) => pt::float_repr(*f),
+        Value::Bool(b) => if *b { "True".into() } else { "False".into() },
+        Value::None => "None".into(),
+        _ => String::new(),
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// relations: names and ages of the people in the person's life
+
+fres!(OTHER_BIRTHDAY, AGE_TAIL, CLAUSE_BREAK, PRONOUN_SUBJECT, RELATION_SAID, NAME_THEN_THE_VERB, NAME_AND_A_FIGURE);
+fsets!(DIET_GROUP, SHE, HE, _SHE_SAID, _HE_SAID, NOT_A_PERSON_WORD, A_PRONOUN_NOT_A_NAME, NOT_A_NAME_FIGURE);
+fstrs!(OTHER_NOUNS);
+
+/// `taste.read_other(text)` as the list of dicts Python returns.
+///
+/// CONTRACT NOTE: the skeleton gives `taste::read_other` the return type `Vec<String>`, but
+/// PyBot returns a list of dicts (`[{"who"/"pronoun", "thing", "how", "eaten"}]`), which a list
+/// of strings cannot carry. This adapter compiles against either shape, so the call keeps
+/// working when the owner gives it the type that holds the dicts.
+fn taste_read_other(text: &str) -> Vec<Value> {
+    trait IntoTastes {
+        fn into_tastes(self) -> Vec<Value>;
+    }
+    impl IntoTastes for Vec<String> {
+        fn into_tastes(self) -> Vec<Value> {
+            self.into_iter().map(Value::from).collect()
+        }
+    }
+    impl IntoTastes for Vec<Value> {
+        fn into_tastes(self) -> Vec<Value> {
+            self
+        }
+    }
+    impl IntoTastes for Value {
+        fn into_tastes(self) -> Vec<Value> {
+            self.items().to_vec()
+        }
+    }
+    crate::memory::taste::read_other(text).into_tastes()
+}
+
+inline_re!(SENTENCE_END, r"[.!?]", 0);
+inline_re!(COMMA_OR_AND, r"\s*(?:,|and)\s*", 0);
+inline_re!(NAME_THEN_AGE, r"([A-Za-z][A-Za-z'-]{1,19})\s+(\d{1,3})", 0);
+
+/// `int(text)` for a regex group of digits.
+fn int_of(s: &str) -> i64 {
+    py_int(s).unwrap_or(0)
+}
+
+/// Python: bot/memory/facts.py:2295 `_relation_facts(text)`: a relation's own name and age:
+/// [{"who": "mum", "name": "Janet", "age": 72}].
+pub fn _relation_facts(text: &str) -> Vec<Value> {
+    let mut found: Vec<Value> = Vec::new();
+    let text = stated_not_asked(text);
+    if text.is_empty() {
+        return found;
+    }
+    let text = text.as_str();
+
+    // `entry(who, name="")`: the index of this person's entry, made when there is none.
+    fn entry(found: &mut Vec<Value>, who: &str, name: &str) -> usize {
+        if let Some(i) = _the_person(found, who, name) {
+            return i;
+        }
+        found.push(dict(vec![("who", a_person_word(who).into())]));
+        found.len() - 1
+    }
+
+    for m in RELATION_POSSESSIVE_AGE.finditer(text) {
+        let i = entry(&mut found, &lower(m.name_str("who")), "");
+        found[i].set_key("age", int_of(m.name_str("age")));
+    }
+    for pattern in [&*RELATION_NAME, &*RELATION_POSSESSIVE_NAME, &*RELATION_NAMED_AGE, &*RELATION_HAVE_NAME] {
+        for m in pattern.finditer(text) {
+            let raw = m.name_str("name");
+            let name = _finish(raw);
+            if name.is_empty() || _not_a_name(raw, false) {
+                continue;
+            }
+            if !_name_after_a_title(raw) {
+                continue;
+            }
+            if _A_WORD_FOR_A_PERSON.contains(&lower(raw)) {
+                continue;
+            }
+            let i = entry(&mut found, &lower(m.name_str("who")), &tidy(&name));
+            found[i].setdefault("name", _tidy_a_titled_name(&name));
+        }
+    }
+    for m in RELATION_BARE_NAME.finditer(text) {
+        let name = _bare_name(m.name_str("name"), false);
+        if !name.is_empty() {
+            let i = entry(&mut found, &lower(m.name_str("who")), &name);
+            found[i].setdefault("name", name.as_str());
+        }
+    }
+    for m in RELATION_PAIR_NAMES.finditer(text) {
+        let names = [_bare_name(m.name_str("name1"), true), _bare_name(m.name_str("name2"), true)];
+        if names.iter().all(|n| !n.is_empty()) {
+            let who = format!("{} and {}", lower(m.name_str("who1")), lower(m.name_str("who2")));
+            found.push(dict(vec![("who", who.into()), ("names", str_list(&names))]));
+        }
+    }
+    for m in GROUP_NAMED_NAMES.finditer(text) {
+        let said: Vec<String> = COMMA_OR_AND.split(m.name_str("rest")).into_iter().filter(|w| !w.is_empty()).collect();
+        let names: Vec<String> = said.iter().map(|w| _bare_name(w, true)).collect();
+        if names.len() < 2 || !names.iter().all(|n| !n.is_empty()) {
+            continue;
+        }
+        let mut who = lower(m.name_str("who"));
+        if m.name("who2").is_some_and(|w| !w.is_empty()) {
+            who = format!("{who} and {}", lower(m.name_str("who2")));
+        }
+        found.push(dict(vec![("who", who.into()), ("names", str_list(&names))]));
+    }
+    for m in GROUP_NAMED_AGES.finditer(text) {
+        let pairs: Vec<(String, String)> = NAME_THEN_AGE
+            .finditer(m.name_str("rest"))
+            .iter()
+            .map(|p| (p.str(1).to_string(), p.str(2).to_string()))
+            .collect();
+        if pairs.len() < 2 {
+            continue;
+        }
+        let named: Vec<(String, String)> = pairs.iter().map(|(said, age)| (_bare_name(said, true), age.clone())).collect();
+        if !named.iter().all(|(name, _)| !name.is_empty()) {
+            continue;
+        }
+        for (name, age) in named {
+            let made = dict(vec![
+                ("who", lower(m.name_str("who")).into()),
+                ("name", name.into()),
+                ("age", int_of(&age).into()),
+            ]);
+            if !found.contains(&made) {
+                found.push(made);
+            }
+        }
+    }
+    for m in BABY_AGE.finditer(text) {
+        let said = m
+            .name("who")
+            .filter(|s| !s.is_empty())
+            .or_else(|| m.name("little").filter(|s| !s.is_empty()))
+            .unwrap_or("baby");
+        let i = entry(&mut found, &lower(said), "");
+        if lower(m.name_str("unit")).starts_with("month") {
+            found[i].setdefault("months", int_of(m.name_str("age")));
+        } else {
+            found[i].setdefault("age", int_of(m.name_str("age")));
+        }
+    }
+    for m in MONTH_OLD_BABY.finditer(text) {
+        let i = entry(&mut found, "baby", "");
+        found[i].setdefault("months", int_of(m.name_str("age")));
+    }
+    for (k, pattern) in [&*RELATION_AGE, &*THE_PLACE_AGE, &*RELATION_NAMED_AGE, &*RELATION_WHOS_AGE].into_iter().enumerate() {
+        let clause = k == 3;
+        for m in pattern.finditer(text) {
+            let rest = &text[m.end()..];
+            let months = _month_age_after(text, m.end());
+            if months {
+                let i = entry(&mut found, &lower(m.name_str("who")), "");
+                found[i].setdefault("months", int_of(m.name_str("age")));
+                continue;
+            }
+            if !(clause || AGE_TAIL.match_(rest).is_some()) {
+                continue;
+            }
+            let named = m.name("name").filter(|s| !s.is_empty());
+            let i = match named {
+                Some(n) => entry(&mut found, &lower(m.name_str("who")), &tidy(n)),
+                None => entry(&mut found, &lower(m.name_str("who")), ""),
+            };
+            found[i].setdefault("age", int_of(m.name_str("age")));
+        }
+    }
+    for tasted in taste_read_other(text) {
+        let thing = vget(&tasted, "thing").clone();
+        if !thing.truthy() {
+            continue;
+        }
+        let key = if vget(&tasted, "how").str() == "yes" { "likes" } else { "dislikes" };
+        if vget(&tasted, "eaten").truthy() && pt::split(&value_str(&thing)).iter().any(|w| DIET_GROUP.contains(w)) {
+            continue;
+        }
+        let who = vget(&tasted, "who");
+        let i = if who.truthy() {
+            entry(&mut found, &value_str(who), "")
+        } else {
+            let pron = vget(&tasted, "pronoun");
+            match found.iter().position(|made| vget(made, "pronoun") == pron && !vget(made, "who").truthy()) {
+                Some(i) => i,
+                None => {
+                    let p = if pron.truthy() { pron.clone() } else { Value::from("") };
+                    found.push(dict(vec![("pronoun", p)]));
+                    found.len() - 1
+                }
+            }
+        };
+        let held = found[i].setdefault(key, Value::list());
+        if !held.items().contains(&thing) {
+            held.push(thing);
+        }
+    }
+    for m in OTHER_BIRTHDAY.finditer(text) {
+        let date = _a_birthday_date(m.name_str("date"));
+        if date.is_empty() {
+            continue;
+        }
+        let said_who = lower(m.name_str("who"));
+        let said_pronoun = lower(m.name_str("pronoun"));
+        let i = if !said_who.is_empty() {
+            entry(&mut found, &said_who, "")
+        } else {
+            let pronoun_word = BIRTHDAY_PRONOUN.get(&said_pronoun).cloned().unwrap_or(said_pronoun);
+            let person = _the_person_the_pronoun_is(text, m.end(), &pronoun_word);
+            if !person.is_empty() {
+                entry(&mut found, &person, "")
+            } else {
+                match found
+                    .iter()
+                    .position(|made| vget(made, "pronoun").as_str() == Some(pronoun_word.as_str()) && !vget(made, "who").truthy())
+                {
+                    Some(i) => i,
+                    None => {
+                        found.push(dict(vec![("pronoun", pronoun_word.as_str().into())]));
+                        found.len() - 1
+                    }
+                }
+            }
+        };
+        found[i].setdefault("birthday", date.as_str());
+    }
+    let mut pronoun = PRONOUN_AGE.search(text);
+    if let Some(p) = &pronoun {
+        if a_stated_number(p.name_str("age")).is_none() {
+            pronoun = None;
+        }
+    }
+    if let Some(p) = &pronoun {
+        if p.name("come").is_some_and(|c| !c.is_empty()) {
+            let same_breath = SENTENCE_END.split(&text[p.end()..]).into_iter().next().unwrap_or_default();
+            if HOW_THEY_FEEL.is_match(&same_breath) {
+                pronoun = None;
+            }
+        }
+    }
+    if let Some(p) = pronoun.as_ref().filter(|p| _month_age_after(text, p.end())) {
+        let age = a_stated_number(p.name_str("age"));
+        let fits: &HashSet<String> = if lower(p.name_str("who")) == "she" { &SHE } else { &HE };
+        let mut placed = false;
+        for known in found.iter_mut() {
+            if known.get("age").is_none()
+                && known.get("months").is_none()
+                && known.get("who").and_then(Value::as_str).is_some_and(|w| fits.contains(w))
+            {
+                known.set_key("months", age);
+                placed = true;
+                break;
+            }
+        }
+        if !placed && !found.iter().any(|made| made.get("months").is_some()) {
+            found.push(dict(vec![("months", age.into()), ("pronoun", lower(p.name_str("who")).into())]));
+        }
+    } else if let Some(p) = pronoun.as_ref().filter(|p| AGE_TAIL.match_(&text[p.end()..]).is_some()) {
+        let word = lower(p.name_str("who"));
+        let empty = HashSet::new();
+        let fits: &HashSet<String> = if word == "she" {
+            &SHE
+        } else if word == "he" {
+            &HE
+        } else {
+            &empty
+        };
+        let age = a_stated_number(p.name_str("age"));
+        for known in found.iter_mut() {
+            if known.get("age").is_none() && known.get("who").and_then(Value::as_str).is_some_and(|w| fits.contains(w)) {
+                known.set_key("age", age);
+                break;
+            }
+        }
+        if !found.iter().any(|made| made.get("age").is_some()) {
+            let person = _the_person_the_pronoun_is(text, p.start(), &word);
+            if !person.is_empty() {
+                found.push(dict(vec![("who", person.into()), ("age", age.into())]));
+            } else {
+                found.push(dict(vec![("age", age.into()), ("pronoun", word.into())]));
+            }
+        }
+    }
+    found.into_iter().filter(|known| known.len() > 1 || known.get("who").is_none()).collect()
+}
+
+/// Python: bot/memory/facts.py:2541 `_kin_pronoun(word)`: the relation inside a step- or
+/// grand-word, so the pronoun it takes can be read from it.
+pub fn _kin_pronoun(word: &str) -> String {
+    for prefix in ["step", "grand"] {
+        if let Some(rest) = word.strip_prefix(prefix) {
+            if _SHE_SAID.contains(rest) || _HE_SAID.contains(rest) {
+                return rest.to_string();
+            }
+        }
+    }
+    word.to_string()
+}
+
+/// `sorted(_SHE_SAID | _HE_SAID, key=len, reverse=True)`. Python's set order breaks the ties
+/// between words of one length; which of two same-length words is tried first cannot change
+/// the answer unless one is the start or end of the other, which equal lengths rule out.
+static GENDERED_LONGEST_FIRST: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let mut all: Vec<String> = _SHE_SAID.union(&_HE_SAID).cloned().collect();
+    all.sort();
+    all.sort_by(|a, b| pt::len(b).cmp(&pt::len(a)));
+    all
+});
+
+/// Python: bot/memory/facts.py:2562 `_sided(word)`: the pronoun a word for a person names from
+/// inside it: "she", "he", or "" for neither.
+pub fn _sided(word: &str) -> String {
+    let inside = _kin_pronoun(word);
+    for gendered in GENDERED_LONGEST_FIRST.iter() {
+        if inside.starts_with(gendered.as_str()) || inside.ends_with(gendered.as_str()) {
+            return if _SHE_SAID.contains(gendered) { "she".into() } else { "he".into() };
+        }
+    }
+    String::new()
+}
+
+fres!(A_LIMIT, COMMITS_TO, MONEY_LIMIT);
+
+/// Python: bot/memory/facts.py:2625 `_own_body_is_the_trouble(clean)`: true when the line is the
+/// speaker's own body complaining, read by the pool that owns it (`bot/compose/badnews.py`).
+pub fn _own_body_is_the_trouble(clean: &str) -> bool {
+    crate::compose::badnews::reads_like_a_symptom(clean)
+}
+
+inline_re!(
+    A_MOVING_LIMIT,
+    r"\b(?:walk|stand|sit|climb|climbing|manage|stairs?|steps?|hills?|walking|standing)\b",
+    0
+);
+
+/// Python: bot/memory/facts.py:2642 `a_limit_on_the_plan(text)`: the limit a line puts on a
+/// plan - "move", "money" or "other" - or None when the line puts no limit on anything.
+pub fn a_limit_on_the_plan(text: &str) -> Option<String> {
+    let clean = low_squash(text);
+    if clean.is_empty() || clean.contains('?') {
+        return None;
+    }
+    let m = A_LIMIT.search(&clean)?;
+    if _own_body_is_the_trouble(&clean) {
+        return None;
+    }
+    let hit = m.as_str();
+    if m.name("move").is_some_and(|s| !s.is_empty()) || A_MOVING_LIMIT.is_match(hit) {
+        return Some("move".into());
+    }
+    Some(if MONEY_LIMIT.is_match(hit) { "money".into() } else { "other".into() })
+}
+
+fres!(PAST_DEED);
+fsets!(PAST_VERBS, PAST_ARRANGED, PAST_STATES, INTENTION_AFTER);
+
+/// Python: bot/memory/facts.py:2780 `a_deed(clause)`: whether the clause reports something the
+/// person has already done.
+pub fn a_deed(clause: &str) -> bool {
+    let Some(m) = PAST_DEED.match_(clause) else {
+        return false;
+    };
+    let word = lower(m.str(1));
+    if PAST_ARRANGED.contains(&word) {
+        return false;
+    }
+    if PAST_VERBS.contains(&word) {
+        return true;
+    }
+    if word.ends_with("ed") && pt::len(&word) >= 5 && !PAST_STATES.contains(&word) {
+        return !INTENTION_AFTER.contains(&lower(m.str(2)));
+    }
+    false
+}
+
+fres!(CLOCK_VALUE, CLOCK_IN_PLAN, DATE_VALUE);
+
+/// Python: bot/memory/facts.py:2940 `a_clock_time(phrase)`: the clock time a phrase is, said the
+/// way the person said it ("2pm", "noon"), or "".
+pub fn a_clock_time(phrase: &str) -> String {
+    match CLOCK_VALUE.match_(&squash(phrase)) {
+        Some(m) => m.str(1).to_string(),
+        None => String::new(),
+    }
+}
+
+/// Python: bot/memory/facts.py:2952 `the_clock_in(text)`: the clock a plan says, as the match to
+/// replace, or None.
+pub fn the_clock_in(text: &str) -> Option<Match<'_>> {
+    CLOCK_IN_PLAN.search(text)
+}
+
+inline_re!(A_BARE_DATE_NUMBER, r"(?:the\s+)?\d{1,2}(?:st|nd|rd|th)?", I);
+
+/// Python: bot/memory/facts.py:2957 `a_moved_time(phrase)`: true when a phrase is a time a plan
+/// can be moved to: a day, a month, a date or a clock.
+pub fn a_moved_time(phrase: &str) -> bool {
+    let words: Vec<String> = NOT_ALNUM_RUN.split(&lower(phrase)).into_iter().filter(|w| !w.is_empty()).collect();
+    if words.is_empty() {
+        return false;
+    }
+    if words.iter().any(|w| MONTHS.contains(w) || DAYS.contains(w)) {
+        return true;
+    }
+    if !a_clock_time(phrase).is_empty() {
+        return true;
+    }
+    DATE_VALUE.fullmatch(pt::strip(phrase)).is_some() || A_BARE_DATE_NUMBER.fullmatch(pt::strip(phrase)).is_some()
+}
+
+/// Python: bot/memory/facts.py:10360 `_union(one, other)`.
+pub fn _union(one: &[Value], other: &[Value]) -> Vec<Value> {
+    let mut out: Vec<Value> = one.to_vec();
+    for value in other {
+        if !out.contains(value) {
+            out.push(value.clone());
+        }
+    }
+    out
+}
+
+/// The start of the clause that ends at `pos`: after the last `CLAUSE_BREAK` before it
+/// (`CLAUSE_BREAK.finditer(text, 0, pos)`).
+fn clause_start(text: &str, pos: usize) -> usize {
+    let mut start = 0;
+    for m in CLAUSE_BREAK.finditer(&text[..pos]) {
+        start = m.end();
+    }
+    start
+}
+
+/// Python: bot/memory/facts.py:10368 `_the_pronoun(text, pos)`: which person a clause that names
+/// no relation is about: "she", "he", or "" for none. (`pos` is a byte offset.)
+pub fn _the_pronoun(text: &str, pos: usize) -> String {
+    let start = clause_start(text, pos);
+    let Some(found) = PRONOUN_SUBJECT.search_at(&text[..pos], start) else {
+        return String::new();
+    };
+    let word = lower(found.name_str("pron"));
+    match word.as_str() {
+        "her" | "shes" => "she".into(),
+        "him" | "hes" => "he".into(),
+        "them" | "theyre" => "they".into(),
+        _ => word,
+    }
+}
+
+/// Python: bot/memory/facts.py:10388 `_the_person_the_pronoun_is(text, pos, pronoun)`: the
+/// relation the line named before a bare pronoun, when it names exactly one; "" otherwise.
+pub fn _the_person_the_pronoun_is(text: &str, pos: usize, pronoun: &str) -> String {
+    let fits: &HashSet<String> = match pronoun {
+        "she" => &SHE,
+        "he" => &HE,
+        _ => return String::new(),
+    };
+    let mut who = String::new();
+    for m in RELATION_SAID.finditer(&text[..pos.min(text.len())]) {
+        let word = a_person_word(&lower(&squash(&format!("{}{}", m.name_str("who"), m.name_str("inlaw")))));
+        if !who.is_empty() && word != who {
+            return String::new();
+        }
+        who = word;
+    }
+    if who.is_empty() {
+        return String::new();
+    }
+    let parts: Vec<String> = DASH_OR_SPACE_RUN.split(&who).into_iter().filter(|p| !p.is_empty()).collect();
+    if fits.contains(&who) || parts.iter().any(|p| fits.contains(p)) {
+        who
+    } else {
+        String::new()
+    }
+}
+
+/// Python: bot/memory/facts.py:10428 `_a_name_opening_the_clause(clause)`: the name a clause opens
+/// with, or "" - "tom" in "tom is allergic to nuts".
+pub fn _a_name_opening_the_clause(clause: &str) -> String {
+    let Some(found) = NAME_THEN_THE_VERB.match_(clause) else {
+        return String::new();
+    };
+    let name = found.name_str("name");
+    let low = _a_person_word(name);
+    if NOT_A_PERSON_WORD.contains(&low) || RELATIONS.contains(&low) || DIET_GROUP.contains(&low) || A_PRONOUN_NOT_A_NAME.contains(&low) {
+        return String::new();
+    }
+    if !(_may_be_a_name(name) && _name_after_a_title(name)) {
+        return String::new();
+    }
+    name.to_string()
+}
+
+static OTHER_NOUN_THEN_A_NAME: LazyLock<Re> = LazyLock::new(|| {
+    let mut nouns: Vec<String> = OTHER_NOUNS.clone();
+    nouns.sort_by(|a, b| pt::len(b).cmp(&pt::len(a)));
+    Re::new(
+        &format!(r"\b(?:{})(?:\s+in\s+laws?)?s?\s+(?P<name>[A-Za-z][A-Za-z'\-]{{1,19}})\s*$", nouns.join("|")),
+        I,
+    )
+});
+
+/// Python: bot/memory/facts.py:10443 `_the_name_in_front(text, pos)`: the name of the person the
+/// clause ending at pos names, or "".
+pub fn _the_name_in_front(text: &str, pos: usize) -> String {
+    let start = clause_start(text, pos);
+    let clause = &text[start..pos];
+    let (who, name) = _the_person_without_a_relation(clause);
+    if !name.is_empty() && who.is_empty() {
+        return name;
+    }
+    if who.is_empty() {
+        let opening = _a_name_opening_the_clause(clause);
+        if !opening.is_empty() {
+            return opening;
+        }
+    }
+    if !who.is_empty() {
+        if let Some(found) = OTHER_NOUN_THEN_A_NAME.search(clause) {
+            let name = found.name_str("name");
+            let low = pt::strip_chars(&lower(name), "'").to_string();
+            if !NOT_A_PERSON_WORD.contains(&low) && !RELATIONS.contains(&low) && _may_be_a_name(name) && _name_after_a_title(name) {
+                return name.to_string();
+            }
+        }
+    }
+    String::new()
+}
+
+/// Python: bot/memory/facts.py:10475 `_a_person(text, pos, who)`: the person a fact about
+/// somebody else belongs to: {"who": "mum"}, {"name": "Tom"} or {"pronoun": "she"}; {} for none.
+pub fn _a_person(text: &str, pos: usize, who: &str) -> Value {
+    if !who.is_empty() {
+        return dict(vec![("who", who.into())]);
+    }
+    let named = _the_name_in_front(text, pos);
+    if !named.is_empty() {
+        return dict(vec![("name", named.into())]);
+    }
+    let pronoun = _the_pronoun(text, pos);
+    if pronoun.is_empty() {
+        return Value::dict();
+    }
+    let person = _the_person_the_pronoun_is(text, pos, &pronoun);
+    if !person.is_empty() {
+        return dict(vec![("who", person.into())]);
+    }
+    dict(vec![("pronoun", pronoun.into())])
+}
+
+/// `str(value or "")`.
+fn str_or_empty(v: Option<&Value>) -> String {
+    match v {
+        Some(v) if v.truthy() => value_str(v),
+        _ => String::new(),
+    }
+}
+
+/// Python: bot/memory/facts.py:10501 `_same_person(seen, entry)`: whether two readings of one
+/// line are about the same person.
+pub fn _same_person(seen: &Value, entry: &Value) -> bool {
+    let who = str_or_empty(seen.get("who"));
+    let other = str_or_empty(entry.get("who"));
+    if !who.is_empty() || !other.is_empty() {
+        let mine = lower(&str_or_empty(seen.get("name")));
+        let theirs = lower(&str_or_empty(entry.get("name")));
+        return who == other && (mine.is_empty() || theirs.is_empty() || mine == theirs);
+    }
+    let sp = vget(seen, "pronoun");
+    sp.truthy() && sp == vget(entry, "pronoun")
+}
+
+/// `_tidy(word)` as a string: stripped, first letter upper-cased.
+pub fn tidy(word: &str) -> String {
+    let word = pt::strip_chars(pt::strip(word), ".,!?;:'\"");
+    up1(word)
+}
+
+/// Python: bot/memory/facts.py:4277 `_tidy(word)` (the contract's Value: always a str).
+pub fn _tidy(word: &str) -> Value {
+    Value::from(tidy(word))
+}
+
+/// Python: bot/memory/facts.py:4282 `_tidy_a_titled_name(word)`: a name that starts with a title
+/// is written the way a name is: "mr smith" -> "Mr Smith".
+pub fn _tidy_a_titled_name(word: &str) -> String {
+    let words = pt::split(word);
+    if words.len() > 1 && TITLE_WORDS.contains(&lower(pt::strip_chars(&words[0], "."))) {
+        return words.iter().map(|w| tidy(w)).collect::<Vec<_>>().join(" ");
+    }
+    tidy(word)
+}
+
+// ---------------------------------------------------------------------------------------------
+// corrections: the shapes a value is put right in
+
+fres!(
+    CORRECTION, CORRECTION_PAIR, CORRECTION_MAKE, CORRECTION_SAID, CORRECTION_MOVED,
+    CORRECTION_NUMBER_PAIR, CHANGED_TO, CHANGED_BARE, CHANGED_NOW, CORRECTION_A_DATE,
+    A_DAY_TAKEN_BACK, A_DAY_I_MEANT, A_TIME_INSTEAD, MOVED_BY_ITS_OWN_VERB, TRIP_DATE_MOVED,
+    CORRECTION_NOT, RETRACT, CORRECTION_NOT_TO, CORRECTION_NOT_PAIR, DENIAL_OF_A_VALUE,
+    NAME_TAKEN_BACK, A_MARKER_ON_THE_END, CORRECTION_BARE, CORRECTION_HEDGED, CORRECTION_CLOCK,
+    CLOCK_PREFERRED, AMOUNT_CORRECTION, AMOUNT_CORRECTION_BARE, CORRECTION_MARK, COPULA_SPLIT,
+    CORRECTION_DATE, CORRECTION_DATE_GOING, CORRECTION_GOING_MOVED, NO_THEN_A_THING_NAMED,
+    JOB_AFTER, JOB_BECOME, JOB_WAS, JOB_WORK, JOB_APPOSITIVE, POSSESSION, JOB_GOT_AT,
+    JOB_GOT_POSSESSIVE, JOB_AS_A, JOB_OWN_VOICE, JOB_MINE,
+);
+fsets!(
+    NOT_A_DAY, A_NAME_IS_TAKEN_BACK, AMOUNT_WISH, CORRECTION_BARE_NO, CLAUSE_OPENERS, NOT_A_VALUE,
+    POINTING_AT, ARTICLES, CORRECTION_TAIL_WORDS, WAS_NOT_A_JOB, JOB_FRAME,
+    CORRECTION_OPENER_WORDS, JOB_GOT_FRAME, JOB_GOT_NOT_A_PLACE, JOB_GOT_AN_EMPLOYER,
+);
+fstrs!(CORRECT_FROM_MARK);
+fmaps!(CORRECTION_SHAPE);
+
+/// Python: bot/memory/facts.py:2977 `_a_day_taken_back(text)`: the day the line puts right, as a
+/// correction: "sorry saturday i got the day wrong".
+pub fn _a_day_taken_back(text: &str) -> Option<Match<'_>> {
+    A_DAY_TAKEN_BACK.search(text).or_else(|| A_DAY_I_MEANT.search(text))
+}
+
+/// Python: bot/memory/facts.py:2986 `_a_moved_time(text)`: the moved-time correction in the line,
+/// when what it moves to is a time.
+pub fn _a_moved_time(text: &str) -> Option<Match<'_>> {
+    CORRECTION_MOVED.finditer(text).into_iter().find(|moved| a_moved_time(moved.str(1)))
+}
+
+/// Python: bot/memory/facts.py:3206 `a_name_is_taken_back(text)`: true when the line denies a
+/// name rather than giving one: "no hes not called max".
+pub fn a_name_is_taken_back(text: &str) -> bool {
+    let Some(denial) = DENIAL_OF_A_VALUE.match_(pt::strip(text)) else {
+        return false;
+    };
+    denial.name("value").is_some_and(|v| !v.is_empty())
+        && A_NAME_IS_TAKEN_BACK.contains(&lower(pt::strip(denial.name_str("says"))))
+        && !denial.name("wrong").is_some_and(|w| !w.is_empty())
+}
+
+/// Python: bot/memory/facts.py:3247 `_the_same_name(left, right)`: whether a word names the same
+/// person as a name on record: "kay" is "Kay Smith".
+pub fn _the_same_name(left: &str, right: &str) -> bool {
+    let said = squash(&lower(left).replace('.', " "));
+    let known = squash(&lower(right).replace('.', " "));
+    if said.is_empty() || known.is_empty() {
+        return false;
+    }
+    said == known || pt::split(&known).contains(&said) || pt::split(&said).contains(&known)
+}
+
+/// Python: bot/memory/facts.py:3256 `the_name_they_take_back(text, stored="")`: the name on record
+/// a line takes back, "" when it denies the name without saying which, or None when the line
+/// does not take the name back at all.
+pub fn the_name_they_take_back(text: &str, stored: &str) -> Option<String> {
+    let known = pt::strip(stored).to_string();
+    if known.is_empty() {
+        return None;
+    }
+    let said = squash(text);
+    let without = crate::memory::filler::without_filler(&said);
+    let denial = NAME_TAKEN_BACK.match_(&without)?;
+    let mut named = String::new();
+    for group in ["said", "said2", "said3", "said4"] {
+        if named.is_empty() {
+            named = pt::strip(denial.name_str(group)).to_string();
+        }
+    }
+    if !named.is_empty() && !_the_same_name(&named, &known) {
+        return None;
+    }
+    Some(known)
+}
+
+/// Python: bot/memory/facts.py:3340 `_the_marker_in_front(text, question=False)`: the line with a
+/// correction word moved from its end to its front, or None.
+pub fn _the_marker_in_front(text: &str, question: bool) -> Option<String> {
+    let said = pt::strip(text);
+    let end = A_MARKER_ON_THE_END.search(said)?;
+    let head = pt::strip(&said[..end.start()]).to_string();
+    if head.is_empty() || pt::split(&head).len() > 8 {
+        return None;
+    }
+    if _extract(&head, question).truthy() {
+        return None;
+    }
+    Some(format!("actually {head}"))
+}
+
+/// Python: bot/memory/facts.py:3587 `_a_tail_hangs_off(pattern, then="")`: `pattern` with a run of
+/// the words that name nothing allowed after its value.
+pub fn _a_tail_hangs_off(pattern: &str, then: &str) -> String {
+    let trimmed = pattern.trim_end_matches(pt::is_space);
+    if !trimmed.ends_with('$') {
+        return pattern.to_string();
+    }
+    format!("{}{}{}", &trimmed[..trimmed.len() - 1], then, data::string("bot.memory.facts.CORRECTION_TAIL"))
+}
+
+inline_re!(WORD_PARTS, r"[a-z0-9']+", 0);
+
+/// Python: bot/memory/facts.py:3615 `a_value(phrase)`: true when a phrase reads as a value (a
+/// name, a place, a number), not as a clause.
+pub fn a_value(phrase: &str) -> bool {
+    let parts = WORD_PARTS.findall_str(&lower(phrase));
+    if parts.is_empty() {
+        return false;
+    }
+    if parts.len() > 3 && DATE_VALUE.fullmatch(pt::strip(phrase)).is_none() {
+        return false;
+    }
+    if CLAUSE_OPENERS.contains(&parts[0]) || NOT_A_VALUE.contains(&parts[0]) {
+        return false;
+    }
+    if parts[1..].iter().any(|w| POINTING_AT.contains(w)) {
+        return false;
+    }
+    parts
+        .iter()
+        .filter(|w| !ARTICLES.contains(*w))
+        .any(|w| !NOT_A_VALUE.contains(w) && !CLAUSE_OPENERS.contains(w))
+}
+
+inline_re!(LEADING_ARTICLE, r"^(?:a|an|the)\s+", I);
+
+/// Python: bot/memory/facts.py:3635 `reread(value, key)`: the facts a corrected value states when
+/// it is read in the shape that key arrives in.
+pub fn reread(value: &Value, key: &str) -> Value {
+    let shape = CORRECTION_SHAPE.get(key);
+    let value = LEADING_ARTICLE.sub("", pt::strip(&str_or_empty(Some(value))));
+    let Some(shape) = shape else {
+        return Value::dict();
+    };
+    if shape.is_empty() || value.is_empty() {
+        return Value::dict();
+    }
+    let mut found = extract(&shape.replacen("{}", &value, 1), false);
+    found.del_key("correction");
+    found
+}
+
+/// Python: bot/memory/facts.py:3735 `a_place_that_employs(phrase)`: whether the words after
+/// "at"/"with" name somewhere a person works.
+pub fn a_place_that_employs(phrase: &str) -> bool {
+    let words = pt::split(pt::strip_chars(phrase, " .!?,"));
+    if words.is_empty() {
+        return false;
+    }
+    let said = words.join(" ");
+    if JOB_GOT_POSSESSIVE.match_(&said).is_some() {
+        return false;
+    }
+    let first = lower(&words[0]);
+    if JOB_GOT_NOT_A_PLACE.contains(&first) && !JOB_GOT_AN_EMPLOYER.contains(&first) {
+        return false;
+    }
+    true
+}
+
+// ---------------------------------------------------------------------------------------------
+// jobs, judgements, take-backs, the tone and the moment at the end of a value
+
+fres!(
+    JOB_WANTED, SELF_AS_A_ROLE, SELF_JUDGEMENT_SAID, SELF_JUDGEMENT_ABOUT_A_NOUN, TAKE_BACK_SPLIT,
+    CHANGED_WORK, WORK_NOW, INFINITIVE, DAY_OF_A_MONTH,
+);
+fsets!(
+    JUDGEMENT_NOUNS, JOB_STOP, SELF_JUDGEMENT, ROLE_YOU_CAN_FAIL, SELF_JUDGEMENT_ROLE_ONLY,
+    JUDGEMENT_TAIL, QUALIFYING, JOB_DANGLING, WORK_DETAIL, WORK_DETAIL_FILLER, NOT_AN_END,
+    MAY_AS_A_MONTH,
+);
+fstrs!(TAKE_BACK, JOB_TAIL, JOB_TAIL_PLACE, THE_MOMENT, TONE_TAIL);
+
+/// Python: bot/memory/facts.py:3866 `is_a_judgement(text)`: whether the line is the speaker
+/// judging themselves, not telling a fact about the world.
+pub fn is_a_judgement(text: &str) -> bool {
+    let low = squash(&lower(text).replace('\u{2019}', "'").replace('\'', ""));
+    if let Some(about) = SELF_JUDGEMENT_ABOUT_A_NOUN.search(&low) {
+        let noun = about.name_str("next");
+        if JUDGEMENT_TAIL.contains(noun) {
+            let judged = about.name_str("judged");
+            return SELF_JUDGEMENT.contains(judged) || ROLE_YOU_CAN_FAIL.contains(judged);
+        }
+        return ROLE_YOU_CAN_FAIL.contains(noun) || SELF_JUDGEMENT.contains(noun) || JUDGEMENT_NOUNS.contains(noun);
+    }
+    SELF_JUDGEMENT_SAID.is_match(&low)
+}
+
+/// `after[0].lower().strip(".,;:!?") in QUALIFYING` for the words after a take-back word.
+fn qualifies(after: &str) -> Option<bool> {
+    let words = pt::split_ref(after);
+    let first = words.first()?;
+    Some(QUALIFYING.contains(pt::strip_chars(&lower(first), ".,;:!?")))
+}
+
+/// Python: bot/memory/facts.py:3902 `take_back_cut(phrase)`: the phrase up to the words that take
+/// it back, with a qualifier's own words left in (a str).
+pub fn take_back_cut(phrase: &str) -> Value {
+    Value::from(take_back_cut_str(phrase))
+}
+
+/// `take_back_cut(phrase)` as a string.
+pub fn take_back_cut_str(phrase: &str) -> String {
+    for m in TAKE_BACK_SPLIT.finditer(phrase) {
+        if qualifies(&phrase[m.end()..]) == Some(true) {
+            continue;
+        }
+        return phrase[..m.start()].to_string();
+    }
+    phrase.to_string()
+}
+
+/// Python: bot/memory/facts.py:3918 `qualified_by(phrase)`: the qualifier said after a value
+/// ("not far from the station"), or "" (a str).
+pub fn qualified_by(phrase: &str) -> Value {
+    for m in TAKE_BACK_SPLIT.finditer(phrase) {
+        if qualifies(&phrase[m.end()..]) != Some(true) {
+            continue;
+        }
+        let said = pt::strip_chars(&phrase[m.start()..], " ,.;:-'");
+        if !said.is_empty() {
+            return Value::from(said);
+        }
+    }
+    Value::from("")
+}
+
+/// Python: bot/memory/facts.py:3933 `_the_role(words)`: the role in the first words of a phrase,
+/// with a joining word left off its end.
+pub fn _the_role(words: &[String]) -> String {
+    let mut words: Vec<&String> = words.iter().take(3).collect();
+    while let Some(last) = words.last() {
+        if JOB_DANGLING.contains(pt::strip_chars(&lower(last), ".,!?")) {
+            words.pop();
+        } else {
+            break;
+        }
+    }
+    words.iter().map(|w| lower(w)).collect::<Vec<_>>().join(" ")
+}
+
+/// Python: bot/memory/facts.py:3983 `is_a_place_of_work(frame)`: whether the frame says where
+/// they work rather than what they do.
+pub fn is_a_place_of_work(frame: &Value) -> bool {
+    let f = str_or_empty(Some(frame));
+    let preposition = lower(pt::strip(&f).split(' ').next().unwrap_or(""));
+    matches!(preposition.as_str(), "in" | "at" | "on")
+}
+
+inline_re!(LETTERS_AND_APOSTROPHES, r"[a-z']+", 0);
+
+/// Python: bot/memory/facts.py:3995 `is_a_work_detail(value, frame=None)`: whether what a line
+/// says about their work is only when or where it is, not what it is.
+pub fn is_a_work_detail(value: &Value, frame: &Value) -> bool {
+    if is_a_place_of_work(frame) {
+        return true;
+    }
+    let words = LETTERS_AND_APOSTROPHES.findall_str(&lower(&str_or_empty(Some(value))));
+    let meaningful: Vec<&String> = words.iter().filter(|w| !WORK_DETAIL_FILLER.contains(*w)).collect();
+    if meaningful.is_empty() {
+        return !words.is_empty();
+    }
+    meaningful.iter().all(|w| WORK_DETAIL.contains(*w) || *w == "job" || *w == "jobs")
+}
+
+/// Python: bot/memory/facts.py:4013 `work_weight(value, frame=None)`: how much a line about their
+/// work says: 3 for the role, 2 for a place, 1 for a shift.
+pub fn work_weight(value: &Value, frame: &Value) -> i64 {
+    if !is_a_work_detail(value, frame) {
+        return 3;
+    }
+    if is_a_place_of_work(frame) {
+        2
+    } else {
+        1
+    }
+}
+
+/// Python: bot/memory/facts.py:4025 `_finish(word)`: stripped of space and punctuation, lower case.
+pub fn _finish(word: &str) -> String {
+    lower(pt::strip_chars(pt::strip(word), ".,!?;:'\""))
+}
+
+/// Python: bot/memory/facts.py:4039 `without_the_moment(words)`: the same words with the moment
+/// they were said in taken off the end.
+pub fn without_the_moment(words: &[String]) -> Vec<String> {
+    let mut words: Vec<String> = words.iter().filter(|w| !pt::strip(w).is_empty()).cloned().collect();
+    while words.len() > 1 {
+        let mut cut = 0;
+        for span in [3usize, 2, 1] {
+            if words.len() >= span && THE_MOMENT.contains(&_finish(&words[words.len() - span..].join(" "))) {
+                cut = span;
+                break;
+            }
+        }
+        if cut == 0 {
+            break;
+        }
+        words.truncate(words.len() - cut);
+    }
+    if words.len() == 1 && THE_MOMENT.contains(&_finish(&words[0])) {
+        return Vec::new();
+    }
+    words
+}
+
+/// Python: bot/memory/facts.py:4092 `_can_end(words)`: whether the last word of a sentence can be
+/// the end of it ("may" is the month or the modal).
+pub fn _can_end(words: &[String]) -> bool {
+    let Some(last) = words.last() else {
+        return false;
+    };
+    let last = pt::strip_chars(&lower(last), ".,!?;:'\"").to_string();
+    if !NOT_AN_END.contains(&last) {
+        return true;
+    }
+    if last == "may" && words.len() > 1 {
+        let before = pt::strip_chars(&lower(&words[words.len() - 2]), ".,!?;:'\"").to_string();
+        return MAY_AS_A_MONTH.contains(&before) || DAY_OF_A_MONTH.match_(&before).is_some();
+    }
+    false
+}
+
+/// Python: bot/memory/facts.py:4105 `no_tone(text)`: the same words with the tone words people
+/// leave at the end taken off.
+pub fn no_tone(text: &str) -> String {
+    let mut out = pt::strip(text).to_string();
+    for _ in 0..3 {
+        let low_full = lower(&out);
+        let low = pt::rstrip_chars(&low_full, " .,!?;:");
+        let cut = TONE_TAIL.iter().find(|phrase| low.ends_with(&format!(" {phrase}")) || low == phrase.as_str());
+        let Some(cut) = cut else {
+            break;
+        };
+        let keep = pt::len(low) as isize - pt::len(cut) as isize;
+        let left = pt::rstrip_chars(&pt::slice(&out, 0, Some(keep)), " ,;:-.)").to_string();
+        let words = pt::split(&left);
+        if cut.starts_with("to ") && INFINITIVE.is_match(&words.join(" ")) {
+            break;
+        }
+        if !words.is_empty() && !_can_end(&words) {
+            break;
+        }
+        out = left;
+    }
+    if pt::strip_chars(&out, " ,;:-.").is_empty() {
+        String::new()
+    } else {
+        out
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// a date put right, a plan's place moved, and the name reader
+
+fres!(ORDINAL_DAY, MOVED_PLACE_TO, MOVED_PLACE_PASSIVE, VERB_ISH, SAYS_A_NAME);
+fsets!(
+    A_DATE_WORD, NOT_A_PLACE_NAME, A_LEAD_IDIOM, TAIL_DETERMINERS, SAYS_SOMETHING_VERBS,
+    SAYS_SOMETHING_ELSE, _SQUEEZED_INTROS, LOOKS_WORDS,
+);
+fstrs!(A_LEAD_PREPOSITION, INTRO_WORDS, NAME_FRAMES);
+
+/// `NAME_TAIL_MIN`: an ending, and the length a word needs before the ending counts.
+pub static NAME_TAIL_MIN: LazyLock<Vec<(String, usize)>> = LazyLock::new(|| {
+    data::get("bot.memory.facts.NAME_TAIL_MIN")
+        .pairs()
+        .iter()
+        .filter_map(|(k, v)| Some((k.as_str()?.to_string(), v.as_int()? as usize)))
+        .collect()
+});
+/// `STATE_DEGREES`: (ending, the letter it took off).
+pub static STATE_DEGREES: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
+    data::get("bot.memory.facts.STATE_DEGREES")
+        .items()
+        .iter()
+        .map(|t| (t.items()[0].str().to_string(), t.items()[1].str().to_string()))
+        .collect()
+});
+/// `COMPARED`: (ending, shortest word).
+pub static COMPARED: LazyLock<Vec<(String, usize)>> = LazyLock::new(|| {
+    data::get("bot.memory.facts.COMPARED")
+        .items()
+        .iter()
+        .map(|t| (t.items()[0].str().to_string(), t.items()[1].as_int().unwrap_or(0) as usize))
+        .collect()
+});
+
+static LEX_FEELINGS: LazyLock<HashSet<String>> = LazyLock::new(|| bundle_set("bot.understanding.lexicon.FEELINGS"));
+static LEX_A_STATE: LazyLock<HashSet<String>> = LazyLock::new(|| bundle_set("bot.understanding.lexicon.A_STATE"));
+static LEX_JOINED_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| bundle_set("bot.understanding.lexicon.JOINED_WORDS"));
+
+/// Python: bot/memory/facts.py:4127 `_date_change(text)`: the date a plan is moved to, or None:
+/// "we moved it to july", "it's july now".
+pub fn _date_change(text: &str) -> Option<String> {
+    if text.contains('?') {
+        return None;
+    }
+    for pattern in [&*CHANGED_TO, &*CHANGED_BARE, &*CHANGED_NOW, &*CORRECTION_A_DATE, &*A_TIME_INSTEAD, &*MOVED_BY_ITS_OWN_VERB] {
+        let Some(found) = pattern.search(text) else {
+            continue;
+        };
+        for group in found.groups().into_iter().flatten() {
+            if !group.is_empty() && a_date(group) {
+                return Some(tidy(group));
+            }
+        }
+    }
+    None
+}
+
+/// Python: bot/memory/facts.py:4175 `a_moved_place(text)`: the place a line moves a plan to:
+/// "no we changed it to devon" -> "Devon", else "".
+pub fn a_moved_place(text: &str) -> String {
+    if text.is_empty() || text.contains('?') {
+        return String::new();
+    }
+    for pattern in [&*MOVED_PLACE_TO, &*MOVED_PLACE_PASSIVE] {
+        for found in pattern.finditer(text) {
+            let (places, _home, _said) = _places(&format!("we are going to {}", found.str(1)));
+            for place in places {
+                if a_date(&place) || a_moved_time(&place) {
+                    continue;
+                }
+                if NOT_A_PLACE_NAME.contains(&lower(&place)) {
+                    continue;
+                }
+                return place;
+            }
+        }
+    }
+    String::new()
+}
+
+/// Python: bot/memory/facts.py:4199 `a_date_put_right(text)`: true when the line is only a date
+/// put right, with no subject of its own.
+pub fn a_date_put_right(text: &str) -> bool {
+    if text.contains('?') {
+        return false;
+    }
+    CORRECTION_A_DATE.is_match(text) || A_DAY_TAKEN_BACK.is_match(text) || A_DAY_I_MEANT.is_match(text) || A_TIME_INSTEAD.is_match(text)
+}
+
+/// Python: bot/memory/facts.py:4213 `the_date_put_right(text)`: the date the line puts right:
+/// "sorry, it's the 4th" -> "the 4th", else "".
+pub fn the_date_put_right(text: &str) -> String {
+    if text.contains('?') {
+        return String::new();
+    }
+    for pattern in [&*CORRECTION_A_DATE, &*A_DAY_TAKEN_BACK, &*A_DAY_I_MEANT, &*A_TIME_INSTEAD] {
+        if let Some(found) = pattern.search(text) {
+            for group in found.groups().into_iter().flatten() {
+                if !group.is_empty() && a_date(group) {
+                    return pt::strip_chars(group, " .,").to_string();
+                }
+            }
+        }
+    }
+    String::new()
+}
+
+/// Python: bot/memory/facts.py:4227 `a_trip_date_put_right(text)`: the date a trip is moved to by
+/// a line that says how they travel, or "".
+pub fn a_trip_date_put_right(text: &str) -> String {
+    if text.contains('?') {
+        return String::new();
+    }
+    let Some(found) = TRIP_DATE_MOVED.search(text) else {
+        return String::new();
+    };
+    for group in found.groups().into_iter().flatten() {
+        if !group.is_empty() && a_date(group) {
+            return tidy(group);
+        }
+    }
+    String::new()
+}
+
+inline_re!(SPACE_RUN, r"\s+", 0);
+
+/// Python: bot/memory/facts.py:4247 `_a_date(word)` (the contract's Value: a bool).
+pub fn _a_date(word: &str) -> Value {
+    Value::Bool(a_date(word))
+}
+
+/// `_a_date(word)`: a month or a day: the only values a plan carries, so the only ones a change
+/// can name.
+pub fn a_date(word: &str) -> bool {
+    let phrase = pt::strip(word);
+    if phrase.is_empty() {
+        return false;
+    }
+    let mut seen = false;
+    let mut a_month = false;
+    let mut a_plain_number = false;
+    for piece in SPACE_RUN.split(&lower(phrase)) {
+        if piece == "of" || piece == "the" {
+            continue;
+        }
+        if ORDINAL_DAY.fullmatch(&piece).is_some() || A_DATE_WORD.contains(&piece) {
+            seen = true;
+            a_month = a_month || MONTHS.contains(&piece);
+            continue;
+        }
+        if pt::is_digit(&piece) && pt::len(&piece) <= 2 && !a_plain_number {
+            a_plain_number = true;
+            continue;
+        }
+        return false;
+    }
+    seen || (a_plain_number && a_month)
+}
+
+inline_re!(A_LETTER, r"[a-z]", I);
+
+/// Python: bot/memory/facts.py:4306 `_the_value_alone(phrase)`: `phrase` without the word of
+/// apology, the shrug, or the preposition around a value.
+pub fn _the_value_alone(phrase: &str) -> String {
+    let mut words = pt::split(phrase);
+    while words.len() > 1 && CORRECTION_TAIL_WORDS.contains(&lower(pt::strip_chars(words.last().unwrap(), ".,!?;:'\""))) {
+        words.pop();
+    }
+    if words.len() > 2 {
+        let last2: Vec<String> = words[words.len() - 2..].iter().map(|w| lower(w)).collect();
+        if last2 == ["i", "mean"] || last2 == ["i", "meant"] {
+            words.truncate(words.len() - 2);
+        }
+    }
+    if words.len() > 1
+        && A_LEAD_PREPOSITION.contains(&lower(&words[0]))
+        && A_LEAD_IDIOM.contains(&lower(pt::strip_chars(&words[1], ".,!?;:'\"")))
+    {
+        return String::new();
+    }
+    if words.len() > 1
+        && A_LEAD_PREPOSITION.contains(&lower(&words[0]))
+        && A_LETTER.is_match(&words[1])
+        && !(lower(&words[0]) == "for" && lower(&words[1]).ends_with("ing"))
+    {
+        words.remove(0);
+    }
+    words.join(" ")
+}
+
+/// Python: bot/memory/facts.py:4333 `_tidy_apart(word)`: the old value said beside the new one,
+/// an article in front of it kept lower case.
+pub fn _tidy_apart(word: &str) -> String {
+    let word = pt::strip_chars(pt::strip(word), ".,!?;:'\"");
+    let (first, _, rest) = pt::partition(word, " ");
+    if ARTICLES.contains(&lower(first)) {
+        let joined = if rest.is_empty() { lower(first) } else { format!("{} {}", lower(first), rest) };
+        return pt::strip(&joined).to_string();
+    }
+    up1(word)
+}
+
+/// Python: bot/memory/facts.py:4352 `_lowercase_name_fits(text, match)`: a name written without a
+/// capital only passes if its clause reads as an introduction. `start1` is `match.start(1)`.
+pub fn _lowercase_name_fits(text: &str, start1: usize) -> bool {
+    let mut head = &text[..start1];
+    for mark in ['.', '!', '?', ';'] {
+        if let Some(at) = head.rfind(mark) {
+            head = &head[at + 1..];
+        }
+    }
+    let mut head = lower(head).replace('\u{2019}', "'");
+    for phrase in NAME_FILLER_PHRASES.iter() {
+        head = head.replace(phrase.as_str(), " ");
+    }
+    let words: Vec<String> = pt::split(&head).iter().map(|w| pt::strip_chars(w, ",.!?;:'\"()").to_string()).collect();
+    let left: Vec<&String> = words.iter().filter(|w| !w.is_empty() && !_filler_or_intro(w)).collect();
+    let joined = left.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(" ");
+    NAME_FRAMES.contains(&joined)
+}
+
+/// Python: bot/memory/facts.py:4373 `_filler_or_intro(word)`: whether a word in front of a name is
+/// filler or the greeting that opens a line.
+pub fn _filler_or_intro(word: &str) -> bool {
+    if NAME_FILLER.contains(word) || INTRO_WORDS.iter().any(|w| w == word) {
+        return true;
+    }
+    let settled = _squeezed(word);
+    if settled == word {
+        return false;
+    }
+    NAME_FILLER.contains(&settled) || INTRO_WORDS.contains(&settled) || _SQUEEZED_INTROS.contains(&_squeezed(word))
+}
+
+/// Python: bot/memory/facts.py:4391 `_squeezed(word)`: every run of one letter cut to one
+/// (`re.sub(r"(.)\1+", r"\1", word)`; `.` does not match a newline).
+pub fn _squeezed(word: &str) -> String {
+    let mut out = String::with_capacity(word.len());
+    let mut prev: Option<char> = None;
+    for c in word.chars() {
+        if prev == Some(c) && c != '\n' {
+            continue;
+        }
+        out.push(c);
+        prev = Some(c);
+    }
+    out
+}
+
+/// Python: bot/memory/facts.py:4410 `_tail_has_a_verb(words)`: whether a clause says something,
+/// rather than being the object of the word before it.
+pub fn _tail_has_a_verb(words: &[String]) -> bool {
+    for word in words {
+        let low = lower(word);
+        if SAYS_SOMETHING_VERBS.contains(&low) || low.ends_with("'s") || low.ends_with("\u{2019}s") {
+            return true;
+        }
+        if SAYS_SOMETHING_ELSE.contains(&low) {
+            return true;
+        }
+        if pt::len(&low) > 4 && low.ends_with("ed") {
+            return true;
+        }
+    }
+    false
+}
+
+inline_re!(SENTENCE_OR_COMMA, r"[.!?;,]", 0);
+inline_re!(WORDS_AND_FIGURES, r"[A-Za-z0-9']+", 0);
+
+/// Python: bot/memory/facts.py:4452 `_followers_fit(text, end, name_word=None)`: whether the line
+/// goes on with the rest of an introduction after a name typed without a capital. (`end` is a
+/// byte offset.)
+pub fn _followers_fit(text: &str, end: usize, name_word: &str) -> bool {
+    let tail = SENTENCE_OR_COMMA.split(&text[end..]).into_iter().next().unwrap_or_default();
+    let tail = _without_asides(&tail);
+    let found = WORDS_AND_FIGURES.findall_str(&tail);
+    let mut at = 0;
+    while at < found.len() {
+        let word = &found[at];
+        let low = lower(word);
+        at += 1;
+        if pt::is_digit(word) || word.chars().next().is_some_and(char::is_uppercase) {
+            continue;
+        }
+        if NAME_SAYS_ABOUT_ME.contains(&low) {
+            if !name_word.is_empty()
+                && VERB_ISH.match_(name_word).is_some()
+                && TAIL_DETERMINERS.contains(&low)
+                && !_tail_has_a_verb(&found[at..])
+            {
+                return false;
+            }
+            return true;
+        }
+        if NAME_FOLLOWERS.contains(&low) {
+            continue;
+        }
+        if NAME_PLACE_WORDS.contains(&low) {
+            if at < found.len() && PLACE_JOIN.contains(&lower(&found[at])) {
+                at += 1;
+            }
+            if at >= found.len() {
+                return false;
+            }
+            at += 1;
+            continue;
+        }
+        return false;
+    }
+    true
+}
+
+/// Python: bot/memory/facts.py:4495 `_without_asides(tail)`: the tail of an introduction with a
+/// trailing hedge taken off.
+pub fn _without_asides(tail: &str) -> String {
+    let mut tail = tail.to_string();
+    let mut low = lower(&tail).replace('\u{2019}', "'").replace('\'', "");
+    let mut changed = true;
+    while changed && !pt::strip(&low).is_empty() {
+        changed = false;
+        for aside in NAME_ASIDES.iter() {
+            let aside = aside.replace('\'', "");
+            let stripped = pt::rstrip_chars(&low, " ,.!?").to_string();
+            if stripped.ends_with(&aside) {
+                let cut = pt::rstrip_chars(&stripped[..stripped.len() - aside.len()], " ,").to_string();
+                low = cut.clone();
+                tail = cut;
+                changed = true;
+                break;
+            }
+        }
+    }
+    tail
+}
+
+/// Python: bot/memory/facts.py:4521 `_a_state_word(low)`: whether the word on its own is one of the
+/// states a person describes themselves with.
+pub fn _a_state_word(low: &str) -> bool {
+    NOT_NAMES.contains(low)
+        || NOT_NAMES_EXTRA.contains(low)
+        || NOT_A_NAME_FEELING.contains(low)
+        || NOT_A_NAME_ILLNESS.contains(low)
+        || DIET_WORDS.contains(low)
+        || SOBER_WORDS.contains(low)
+}
+
+/// The last `n` characters off a string (`s[:-n]`).
+fn drop_last_chars(s: &str, n: usize) -> String {
+    let k = pt::len(s);
+    pt::slice(s, 0, Some(k.saturating_sub(n) as isize))
+}
+
+/// The `i`th character from the end (`s[-i]`, 1-based).
+fn char_from_end(s: &str, i: usize) -> Option<char> {
+    s.chars().rev().nth(i - 1)
+}
+
+/// Python: bot/memory/facts.py:4536 `_a_degree_of_a_state(low)`.
+pub fn _a_degree_of_a_state(low: &str) -> bool {
+    for (ending, restore) in STATE_DEGREES.iter() {
+        if !low.ends_with(ending.as_str()) || pt::len(low) <= pt::len(ending) + 2 {
+            continue;
+        }
+        let stem = format!("{}{}", drop_last_chars(low, pt::len(ending)), restore);
+        if _a_state_word(&stem) {
+            return true;
+        }
+        if pt::len(&stem) >= 3 && char_from_end(&stem, 1) == char_from_end(&stem, 2) && _a_state_word(&drop_last_chars(&stem, 1)) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/memory/facts.py:4549 `_a_letter_too_many(low)`.
+pub fn _a_letter_too_many(low: &str) -> bool {
+    if pt::len(low) < 5 || char_from_end(low, 1) != char_from_end(low, 2) {
+        return false;
+    }
+    _a_state_word(&drop_last_chars(low, 1))
+}
+
+/// Python: bot/memory/facts.py:4555 `_sounds_like_a_state(low)`: whether a lower-case word after
+/// "im" describes the person rather than naming them.
+pub fn _sounds_like_a_state(low: &str) -> bool {
+    if NAMES_THAT_LOOK_LIKE_STATES.contains(low) {
+        return false;
+    }
+    if _a_degree_of_a_state(low) || _a_letter_too_many(low) {
+        return true;
+    }
+    for (tail, shortest) in NAME_TAIL_MIN.iter() {
+        if pt::len(low) >= *shortest && low.ends_with(tail.as_str()) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/memory/facts.py:4571 `_a_word_that_is_a_state(word)`.
+pub fn _a_word_that_is_a_state(word: &str) -> bool {
+    pt::len(word) >= 3
+        && (NOT_A_NAME_STATE.contains(word) || LEX_FEELINGS.contains(word) || LEX_A_STATE.contains(word) || NOT_NAMES_EXTRA.contains(word))
+}
+
+/// Python: bot/memory/facts.py:4587 `_a_word_not_a_name(low)`: whether a word after "is" says how
+/// somebody is rather than what they are called.
+pub fn _a_word_not_a_name(low: &str) -> bool {
+    LOOKS_WORDS.contains(low) || NUMBER_WORDS.contains(low) || _sounds_like_a_state(low) || _a_word_that_is_a_state(low)
+}
+
+/// Python: bot/memory/facts.py:4608 `_the_state_compared(word)`: the state a comparison is written
+/// in, or None: "happier" is happy, "sadder" is sad.
+pub fn _the_state_compared(word: &str) -> Option<String> {
+    for (ending, shortest) in COMPARED.iter() {
+        if pt::len(word) < *shortest || !word.ends_with(ending.as_str()) {
+            continue;
+        }
+        let stem = drop_last_chars(word, pt::len(ending));
+        if stem.is_empty() {
+            continue;
+        }
+        let mut states: Vec<Option<String>> =
+            vec![Some(stem.clone()), _with_its_y_back(&stem), Some(format!("{stem}y")), Some(format!("{stem}e"))];
+        states.extend(_a_letter_off_each_run(&stem).into_iter().map(Some));
+        for state in states.into_iter().flatten() {
+            if !state.is_empty() && _a_word_that_is_a_state(&state) {
+                return Some(state);
+            }
+        }
+    }
+    None
+}
+
+/// Python: bot/memory/facts.py:4631 `_with_its_y_back(stem)`: the y a comparison turned into an i.
+pub fn _with_its_y_back(stem: &str) -> Option<String> {
+    if stem.ends_with('i') {
+        return Some(format!("{}y", &stem[..stem.len() - 1]));
+    }
+    None
+}
+
+/// Python: bot/memory/facts.py:4643 `_a_letter_off_each_run(word)`: the word with one letter taken
+/// out of each run of the same letter: "stuckk" gives "stuck".
+pub fn _a_letter_off_each_run(word: &str) -> Vec<String> {
+    let chars: Vec<char> = word.chars().collect();
+    let mut out = Vec::new();
+    let mut at = 0;
+    while at < chars.len() {
+        let mut end = at;
+        while end + 1 < chars.len() && chars[end + 1] == chars[at] {
+            end += 1;
+        }
+        if end > at {
+            let mut s: String = chars[..end].iter().collect();
+            s.extend(chars[end + 1..].iter());
+            out.push(s);
+        }
+        at = end + 1;
+    }
+    out
+}
+
+/// Python: bot/memory/facts.py:4665 `_a_state_written_as_a_comparison_or_a_double(low)`.
+pub fn _a_state_written_as_a_comparison_or_a_double(low: &str) -> bool {
+    use crate::understanding::normalize;
+    if normalize::reads_as_a_feeling(low) || _the_state_compared(low).is_some() {
+        return true;
+    }
+    if normalize::the_feeling_two_letters_are_gone_from(low).is_some_and(|f| !f.is_empty()) {
+        return true;
+    }
+    for cut in _a_letter_off_each_run(low) {
+        if _a_word_that_is_a_state(&cut) || _the_state_compared(&cut).is_some() {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/memory/facts.py:4690 `_name(text)`: the name the person gives for themselves, or
+/// None.
+pub fn _name(text: &str) -> Option<String> {
+    let mut went_by = _name_from(&GOES_BY_NAME, text, true);
+    if went_by.is_none() && GOES_BY_NAME.is_match(text) {
+        for clause in CLAUSE_SPLIT.split(text) {
+            if !GOES_BY_NAME.is_match(&clause) {
+                continue;
+            }
+            went_by = _name_from(&GOES_BY_NAME, &clause, true);
+            if went_by.is_some() {
+                break;
+            }
+        }
+    }
+    for pattern in ANNOUNCED_NAME_PATTERNS.iter() {
+        if let Some(name) = _name_from(pattern, text, false) {
+            if let Some(went) = &went_by {
+                if lower(went) != lower(&name) {
+                    return went_by;
+                }
+            }
+            return Some(name);
+        }
+    }
+    for pattern in GUESSED_NAME_PATTERNS.iter() {
+        if let Some(name) = _name_from(pattern, text, true) {
+            return Some(name);
+        }
+    }
+    None
+}
+
+/// Python: bot/memory/facts.py:4735 `_a_judgement_on_themselves(low)`.
+pub fn _a_judgement_on_themselves(low: &str) -> bool {
+    if SELF_JUDGEMENT.contains(low) {
+        return true;
+    }
+    for ending in ["ish", "y"] {
+        if !low.ends_with(ending) || pt::len(low) <= ending.len() + 2 {
+            continue;
+        }
+        let stem = &low[..low.len() - ending.len()];
+        if SELF_JUDGEMENT.contains(stem) {
+            return true;
+        }
+        if char_from_end(stem, 1) == char_from_end(stem, 2) && SELF_JUDGEMENT.contains(&drop_last_chars(stem, 1)) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/memory/facts.py:4749 `_name_from(pattern, text, guessed)`: the first word this
+/// pattern offers that could be a name, or None.
+pub fn _name_from(pattern: &Re, text: &str, guessed: bool) -> Option<String> {
+    use crate::understanding::{lexicon, normalize};
+    let says_a_name = || SAYS_A_NAME.is_match(text);
+    for m in pattern.finditer(text) {
+        let word = m.str(1);
+        let low = _finish(word);
+        if NOT_NAMES.contains(&low)
+            || NOT_NAMES_EXTRA.contains(&low)
+            || GO_BY_WAYS.contains(&low)
+            || DIET_WORDS.contains(&low)
+            || SOBER_WORDS.contains(&low)
+            || LEX_JOINED_WORDS.contains(&low)
+            || pt::len(&low) < 2
+        {
+            continue;
+        }
+        let capital = word.chars().next().is_some_and(char::is_uppercase);
+        if !capital
+            && (NOT_A_NAME_STATE.contains(&low)
+                || _a_judgement_on_themselves(&low)
+                || NOT_A_NAME_LAUGH.contains(&low)
+                || lexicon::is_a_laugh(&low))
+        {
+            continue;
+        }
+        let spelled = normalize::spelled(&low);
+        let looks_like_a_state = NAMES_THAT_LOOK_LIKE_STATES.contains(&low);
+        if !looks_like_a_state
+            && spelled
+                .iter()
+                .any(|one| *one != low && (NOT_NAMES.contains(one) || NOT_NAMES_EXTRA.contains(one) || NOT_A_NAME_STATE.contains(one)))
+        {
+            continue;
+        }
+        if NUMBER_WORDS.contains(&low) {
+            continue;
+        }
+        let repaired = normalize::repaired_tokens(&low);
+        if !looks_like_a_state
+            && repaired.iter().any(|one| {
+                *one != low
+                    && pt::len(one) >= pt::len(&low)
+                    && (NOT_NAMES.contains(one) || NOT_NAMES_EXTRA.contains(one) || NOT_A_NAME_STATE.contains(one))
+            })
+        {
+            continue;
+        }
+        if guessed && !looks_like_a_state && _describes_them(&low) {
+            continue;
+        }
+        if guessed
+            && !looks_like_a_state
+            && repaired.iter().any(|one| *one != low && pt::len(one) >= pt::len(&low) && _sounds_like_a_state(one))
+        {
+            continue;
+        }
+        if _a_state_written_as_a_comparison_or_a_double(&low) && !says_a_name() {
+            continue;
+        }
+        if normalize::reads_as_a_sound(&low) && !says_a_name() {
+            continue;
+        }
+        if !capital {
+            if _sounds_like_a_state(&low) && !says_a_name() {
+                continue;
+            }
+            let start1 = m.span(1).map(|s| s.0).unwrap_or(0);
+            let end1 = m.span(1).map(|s| s.1).unwrap_or(0);
+            if guessed && (!_lowercase_name_fits(text, start1) || !_followers_fit(text, end1, word)) {
+                continue;
+            }
+        }
+        return Some(up1_first_char(word));
+    }
+    None
+}
+
+/// `word[0].upper() + word[1:]`.
+fn up1_first_char(word: &str) -> String {
+    up1(word)
+}
+
+// ---------------------------------------------------------------------------------------------
+// the job, the car, and places
+
+fsets!(
+    JUDGEMENT_AFTER, STATE_WORDS, PREGNANCY_STATES, TAKES_ONE_BACK, NOT_A_CAR, MEASURED,
+    ADJECTIVE_NAMING, NOT_A_PLACE_WORD, DETERMINERS,
+);
+fstrs!(ROLE_ENDING);
+fres!(I_DRIVE, CAR_ASKED, CAR_NAMED, CAR_IN_THE_PAST, FROM_A_MOVE, A_MOVE_FROM_THEN_TO, A_HOME_BEFORE, FUTURE);
+
+/// Python: bot/memory/facts.py:4838 `_first_tail(phrase, tails=JOB_TAIL)`: the earliest place the
+/// job phrase stops: its position (a byte offset) and the word it stops on.
+pub fn _first_tail(phrase: &str, tails: &[String]) -> Option<(usize, String)> {
+    let mut found: Option<(usize, String)> = None;
+    for tail in tails {
+        if let Some(at) = phrase.find(tail.as_str()) {
+            if found.as_ref().map_or(true, |(f, _)| at < *f) {
+                found = Some((at, tail.clone()));
+            }
+        }
+    }
+    found
+}
+
+/// Python: bot/memory/facts.py:4853 `_job_as_a(text)`: the "job as a ..." lines that name the
+/// speaker's own job, as their matches.
+pub fn _job_as_a(text: &str) -> Vec<Match<'_>> {
+    let mut found = Vec::new();
+    for m in JOB_AS_A.finditer(text) {
+        let clause = CLAUSE_EDGE.split(&text[..m.start()]).pop().unwrap_or_default();
+        if JOB_WANTED.is_match(&clause) || !_people(&clause).is_empty() {
+            continue;
+        }
+        if !(JOB_OWN_VOICE.is_match(&clause) || JOB_MINE.is_match(&clause)) {
+            continue;
+        }
+        found.push(m);
+    }
+    found
+}
+
+/// Python: bot/memory/facts.py:4880 `_is_a_judgement_phrase(words)`: whether "im a <judgement
+/// noun> ..." judges the person rather than naming what they do.
+pub fn _is_a_judgement_phrase(words: &[String]) -> bool {
+    if words.is_empty() || !JUDGEMENT_NOUNS.contains(&lower(&words[0])) {
+        return false;
+    }
+    words.len() == 1 || JUDGEMENT_AFTER.contains(&lower(&words[1]))
+}
+
+/// Python: bot/memory/facts.py:4895 `_only_discourse_before(before)`: true when the words in front
+/// of a comma name nobody, only the way a correction opens.
+pub fn _only_discourse_before(before: &str) -> bool {
+    LETTERS_AND_APOSTROPHES.findall_str(&lower(before)).iter().all(|w| CORRECTION_OPENER_WORDS.contains(w))
+}
+
+/// Python: bot/memory/facts.py:4901 `_the_correction_named_a_thing(text, match)`: true when the
+/// noun after a correction opens the line and names a thing, not a person.
+pub fn _the_correction_named_a_thing(text: &str, m: &Match) -> bool {
+    if !_only_discourse_before(&text[..m.start()]) {
+        return false;
+    }
+    let groups = m.groups();
+    let g = if groups.len() > 2 { groups[groups.len() - 1] } else { groups[0] };
+    let phrase = lower(pt::strip(g.unwrap_or("")));
+    let words = pt::split(&phrase);
+    !words.is_empty() && !JOB_WORDS.contains(&words[0])
+}
+
+/// Python: bot/memory/facts.py:4923 `_was_names_a_role(phrase, article=None)`: whether a phrase
+/// said after "i was" names what they did, not how they were.
+pub fn _was_names_a_role(phrase: &str, article: bool) -> bool {
+    let mut low: Vec<String> = pt::split(phrase)
+        .iter()
+        .filter(|w| !pt::strip(w).is_empty())
+        .map(|w| pt::strip_chars(&lower(w), ".,!?;:").to_string())
+        .collect();
+    while !low.is_empty() && ["both", "all", "just", "only", "still", "now", "then", "also"].contains(&low[0].as_str()) {
+        low.remove(0);
+    }
+    low.truncate(3);
+    if article && !low.is_empty() {
+        return true;
+    }
+    if low.is_empty() {
+        return false;
+    }
+    if low.iter().any(|w| pt::len(w) > 4 && (w.ends_with("ing") || w.ends_with("ed"))) {
+        return false;
+    }
+    let head = low.last().unwrap().clone();
+    if STATE_WORDS.contains(&head) || PAST_STATES.contains(&head) || PREGNANCY_STATES.contains(&head) {
+        return false;
+    }
+    let single: Vec<String> = low
+        .iter()
+        .map(|w| if w.ends_with('s') && !JOB_WORDS.contains(w) { w[..w.len() - 1].to_string() } else { w.clone() })
+        .collect();
+    if low.iter().chain(single.iter()).any(|w| JOB_WORDS.contains(w)) {
+        return true;
+    }
+    pt::len(&head) > 4 && ROLE_ENDING.iter().any(|e| head.ends_with(e.as_str()))
+}
+
+/// Which job pattern a match came from (`match.re is ...`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum JobShape {
+    After,
+    Become,
+    Work,
+    Was,
+    AsA,
+    GotAt,
+    Appositive,
+}
+
+inline_re!(A_CAPITALISED_PLACE, r"([A-Z][a-z]+(?: [A-Z][a-z]+)?)", 0);
+inline_re!(I_AM_BEFORE, r"\bi(?:'m|m| am)\b", I);
+inline_re!(A_FIGURE_NEXT, r"\s*\d", 0);
+inline_re!(AS_AN_ARTICLE, r"\bas\s+(an?)\b", I);
+
+/// Python: bot/memory/facts.py:4954 `_job_and_city(text, name=None, question=False)`: the job,
+/// the city said with it, and the frame the job was said in.
+pub fn _job_and_city(text: &str, name: &str, question: bool) -> (Option<String>, Option<String>, String) {
+    let mut job: Option<String> = None;
+    let mut city: Option<String> = None;
+    let mut frame = String::new();
+    let mut text = text;
+    if !name.is_empty() {
+        let tl = lower(text);
+        let nl = lower(name);
+        if let Some(at) = tl.find(&nl) {
+            // `text[at + len(name):]` in characters: the lowered text can differ in length from
+            // the text only for characters no name holds, so the character count is taken from
+            // the lowered text and applied to the original.
+            let chars_at = pt::char_index(&tl, at) + pt::len(name);
+            text = &text[pt::byte_at(text, chars_at)..];
+        }
+    }
+    let mut matches: Vec<(Match, JobShape)> = Vec::new();
+    for (shape, pattern) in [(JobShape::After, &*JOB_AFTER), (JobShape::Become, &*JOB_BECOME), (JobShape::Work, &*JOB_WORK), (JobShape::Was, &*JOB_WAS)] {
+        let found = pattern.finditer(text);
+        if !found.is_empty() {
+            matches = found.into_iter().map(|m| (m, shape)).collect();
+            break;
+        }
+    }
+    if matches.is_empty() {
+        matches = _job_as_a(text).into_iter().map(|m| (m, JobShape::AsA)).collect();
+    }
+    if matches.is_empty() {
+        matches = JOB_GOT_AT.finditer(text).into_iter().map(|m| (m, JobShape::GotAt)).collect();
+    }
+    if matches.is_empty() && !POSSESSION.is_match(text) {
+        matches = JOB_APPOSITIVE
+            .finditer(text)
+            .into_iter()
+            .filter(|m| !_the_correction_named_a_thing(text, m))
+            .map(|m| (m, JobShape::Appositive))
+            .collect();
+        if question {
+            matches.retain(|(m, _)| I_AM_BEFORE.is_match(&text[..m.start()]));
+        }
+    }
+    if matches.is_empty() {
+        return (job, city, frame);
+    }
+    for (m, shape) in &matches {
+        let groups = m.groups();
+        let was_working = groups.len() > 2;
+        let g0 = groups[0].unwrap_or("");
+        let mut phrase = pt::strip(if was_working { groups[groups.len() - 1].unwrap_or("") } else { g0 }).to_string();
+        let place_job = (was_working && ["in", "at", "for", "on"].contains(&lower(g0).as_str()))
+            || *shape == JobShape::AsA
+            || *shape == JobShape::GotAt;
+        let mut cut = _first_tail(&phrase, &JOB_TAIL);
+        if place_job && cut.is_none() {
+            cut = _first_tail(&phrase, &JOB_TAIL_PLACE);
+        }
+        if let Some((at, tail)) = cut {
+            let rest = phrase[at + tail.len()..].to_string();
+            let t = pt::strip(&tail);
+            if (t == "in" || t == "at") && city.is_none() {
+                if let Some(place) = A_CAPITALISED_PLACE.match_(pt::strip(&rest)) {
+                    let p = place.str(1);
+                    if !NOT_PLACES.contains(&lower(p.split_whitespace().next().unwrap_or(""))) {
+                        city = Some(p.to_string());
+                    }
+                }
+            }
+            phrase.truncate(at);
+        }
+        if *shape == JobShape::GotAt {
+            if lower(g0) == "in" && pt::strip(groups.get(1).copied().flatten().unwrap_or("")).is_empty() {
+                continue;
+            }
+            if !a_place_that_employs(&phrase) {
+                continue;
+            }
+        }
+        let words = without_the_moment(&pt::split(&phrase));
+        if *shape == JobShape::Was && !words.is_empty() && WAS_NOT_A_JOB.contains(&lower(&words[0])) {
+            continue;
+        }
+        if *shape == JobShape::Was {
+            let article = groups.len() > 1 && groups[1].is_some_and(|a| !a.is_empty());
+            if !_was_names_a_role(&phrase, article) {
+                continue;
+            }
+        }
+        if words.is_empty() {
+            continue;
+        }
+        let w0 = lower(&words[0]);
+        if JOB_STOP.contains(&w0) || NOT_NAMES.contains(&w0) || NOT_NAMES_EXTRA.contains(&w0) || _is_a_judgement_phrase(&words) {
+            continue;
+        }
+        if !name.is_empty() && w0 == lower(name) {
+            continue;
+        }
+        if words[0].chars().next().is_some_and(char::is_uppercase) && words.len() == 1 {
+            continue;
+        }
+        let last = m.lastindex().unwrap_or(1);
+        let after = m.end_of(last).unwrap_or(m.end());
+        if A_FIGURE_NEXT.match_(&text[after..]).is_some() {
+            continue;
+        }
+        if ["bit", "little", "lot", "couple", "few"].contains(&w0.as_str()) {
+            continue;
+        }
+        if ["my", "our", "his", "her", "their", "your"].contains(&w0.as_str()) {
+            continue;
+        }
+        if SELF_JUDGEMENT.contains(&w0) {
+            continue;
+        }
+        let role = _the_role(&words);
+        if *shape == JobShape::AsA && !was_working {
+            let article = AS_AN_ARTICLE.search(m.as_str());
+            frame = format!("as {}", article.map(|a| lower(a.str(1))).unwrap_or_else(|| "a".into()));
+        } else if *shape == JobShape::Was {
+            frame = "was".into();
+        } else if was_working && pt::strip(g0).is_empty() {
+            frame = "work".into();
+        } else if was_working && (JOB_FRAME.contains(&lower(g0)) || JOB_GOT_FRAME.contains(&lower(g0))) {
+            frame = groups[..2]
+                .iter()
+                .filter_map(|p| p.filter(|p| !pt::strip(p).is_empty()).map(|p| pt::strip(p).to_string()))
+                .collect::<Vec<_>>()
+                .join(" ");
+            if *shape == JobShape::GotAt && pt::split(&frame).len() == 1 && JOB_GOT_AN_EMPLOYER.contains(&lower(&role)) {
+                frame.push_str(" a");
+            }
+        }
+        job = Some(role);
+        break;
+    }
+    (job, city, frame)
+}
+
+/// Python: bot/memory/facts.py:5072 `place_value(phrase)`: the place a corrected value names, or
+/// "" when the value is not a place at all (a str).
+pub fn place_value(phrase: &str) -> Value {
+    let words = pt::split(phrase);
+    if words.len() > 1 && !PLACE_MIDDLE.contains(&lower(&words[0])) {
+        return Value::from("");
+    }
+    Value::from(_place_name(phrase))
+}
+
+/// `sorted(set(cars.MODELS), key=len, reverse=True)`.
+static _CAR_NAMES: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let mut names: Vec<String> = bundle_set("bot.knowledge.cars.MODELS").into_iter().collect();
+    names.sort();
+    names.sort_by(|a, b| pt::len(b).cmp(&pt::len(a)));
+    names
+});
+
+/// Python: bot/memory/facts.py:5127 `_the_car_name_in(phrase)`: the car name the phrase starts
+/// with, or "" when the words name no car.
+pub fn _the_car_name_in(phrase: &str) -> String {
+    let flat = squash(&lower(&phrase.replace('\'', "")));
+    for name in _CAR_NAMES.iter() {
+        if flat == *name || flat.starts_with(&format!("{name} ")) {
+            return name.clone();
+        }
+    }
+    String::new()
+}
+
+/// Python: bot/memory/facts.py:5148 `_car_named_in_passing(text)`: the car a line names without
+/// the verb, or None.
+pub fn _car_named_in_passing(text: &str) -> Option<String> {
+    let past = CAR_IN_THE_PAST.is_match(text);
+    for m in CAR_NAMED.finditer(text) {
+        let mine = m.name("mine").filter(|s| !s.is_empty());
+        if mine.is_some() && past {
+            continue;
+        }
+        let what = m.name("what").filter(|s| !s.is_empty()).or(mine).unwrap_or("");
+        let name = _the_car_name_in(what);
+        if !name.is_empty() {
+            return Some(name);
+        }
+    }
+    None
+}
+
+/// Python: bot/memory/facts.py:5161 `_car(text)`: the car a line says they drive, or None when the
+/// verb is not about a car.
+pub fn _car(text: &str) -> Option<String> {
+    if CAR_ASKED.is_match(text) {
+        return None;
+    }
+    for m in I_DRIVE.finditer(text) {
+        let mut phrase = _finish(m.name_str("what"));
+        let article = lower(pt::strip(m.name_str("art")));
+        for tail in TONE_TAIL.iter() {
+            if phrase.ends_with(&format!(" {tail}")) {
+                phrase = pt::strip(&drop_last_chars(&phrase, pt::len(tail))).to_string();
+            }
+        }
+        let mut words = pt::split(&phrase);
+        while !words.is_empty() && pt::is_digit(&words[0]) {
+            words.remove(0);
+        }
+        let phrase = words.join(" ");
+        if words.is_empty() {
+            continue;
+        }
+        if words.iter().any(|w| NOT_A_CAR.contains(w)) || MEASURED.contains(words.last().unwrap()) {
+            continue;
+        }
+        if article.is_empty() && words.last().unwrap().ends_with('s') {
+            continue;
+        }
+        return Some(phrase);
+    }
+    _car_named_in_passing(text)
+}
+
+/// Python: bot/memory/facts.py:5192 `_reads_as_a_plural(name_word, first)`: whether the word after
+/// a naming word is the plural of something, so not part of a name.
+pub fn _reads_as_a_plural(name_word: &str, first: &str) -> bool {
+    let word = lower(name_word);
+    ADJECTIVE_NAMING.contains(first) && word.ends_with('s') && !word.ends_with("ss")
+}
+
+/// Python: bot/memory/facts.py:5213 `_place_name(phrase)`: the name a place phrase really names,
+/// in title case, or "".
+pub fn _place_name(phrase: &str) -> String {
+    let spaced = phrase.replace('-', " - ");
+    let mut words: Vec<String> = pt::split(&spaced);
+    let mut the = "";
+    if words.len() > 1 && lower(&words[0]) == "the" && COUNTRY_ARTICLE.contains(&lower(&words[1])) {
+        the = "the ";
+        words.remove(0);
+    }
+    let mut kept: Vec<String> = Vec::new();
+    for (i, word) in words.iter().enumerate() {
+        if !the.is_empty() {
+            kept.push(word.clone());
+            break;
+        }
+        let low = lower(word);
+        if i == 0 && words.len() > 1 && PLACE_MIDDLE.contains(&low) {
+            if DETERMINERS.contains(&lower(&words[1])) {
+                return String::new();
+            }
+            if _an_everyday_word(&words[1]) || _reads_as_a_plural(&words[1], &low) {
+                return String::new();
+            }
+            kept.push(word.clone());
+            continue;
+        }
+        if HOME_STOP.contains(&low)
+            || NOT_PLACES.contains(&low)
+            || PLACE_VERBS.contains(&low)
+            || low.ends_with("ly")
+            || TAKES_ONE_BACK.contains(&low)
+            || NOT_A_PLACE_WORD.contains(&low)
+            || word == "-"
+        {
+            break;
+        }
+        kept.push(word.clone());
+    }
+    if kept.is_empty() {
+        return String::new();
+    }
+    if kept.len() == 1 && PLACE_MIDDLE.contains(&lower(&kept[0])) {
+        return String::new();
+    }
+    let name = kept.join(" ");
+    if kept.len() == 1 {
+        if let Some(caps) = COUNTRY_CAPS.get(&lower(&name)) {
+            return format!("{the}{caps}");
+        }
+    }
+    let titled: Vec<String> = pt::split(&name).iter().map(|w| if pt::is_lower(w) { up1(w) } else { w.clone() }).collect();
+    format!("{the}{}", titled.join(" "))
+}
+
+inline_re!(BORN_WORD, r"\bborn\b", I);
+inline_re!(BORN_IN, r"\bborn\s+in\b", I);
+
+/// `max(pairs)[1]` for (position, name) pairs.
+fn latest(pairs: &[(usize, String)]) -> Option<String> {
+    pairs.iter().max().map(|(_, n)| n.clone())
+}
+
+/// Python: bot/memory/facts.py:5257 `_born_place(text)`: the place they were born, when the line
+/// says it, or None.
+pub fn _born_place(text: &str) -> Option<String> {
+    let mut born: Vec<(usize, String)> = Vec::new();
+    for pattern in [&*FROM_PLACE, &*FROM_GROWN] {
+        for m in pattern.finditer(text) {
+            if !BORN_WORD.is_match(m.as_str()) {
+                continue;
+            }
+            let name = _place_name(m.str(1));
+            if !name.is_empty() {
+                born.push((m.start(), name));
+            }
+        }
+    }
+    latest(&born)
+}
+
+inline_re!(CLAUSE_PIECES, r"[.;!?,]|\band\b|\bbut\b|\bso\b", 0);
+inline_re!(THE_PERSON_FIRST, r"\s*(?:i|im|i'm|ive|i've|id|we|were|we're|weve|we've|we'd)\b", I);
+
+/// Python: bot/memory/facts.py:5295 `_the_person_moved(before)`: true when the clause in front of
+/// a move verb has the person themselves as its subject.
+pub fn _the_person_moved(before: &str) -> bool {
+    let clause = CLAUSE_PIECES.split(before).pop().unwrap_or_default();
+    THE_PERSON_FIRST.match_(&clause).is_some()
+}
+
+/// Python: bot/memory/facts.py:5302 `_from_place(text)`: the place they say they are from, when
+/// the line says where that is, or None.
+pub fn _from_place(text: &str) -> Option<String> {
+    let mut born: Vec<(usize, String)> = Vec::new();
+    let mut said: Vec<(usize, String)> = Vec::new();
+    for (k, pattern) in [&*FROM_PLACE, &*FROM_MORE, &*FROM_GROWN, &*FROM_A_MOVE].into_iter().enumerate() {
+        for m in pattern.finditer(text) {
+            if k == 3 && !_the_person_moved(&text[..m.start()]) {
+                continue;
+            }
+            let phrase = m.str(1);
+            if k == 2 && !_grown_up_in_a_place(phrase, text) {
+                continue;
+            }
+            let name = _place_name(phrase);
+            if name.is_empty() {
+                continue;
+            }
+            if BORN_IN.is_match(m.as_str()) {
+                born.push((m.start(), name));
+            } else {
+                said.push((m.start(), name));
+            }
+        }
+    }
+    if !said.is_empty() {
+        return latest(&said);
+    }
+    latest(&born)
+}
+
+inline_re!(CAPITALISED_WORDS, r"[A-Z][a-z]+", 0);
+
+/// Python: bot/memory/facts.py:5345 `_places(text)`: places the line named, the one they live in
+/// if it says where that is, and the words the home was said with.
+pub fn _places(text: &str) -> (Vec<String>, Option<String>, String) {
+    let mut places: Vec<String> = Vec::new();
+    let mut home: Option<String> = None;
+    let mut home_said = String::new();
+    let has = |places: &Vec<String>, word: &str| places.iter().any(|p| lower(p) == lower(word));
+    for pattern in [&*HOME_DWELL, &*HOME_PLACE] {
+        for m in pattern.finditer(text) {
+            let word = _place_name(m.name_str("place"));
+            if word.is_empty() {
+                continue;
+            }
+            if !has(&places, &word) {
+                places.push(word.clone());
+            }
+            let ahead = m.name("planned").is_some_and(|p| !p.is_empty()) && FUTURE.is_match(text);
+            if home.is_none() && !m.name("stay").is_some_and(|s| !s.is_empty()) && !ahead {
+                home = Some(word.clone());
+                let place_at = m.name_span("place").map(|s| s.0).unwrap_or(0);
+                if let Some(said_with) = A_HOME_BEFORE.search(&text[..place_at]) {
+                    home_said = format!("{} {}", squash(said_with.as_str()), word);
+                }
+            }
+            break;
+        }
+        if home.as_ref().is_some_and(|h| !h.is_empty()) {
+            break;
+        }
+    }
+    if home.is_none() {
+        for m in A_MOVE_FROM_THEN_TO.finditer(text) {
+            if !_the_person_moved(&text[..m.start()]) {
+                continue;
+            }
+            let word = _place_name(m.name_str("place"));
+            if word.is_empty() {
+                continue;
+            }
+            if !has(&places, &word) {
+                places.push(word.clone());
+            }
+            if !FUTURE.is_match(text) {
+                home = Some(word);
+            }
+            break;
+        }
+    }
+    for m in PLACE_AFTER.finditer(text) {
+        let mut word = m.str(1).to_string();
+        let first = lower(pt::split_ref(&word).first().copied().unwrap_or(""));
+        if NOT_PLACES.contains(&first) || NOT_PLACES.contains(&lower(&word)) {
+            continue;
+        }
+        if PLACE_MIDDLE.contains(&first) {
+            let from = m.span(1).map(|s| s.0).unwrap_or(0);
+            let pair = pt::split_ref(&text[from..]).into_iter().take(2).collect::<Vec<_>>().join(" ");
+            word = _place_name(&pair);
+            if word.is_empty() {
+                continue;
+            }
+        }
+        if !places.contains(&word) {
+            places.push(word);
+        }
+    }
+    for m in PLACE_LOWER_NAMED.finditer(text) {
+        if _an_everyday_word(m.str(2)) {
+            continue;
+        }
+        let word = _place_name(&format!("{} {}", m.str(1), m.str(2)));
+        if !word.is_empty() && !has(&places, &word) {
+            places.push(word);
+        }
+    }
+    for m in PLACE_LOWER.finditer(text) {
+        let word = _finish(m.str(1));
+        let low = lower(&word);
+        if word.is_empty() || NOT_PLACES.contains(&low) || PLACE_VERBS.contains(&low) {
+            continue;
+        }
+        if PLACE_MIDDLE.contains(&low) {
+            continue;
+        }
+        if word.chars().next().is_some_and(char::is_uppercase) && places.contains(&word) {
+            continue;
+        }
+        if places.iter().any(|p| lower(p).starts_with(&format!("{low} "))) {
+            continue;
+        }
+        if !has(&places, &word) {
+            places.push(up1(&word));
+        }
+    }
+    if places.is_empty() && SHORT_LIST.match_(pt::strip(text)).is_some() {
+        for word in CAPITALISED_WORDS.findall_str(text) {
+            if !NOT_PLACES.contains(&lower(&word)) && !places.contains(&word) {
+                places.push(word);
+            }
+        }
+    }
+    (places, home, home_said)
+}
+
+// ---------------------------------------------------------------------------------------------
+// who a fact is about, and the allergy items
+
+fres!(QUESTION_OPEN, CLAUSE_JOIN, SUBJECT, A_ME_WITH_SOMEONE, BARE_RELATION, QUESTION_START);
+fsets!(
+    _QUANTITY_WORDS, ALLERGY_STOP, BETWEEN_PERSON_AND_FACT, NOT_A_BARE_PERSON_AHEAD, FILLER_TAIL,
+    NOT_A_FOOD, A_GENERIC_FOOD, NOT_A_FOOD_IN_IT, ONE_MORE_DETERMINERS, NOT_AN_ADDITION,
+);
+fstrs!(FILLER_TAIL_PHRASES);
+
+/// Python: bot/memory/facts.py:5476 `stated_not_asked(text)`: the part of a yes/no question that
+/// states something, or "" when it only asks.
+pub fn stated_not_asked(text: &str) -> String {
+    let said = squash(pt::strip(text));
+    if said.is_empty() || QUESTION_OPEN.match_(&said).is_none() {
+        return said;
+    }
+    let kept: Vec<String> = CLAUSE_JOIN
+        .split(&said)
+        .iter()
+        .map(|p| pt::strip_chars(p, " ,.;:!?").to_string())
+        .filter(|p| !p.is_empty() && QUESTION_OPEN.match_(p).is_none())
+        .collect();
+    kept.join(", ")
+}
+
+/// Python: bot/memory/facts.py:5524 `_the_person_is_in_it(clause)`: whether the clause says the
+/// thing is about the person as well as somebody else.
+pub fn _the_person_is_in_it(clause: &str) -> bool {
+    A_ME_WITH_SOMEONE.is_match(clause)
+}
+
+/// The largest char boundary at or before `pos` (a caller's offset, clamped).
+fn boundary_at(text: &str, pos: usize) -> usize {
+    let mut p = pos.min(text.len());
+    while !text.is_char_boundary(p) {
+        p -= 1;
+    }
+    p
+}
+
+/// Python: bot/memory/facts.py:5529 `subject(text, pos)`: who the clause that ends at pos is
+/// about, as [kind, who]. `pos` is a byte offset into `text` (a Rust match position).
+pub fn subject(text: &str, pos: i64) -> Vec<String> {
+    let (kind, who) = subject_at(text, boundary_at(text, pos.max(0) as usize));
+    vec![kind, who]
+}
+
+/// `subject(text, pos)` as (kind, who), with `pos` a byte offset.
+pub fn subject_at(text: &str, pos: usize) -> (String, String) {
+    let start = clause_start(text, pos);
+    let clause = &text[start..pos];
+    let mut kind = String::new();
+    let mut who = String::new();
+    for m in SUBJECT.finditer(clause) {
+        if m.name("rel").is_some_and(|r| !r.is_empty()) {
+            kind = "other".into();
+            who = lower(&squash(&format!("{}{}", m.name_str("rel"), m.name_str("inlaw"))));
+            if let Some(full) = SPOKEN_RELATION.get(&who) {
+                who = full.clone();
+            }
+        } else if m.name("pron").is_some_and(|p| !p.is_empty()) || m.name("her").is_some_and(|p| !p.is_empty()) {
+            kind = "other".into();
+            who = String::new();
+        } else {
+            kind = "user".into();
+            who = String::new();
+        }
+    }
+    if kind == "other" && !who.is_empty() && _the_person_is_in_it(clause) {
+        kind = "user".into();
+    }
+    if kind == "other" && !who.is_empty() {
+        let pair = a_chained_person(clause);
+        if !pair.is_empty() && pair.split("'s ").next() == Some(who.as_str()) {
+            who = pair;
+        }
+    }
+    if kind.is_empty() {
+        let (bare_who, bare_name) = _the_person_without_a_relation(clause);
+        if !bare_who.is_empty() || !bare_name.is_empty() {
+            kind = "other".into();
+            who = bare_who;
+            let pair = a_chained_person(clause);
+            if !pair.is_empty() && pair.split("'s ").next() == Some(who.as_str()) {
+                who = pair;
+            }
+        }
+    }
+    (kind, who)
+}
+
+/// Python: bot/memory/facts.py:5628 `_a_person_word(word)`: a word the way a person says it, so
+/// "i'm", "im" and "I’m" are one word.
+pub fn _a_person_word(word: &str) -> String {
+    lower(pt::strip_chars(pt::strip(word), ".,!?;:\"'")).replace('\u{2019}', "'").replace('\'', "")
+}
+
+/// Python: bot/memory/facts.py:5633 `_the_person_without_a_relation(clause)`: (who, name) for a
+/// person the clause names without a "my": ("mum", ""), ("", "Tom").
+pub fn _the_person_without_a_relation(clause: &str) -> (String, String) {
+    let mut words: Vec<String> = pt::split(clause)
+        .iter()
+        .map(|w| pt::strip_chars(pt::strip_chars(w, " ,.;:!?"), "'").to_string())
+        .filter(|w| !w.is_empty())
+        .collect();
+    while !words.is_empty()
+        && ["and", "but", "so", "then", "also", "oh", "ok", "okay", "well", "now", "btw"].contains(&lower(&words[0]).as_str())
+    {
+        words.remove(0);
+    }
+    while !words.is_empty() && BETWEEN_PERSON_AND_FACT.contains(&lower(words.last().unwrap())) {
+        words.pop();
+    }
+    if words.is_empty() || words.len() > 3 {
+        return (String::new(), String::new());
+    }
+    if words[..words.len() - 1].iter().any(|w| NOT_A_BARE_PERSON_AHEAD.contains(&lower(w)))
+        || NOT_A_BARE_PERSON_AHEAD.contains(&lower(words.last().unwrap()))
+    {
+        return (String::new(), String::new());
+    }
+    let said = words.join(" ");
+    if let Some(found) = BARE_RELATION.search(&said) {
+        let mut who = squash(&lower(&format!("{}{}", found.name_str("rel"), found.name_str("inlaw"))));
+        if who.ends_with('s') && RELATIONS.contains(&who[..who.len() - 1].to_string()) {
+            who.pop();
+        }
+        let who = SPOKEN_RELATION.get(&who).cloned().unwrap_or(who);
+        return (who, String::new());
+    }
+    if words.len() == 1 {
+        let word = &words[0];
+        let pw = _a_person_word(word);
+        if NOT_A_PERSON_WORD.contains(&pw) || DIET_GROUP.contains(&pw) || RELATIONS.contains(&pw) || A_PRONOUN_NOT_A_NAME.contains(&pw) {
+            return (String::new(), String::new());
+        }
+        if _may_be_a_name(word) && _name_after_a_title(word) {
+            return (String::new(), word.clone());
+        }
+    }
+    (String::new(), String::new())
+}
+
+const END_PUNCT: &str = ".,!?;:'\"";
+
+/// Python: bot/memory/facts.py:5683 `_trim_filler(text)`.
+pub fn _trim_filler(text: &str) -> String {
+    let mut words = pt::split(text);
+    loop {
+        while !words.is_empty() && FILLER_TAIL.contains(&lower(pt::strip_chars(words.last().unwrap(), END_PUNCT))) {
+            words.pop();
+        }
+        let from = words.len().saturating_sub(3);
+        let tail = lower(pt::strip_chars(&words[from..].join(" "), END_PUNCT));
+        let Some(cut) = FILLER_TAIL_PHRASES.iter().find(|p| tail.ends_with(p.as_str())) else {
+            break;
+        };
+        let joined = words.join(" ");
+        let stripped = pt::strip_chars(&joined, END_PUNCT);
+        words = pt::split(&drop_last_chars(stripped, pt::len(cut)));
+    }
+    words.join(" ")
+}
+
+/// Python: bot/memory/facts.py:5717 `_trim_time_tail(item)`: the food off the front of a time:
+/// "chilli after 6" is chilli, "dairy before work" dairy.
+pub fn _trim_time_tail(item: &str) -> String {
+    let mut words = pt::split(item);
+    while words.len() > 1 {
+        let last = pt::strip_chars(words.last().unwrap(), END_PUNCT).to_string();
+        if NOT_A_FOOD_IN_IT.contains(&last) || pt::is_digit(&last) || ["the", "a", "my", "our"].contains(&last.as_str()) {
+            words.pop();
+        } else {
+            break;
+        }
+    }
+    words.join(" ")
+}
+
+/// Python: bot/memory/facts.py:5739 `_a_modifier_before_a_generic_noun(words)`: whether the thing
+/// said is a word that names it plus a generic noun: "spicy food".
+pub fn _a_modifier_before_a_generic_noun(words: &[String]) -> bool {
+    if words.len() < 2 {
+        return false;
+    }
+    if !A_GENERIC_FOOD.contains(&lower(pt::strip_chars(words.last().unwrap(), END_PUNCT))) {
+        return false;
+    }
+    !words[..words.len() - 1].iter().any(|w| ALLERGY_STOP.contains(w))
+}
+
+/// Python: bot/memory/facts.py:5748 `_only_stop_words(item)`: whether every word of a piece is one
+/// the allergy reader knows is not an allergen.
+pub fn _only_stop_words(item: &str) -> bool {
+    let words = pt::split(item);
+    !words.is_empty() && words.iter().all(|w| NOT_A_FOOD.contains(w) || ALLERGY_STOP.contains(w))
+}
+
+inline_re!(NOT_OR_A_JOIN, r"\bnot\b|\b(?:but|so|because|which)\b", 0);
+inline_re!(COMMA_OR_AND_SPACED, r",| and ", 0);
+
+/// Python: bot/memory/facts.py:5754 `_allergy_items(chunk)`: the things in "nuts and shellfish,
+/// not peanuts": ["nuts", "shellfish"].
+pub fn _allergy_items(chunk: &str) -> Vec<String> {
+    let mut items: Vec<String> = Vec::new();
+    let chunk = NOT_OR_A_JOIN.split(chunk).into_iter().next().unwrap_or_default();
+    for piece in COMMA_OR_AND_SPACED.split(&chunk) {
+        let item = _trim_time_tail(&_trim_filler(&_finish(&piece)));
+        if QUESTION_START.match_(&lower(&item)).is_some() {
+            break;
+        }
+        if item.is_empty() || pt::len(&item) < 2 {
+            continue;
+        }
+        let words = pt::split(&item);
+        if words.iter().any(|w| ALLERGY_STOP.contains(w)) && !_a_modifier_before_a_generic_noun(&words) {
+            continue;
+        }
+        if ["it", "them", "that", "this"].contains(&item.as_str()) || items.contains(&item) {
+            continue;
+        }
+        if words.iter().any(|w| NOT_A_FOOD_IN_IT.contains(w)) && !words.iter().any(|w| ONE_MORE_FOODS.contains(w)) {
+            continue;
+        }
+        if _only_stop_words(&item) {
+            continue;
+        }
+        items.push(item);
+    }
+    items
+}
+
+// ---------------------------------------------------------------------------------------------
+// one more thing, shared limits, take-backs and losses of animals, allergies, names in passing
+
+fres!(
+    I_SHARE_IT, I_SHARE_IT_SHORT, SOMEONE_SHARES_IT_VERB_FIRST, SOMEONE_SHARES_IT,
+    SOMEONE_SHARES_IT_PRONOUN, ONE_TAKEN, DIY_OF_ALL, ONE_OF_THEM, ALL_OF_THEM, AGE_MONTHS_TAIL,
+    AGE_TO_COME, OTHER_CALLED, OTHER_NAME_IS, OTHER_NAMED_BARE, OTHER_NAMED_BEFORE_VERB,
+    OTHER_NAMED_CAPITAL, OTHER_NAME_POSSESSIVE, OTHER_NAMED_MIDLINE,
+);
+fsets!(ANY_SUBJECT, NOT_A_NAME_MIDLINE, NOT_A_NAME_THERE, NAMES_THAT_END_LIKE_A_VERB);
+fstrs!(NOT_NAME_ENDING);
+
+pub const LAST_PERSON: &str = "@last";
+
+static VERB_FORMS: LazyLock<HashSet<String>> = LazyLock::new(|| bundle_set("bot.understanding.kinds.VERB_FORMS"));
+
+inline_re!(COMMA_AND_OR, r",| and | or ", 0);
+
+/// Python: bot/memory/facts.py:5796 `one_more(text)`: the one more thing a line names and nothing
+/// else: "and milk too" -> ["milk"].
+pub fn one_more(text: &str) -> Vec<String> {
+    let mut said = low_squash(text);
+    if said.is_empty() {
+        return Vec::new();
+    }
+    let typed = said.clone();
+    for _ in 0..6 {
+        let before = said.clone();
+        said = pt::strip_chars(&ONE_MORE_HEAD.sub("", &said), " ,").to_string();
+        said = pt::strip_chars(&ONE_MORE_TAIL.sub("", &said), " ,.!?").to_string();
+        if said == before {
+            break;
+        }
+    }
+    if said.is_empty() || said == typed {
+        return Vec::new();
+    }
+    let mut items: Vec<String> = Vec::new();
+    for part in COMMA_AND_OR.split(&said) {
+        let mut words: Vec<String> = pt::split(&part)
+            .iter()
+            .filter(|w| !pt::strip_chars(w, "'\u{2019}").is_empty())
+            .map(|w| pt::strip_chars(w, "'\u{2019}").to_string())
+            .collect();
+        if !words.is_empty() && NOT_AN_ADDITION.contains(&lower(&words[0])) {
+            continue;
+        }
+        while !words.is_empty() && ONE_MORE_DETERMINERS.contains(&words[0]) {
+            words.remove(0);
+        }
+        if words.is_empty() || words.len() > 2 {
+            continue;
+        }
+        let last_word = words.last().unwrap().clone();
+        if !ONE_MORE_FOODS.contains(&last_word) {
+            continue;
+        }
+        let head = words[..words.len() - 1].join(" ");
+        let last = ALLERGEN_PLURALS.get(&last_word).cloned().unwrap_or(last_word);
+        let item = pt::strip(&format!("{head} {last}")).to_string();
+        if !items.contains(&item) {
+            items.push(item);
+        }
+    }
+    items
+}
+
+/// Python: bot/memory/facts.py:5899 `the_limit_they_share(text)`: "im too", "my son is too": the
+/// limit just said is theirs as well, and who "theirs" is ("i", a relation, or "@last").
+pub fn the_limit_they_share(text: &str) -> String {
+    let said = pt::strip_chars(&low_squash(text), " !.,").to_string();
+    if said.is_empty() || pt::split(&said).len() > 6 {
+        return String::new();
+    }
+    if I_SHARE_IT.match_(&said).is_some() || I_SHARE_IT_SHORT.match_(&said).is_some() {
+        return "i".into();
+    }
+    if let Some(found) = SOMEONE_SHARES_IT.match_(&said).or_else(|| SOMEONE_SHARES_IT_VERB_FIRST.match_(&said)) {
+        let who = pt::strip(found.name_str("who")).to_string();
+        return if who == "own" || who == "self" { String::new() } else { who };
+    }
+    if SOMEONE_SHARES_IT_PRONOUN.match_(&said).is_some() {
+        return LAST_PERSON.into();
+    }
+    String::new()
+}
+
+/// Python: bot/memory/facts.py:5928 `denied_before(text, start)`: whether the words at `start`
+/// are said not to be true: "im not allergic to nuts". (`start` is a byte offset.)
+pub fn denied_before(text: &str, start: usize) -> bool {
+    let from = back_chars(text, start, 40);
+    DENIAL_WORDS.is_match(&text[from..start])
+}
+
+/// Python: bot/memory/facts.py:5933 `_clause(text, start)`: the words before the fact at `start`,
+/// from the nearest clause edge.
+pub fn _clause(text: &str, start: usize) -> String {
+    let head = &text[..start];
+    let mut cut = 0;
+    for edge in CLAUSE_EDGE.finditer(head) {
+        cut = edge.end();
+    }
+    head[cut..].to_string()
+}
+
+/// Python: bot/memory/facts.py:5942 `_the_clause_before(text, start, edges=4)`: the clause before
+/// the fact at `start`, with the clause it continues put back.
+pub fn _the_clause_before(text: &str, start: usize, edges: usize) -> String {
+    let head = &text[..start];
+    let mut parts: Vec<&str> = Vec::new();
+    let mut last = 0;
+    for edge in CLAUSE_EDGE.finditer(head) {
+        parts.push(&head[last..edge.end()]);
+        last = edge.end();
+    }
+    parts.push(&head[last..]);
+    let mut said = parts[parts.len() - 1].to_string();
+    let mut walked = 0;
+    while walked + 1 < parts.len() && walked < edges && !_opens_a_subject(parts[parts.len() - 1 - walked]) {
+        walked += 1;
+        said = format!("{}{}", parts[parts.len() - 1 - walked], said);
+    }
+    said
+}
+
+inline_re!(NOT_A_WORD_LETTER, r"[^a-z']", 0);
+
+/// Python: bot/memory/facts.py:5969 `_opens_a_subject(clause)`: whether this clause starts by
+/// naming who it is about.
+pub fn _opens_a_subject(clause: &str) -> bool {
+    let words = pt::split(&clause.replace(',', " "));
+    let Some(first) = words.first() else {
+        return false;
+    };
+    ANY_SUBJECT.contains(&NOT_A_WORD_LETTER.sub("", &lower(first)))
+}
+
+/// Python: bot/memory/facts.py:5977 `_around(text, start)`: the whole clause the words at `start`
+/// sit in, from one edge to the next.
+pub fn _around(text: &str, start: usize) -> String {
+    let mut left = 0;
+    for edge in CLAUSE_EDGE.finditer(&text[..start]) {
+        left = edge.end();
+    }
+    let right = CLAUSE_EDGE.search_at(text, start).map(|e| e.start()).unwrap_or(text.len());
+    if left >= right {
+        return String::new();
+    }
+    text[left..right].to_string()
+}
+
+/// `str((pet or {}).get(key) or "").strip()` for a pet record.
+fn pet_field(pet: &Value, key: &str) -> String {
+    pt::strip(&str_or_empty(pet.get(key))).to_string()
+}
+
+/// `dict.fromkeys(items)` order: first sighting kept.
+fn dedupe(items: Vec<String>) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for i in items {
+        if !out.contains(&i) {
+            out.push(i);
+        }
+    }
+    out
+}
+
+/// A whole-word search for `word` (`re.search(r"\b" + re.escape(word) + r"\b", text, flags)`).
+fn word_re(word: &str, flags: u32) -> Re {
+    Re::new(&format!(r"\b{}\b", crate::py::re::escape(word)), flags)
+}
+
+/// Python: bot/memory/facts.py:5989 `_own_named(text, start, own)`: the animals the store holds
+/// whose name the line has said before `start`.
+pub fn _own_named(text: &str, start: usize, own: &Value) -> Vec<String> {
+    let mut found = Vec::new();
+    let lowered = lower(text);
+    let head = pt::slice(&lowered, 0, Some(pt::char_index(text, start) as isize));
+    for pet in own.items() {
+        let name = lower(&pet_field(pet, "name"));
+        let animal = lower(&pet_field(pet, "animal"));
+        if name.is_empty() || animal.is_empty() || pt::len(&name) < 3 {
+            continue;
+        }
+        if word_re(&name, 0).is_match(&head) {
+            found.push(animal);
+        }
+    }
+    dedupe(found)
+}
+
+/// Python: bot/memory/facts.py:6009 `_own_in_denial(text, own)`: the store's pets the line says are
+/// gone by name, when it named no animal kind (the records themselves).
+pub fn _own_in_denial(text: &str, own: &Value) -> Vec<Value> {
+    let mut gone: Vec<Value> = Vec::new();
+    for pet in own.items() {
+        let name = pet_field(pet, "name");
+        let animal = lower(&pet_field(pet, "animal"));
+        if name.is_empty() || animal.is_empty() || pt::len(&name) < 3 {
+            continue;
+        }
+        for m in word_re(&name, I).finditer(text) {
+            if not_had(text, m.start()) {
+                if !gone.contains(pet) {
+                    gone.push(pet.clone());
+                }
+                break;
+            }
+        }
+    }
+    gone
+}
+
+/// `int(pet.get("count") or 1)`.
+fn count_of(pet: &Value) -> i64 {
+    match pet.get("count") {
+        Some(v) if v.truthy() => match v {
+            Value::Int(i) => *i,
+            Value::Bool(b) => *b as i64,
+            Value::Float(f) => f.trunc() as i64,
+            Value::Str(s) => py_int(s).unwrap_or(1),
+            _ => 1,
+        },
+        _ => 1,
+    }
+}
+
+/// Python: bot/memory/facts.py:6042 `given_away_one(text, own=None)`.
+///
+/// CONTRACT NOTE: Python returns the pet *record* to take one from (`[dict]`); the skeleton gave
+/// this function `Vec<String>`, which cannot hold one. This keeps the contract and returns each
+/// record as its JSON text; `given_away_one_records` returns the records themselves.
+pub fn given_away_one(text: &str, own: &Value) -> Vec<String> {
+    given_away_one_records(text, own).iter().map(|r| r.to_plain().to_string()).collect()
+}
+
+/// `given_away_one(text, own)` as Python returns it: the one animal record a line gives away
+/// without saying which, out of a set on the store.
+pub fn given_away_one_records(text: &str, own: &Value) -> Vec<Value> {
+    if !ONE_OF_THEM.is_match(text) || !ONE_TAKEN.is_match(text) {
+        return Vec::new();
+    }
+    let mut kinds: Vec<(String, Value)> = Vec::new();
+    for pet in own.items() {
+        if !pet.is_dict() {
+            continue;
+        }
+        let animal = lower(&pet_field(pet, "animal"));
+        let count = match pet.get("count") {
+            Some(v) if v.truthy() => v.as_f64().unwrap_or(1.0),
+            _ => 1.0,
+        };
+        if animal.is_empty() || count < 2.0 {
+            continue;
+        }
+        if !kinds.iter().any(|(k, _)| *k == animal) {
+            kinds.push((animal, pet.clone()));
+        }
+    }
+    if kinds.len() != 1 {
+        return Vec::new();
+    }
+    vec![kinds[0].1.clone()]
+}
+
+/// Python: bot/memory/facts.py:6066 `_pointed_at(text, start, plural)`: the animals a pronoun at
+/// `start` can be pointing at: the ones the line named first.
+pub fn _pointed_at(text: &str, start: usize, plural: bool) -> Vec<String> {
+    let named = dedupe(PETS.finditer(&text[..start]).iter().map(|m| lower(m.str(1))).collect());
+    if named.is_empty() {
+        return named;
+    }
+    if plural {
+        named
+    } else {
+        vec![named.last().unwrap().clone()]
+    }
+}
+
+/// Python: bot/memory/facts.py:6081 `not_had(text, start)`: true when the line says the pet at
+/// `start` is not, or no longer, theirs.
+pub fn not_had(text: &str, start: usize) -> bool {
+    let clause = _clause(text, start);
+    if HEDGE.is_match(&clause) {
+        return false;
+    }
+    if NOT_HAVE_LONGER.is_match(&clause)
+        || _have_none(&format!("{clause} {}", &text[start..]))
+        || WITHOUT_ANIMAL.is_match(&clause)
+        || NOT_JUST.is_match(&clause)
+        || taken_back_before(text, start)
+    {
+        return true;
+    }
+    GIVEN_AWAY.finditer(text).iter().any(|m| m.start() <= start && start <= m.end())
+}
+
+/// Python: bot/memory/facts.py:6100 `_have_none(clause)`: whether the clause says the animal is not
+/// theirs, read without a bare verb deciding it.
+pub fn _have_none(clause: &str) -> bool {
+    for m in HAVE_NONE.finditer(clause) {
+        if A_COMPOUND_AFTER.match_(&clause[m.end()..]).is_some() {
+            continue;
+        }
+        return true;
+    }
+    false
+}
+
+/// `pattern.match(text, pos)`: a match that starts exactly at `pos`.
+fn match_at<'t>(pattern: &'t Re, text: &'t str, pos: usize) -> Option<Match<'t>> {
+    pattern.search_at(text, pos).filter(|m| m.start() == pos)
+}
+
+/// Python: bot/memory/facts.py:6115 `taken_back_before(text, start)`: true when the words in front
+/// of the animal take it back, read with the whole line.
+pub fn taken_back_before(text: &str, start: usize) -> bool {
+    let clause = _clause(text, start);
+    if HEDGE.is_match(&clause) {
+        return false;
+    }
+    if TAKEN_BACK_BEFORE.is_match(&clause) {
+        return true;
+    }
+    let rest = match match_at(&PETS, text, start) {
+        Some(animal) => &text[animal.end()..],
+        None => &text[start..],
+    };
+    if NO_THEN_A_THING.match_(&clause).is_some() {
+        return false;
+    }
+    BARE_NO.match_(&clause).is_some() && pt::strip_chars(rest, " .,!?;:").is_empty()
+}
+
+inline_re!(ALLERGIC_TO_FIRST, r"^allergic to\s+", I);
+
+/// Push `items` onto the list at `key` of a dict value, each one only once.
+fn extend_unique(list: &mut Value, items: &[String]) {
+    for item in items {
+        if !list.contains_str(item) {
+            list.push(item.as_str());
+        }
+    }
+}
+
+/// Python: bot/memory/facts.py:6139 `denials(text, own=None)`: the facts a line says the person
+/// does *not* have, in the shape extract() keeps them.
+pub fn denials(text: &str, own: &Value) -> Value {
+    let said = text;
+    let mut denied = Value::dict();
+    for m in ALLERGY.finditer(said) {
+        if !denied_before(said, m.start()) {
+            continue;
+        }
+        let (kind, who) = subject_at(said, m.start());
+        if kind != "other" {
+            continue;
+        }
+        let person = _a_person(said, m.end(), &who);
+        let items: Vec<String> =
+            _allergy_items(m.str(1)).into_iter().map(|i| ALLERGEN_PLURALS.get(&i).cloned().unwrap_or(i)).collect();
+        if !person.truthy() || items.is_empty() {
+            continue;
+        }
+        let theirs = denied.setdefault("theirs", Value::list());
+        let at = theirs.items().iter().position(|seen| _same_person(seen, &person));
+        let at = match at {
+            Some(i) => i,
+            None => {
+                let mut entry = person.clone();
+                entry.set_key("allergies", Value::list());
+                theirs.push(entry);
+                theirs.len() - 1
+            }
+        };
+        let entry = &mut theirs.items_mut().unwrap()[at];
+        extend_unique(entry.setdefault("allergies", Value::list()), &items);
+    }
+    for m in CONTRAST.finditer(said) {
+        for item in _allergy_items(m.name_str("old")) {
+            let name = ALLERGEN_PLURALS.get(&item).cloned().unwrap_or(item);
+            let list = denied.setdefault("allergies", Value::list());
+            if !list.contains_str(&name) {
+                list.push(name);
+            }
+        }
+    }
+    for m in DENIAL_OF.finditer(said) {
+        if m.name("food").is_some_and(|f| !f.is_empty()) {
+            let items = _allergy_items(&ALLERGIC_TO_FIRST.sub("", m.name_str("food")));
+            if !items.is_empty() {
+                extend_unique(denied.setdefault("allergies", Value::list()), &items);
+            }
+            continue;
+        }
+        if m.name("condition").is_some_and(|c| !c.is_empty()) {
+            denied.set_key("condition", lower(m.name_str("condition")));
+            continue;
+        }
+        if m.name("diet").is_some_and(|d| !d.is_empty()) {
+            let diet = lower(m.name_str("diet"));
+            denied.set_key("diet", DIET_NAMES.get(&diet).cloned().unwrap_or(diet));
+        }
+    }
+    for m in DIET_OFF.finditer(said) {
+        let plan = ["plan", "off", "gone", "quit"].iter().find_map(|g| m.name(g).filter(|s| !s.is_empty())).unwrap_or("");
+        if plan.is_empty() {
+            continue;
+        }
+        let plan = pt::split(&lower(plan).replace('-', " ")).join("-");
+        let value = match DIET_NAMES.get(&plan) {
+            Some(v) => v.clone(),
+            None if plan.starts_with("diet") => "on a diet".into(),
+            None => plan,
+        };
+        denied.set_key("diet", value);
+    }
+    for m in DIET_BACK.finditer(said) {
+        let back = m.name("back").filter(|s| !s.is_empty()).or_else(|| m.name("eat").filter(|s| !s.is_empty())).unwrap_or("");
+        let food = _the_food_named(back);
+        if !food.is_empty() {
+            denied.set_key("diet", food);
+        }
+    }
+    if NO_PETS.is_match(said) {
+        denied.set_key("pets", str_list(&[EVERYTHING]));
+    }
+    let mut animals: Vec<Value> = Vec::new();
+    let others = _someone_elses(said);
+    for m in PETS.finditer(said) {
+        if !not_had(said, m.start()) {
+            continue;
+        }
+        if others.iter().any(|(start, stop)| *start <= m.start() && m.start() < *stop) {
+            continue;
+        }
+        let animal = Value::from(lower(m.str(1)));
+        if !animals.contains(&animal) {
+            animals.push(animal);
+        }
+    }
+    if animals.is_empty() {
+        if let Some(m) = PET_PRONOUN.finditer(said).into_iter().find(|m| not_had(said, m.start())) {
+            let mut pointed = _the_one_they_have(said, &m, own);
+            if pointed.is_empty() && !_names_a_relative(said) {
+                pointed = _only_pet(own);
+            }
+            for animal in pointed {
+                let animal = Value::from(animal);
+                if !animals.contains(&animal) {
+                    animals.push(animal);
+                }
+            }
+        }
+    }
+    if animals.is_empty() {
+        animals = _own_in_denial(said, own);
+    }
+    let everything = str_list(&[EVERYTHING]);
+    if !animals.is_empty() && denied.get("pets") != Some(&everything) {
+        let had: Vec<Value> = denied.get("pets").map(|p| p.items().to_vec()).unwrap_or_default();
+        let merged = _merge_pets(&had, &_one_of_several(&animals, said, own));
+        denied.set_key("pets", Value::from(merged));
+    }
+    denied
+}
+
+/// Python: bot/memory/facts.py:6233 `their_back(text)`.
+///
+/// CONTRACT NOTE: Python returns records (`[{"who", "pronoun", "kind", "food"}]`); the skeleton
+/// gave this function `Vec<String>`, which cannot hold them. This keeps the contract and returns
+/// each record as its JSON text; `their_back_records` returns the records themselves.
+pub fn their_back(text: &str) -> Vec<String> {
+    their_back_records(text).iter().map(|r| r.to_plain().to_string()).collect()
+}
+
+/// `their_back(text)` as Python returns it: a line that puts back what somebody else does not eat
+/// or does not like, as [{"who", "pronoun", "kind", "food"}].
+pub fn their_back_records(text: &str) -> Vec<Value> {
+    let marked = A_CORRECTION.is_match(text);
+    let mut found = Vec::new();
+    for m in THEIR_BACK.finditer(text) {
+        let emph = m.name("emph").filter(|s| !s.is_empty());
+        if !marked && emph.is_none() {
+            continue;
+        }
+        if A_NEGATOR_IN_BETWEEN.is_match(m.name_str("gap")) {
+            continue;
+        }
+        let verb = lower(emph.or_else(|| m.name("verb").filter(|s| !s.is_empty())).unwrap_or(""));
+        if verb.is_empty() {
+            continue;
+        }
+        let kind = if verb.starts_with("eat") || ["does", "do", "did"].contains(&verb.as_str()) { "diet" } else { "taste" };
+        let food = low_squash(m.name_str("food"));
+        if food.is_empty() {
+            continue;
+        }
+        let subj = low_squash(m.name_str("subj"));
+        let named = ["my ", "his ", "her ", "their ", "our "].iter().any(|p| subj.starts_with(p));
+        let who = if named { pt::split(&subj).last().cloned().unwrap_or_default() } else { String::new() };
+        let pronoun = if named { String::new() } else { subj.clone() };
+        found.push(dict(vec![("who", who.into()), ("pronoun", pronoun.into()), ("kind", kind.into()), ("food", food.into())]));
+    }
+    found
+}
+
+inline_re!(THEM_THOSE_THESE, r"\b(?:them|those|these)\b", I);
+
+/// Python: bot/memory/facts.py:6271 `_one_of_several(animals, said, own)`: a kind word takes one
+/// animal when the store holds several: "we gave the cat away". (Items are animal words or records.)
+pub fn _one_of_several(animals: &[Value], said: &str, own: &Value) -> Vec<Value> {
+    let one_of = ONE_OF_THEM.is_match(said);
+    let whole = (ALL_OF_THEM.is_match(said) || THEM_THOSE_THESE.is_match(said)) && !one_of;
+    let mut out = Vec::new();
+    for animal in animals {
+        let Some(word) = animal.as_str() else {
+            out.push(animal.clone());
+            continue;
+        };
+        let same: Vec<&Value> =
+            own.items().iter().filter(|pet| pet.is_dict() && lower(&pet_field(pet, "animal")) == word).collect();
+        let held: i64 = same.iter().map(|pet| count_of(pet)).sum();
+        let plural = whole
+            || (Re::new(&format!(r"\b{}s\b", crate::py::re::escape(word)), I).is_match(said) && !one_of);
+        if held > 1 && !plural {
+            out.push((*same.last().unwrap()).clone());
+        } else {
+            out.push(animal.clone());
+        }
+    }
+    out
+}
+
+/// Python's `str(item)` for a pet take-back item (a word, or a record).
+fn item_str(v: &Value) -> String {
+    match v {
+        Value::Str(s) => s.to_string(),
+        other => value_str(other),
+    }
+}
+
+/// Python: bot/memory/facts.py:6303 `_merge_pets(had, more)`: the take-backs of one line, without
+/// saying the same one twice.
+pub fn _merge_pets(had: &[Value], more: &[Value]) -> Vec<Value> {
+    let mut out: Vec<Value> = had.to_vec();
+    let mut words: HashSet<String> = out.iter().filter(|i| !i.is_dict()).map(|i| lower(pt::strip(&item_str(i)))).collect();
+    let mut records: Vec<Value> = out.iter().filter(|i| i.is_dict()).cloned().collect();
+    for item in more {
+        if item.is_dict() {
+            if !records.contains(item) {
+                records.push(item.clone());
+            }
+        } else {
+            let w = lower(pt::strip(&item_str(item)));
+            if !words.contains(&w) {
+                words.insert(w);
+                out.push(item.clone());
+            }
+        }
+    }
+    let plain: Vec<Value> = out.into_iter().filter(|i| !i.is_dict()).collect();
+    if plain.is_empty() {
+        records
+    } else {
+        plain.into_iter().chain(records).collect()
+    }
+}
+
+/// Python: bot/memory/facts.py:6323 `_the_one_they_have(said, match, own)`: the animal a bare
+/// "him"/"her" points at: one the line already named, or one the store holds.
+pub fn _the_one_they_have(said: &str, m: &Match, own: &Value) -> Vec<String> {
+    let pointed = _pointed_at(said, m.start(), PLURAL_PRONOUN.contains(&lower(m.name_str("pron"))));
+    if !pointed.is_empty() {
+        return pointed;
+    }
+    _own_named(said, m.start(), own)
+}
+
+/// Python: bot/memory/facts.py:6334 `_only_pet(own)`: the one animal the store holds, when it holds
+/// exactly one.
+pub fn _only_pet(own: &Value) -> Vec<String> {
+    let held = dedupe(own.items().iter().map(|pet| lower(&pet_field(pet, "animal"))).collect());
+    let held: Vec<String> = held.into_iter().filter(|a| !a.is_empty()).collect();
+    if held.len() == 1 {
+        held
+    } else {
+        Vec::new()
+    }
+}
+
+static RELATION_WORD_RES: LazyLock<Vec<Re>> =
+    LazyLock::new(|| RELATIONS.iter().map(|w| Re::new(&format!(r"\b{w}\b"), I)).collect());
+
+/// Python: bot/memory/facts.py:6341 `_names_a_relative(said)`.
+pub fn _names_a_relative(said: &str) -> bool {
+    RELATION_WORD_RES.iter().any(|r| r.is_match(said))
+}
+
+/// Python: bot/memory/facts.py:6345 `_may_be_an_animal(said, match, own=None, said_before=None)`:
+/// whether a bare "he"/"she" is the animal they keep rather than a person.
+pub fn _may_be_an_animal(said: &str, m: &Match, own: &Value, said_before: &str) -> bool {
+    if ["it", "them", "those", "they"].contains(&lower(m.name_str("pron")).as_str()) {
+        return true;
+    }
+    if _names_a_relative(said) || PEOPLE_WORD.is_match(said) {
+        return false;
+    }
+    if ANIMAL_DEATH.is_match(&_around(said, m.start())) {
+        return true;
+    }
+    if said_before.is_empty() || PEOPLE_WORD.is_match(said_before) || !PETS.is_match(said_before) {
+        return false;
+    }
+    !_only_pet(own).is_empty()
+}
+
+/// Python: bot/memory/facts.py:6368 `losses(text, own=None, said_before=None)`: the animals a line
+/// says have died, in the shape extract() keeps pets.
+pub fn losses(text: &str, own: &Value, said_before: &str) -> Vec<String> {
+    let said = text;
+    if !DIED.is_match(said) {
+        return Vec::new();
+    }
+    let mut animals: Vec<String> = Vec::new();
+    let others = _someone_elses(said);
+    for m in PETS.finditer(said) {
+        if !DIED.is_match(&_around(said, m.start())) {
+            continue;
+        }
+        if others.iter().any(|(start, stop)| *start <= m.start() && m.start() < *stop) {
+            continue;
+        }
+        if _not_their_animal(said, m.start(), m.end()) {
+            continue;
+        }
+        let animal = lower(m.str(1));
+        if !animals.contains(&animal) {
+            animals.push(animal);
+        }
+    }
+    if animals.is_empty() {
+        if let Some(m) = PET_PRONOUN.finditer(said).into_iter().find(|m| DIED.is_match(&_around(said, m.start()))) {
+            let mut pointed = _the_one_they_have(said, &m, own);
+            if pointed.is_empty() && _may_be_an_animal(said, &m, own, said_before) {
+                pointed = _only_pet(own);
+            }
+            for animal in pointed {
+                if !animals.contains(&animal) {
+                    animals.push(animal);
+                }
+            }
+        }
+    }
+    if animals.is_empty() && own.truthy() {
+        let said_low = lower(said);
+        for pet in own.items() {
+            let name = lower(&pet_field(pet, "name"));
+            let animal = lower(&pet_field(pet, "animal"));
+            if animal.is_empty() {
+                continue;
+            }
+            for m in DIED.finditer(said) {
+                if HEDGE.is_match(&_clause(said, m.start())) {
+                    continue;
+                }
+                if !name.is_empty() && pt::len(&name) >= 3 && word_re(&name, 0).is_match(&said_low) {
+                    if !animals.contains(&animal) {
+                        animals.push(animal.clone());
+                    }
+                }
+            }
+        }
+    }
+    animals
+}
+
+/// Python: bot/memory/facts.py:6422 `_allergies(text)`: (the user's allergies, the others':
+/// [{"who", "allergies"}]).
+pub fn _allergies(text: &str) -> (Vec<String>, Vec<Value>) {
+    let mut mine: Vec<String> = Vec::new();
+    let mut others: Vec<Value> = Vec::new();
+    for (k, pattern) in [&*ALLERGY, &*CANNOT_EAT, &*X_ALLERGY].into_iter().enumerate() {
+        for m in pattern.finditer(text) {
+            if k != 1 && denied_before(text, m.start()) {
+                continue;
+            }
+            if k == 2 && NOT_AN_ALLERGEN.contains(&lower(m.str(1))) {
+                continue;
+            }
+            let mut items = _allergy_items(m.str(1));
+            if items.is_empty() {
+                continue;
+            }
+            if k == 2 {
+                items = items.into_iter().map(|i| ALLERGEN_PLURALS.get(&i).cloned().unwrap_or(i)).collect();
+            }
+            let (kind, who) = subject_at(text, m.start());
+            if kind != "other" {
+                for item in items {
+                    if !mine.contains(&item) {
+                        mine.push(item);
+                    }
+                }
+                continue;
+            }
+            let person = _a_person(text, m.end(), &who);
+            if !person.truthy() {
+                continue;
+            }
+            let at = match others.iter().position(|seen| _same_person(seen, &person)) {
+                Some(i) => i,
+                None => {
+                    let mut entry = person.clone();
+                    entry.set_key("allergies", Value::list());
+                    others.push(entry);
+                    others.len() - 1
+                }
+            };
+            extend_unique(others[at].setdefault("allergies", Value::list()), &items);
+        }
+    }
+    (mine, others)
+}
+
+/// Python: bot/memory/facts.py:6477 `_month_age_after(text, end)`: true when the words after `end`
+/// are an age in months and then the end of the fact. (`end` is a byte offset.)
+pub fn _month_age_after(text: &str, end: usize) -> bool {
+    let Some(m) = AGE_MONTHS_TAIL.match_(&text[end..]) else {
+        return false;
+    };
+    AGE_TAIL.match_(&text[end + m.end()..]).is_some()
+}
+
+/// Python: bot/memory/facts.py:6542 `_the_word_then_a_verb(name, following)`: whether the word
+/// after a name is a verb, so the word before it is the person's name.
+pub fn _the_word_then_a_verb(name: &str, following: &str) -> bool {
+    let name = lower(name);
+    let following = lower(following);
+    if name.is_empty() || following.is_empty() || VERB_FORMS.contains(&name) {
+        return false;
+    }
+    if VERB_FORMS.contains(&following) {
+        return true;
+    }
+    pt::len(&following) > 3 && following.ends_with("ed")
+}
+
+/// Python: bot/memory/facts.py:6605 `_may_be_a_name(word)`: whether a word standing where a name
+/// stands can be one.
+pub fn _may_be_a_name(word: &str) -> bool {
+    let low = lower(word);
+    _looks_like_a_name(word) && !NOT_A_NAME_MIDLINE.contains(&low) && !NOT_A_NAME_THERE.contains(&low)
+}
+
+static TITLED_NAME: LazyLock<Re> = LazyLock::new(|| {
+    Re::new(&format!(r"(?:{})\s+[A-Za-z][A-Za-z'\-]{{1,19}}", data::string("bot.memory.facts.TITLE")), I)
+});
+
+/// Python: bot/memory/facts.py:6621 `a_titled_name(word)`: whether a word is a title with a name
+/// after it: "mr patel", "dr. kaur", "mrs smith".
+pub fn a_titled_name(word: &str) -> bool {
+    TITLED_NAME.fullmatch(pt::strip(word)).is_some()
+}
+
+/// Python: bot/memory/facts.py:6627 `_looks_like_a_name(word)`: whether a word after a relation can
+/// be their name: not a relation, not a grammar word.
+pub fn _looks_like_a_name(word: &str) -> bool {
+    let low = lower(word);
+    if a_titled_name(word) {
+        return true;
+    }
+    if TITLE_WORDS.contains(pt::strip_chars(&low, ".")) {
+        return false;
+    }
+    if NAME_WORD.match_(word).is_none() || NOT_A_NAME.contains(&low) || RELATIONS.contains(&low) {
+        return false;
+    }
+    if is_a_contraction(&low) {
+        return false;
+    }
+    if word.chars().next().is_some_and(char::is_uppercase) || NAMES_THAT_END_LIKE_A_VERB.contains(&low) {
+        return true;
+    }
+    !NOT_NAME_ENDING.iter().any(|e| low.ends_with(e.as_str()))
+}
+
+/// Python: bot/memory/facts.py:6643 `_name_after_a_title(name)`: whether a name that starts with a
+/// title is a name at all.
+pub fn _name_after_a_title(name: &str) -> bool {
+    let words = pt::split(name);
+    if words.is_empty() {
+        return false;
+    }
+    let title = lower(pt::strip_chars(&words[0], "."));
+    if !TITLE_WORDS.contains(&title) {
+        return true;
+    }
+    if words.len() == 1 {
+        return false;
+    }
+    let rest = lower(&words[1..].join(" "));
+    if NAME_AFTER_TITLE.contains(&rest) {
+        return true;
+    }
+    if NOT_A_NAME.contains(&rest) || NOT_NAMES.contains(&rest) || NOT_NAMES_EXTRA.contains(&rest) || _A_WORD_FOR_A_PERSON.contains(&rest) {
+        return false;
+    }
+    !_not_a_name(&rest, false)
+}
+
+/// Python: bot/memory/facts.py:6668 `_the_name_without_a_possessive(text)`: {"tom's": "Tom",
+/// "sarahs": "Sarah"} for the possessive runs in a line, in order.
+pub fn _the_name_without_a_possessive(text: &str) -> Vec<(String, String)> {
+    let mut stems: Vec<(String, String)> = Vec::new();
+    for m in OTHER_NAME_POSSESSIVE.finditer(text) {
+        let start = m.name_span("name").map(|s| s.0).unwrap_or(m.end());
+        let raw = lower(&text[start..m.end()].replace('\u{2019}', "'"));
+        let stem = m.name_str("name").to_string();
+        if !raw.is_empty() && !stem.is_empty() {
+            match stems.iter_mut().find(|(k, _)| *k == raw) {
+                Some(slot) => slot.1 = stem,
+                None => stems.push((raw, stem)),
+            }
+        }
+    }
+    stems
+}
 
 // Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
 // define yet, with signatures from the generated contract. Port them in place (move a
@@ -28,735 +4012,151 @@ mod skeleton_stubs {
     use crate::state::{Memory, Turn};
     use crate::understood::Understood;
 
-    /// Python: bot/memory/facts.py:168 `_health_words()` (never called on the trace corpus)
-    pub fn _health_words() -> Value {
-        crate::unported!("bot.memory.facts:_health_words")
-    }
-
-    /// Python: bot/memory/facts.py:266 `without_the_hedges(text)` (never called on the trace corpus)
-    pub fn without_the_hedges(text: &str) -> String {
-        crate::unported!("bot.memory.facts:without_the_hedges")
-    }
-
-    /// Python: bot/memory/facts.py:356 `_fact_value(word)`
-    pub fn _fact_value(word: &str) -> String {
-        crate::unported!("bot.memory.facts:_fact_value")
-    }
-
-    /// Python: bot/memory/facts.py:502 `grown_up_in_a_place(phrase)` (never called on the trace corpus)
-    pub fn grown_up_in_a_place(phrase: &str) -> bool {
-        crate::unported!("bot.memory.facts:grown_up_in_a_place")
-    }
-
-    /// Python: bot/memory/facts.py:511 `_grown_up_in_a_place(phrase, text)` (never called on the trace corpus)
-    pub fn _grown_up_in_a_place(phrase: &str, text: &str) -> bool {
-        crate::unported!("bot.memory.facts:_grown_up_in_a_place")
-    }
-
-    /// Python: bot/memory/facts.py:552 `_an_everyday_word(word)`
-    pub fn _an_everyday_word(word: &str) -> bool {
-        crate::unported!("bot.memory.facts:_an_everyday_word")
-    }
-
-    /// Python: bot/memory/facts.py:849 `_the_drink_they_do_not_take(text)`
-    pub fn _the_drink_they_do_not_take(text: &str) -> String {
-        crate::unported!("bot.memory.facts:_the_drink_they_do_not_take")
-    }
-
-    /// Python: bot/memory/facts.py:1016 `_coming_home(text, start)`
-    pub fn _coming_home(text: &str, start: i64) -> bool {
-        crate::unported!("bot.memory.facts:_coming_home")
-    }
-
-    /// Python: bot/memory/facts.py:1027 `_only_wanted(text, start, end)`
-    pub fn _only_wanted(text: &str, start: i64, end: i64) -> bool {
-        crate::unported!("bot.memory.facts:_only_wanted")
-    }
-
-    /// Python: bot/memory/facts.py:1045 `_not_theirs(animal, text, start, end)`
-    pub fn _not_theirs(animal: &str, text: &str, start: i64, end: i64) -> Value {
-        crate::unported!("bot.memory.facts:_not_theirs")
-    }
-
-    /// Python: bot/memory/facts.py:1053 `_a_wish_for(text, start)`
-    pub fn _a_wish_for(text: &str, start: i64) -> bool {
-        crate::unported!("bot.memory.facts:_a_wish_for")
-    }
-
-    /// Python: bot/memory/facts.py:1122 `_the_food_named(raw)`
-    pub fn _the_food_named(raw: &str) -> String {
-        crate::unported!("bot.memory.facts:_the_food_named")
-    }
-
-    /// Python: bot/memory/facts.py:1167 `_a_way_of_eating_said_with_a_verb(text)`
-    pub fn _a_way_of_eating_said_with_a_verb(text: &str) -> String {
-        crate::unported!("bot.memory.facts:_a_way_of_eating_said_with_a_verb")
-    }
-
-    /// Python: bot/memory/facts.py:1300 `_with_title(match)`
-    pub fn _with_title(r#match: &Value) -> String {
-        crate::unported!("bot.memory.facts:_with_title")
-    }
-
-    /// Python: bot/memory/facts.py:1319 `_name_at(match)`
-    pub fn _name_at(r#match: &Value) -> i64 {
-        crate::unported!("bot.memory.facts:_name_at")
-    }
-
-    /// Python: bot/memory/facts.py:1380 `another_animal(text, animal)`
-    pub fn another_animal(text: &str, animal: &str) -> String {
-        crate::unported!("bot.memory.facts:another_animal")
-    }
-
-    /// Python: bot/memory/facts.py:1429 `_a_name_for_the_pet(word, strict_ly=True)` (never called on the trace corpus)
-    pub fn _a_name_for_the_pet(word: &str, strict_ly: &Value) -> Value {
-        crate::unported!("bot.memory.facts:_a_name_for_the_pet")
-    }
-
-    /// Python: bot/memory/facts.py:1475 `_names_something_else(low)` (never called on the trace corpus)
-    pub fn _names_something_else(low: &str) -> bool {
-        crate::unported!("bot.memory.facts:_names_something_else")
-    }
-
-    /// Python: bot/memory/facts.py:1724 `vague_budget(text)`
-    pub fn vague_budget(text: &str) {
-        crate::unported!("bot.memory.facts:vague_budget")
-    }
-
-    /// Python: bot/memory/facts.py:1809 `_the_numbers_in_words(text)`
-    pub fn _the_numbers_in_words(text: &str) -> String {
-        crate::unported!("bot.memory.facts:_the_numbers_in_words")
-    }
-
-    /// Python: bot/memory/facts.py:1827 `_how_tall(text)`
-    pub fn _how_tall(text: &str) -> String {
-        crate::unported!("bot.memory.facts:_how_tall")
-    }
-
-    /// Python: bot/memory/facts.py:1868 `_the_date_clause(date)` (never called on the trace corpus)
-    pub fn _the_date_clause(date: &Value) -> Value {
-        crate::unported!("bot.memory.facts:_the_date_clause")
-    }
-
-    /// Python: bot/memory/facts.py:1873 `_a_birthday_date(after)` (never called on the trace corpus)
-    pub fn _a_birthday_date(after: &str) -> Value {
-        crate::unported!("bot.memory.facts:_a_birthday_date")
-    }
-
-    /// Python: bot/memory/facts.py:1898 `_weight_unit(word)`
-    pub fn _weight_unit(word: &str) {
-        crate::unported!("bot.memory.facts:_weight_unit")
-    }
-
-    /// Python: bot/memory/facts.py:2041 `an_in_law(word)` (never called on the trace corpus)
-    pub fn an_in_law(word: &str) -> bool {
-        crate::unported!("bot.memory.facts:an_in_law")
-    }
-
-    /// Python: bot/memory/facts.py:2206 `a_chained_person(text)`
-    pub fn a_chained_person(text: &str) -> String {
-        crate::unported!("bot.memory.facts:a_chained_person")
-    }
-
-    /// Python: bot/memory/facts.py:2256 `a_stated_number(word)` (never called on the trace corpus)
-    pub fn a_stated_number(word: &str) -> Value {
-        crate::unported!("bot.memory.facts:a_stated_number")
-    }
-
-    /// Python: bot/memory/facts.py:2267 `a_person_word(word)`
-    pub fn a_person_word(word: &str) -> String {
-        crate::unported!("bot.memory.facts:a_person_word")
-    }
-
-    /// Python: bot/memory/facts.py:2277 `_the_person(found, who, name='')` (never called on the trace corpus)
-    pub fn _the_person(found: &Value, who: &str, name: &str) -> Value {
-        crate::unported!("bot.memory.facts:_the_person")
-    }
-
-    /// Python: bot/memory/facts.py:2295 `_relation_facts(text)`
-    pub fn _relation_facts(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_relation_facts")
-    }
-
-    /// Python: bot/memory/facts.py:2541 `_kin_pronoun(word)` (never called on the trace corpus)
-    pub fn _kin_pronoun(word: &str) -> Value {
-        crate::unported!("bot.memory.facts:_kin_pronoun")
-    }
-
-    /// Python: bot/memory/facts.py:2562 `_sided(word)` (never called on the trace corpus)
-    pub fn _sided(word: &str) -> String {
-        crate::unported!("bot.memory.facts:_sided")
-    }
-
-    /// Python: bot/memory/facts.py:2625 `_own_body_is_the_trouble(clean)`
-    pub fn _own_body_is_the_trouble(clean: &str) -> bool {
-        crate::unported!("bot.memory.facts:_own_body_is_the_trouble")
-    }
-
-    /// Python: bot/memory/facts.py:2642 `a_limit_on_the_plan(text)`
-    pub fn a_limit_on_the_plan(text: &str) {
-        crate::unported!("bot.memory.facts:a_limit_on_the_plan")
-    }
-
-    /// Python: bot/memory/facts.py:2780 `a_deed(clause)`
-    pub fn a_deed(clause: &str) -> bool {
-        crate::unported!("bot.memory.facts:a_deed")
-    }
-
-    /// Python: bot/memory/facts.py:2940 `a_clock_time(phrase)` (never called on the trace corpus)
-    pub fn a_clock_time(phrase: &str) -> Value {
-        crate::unported!("bot.memory.facts:a_clock_time")
-    }
-
-    /// Python: bot/memory/facts.py:2952 `the_clock_in(text)` (never called on the trace corpus)
-    pub fn the_clock_in(text: &str) -> Value {
-        crate::unported!("bot.memory.facts:the_clock_in")
-    }
-
-    /// Python: bot/memory/facts.py:2957 `a_moved_time(phrase)` (never called on the trace corpus)
-    pub fn a_moved_time(phrase: &str) -> bool {
-        crate::unported!("bot.memory.facts:a_moved_time")
-    }
-
-    /// Python: bot/memory/facts.py:2977 `_a_day_taken_back(text)`
-    pub fn _a_day_taken_back(text: &str) {
-        crate::unported!("bot.memory.facts:_a_day_taken_back")
-    }
-
-    /// Python: bot/memory/facts.py:2986 `_a_moved_time(text)`
-    pub fn _a_moved_time(text: &str) {
-        crate::unported!("bot.memory.facts:_a_moved_time")
-    }
-
-    /// Python: bot/memory/facts.py:3206 `a_name_is_taken_back(text)` (never called on the trace corpus)
-    pub fn a_name_is_taken_back(text: &str) -> bool {
-        crate::unported!("bot.memory.facts:a_name_is_taken_back")
-    }
-
-    /// Python: bot/memory/facts.py:3247 `_the_same_name(left, right)` (never called on the trace corpus)
-    pub fn _the_same_name(left: &Value, right: &Value) -> bool {
-        crate::unported!("bot.memory.facts:_the_same_name")
-    }
-
-    /// Python: bot/memory/facts.py:3256 `the_name_they_take_back(text, stored='')`
-    pub fn the_name_they_take_back(text: &str, stored: &str) {
-        crate::unported!("bot.memory.facts:the_name_they_take_back")
-    }
-
-    /// Python: bot/memory/facts.py:3340 `_the_marker_in_front(text, question=False)`
-    pub fn _the_marker_in_front(text: &str, question: bool) {
-        crate::unported!("bot.memory.facts:_the_marker_in_front")
-    }
-
-    /// Python: bot/memory/facts.py:3587 `_a_tail_hangs_off(pattern, then='')` (never called on the trace corpus)
-    pub fn _a_tail_hangs_off(pattern: &Value, then: &Value) -> Value {
-        crate::unported!("bot.memory.facts:_a_tail_hangs_off")
-    }
-
-    /// Python: bot/memory/facts.py:3615 `a_value(phrase)` (never called on the trace corpus)
-    pub fn a_value(phrase: &str) -> bool {
-        crate::unported!("bot.memory.facts:a_value")
-    }
-
-    /// Python: bot/memory/facts.py:3635 `reread(value, key)` (never called on the trace corpus)
-    pub fn reread(value: &Value, key: &str) -> Value {
-        crate::unported!("bot.memory.facts:reread")
-    }
-
-    /// Python: bot/memory/facts.py:3735 `a_place_that_employs(phrase)` (never called on the trace corpus)
-    pub fn a_place_that_employs(phrase: &str) -> bool {
-        crate::unported!("bot.memory.facts:a_place_that_employs")
-    }
-
-    /// Python: bot/memory/facts.py:3866 `is_a_judgement(text)` (never called on the trace corpus)
-    pub fn is_a_judgement(text: &str) -> bool {
-        crate::unported!("bot.memory.facts:is_a_judgement")
-    }
-
-    /// Python: bot/memory/facts.py:3902 `take_back_cut(phrase)` (never called on the trace corpus)
-    pub fn take_back_cut(phrase: &str) -> Value {
-        crate::unported!("bot.memory.facts:take_back_cut")
-    }
-
-    /// Python: bot/memory/facts.py:3918 `qualified_by(phrase)` (never called on the trace corpus)
-    pub fn qualified_by(phrase: &str) -> Value {
-        crate::unported!("bot.memory.facts:qualified_by")
-    }
-
-    /// Python: bot/memory/facts.py:3933 `_the_role(words)`
-    pub fn _the_role(words: &[String]) -> String {
-        crate::unported!("bot.memory.facts:_the_role")
-    }
-
-    /// Python: bot/memory/facts.py:3983 `is_a_place_of_work(frame)` (never called on the trace corpus)
-    pub fn is_a_place_of_work(frame: &Value) -> bool {
-        crate::unported!("bot.memory.facts:is_a_place_of_work")
-    }
-
-    /// Python: bot/memory/facts.py:3995 `is_a_work_detail(value, frame=None)` (never called on the trace corpus)
-    pub fn is_a_work_detail(value: &Value, frame: &Value) -> bool {
-        crate::unported!("bot.memory.facts:is_a_work_detail")
-    }
-
-    /// Python: bot/memory/facts.py:4013 `work_weight(value, frame=None)` (never called on the trace corpus)
-    pub fn work_weight(value: &Value, frame: &Value) -> i64 {
-        crate::unported!("bot.memory.facts:work_weight")
-    }
-
-    /// Python: bot/memory/facts.py:4025 `_finish(word)`
-    pub fn _finish(word: &str) -> String {
-        crate::unported!("bot.memory.facts:_finish")
-    }
-
-    /// Python: bot/memory/facts.py:4039 `without_the_moment(words)`
-    pub fn without_the_moment(words: &[String]) -> Vec<String> {
-        crate::unported!("bot.memory.facts:without_the_moment")
-    }
-
-    /// Python: bot/memory/facts.py:4092 `_can_end(words)` (never called on the trace corpus)
-    pub fn _can_end(words: &[String]) -> bool {
-        crate::unported!("bot.memory.facts:_can_end")
-    }
-
-    /// Python: bot/memory/facts.py:4105 `no_tone(text)`
-    pub fn no_tone(text: &str) -> String {
-        crate::unported!("bot.memory.facts:no_tone")
-    }
-
-    /// Python: bot/memory/facts.py:4127 `_date_change(text)`
-    pub fn _date_change(text: &str) {
-        crate::unported!("bot.memory.facts:_date_change")
-    }
-
-    /// Python: bot/memory/facts.py:4175 `a_moved_place(text)`
-    pub fn a_moved_place(text: &str) -> String {
-        crate::unported!("bot.memory.facts:a_moved_place")
-    }
-
-    /// Python: bot/memory/facts.py:4199 `a_date_put_right(text)`
-    pub fn a_date_put_right(text: &str) -> bool {
-        crate::unported!("bot.memory.facts:a_date_put_right")
-    }
-
-    /// Python: bot/memory/facts.py:4213 `the_date_put_right(text)` (never called on the trace corpus)
-    pub fn the_date_put_right(text: &str) -> String {
-        crate::unported!("bot.memory.facts:the_date_put_right")
-    }
-
-    /// Python: bot/memory/facts.py:4227 `a_trip_date_put_right(text)`
-    pub fn a_trip_date_put_right(text: &str) -> String {
-        crate::unported!("bot.memory.facts:a_trip_date_put_right")
-    }
-
-    /// Python: bot/memory/facts.py:4247 `_a_date(word)`
-    pub fn _a_date(word: &str) -> bool {
-        crate::unported!("bot.memory.facts:_a_date")
-    }
-
-    /// Python: bot/memory/facts.py:4277 `_tidy(word)` (never called on the trace corpus)
-    pub fn _tidy(word: &str) -> Value {
-        crate::unported!("bot.memory.facts:_tidy")
-    }
-
-    /// Python: bot/memory/facts.py:4282 `_tidy_a_titled_name(word)` (never called on the trace corpus)
-    pub fn _tidy_a_titled_name(word: &str) -> Value {
-        crate::unported!("bot.memory.facts:_tidy_a_titled_name")
-    }
-
-    /// Python: bot/memory/facts.py:4306 `_the_value_alone(phrase)` (never called on the trace corpus)
-    pub fn _the_value_alone(phrase: &str) -> String {
-        crate::unported!("bot.memory.facts:_the_value_alone")
-    }
-
-    /// Python: bot/memory/facts.py:4333 `_tidy_apart(word)` (never called on the trace corpus)
-    pub fn _tidy_apart(word: &str) -> Value {
-        crate::unported!("bot.memory.facts:_tidy_apart")
-    }
-
-    /// Python: bot/memory/facts.py:4352 `_lowercase_name_fits(text, match)`
-    pub fn _lowercase_name_fits(text: &str, r#match: &Value) -> bool {
-        crate::unported!("bot.memory.facts:_lowercase_name_fits")
-    }
-
-    /// Python: bot/memory/facts.py:4373 `_filler_or_intro(word)`
-    pub fn _filler_or_intro(word: &str) -> bool {
-        crate::unported!("bot.memory.facts:_filler_or_intro")
-    }
-
-    /// Python: bot/memory/facts.py:4391 `_squeezed(word)` (never called on the trace corpus)
-    pub fn _squeezed(word: &str) -> String {
-        crate::unported!("bot.memory.facts:_squeezed")
-    }
-
-    /// Python: bot/memory/facts.py:4410 `_tail_has_a_verb(words)`
-    pub fn _tail_has_a_verb(words: &[String]) -> bool {
-        crate::unported!("bot.memory.facts:_tail_has_a_verb")
-    }
-
-    /// Python: bot/memory/facts.py:4452 `_followers_fit(text, end, name_word=None)`
-    pub fn _followers_fit(text: &str, end: i64, name_word: &str) -> bool {
-        crate::unported!("bot.memory.facts:_followers_fit")
-    }
-
-    /// Python: bot/memory/facts.py:4495 `_without_asides(tail)`
-    pub fn _without_asides(tail: &str) -> String {
-        crate::unported!("bot.memory.facts:_without_asides")
-    }
-
-    /// Python: bot/memory/facts.py:4521 `_a_state_word(low)`
-    pub fn _a_state_word(low: &str) -> bool {
-        crate::unported!("bot.memory.facts:_a_state_word")
-    }
-
-    /// Python: bot/memory/facts.py:4536 `_a_degree_of_a_state(low)`
-    pub fn _a_degree_of_a_state(low: &str) -> bool {
-        crate::unported!("bot.memory.facts:_a_degree_of_a_state")
-    }
-
-    /// Python: bot/memory/facts.py:4549 `_a_letter_too_many(low)`
-    pub fn _a_letter_too_many(low: &str) -> bool {
-        crate::unported!("bot.memory.facts:_a_letter_too_many")
-    }
-
-    /// Python: bot/memory/facts.py:4555 `_sounds_like_a_state(low)`
-    pub fn _sounds_like_a_state(low: &str) -> bool {
-        crate::unported!("bot.memory.facts:_sounds_like_a_state")
-    }
-
-    /// Python: bot/memory/facts.py:4571 `_a_word_that_is_a_state(word)`
-    pub fn _a_word_that_is_a_state(word: &str) -> bool {
-        crate::unported!("bot.memory.facts:_a_word_that_is_a_state")
-    }
-
-    /// Python: bot/memory/facts.py:4587 `_a_word_not_a_name(low)`
-    pub fn _a_word_not_a_name(low: &str) -> bool {
-        crate::unported!("bot.memory.facts:_a_word_not_a_name")
-    }
-
-    /// Python: bot/memory/facts.py:4608 `_the_state_compared(word)`
-    pub fn _the_state_compared(word: &str) {
-        crate::unported!("bot.memory.facts:_the_state_compared")
-    }
-
-    /// Python: bot/memory/facts.py:4631 `_with_its_y_back(stem)` (never called on the trace corpus)
-    pub fn _with_its_y_back(stem: &str) -> Option<String> {
-        crate::unported!("bot.memory.facts:_with_its_y_back")
-    }
-
-    /// Python: bot/memory/facts.py:4643 `_a_letter_off_each_run(word)`
-    pub fn _a_letter_off_each_run(word: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_a_letter_off_each_run")
-    }
-
-    /// Python: bot/memory/facts.py:4665 `_a_state_written_as_a_comparison_or_a_double(low)`
-    pub fn _a_state_written_as_a_comparison_or_a_double(low: &str) -> bool {
-        crate::unported!("bot.memory.facts:_a_state_written_as_a_comparison_or_a_double")
-    }
-
-    /// Python: bot/memory/facts.py:4690 `_name(text)`
-    pub fn _name(text: &str) {
-        crate::unported!("bot.memory.facts:_name")
-    }
-
-    /// Python: bot/memory/facts.py:4735 `_a_judgement_on_themselves(low)`
-    pub fn _a_judgement_on_themselves(low: &str) -> bool {
-        crate::unported!("bot.memory.facts:_a_judgement_on_themselves")
-    }
-
-    /// Python: bot/memory/facts.py:4749 `_name_from(pattern, text, guessed)`
-    pub fn _name_from(pattern: &Value, text: &str, guessed: bool) {
-        crate::unported!("bot.memory.facts:_name_from")
-    }
-
-    /// Python: bot/memory/facts.py:4838 `_first_tail(phrase, tails=JOB_TAIL)`
-    pub fn _first_tail(phrase: &str, tails: &[String]) -> Value {
-        crate::unported!("bot.memory.facts:_first_tail")
-    }
-
-    /// Python: bot/memory/facts.py:4853 `_job_as_a(text)`
-    pub fn _job_as_a(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_job_as_a")
-    }
-
-    /// Python: bot/memory/facts.py:4880 `_is_a_judgement_phrase(words)`
-    pub fn _is_a_judgement_phrase(words: &[String]) -> bool {
-        crate::unported!("bot.memory.facts:_is_a_judgement_phrase")
-    }
-
-    /// Python: bot/memory/facts.py:4895 `_only_discourse_before(before)`
-    pub fn _only_discourse_before(before: &str) -> bool {
-        crate::unported!("bot.memory.facts:_only_discourse_before")
-    }
-
-    /// Python: bot/memory/facts.py:4901 `_the_correction_named_a_thing(text, match)`
-    pub fn _the_correction_named_a_thing(text: &str, r#match: &Value) -> bool {
-        crate::unported!("bot.memory.facts:_the_correction_named_a_thing")
-    }
-
-    /// Python: bot/memory/facts.py:4923 `_was_names_a_role(phrase, article=None)`
-    pub fn _was_names_a_role(phrase: &str, article: &Value) -> bool {
-        crate::unported!("bot.memory.facts:_was_names_a_role")
-    }
-
-    /// Python: bot/memory/facts.py:4954 `_job_and_city(text, name=None, question=False)`
-    pub fn _job_and_city(text: &str, name: &str, question: bool) -> Value {
-        crate::unported!("bot.memory.facts:_job_and_city")
-    }
-
-    /// Python: bot/memory/facts.py:5072 `place_value(phrase)` (never called on the trace corpus)
-    pub fn place_value(phrase: &str) -> Value {
-        crate::unported!("bot.memory.facts:place_value")
-    }
-
-    /// Python: bot/memory/facts.py:5127 `_the_car_name_in(phrase)`
-    pub fn _the_car_name_in(phrase: &str) -> String {
-        crate::unported!("bot.memory.facts:_the_car_name_in")
-    }
-
-    /// Python: bot/memory/facts.py:5148 `_car_named_in_passing(text)`
-    pub fn _car_named_in_passing(text: &str) {
-        crate::unported!("bot.memory.facts:_car_named_in_passing")
-    }
-
-    /// Python: bot/memory/facts.py:5161 `_car(text)`
-    pub fn _car(text: &str) {
-        crate::unported!("bot.memory.facts:_car")
-    }
-
-    /// Python: bot/memory/facts.py:5192 `_reads_as_a_plural(name_word, first)`
-    pub fn _reads_as_a_plural(name_word: &str, first: &str) -> bool {
-        crate::unported!("bot.memory.facts:_reads_as_a_plural")
-    }
-
-    /// Python: bot/memory/facts.py:5213 `_place_name(phrase)`
-    pub fn _place_name(phrase: &str) -> String {
-        crate::unported!("bot.memory.facts:_place_name")
-    }
-
-    /// Python: bot/memory/facts.py:5257 `_born_place(text)`
-    pub fn _born_place(text: &str) {
-        crate::unported!("bot.memory.facts:_born_place")
-    }
-
-    /// Python: bot/memory/facts.py:5295 `_the_person_moved(before)` (never called on the trace corpus)
-    pub fn _the_person_moved(before: &str) -> bool {
-        crate::unported!("bot.memory.facts:_the_person_moved")
-    }
-
-    /// Python: bot/memory/facts.py:5302 `_from_place(text)`
-    pub fn _from_place(text: &str) {
-        crate::unported!("bot.memory.facts:_from_place")
-    }
-
-    /// Python: bot/memory/facts.py:5345 `_places(text)`
-    pub fn _places(text: &str) -> Value {
-        crate::unported!("bot.memory.facts:_places")
-    }
-
-    /// Python: bot/memory/facts.py:5476 `stated_not_asked(text)`
-    pub fn stated_not_asked(text: &str) -> String {
-        crate::unported!("bot.memory.facts:stated_not_asked")
-    }
-
-    /// Python: bot/memory/facts.py:5524 `_the_person_is_in_it(clause)`
-    pub fn _the_person_is_in_it(clause: &str) -> bool {
-        crate::unported!("bot.memory.facts:_the_person_is_in_it")
-    }
-
-    /// Python: bot/memory/facts.py:5529 `subject(text, pos)`
-    pub fn subject(text: &str, pos: i64) -> Vec<String> {
-        crate::unported!("bot.memory.facts:subject")
-    }
-
-    /// Python: bot/memory/facts.py:5628 `_a_person_word(word)` (never called on the trace corpus)
-    pub fn _a_person_word(word: &str) -> String {
-        crate::unported!("bot.memory.facts:_a_person_word")
-    }
-
-    /// Python: bot/memory/facts.py:5633 `_the_person_without_a_relation(clause)`
-    pub fn _the_person_without_a_relation(clause: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_the_person_without_a_relation")
-    }
-
-    /// Python: bot/memory/facts.py:5683 `_trim_filler(text)`
-    pub fn _trim_filler(text: &str) -> String {
-        crate::unported!("bot.memory.facts:_trim_filler")
-    }
-
-    /// Python: bot/memory/facts.py:5717 `_trim_time_tail(item)`
-    pub fn _trim_time_tail(item: &str) -> String {
-        crate::unported!("bot.memory.facts:_trim_time_tail")
-    }
-
-    /// Python: bot/memory/facts.py:5739 `_a_modifier_before_a_generic_noun(words)`
-    pub fn _a_modifier_before_a_generic_noun(words: &[String]) -> bool {
-        crate::unported!("bot.memory.facts:_a_modifier_before_a_generic_noun")
-    }
-
-    /// Python: bot/memory/facts.py:5748 `_only_stop_words(item)`
-    pub fn _only_stop_words(item: &str) -> bool {
-        crate::unported!("bot.memory.facts:_only_stop_words")
-    }
-
-    /// Python: bot/memory/facts.py:5754 `_allergy_items(chunk)`
-    pub fn _allergy_items(chunk: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_allergy_items")
-    }
-
-    /// Python: bot/memory/facts.py:5796 `one_more(text)`
-    pub fn one_more(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:one_more")
-    }
-
-    /// Python: bot/memory/facts.py:5899 `the_limit_they_share(text)`
-    pub fn the_limit_they_share(text: &str) -> String {
-        crate::unported!("bot.memory.facts:the_limit_they_share")
-    }
-
-    /// Python: bot/memory/facts.py:5928 `denied_before(text, start)`
-    pub fn denied_before(text: &str, start: i64) -> bool {
-        crate::unported!("bot.memory.facts:denied_before")
-    }
-
-    /// Python: bot/memory/facts.py:5933 `_clause(text, start)`
-    pub fn _clause(text: &str, start: i64) -> String {
-        crate::unported!("bot.memory.facts:_clause")
-    }
-
-    /// Python: bot/memory/facts.py:5942 `_the_clause_before(text, start, edges=4)`
-    pub fn _the_clause_before(text: &str, start: i64, edges: i64) -> String {
-        crate::unported!("bot.memory.facts:_the_clause_before")
-    }
-
-    /// Python: bot/memory/facts.py:5969 `_opens_a_subject(clause)`
-    pub fn _opens_a_subject(clause: &str) -> bool {
-        crate::unported!("bot.memory.facts:_opens_a_subject")
-    }
-
-    /// Python: bot/memory/facts.py:5977 `_around(text, start)` (never called on the trace corpus)
-    pub fn _around(text: &str, start: i64) -> Value {
-        crate::unported!("bot.memory.facts:_around")
-    }
-
-    /// Python: bot/memory/facts.py:5989 `_own_named(text, start, own)` (never called on the trace corpus)
-    pub fn _own_named(text: &str, start: i64, own: &str) -> Value {
-        crate::unported!("bot.memory.facts:_own_named")
-    }
-
-    /// Python: bot/memory/facts.py:6009 `_own_in_denial(text, own)`
-    pub fn _own_in_denial(text: &str, own: &Value) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_own_in_denial")
-    }
-
-    /// Python: bot/memory/facts.py:6042 `given_away_one(text, own=None)`
-    pub fn given_away_one(text: &str, own: &Value) -> Vec<String> {
-        crate::unported!("bot.memory.facts:given_away_one")
-    }
-
-    /// Python: bot/memory/facts.py:6066 `_pointed_at(text, start, plural)`
-    pub fn _pointed_at(text: &str, start: i64, plural: bool) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_pointed_at")
-    }
-
-    /// Python: bot/memory/facts.py:6081 `not_had(text, start)`
-    pub fn not_had(text: &str, start: i64) -> bool {
-        crate::unported!("bot.memory.facts:not_had")
-    }
-
-    /// Python: bot/memory/facts.py:6100 `_have_none(clause)`
-    pub fn _have_none(clause: &str) -> bool {
-        crate::unported!("bot.memory.facts:_have_none")
-    }
-
-    /// Python: bot/memory/facts.py:6115 `taken_back_before(text, start)`
-    pub fn taken_back_before(text: &str, start: i64) -> bool {
-        crate::unported!("bot.memory.facts:taken_back_before")
-    }
-
-    /// Python: bot/memory/facts.py:6139 `denials(text, own=None)`
-    pub fn denials(text: &str, own: &Value) -> Value {
-        crate::unported!("bot.memory.facts:denials")
-    }
-
-    /// Python: bot/memory/facts.py:6233 `their_back(text)`
-    pub fn their_back(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:their_back")
-    }
-
-    /// Python: bot/memory/facts.py:6271 `_one_of_several(animals, said, own)`
-    pub fn _one_of_several(animals: &[String], said: &str, own: &[String]) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_one_of_several")
-    }
-
-    /// Python: bot/memory/facts.py:6303 `_merge_pets(had, more)`
-    pub fn _merge_pets(had: &[String], more: &[String]) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_merge_pets")
-    }
-
-    /// Python: bot/memory/facts.py:6323 `_the_one_they_have(said, match, own)`
-    pub fn _the_one_they_have(said: &str, r#match: &Value, own: &[String]) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_the_one_they_have")
-    }
-
-    /// Python: bot/memory/facts.py:6334 `_only_pet(own)` (never called on the trace corpus)
-    pub fn _only_pet(own: &str) -> Value {
-        crate::unported!("bot.memory.facts:_only_pet")
-    }
-
-    /// Python: bot/memory/facts.py:6341 `_names_a_relative(said)` (never called on the trace corpus)
-    pub fn _names_a_relative(said: &str) -> bool {
-        crate::unported!("bot.memory.facts:_names_a_relative")
-    }
-
-    /// Python: bot/memory/facts.py:6345 `_may_be_an_animal(said, match, own=None, said_before=None)` (never called on the trace corpus)
-    pub fn _may_be_an_animal(said: &str, r#match: &Value, own: &str, said_before: &Value) -> bool {
-        crate::unported!("bot.memory.facts:_may_be_an_animal")
-    }
-
-    /// Python: bot/memory/facts.py:6368 `losses(text, own=None, said_before=None)`
-    pub fn losses(text: &str, own: &Value, said_before: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:losses")
-    }
-
-    /// Python: bot/memory/facts.py:6422 `_allergies(text)`
-    pub fn _allergies(text: &str) -> Value {
-        crate::unported!("bot.memory.facts:_allergies")
-    }
-
-    /// Python: bot/memory/facts.py:6477 `_month_age_after(text, end)` (never called on the trace corpus)
-    pub fn _month_age_after(text: &str, end: i64) -> bool {
-        crate::unported!("bot.memory.facts:_month_age_after")
-    }
-
-    /// Python: bot/memory/facts.py:6542 `_the_word_then_a_verb(name, following)`
-    pub fn _the_word_then_a_verb(name: &str, following: &str) -> bool {
-        crate::unported!("bot.memory.facts:_the_word_then_a_verb")
-    }
-
-    /// Python: bot/memory/facts.py:6605 `_may_be_a_name(word)`
-    pub fn _may_be_a_name(word: &str) -> bool {
-        crate::unported!("bot.memory.facts:_may_be_a_name")
-    }
-
-    /// Python: bot/memory/facts.py:6621 `a_titled_name(word)`
-    pub fn a_titled_name(word: &str) -> bool {
-        crate::unported!("bot.memory.facts:a_titled_name")
-    }
-
-    /// Python: bot/memory/facts.py:6627 `_looks_like_a_name(word)`
-    pub fn _looks_like_a_name(word: &str) -> bool {
-        crate::unported!("bot.memory.facts:_looks_like_a_name")
-    }
-
-    /// Python: bot/memory/facts.py:6643 `_name_after_a_title(name)` (never called on the trace corpus)
-    pub fn _name_after_a_title(name: &str) -> bool {
-        crate::unported!("bot.memory.facts:_name_after_a_title")
-    }
-
-    /// Python: bot/memory/facts.py:6668 `_the_name_without_a_possessive(text)`
-    pub fn _the_name_without_a_possessive(text: &str) -> Value {
-        crate::unported!("bot.memory.facts:_the_name_without_a_possessive")
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /// Python: bot/memory/facts.py:6684 `_a_relations_name(text)`
     pub fn _a_relations_name(text: &str) -> Vec<String> {
@@ -864,7 +4264,7 @@ mod skeleton_stubs {
     }
 
     /// Python: bot/memory/facts.py:7736 `bare_name(text)`
-    pub fn bare_name(text: &str) {
+    pub fn bare_name(text: &str) -> Option<String> {
         crate::unported!("bot.memory.facts:bare_name")
     }
 
@@ -929,12 +4329,12 @@ mod skeleton_stubs {
     }
 
     /// Python: bot/memory/facts.py:8260 `_not_their_animal(text, start, end)`
-    pub fn _not_their_animal(text: &str, start: i64, end: i64) -> bool {
+    pub fn _not_their_animal(text: &str, start: usize, end: usize) -> bool {
         crate::unported!("bot.memory.facts:_not_their_animal")
     }
 
     /// Python: bot/memory/facts.py:8275 `_someone_elses(text)`
-    pub fn _someone_elses(text: &str) -> Vec<String> {
+    pub fn _someone_elses(text: &str) -> Vec<(usize, usize)> {
         crate::unported!("bot.memory.facts:_someone_elses")
     }
 
@@ -1203,40 +4603,12 @@ mod skeleton_stubs {
         crate::unported!("bot.memory.facts:_one_entry_per_person")
     }
 
-    /// Python: bot/memory/facts.py:10360 `_union(one, other)` (never called on the trace corpus)
-    pub fn _union(one: &str, other: &str) -> Value {
-        crate::unported!("bot.memory.facts:_union")
-    }
 
-    /// Python: bot/memory/facts.py:10368 `_the_pronoun(text, pos)` (never called on the trace corpus)
-    pub fn _the_pronoun(text: &str, pos: &Value) -> Value {
-        crate::unported!("bot.memory.facts:_the_pronoun")
-    }
 
-    /// Python: bot/memory/facts.py:10388 `_the_person_the_pronoun_is(text, pos, pronoun)` (never called on the trace corpus)
-    pub fn _the_person_the_pronoun_is(text: &str, pos: &Value, pronoun: &Value) -> Value {
-        crate::unported!("bot.memory.facts:_the_person_the_pronoun_is")
-    }
 
-    /// Python: bot/memory/facts.py:10428 `_a_name_opening_the_clause(clause)` (never called on the trace corpus)
-    pub fn _a_name_opening_the_clause(clause: &str) -> Value {
-        crate::unported!("bot.memory.facts:_a_name_opening_the_clause")
-    }
 
-    /// Python: bot/memory/facts.py:10443 `_the_name_in_front(text, pos)` (never called on the trace corpus)
-    pub fn _the_name_in_front(text: &str, pos: &Value) -> Value {
-        crate::unported!("bot.memory.facts:_the_name_in_front")
-    }
 
-    /// Python: bot/memory/facts.py:10475 `_a_person(text, pos, who)`
-    pub fn _a_person(text: &str, pos: i64, who: &str) -> Value {
-        crate::unported!("bot.memory.facts:_a_person")
-    }
 
-    /// Python: bot/memory/facts.py:10501 `_same_person(seen, entry)` (never called on the trace corpus)
-    pub fn _same_person(seen: &Value, entry: &'static Entry) -> bool {
-        crate::unported!("bot.memory.facts:_same_person")
-    }
 
     /// Python: bot/memory/facts.py:10543 `_a_name_and_a_figure(text)`
     pub fn _a_name_and_a_figure(text: &str) {
