@@ -3,7 +3,8 @@
 
 use crate::data::FnRef;
 use crate::knowledge::d2_shared::{a_thing_has_stopped, line_of};
-use crate::knowledge::d2dup_g10::{globals, leans_on_field, leans_on_words};
+use crate::knowledge::d2dup_g10::globals;
+use crate::knowledge::lookup;
 use crate::knowledge::registry::{GuardFn, ReplyFn};
 use crate::py::re::Re;
 use crate::py::text;
@@ -33,23 +34,32 @@ fn ref_values(understood: &Understood, with_flag: bool) -> Vec<String> {
 /// Whether the subject this line points back to is an animal (the carried subject only).
 pub fn _about_a_pet(understood: &Understood) -> bool {
     let mut said = ref_values(understood, false);
-    for key in ["subject", "text"] {
-        if let Some(v) = leans_on_field(understood, key) {
-            said.push(v.to_string());
+    if let Some(leans) = &understood.leans_on {
+        if let Some(subject) = &leans.subject {
+            said.push(subject.clone());
         }
+        said.push(leans.text.clone());
     }
     !said.is_empty() && _PET_ANY.is_match(&said.join(" ").to_lowercase())
 }
 
-// NEEDS(bot.knowledge.lookup::score, lookup::_forms, bot.knowledge::entries)
 /// Whether a row about the animal itself can answer this line instead of the mouth one: the
-/// line (with the words it leans on) scored against every "pets" entry. Python catches any
-/// failure and says False; until the lookup engine is merged this is that False.
+/// line, with the words it leans on in front, scored against every "pets" entry. Python catches
+/// any failure and says False (a turn is never worth a crash over a lost improvement).
 pub fn _pet_row_answers_before_it(_memory: &Memory, understood: &Understood) -> bool {
-    if understood.words.is_empty() {
+    let carried: Vec<String> = understood.leans_on.as_ref().map(|l| l.words.clone()).unwrap_or_default();
+    let mut said = carried;
+    said.extend(understood.words.iter().cloned());
+    if said.is_empty() {
         return false;
     }
-    false
+    let together = lookup::FormLine::of(&said);
+    crate::runtime::guarded(|| {
+        crate::knowledge::entries()
+            .iter()
+            .any(|item| item.domain == "pets" && lookup::score(item, &together, Some(&said), None, true, false) != 0)
+    })
+    .unwrap_or(false)
 }
 
 /// The mouth tip, unless the thing being chewed is an animal's habit and not a person's.
@@ -69,13 +79,18 @@ pub fn _my_own_memory_and_my_age(understood: &Understood) -> bool {
 
 /// The line and whatever the reading carried with it, as one lower-case string. Python's
 /// `" ".join` fails on a line with no clean and no text (line_of is None): a panic here.
-/// TYPE(leans_on): the dict's str/int values and its "words" (see `leans_on_field`); `topic` is a
-/// string, which Python's dict/list tests skip.
+/// `leans_on` and `ref` are dicts: their str/int values in key order, then the leaned-on line's
+/// "words" (`ref` has none); `topic` is a string, which Python's dict/list tests skip.
 pub fn _words_of(understood: &Understood) -> String {
     let line = line_of(understood).expect("TypeError: sequence item 0: expected str instance, NoneType found");
     let mut said = vec![line.to_string()];
-    if let Some(words) = leans_on_words(understood) {
-        said.extend(words);
+    if let Some(leans) = &understood.leans_on {
+        // {"text", "words", "subject", "subject_type", "topic"}: the list is not a str or int
+        said.push(leans.text.clone());
+        for value in [&leans.subject, &leans.subject_type, &leans.topic].into_iter().flatten() {
+            said.push(value.clone());
+        }
+        said.extend(leans.words.iter().cloned());
     }
     said.extend(ref_values(understood, true));
     text::squash(&said.join(" ").to_lowercase().replace('\u{2019}', "'"))

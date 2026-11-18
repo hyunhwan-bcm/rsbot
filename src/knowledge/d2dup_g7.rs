@@ -148,68 +148,36 @@ pub fn py_int(v: Option<&Value>) -> Option<i64> {
 // ---------------------------------------------------------------------------------------------
 // bot/memory/__init__.py
 
-// DUP(bot.memory::recent)
-/// The last n turns, oldest first.
+/// `memory.recent(memory, n)` (the real port): the last n turns.
 pub fn recent(memory: &Memory, n: usize) -> &[Turn] {
-    let t = &memory.turns;
-    &t[t.len().saturating_sub(n)..]
+    crate::memory::recent(Some(memory), n as i64)
 }
 
-// DUP(bot.memory::last_bot)
-/// The bot's last reply.
-pub fn last_bot(memory: &Memory) -> String {
-    recent(memory, 1).last().map(|t| t.bot.clone()).unwrap_or_default()
-}
+// was DUP(bot.memory::last_bot): now the real port
+pub use crate::memory::last_bot;
 
-// DUP(bot.memory::others)
-/// Facts about other people the user mentioned (`memory["others"]`, made a list when missing).
+/// `memory.others(memory)` (the real port), as the items of the list.
 pub fn others(memory: &mut Memory) -> Vec<Value> {
-    match memory.extra.get("others") {
-        Some(Value::List(v)) => v.to_vec(),
-        _ => {
-            memory.extra.insert("others".to_string(), Value::List(Arc::new(Vec::new())));
-            Vec::new()
-        }
-    }
+    crate::memory::others(memory).items().to_vec()
 }
 
 // ---------------------------------------------------------------------------------------------
 // bot/memory/thread.py
 
-// DUP(bot.memory.thread::user_lines)
-/// The user's earlier lines, oldest first (the texts; the reading Python pairs them with is not
-/// read by these callers).
+/// The texts of `memory.thread.user_lines(memory)` (the real port; the readings are not read).
 pub fn user_lines(memory: &Memory) -> Vec<String> {
-    memory.turns.iter().filter(|t| !text::strip(&t.user).is_empty()).map(|t| t.user.clone()).collect()
+    crate::memory::thread::user_lines(memory).items().iter().map(|pair| pair.items()[0].str().to_string()).collect()
 }
 
 // ---------------------------------------------------------------------------------------------
 // bot/memory/topics.py
 
-static TOPICS_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.WORD"));
-static WHO_SAID: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.WHO_SAID"));
 
-// DUP(bot.memory.topics::words)
-/// The words of a line, with the apostrophe forms folded ("what's" -> "what", "you'd" -> "youd").
-pub fn words(text: &str) -> Vec<String> {
-    let low = text.to_lowercase().replace('\u{2019}', "'");
-    TOPICS_WORD
-        .findall_str(&low)
-        .into_iter()
-        .map(|w| {
-            let w = w.strip_suffix("'s").map(str::to_string).unwrap_or(w);
-            w.replace('\'', "")
-        })
-        .filter(|w| !w.is_empty())
-        .collect()
-}
+// was DUP(bot.memory.topics::words): now the real port
+pub use crate::memory::topics::words;
 
-// DUP(bot.memory.topics::person)
-/// The person this speaker names ("my mum" -> "mum"), or None.
-pub fn person(text: &str) -> Option<String> {
-    let joined = words(text).join(" ");
-    WHO_SAID.search(&joined).map(|m| m.str(1).to_string())
-}
+// was DUP(bot.memory.topics::person): now the real port
+pub use crate::memory::topics::person;
 
 // ---------------------------------------------------------------------------------------------
 // bot/memory/people.py
@@ -417,70 +385,12 @@ pub fn the_age_of_the_person_they_mean(memory: &mut Memory, understood: Option<&
 // ---------------------------------------------------------------------------------------------
 // bot/memory/newborn.py
 
-static BABY_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.newborn.BABY_WORDS"));
-static A_BIRTH: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.A_BIRTH"));
-static JUST_BORN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.JUST_BORN"));
-static A_YEAR: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.A_YEAR"));
-static A_BIRTH_WEIGHT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.A_BIRTH_WEIGHT"));
-static NOT_THE_BABY: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.NOT_THE_BABY"));
-static LETTER_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new("[a-z']+", 0));
 
-// DUP(bot.memory.newborn::_the_lines)
-/// The last few turns' topic records as words, newest first.
-pub fn _the_lines(memory: &Memory) -> Vec<String> {
-    const HOW_MANY_TURNS: usize = 3;
-    let mut lines: Vec<&Value> = Vec::new();
-    if let Some(current @ Value::Dict(_)) = memory.extra.get("topic") {
-        lines.push(current);
-    }
-    if let Some(topics) = memory.extra.get("topics") {
-        let items = topics.items();
-        for record in items[items.len().saturating_sub(HOW_MANY_TURNS)..].iter().rev() {
-            if matches!(record, Value::Dict(_)) {
-                lines.push(record);
-            }
-        }
-    }
-    let mut said = Vec::new();
-    for record in lines {
-        let words = record.get("words");
-        let text = value_str(record.get("text"));
-        match words {
-            Some(Value::List(ws)) if !ws.is_empty() => {
-                let mut parts = vec![text];
-                parts.extend(ws.iter().map(|w| w.str().to_string()));
-                said.push(parts.join(" "));
-            }
-            _ => said.push(text),
-        }
-    }
-    said
-}
+// was DUP(bot.memory.newborn::_the_lines): now the real port
+pub use crate::memory::newborn::_the_lines;
 
-// DUP(bot.memory.newborn::the_thread_has_a_new_baby)
-/// True when the last few turns are about a baby arriving.
-pub fn the_thread_has_a_new_baby(memory: &Memory, understood: Option<&Understood>) -> bool {
-    let line = reading_line(understood);
-    if !line.is_empty() && NOT_THE_BABY.is_match(&line) {
-        return false;
-    }
-    let said = _the_lines(memory);
-    if said.is_empty() {
-        return false;
-    }
-    let together = said.join(" ");
-    if NOT_THE_BABY.is_match(&together) {
-        return false;
-    }
-    let words: HashSet<String> = LETTER_WORDS.findall_str(&together.to_lowercase()).into_iter().collect();
-    if JUST_BORN.is_match(&together) && !A_YEAR.is_match(&together) {
-        return true;
-    }
-    if words.iter().any(|w| BABY_WORDS.contains(w)) && (A_BIRTH.is_match(&together) || A_BIRTH_WEIGHT.is_match(&together)) {
-        return true;
-    }
-    A_BIRTH_WEIGHT.is_match(&together) && A_BIRTH.is_match(&together)
-}
+// was DUP(bot.memory.newborn::the_thread_has_a_new_baby): now the real port
+pub use crate::memory::newborn::the_thread_has_a_new_baby;
 
 // ---------------------------------------------------------------------------------------------
 // bot/understanding/topics.py
@@ -505,16 +415,8 @@ fn meets(words: &HashSet<&str>, set: &HashSet<String>) -> bool {
     words.iter().any(|w| set.contains(*w))
 }
 
-// DUP(bot.understanding.topics::gift_ask)
-/// True when this reading asks what to give someone.
-pub fn gift_ask(understood: &Understood) -> bool {
-    let norm = &understood.norm;
-    if norm.is_empty() {
-        return false;
-    }
-    let words: HashSet<&str> = norm.iter().map(String::as_str).collect();
-    _gift_ask(&words, norm)
-}
+// was DUP(bot.understanding.topics::gift_ask): now the real port
+pub use crate::understanding::topics::gift_ask;
 
 // DUP(bot.understanding.topics::_gift_ask)
 pub fn _gift_ask(words: &HashSet<&str>, norm: &[String]) -> bool {
@@ -623,113 +525,33 @@ pub fn _gift_still_to_get(words: &HashSet<&str>, norm: &[String]) -> bool {
 
 static PEOPLE_MALE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.PEOPLE_MALE"));
 static PEOPLE_FEMALE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.PEOPLE_FEMALE"));
-static CONTAINERS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.CONTAINERS"));
 
-// DUP(bot.knowledge.lookup::about_them)
-/// `about_them(template)(memory, reading)` with the default people lists: the template with
-/// he, she or they filled in according to the line, first letter capitalised.
+/// `lookup.about_them(template)(memory, reading)` with the default people lists (the real port).
 pub fn about_them(template: &str, reading: &Understood) -> String {
-    let mut they = "they";
-    for word in &reading.words {
-        if PEOPLE_MALE.iter().any(|w| w == word) {
-            they = "he";
-            break;
-        }
-        if PEOPLE_FEMALE.iter().any(|w| w == word) {
-            they = "she";
-            break;
-        }
-    }
-    let plural = they == "they";
-    let he = they == "he";
-    let fills = [
-        ("{they}", they),
-        ("{them}", if plural { "them" } else if he { "him" } else { "her" }),
-        ("{their}", if plural { "their" } else if he { "his" } else { "her" }),
-        ("{self}", if plural { "themselves" } else if he { "himself" } else { "herself" }),
-        ("{has}", if plural { "have" } else { "has" }),
-        ("{is}", if plural { "are" } else { "is" }),
-        ("{likes}", if plural { "like" } else { "likes" }),
-        ("{loves}", if plural { "love" } else { "loves" }),
-    ];
-    let mut out = template.to_string();
-    for (token, word) in fills {
-        out = out.replace(token, word);
-    }
-    let first: String = out.chars().take(1).collect::<String>().to_uppercase();
-    let rest: String = out.chars().skip(1).collect();
-    first + &rest
+    crate::knowledge::lookup::about_them(template, &PEOPLE_MALE, &PEOPLE_FEMALE, reading)
 }
 
-// DUP(bot.knowledge.lookup::only_a_container)
-/// True when every word of `names` the line says is a container a thing is kept in.
+/// `lookup.only_a_container(understood, names)` (the real port).
 pub fn only_a_container<S: AsRef<str>>(understood: &Understood, names: &[S]) -> bool {
-    let text = format!(" {} ", understood.words.iter().map(|w| w.to_lowercase()).collect::<Vec<_>>().join(" "));
-    let found: Vec<&str> =
-        names.iter().map(|n| n.as_ref()).filter(|one| text.contains(&format!(" {one} "))).collect();
-    !found.is_empty() && found.iter().all(|one| CONTAINERS.contains(*one))
+    let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
+    crate::knowledge::lookup::only_a_container(understood, &names)
 }
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/wording.py
 
-struct Sign {
-    phrases: Vec<String>,
-    label: String,
-}
 
-static SIGNS: LazyLock<Vec<Sign>> = LazyLock::new(|| {
-    data::get("bot.knowledge.wording.SIGNS")
-        .items()
-        .iter()
-        .map(|row| Sign { phrases: row.items()[0].strs(), label: row.items()[1].str().to_string() })
-        .collect()
-});
-static SIGN_PLURAL: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.wording._SIGN_PLURAL"));
 
-// DUP(bot.knowledge.wording::sign_said)
-/// The sign the person actually named, in their words, or None.
-pub fn sign_said(text: &str) -> Option<String> {
-    let said = text.to_lowercase();
-    SIGNS.iter().find(|s| s.phrases.iter().any(|p| said.contains(p.as_str()))).map(|s| s.label.clone())
-}
+// was DUP(bot.knowledge.wording::sign_said): now the real port
+pub use crate::knowledge::wording::sign_said;
 
-// DUP(bot.knowledge.wording::nerves_opening)
-/// `Shaky hands before an interview are ...` in the person's own words.
-pub fn nerves_opening(text: &str, situation: &str, tail: &str) -> String {
-    match sign_said(text) {
-        None => format!("That feeling {situation} is {tail}"),
-        Some(label) => {
-            let verb = if SIGN_PLURAL.contains(&label) { " are " } else { " is " };
-            format!("{label} {situation}{verb}{tail}")
-        }
-    }
-}
+// was DUP(bot.knowledge.wording::nerves_opening): now the real port
+pub use crate::knowledge::wording::nerves_opening;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/home.py
 
-// DUP(bot.knowledge.home::_dryer_heat)
-/// A dryer that will not heat, said as cold air or as clothes that take three goes.
-pub fn _dryer_heat(_memory: &mut Memory, reading: &Understood) -> Option<String> {
-    const SLOW: [&str; 20] = [
-        "ages", "forever", "slow", "slower", "slowly", "long", "longer", "hours", "again", "twice", "ages.", "slowly.",
-        "goes", "go", "cycles", "cycle", "damp", "damp.", "wet", "wet.",
-    ];
-    if reading.words.iter().any(|w| SLOW.contains(&w.as_str())) {
-        return Some(
-            "Slow drying is nearly always the air: empty the fluff filter, rinse the condenser \
-if it has one, and check the vent hose is not kinked. A drum stuffed full will not \
-dry either, so try half a load. If the air still comes out cold, it is the fuse on \
-the element - an engineer's job, cheap part."
-                .to_string(),
-        );
-    }
-    Some(
-        "Nearly always the air or the setting, not a part: check the dial first, since most \
-machines finish on a cool-down phase that heats nothing, then empty the fluff filter \
-and check the vent hose is not kinked. If the drum turns and the air still comes out \
-cold, it is the thermal fuse on the element - an engineer's job, cheap part."
-            .to_string(),
-    )
+/// `home._dryer_heat(memory, reading)` (the real port).
+pub fn _dryer_heat(memory: &mut Memory, reading: &Understood) -> Option<String> {
+    Some(crate::knowledge::home::_dryer_heat(memory, reading))
 }

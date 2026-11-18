@@ -494,28 +494,47 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories (`knowledge::built`).
 
-    /// Python: bot/knowledge/keeping.py:981 `_dated_row(row)` (never called on the trace corpus)
-    pub fn _dated_row(row: &'static Entry) -> Value {
-        crate::unported!("bot.knowledge.keeping:_dated_row")
+use crate::data::Value;
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, Reply};
+
+/// `_dated_row(row)`: a pack-date row from a `DATE_ROWS` row (names, reply[, more asks]).
+pub fn _dated_row(row: &Value) -> Entry {
+    let r = row.items();
+    let names = r[0].strs();
+    let mut asks = data::get("bot.knowledge.keeping.DATE_ASK").strs();
+    if r.len() > 2 {
+        asks.extend(r[2].strs());
     }
-
-    /// Python: bot/knowledge/keeping.py:1538 `_ripens(test, trick, keep)` (never called on the trace corpus)
-    pub fn _ripens(test: &Value, trick: &Value, keep: i64) -> Value {
-        crate::unported!("bot.knowledge.keeping:_ripens")
-    }
-
+    let stand_down = data::get("bot.knowledge.keeping.DATED_STAND_DOWN").get(&names[0]).cloned().unwrap_or(Value::None);
+    built::entry(
+        &format!("keep-{}-dated", names[0]),
+        vec![built::part(&names), built::part(&asks)],
+        built::reply_of(&r[1]),
+        &[stand_down],
+        1,
+        vec![],
+        Some(built::function("bot.knowledge.keeping:_dated_row.<locals>.<lambda>:986")),
+    )
 }
 
+/// `_ripens(test, trick, keep)`: the ripeness reply over its three sentences (`_ripens_reply`).
+pub fn _ripens(test: &str, trick: &str, keep: &str) -> FnRef {
+    built::closure(
+        "bot.knowledge.keeping:_ripens.<locals>.reply:1539",
+        vec![("keep", Value::from(keep)), ("test", Value::from(test)), ("trick", Value::from(trick))],
+    )
+}
+
+#[cfg(test)]
+mod factory_tests {
+    #[test]
+    fn dated_rows_rebuild() {
+        crate::data::load();
+        let rows: Vec<_> = crate::data::get("bot.knowledge.keeping.DATE_ROWS").items().iter().map(super::_dated_row).collect();
+        crate::knowledge::built::assert_rows_match(&rows, "bot.knowledge.keeping.ENTRIES");
+    }
+}

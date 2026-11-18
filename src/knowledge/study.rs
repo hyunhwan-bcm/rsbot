@@ -651,9 +651,11 @@ static FIND_LANGUAGE_HOURS: LazyLock<Vec<(String, Re)>> = LazyLock::new(|| find_
 /// True when the line names a language, or says what it is about without naming one.
 pub fn _names_a_language(understood: &Understood) -> bool {
     let clean = sh::clean_or_text(understood).to_lowercase();
-    // LEANS_ON: `leans_on` (a dict on a later turn) adds its text and words; absent here.
-    let (leaned_text, leaned_words) = ("", "");
-    let said = [clean.as_str(), &understood.words.join(" "), leaned_text, leaned_words].join(" ").to_lowercase();
+    let (leaned_text, leaned_words) = match &understood.leans_on {
+        Some(l) => (l.text.clone(), l.words.join(" ")),
+        None => (String::new(), String::new()),
+    };
+    let said = [clean.as_str(), &understood.words.join(" "), &leaned_text, &leaned_words].join(" ").to_lowercase();
     if find_in(&said, &FIND_LANGUAGE_HOURS).is_some() {
         return true;
     }
@@ -1187,7 +1189,7 @@ pub fn lambda_3055(understood: &Understood) -> bool {
 
 /// The pass-mark row's guard: no unit on the figure, and the degrees are not a temperature.
 pub fn lambda_3244(understood: &Understood) -> bool {
-    !dup::a_figure_with_a_unit(understood, "") && _the_degrees_are_heat(understood)
+    !crate::knowledge::quantity::a_figure_with_a_unit(Some(understood), "") && _the_degrees_are_heat(understood)
 }
 
 /// The strict-teacher row's guard: something in the line is about school.

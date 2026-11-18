@@ -17,28 +17,47 @@ pub const GUARDS: &[(&str, GuardFn)] =
 pub const REPLIES: &[(&str, ReplyFn)] = &[];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factory (`knowledge::built`).
 
-    /// Python: bot/knowledge/differences.py:280 `_slug(name)` (never called on the trace corpus)
-    pub fn _slug(name: &str) -> String {
-        crate::unported!("bot.knowledge.differences:_slug")
-    }
+use crate::data::{self, Value};
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, KeyPart, Reply};
 
-    /// Python: bot/knowledge/differences.py:285 `_pair(row)` (never called on the trace corpus)
-    pub fn _pair(row: &'static Entry) -> Value {
-        crate::unported!("bot.knowledge.differences:_pair")
-    }
-
+/// A row id from the two names, so a duplicate pair shows up as a duplicate id.
+pub fn _slug(name: &str) -> String {
+    static NOT_AN_ID: std::sync::LazyLock<crate::py::re::Re> = std::sync::LazyLock::new(|| crate::py::re::Re::new(r"[^a-z0-9]+", 0));
+    crate::py::text::strip_chars(&NOT_AN_ID.sub("-", &crate::py::text::lower(name)), "-").to_string()
 }
 
+/// `_pair(row)`: one pair - the two names as the two key groups, and only a comparing line
+/// reaches it. `row` is a `_PAIRS` row: (first names, second names, what to say).
+pub fn _pair(row: &Value) -> Entry {
+    let row = row.items();
+    let (first, second, said) = (row[0].strs(), row[1].strs(), row[2].str());
+    built::entry(
+        &format!("difference-{}-and-{}", _slug(&first[0]), _slug(&second[0])),
+        vec![built::part(&first), built::part(&second)],
+        Reply::Text(said.to_string()),
+        &[],
+        2,
+        data::get("bot.knowledge.differences._COMPARING").strs().into_iter().map(KeyPart::Word).collect(),
+        None,
+    )
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    #[test]
+    fn pairs_rebuild() {
+        data::load();
+        let exported = built::exported("bot.knowledge.differences.ENTRIES");
+        let pairs = data::get("bot.knowledge.differences._PAIRS").items();
+        assert!(!pairs.is_empty());
+        for (row, theirs) in pairs.iter().zip(exported.iter()) {
+            assert_eq!(built::same_entry(&_pair(row), theirs), None);
+        }
+    }
+}

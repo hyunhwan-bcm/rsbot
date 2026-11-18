@@ -321,8 +321,8 @@ pub fn _wifi_is_what_it_is_about(understood: &Understood) -> bool {
     if _WIFI_WORD.is_match(&understood.words.join(" ")) {
         return true;
     }
-    // LEANS_ON: Python reads the words of `understood["leans_on"]`; absent on a single-turn call.
-    _WIFI_WORD.is_match("")
+    let lean = understood.leans_on.as_ref().map(|l| l.words.join(" ")).unwrap_or_default();
+    _WIFI_WORD.is_match(&lean)
 }
 
 /// Finding the wifi password, changing it, and getting back in are three different jobs.

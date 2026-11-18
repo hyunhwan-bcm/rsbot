@@ -690,28 +690,66 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row builders.
 
-    /// Python: bot/knowledge/home_craft.py:160 `_the_stopped_fixture_entries(entry)` (never called on the trace corpus)
-    pub fn _the_stopped_fixture_entries(entry: &'static Entry) -> Value {
-        crate::unported!("bot.knowledge.home_craft:_the_stopped_fixture_entries")
-    }
+use crate::data::Value;
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, Reply};
 
-    /// Python: bot/knowledge/home_craft.py:887 `entries()` (never called on the trace corpus)
-    pub fn entries() -> Value {
-        crate::unported!("bot.knowledge.home_craft:entries")
-    }
-
+/// `_the_stopped_fixture_entries(entry)`: one row per fixture, not one row for the family.
+pub fn _the_stopped_fixture_entries() -> Vec<Entry> {
+    let stopped = data::get("bot.knowledge.home_craft.STOPPED_ALTOGETHER").strs();
+    let not_decorating = data::get("bot.knowledge.home_craft.A_FIXTURE_IS_NOT_A_DECORATING_JOB").clone();
+    data::get("bot.knowledge.home_craft.FIXTURE_FIRST_CHECKS")
+        .items()
+        .iter()
+        .map(|row| {
+            let names = row.items()[0].strs();
+            built::entry(
+                &format!("a-fixture-that-stopped-{}", names[0].replace(' ', "-")),
+                vec![built::part(&names), built::part(&stopped)],
+                Reply::Fn(built::function("bot.knowledge.home_craft:_the_stopped_fixture_entries.<locals>.<lambda>:171")),
+                &[not_decorating.clone()],
+                3,
+                vec![],
+                Some(built::function("bot.knowledge.home_craft:_a_fixture_that_stopped_was_the_question:155")),
+            )
+        })
+        .collect()
 }
 
+/// `entries()`: the rows `home.py` builds its list from, in their original order. Python's
+/// function is the ten-thousand-line list of row literals home.py puts in front of its own rows
+/// (`ENTRIES[:] = _craft_entries() + ENTRIES`); the rows are data, so they are read from the
+/// exported `home.ENTRIES` - every row in front of home.py's own first row, "sewage-coming-up".
+pub fn entries() -> Vec<Entry> {
+    let rows: &Value = data::get("bot.knowledge.home.ENTRIES");
+    rows.items()
+        .iter()
+        .enumerate()
+        .map(|(i, v)| Entry::from_value(i, v))
+        .take_while(|row| row.id != "sewage-coming-up")
+        .collect()
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    #[test]
+    fn rows_rebuild() {
+        data::load();
+        let craft = entries();
+        // PyBot: len(home_craft.entries()) == 355, from "stair-gate" to "a-nail-in-a-wall"
+        assert_eq!(craft.len(), 355);
+        assert_eq!(craft[0].id, "stair-gate");
+        assert_eq!(craft[craft.len() - 1].id, "a-nail-in-a-wall");
+        let ours = _the_stopped_fixture_entries();
+        for mine in &ours {
+            let theirs = craft.iter().find(|r| r.id == mine.id).expect("a fixture row");
+            assert_eq!(built::same_entry(mine, theirs), None);
+        }
+        assert!(!ours.is_empty());
+    }
+}

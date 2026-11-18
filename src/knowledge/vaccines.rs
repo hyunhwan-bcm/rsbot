@@ -46,9 +46,12 @@ pub fn _the_booster_is_the_jab(understood: &Understood) -> bool {
     if _A_JAB_WORD.is_match(&sh::health_the_line(understood)) {
         return true;
     }
-    // LEANS_ON: Python reads the earlier reading's text, subject and words here; the reading
-    // carries no earlier reading on a single-turn reply, so the lean has no text.
-    true
+    let Some(lean) = &understood.leans_on else { return true };
+    if crate::py::text::strip(&lean.text).is_empty() {
+        return true;
+    }
+    let said = [lean.text.as_str(), lean.subject.as_deref().unwrap_or(""), &lean.words.join(" ")].join(" ").to_lowercase();
+    _A_JAB_WORD.is_match(&said)
 }
 
 /// False for a line about flu on its own (the flu jab has its own row), unless it is about

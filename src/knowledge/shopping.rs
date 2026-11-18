@@ -1219,38 +1219,58 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories: the closures they make, as the `FnRef`s the replies above read.
 
-    /// Python: bot/knowledge/shopping.py:597 `_present_answer(text)` (never called on the trace corpus)
-    pub fn _present_answer(text: &str) -> Value {
-        crate::unported!("bot.knowledge.shopping:_present_answer")
-    }
-
-    /// Python: bot/knowledge/shopping.py:700 `_gift_row(fallback)` (never called on the trace corpus)
-    pub fn _gift_row(fallback: &Value) -> Value {
-        crate::unported!("bot.knowledge.shopping:_gift_row")
-    }
-
-    /// Python: bot/knowledge/shopping.py:927 `_openings()` (never called on the trace corpus)
-    pub fn _openings(pools: &[Value]) -> Value {
-        crate::unported!("bot.knowledge.shopping:_openings")
-    }
-
-    /// Python: bot/knowledge/shopping.py:1561 `_the_person_row(adult, child)` (never called on the trace corpus)
-    pub fn _the_person_row(adult: &Value, child: &Value) -> Value {
-        crate::unported!("bot.knowledge.shopping:_the_person_row")
-    }
-
+/// `_present_answer(text)`: a written present answer that still reads the condition the person
+/// was described by.
+pub fn _present_answer(text_: &str) -> FnRef {
+    crate::knowledge::built::closure("bot.knowledge.shopping:_present_answer.<locals>.reply:604", vec![("text", Value::from(text_))])
 }
 
+/// `_gift_row(fallback)`: a generic gift answer that names the hobby when the chat has said one.
+pub fn _gift_row(fallback: &Value) -> FnRef {
+    crate::knowledge::built::closure("bot.knowledge.shopping:_gift_row.<locals>.reply:708", vec![("fallback", fallback.clone())])
+}
+
+/// `_openings(*pools)`: the first 28 characters of every line in these pools longer than 20.
+pub fn _openings(pools: &[Value]) -> Vec<String> {
+    let mut out = Vec::new();
+    for pool in pools {
+        let rows: Vec<&Value> = match pool {
+            Value::Str(_) => vec![pool],
+            other => other.items().iter().collect(),
+        };
+        for row in rows {
+            if let Some(row) = row.as_str() {
+                if text::len(text::strip(row)) > 20 {
+                    out.push(text::slice(&text::squash(row), 0, Some(28)));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// `_the_person_row(adult, child)`: the person row, with a child's answer for a child.
+pub fn _the_person_row(adult: &Value, child: &Value) -> FnRef {
+    crate::knowledge::built::closure(
+        "bot.knowledge.shopping:_the_person_row.<locals>.reply:1571",
+        vec![("grown_up", Value::Fn(std::sync::Arc::new(_gift_row(adult)))), ("young", Value::Fn(std::sync::Arc::new(_gift_row(child))))],
+    )
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    #[test]
+    fn present_openings_as_exported() {
+        data::load();
+        let pools: Vec<Value> = ["TODDLER_GIFT", "CHILD_GIFT", "TEEN_GIFT", "GROWN_GIFT", "_GIFT_ANYONE", "CHEAP_ADULT", "CHEAP_CHILD", "CHEAP_TEEN"]
+            .iter()
+            .map(|n| data::get(&format!("bot.knowledge.shopping.{n}")).clone())
+            .collect();
+        assert_eq!(_openings(&pools), data::get("bot.knowledge.shopping.PRESENT_OPENINGS").strs());
+    }
+}

@@ -814,10 +814,22 @@ pub fn _reading_words(reading: &Understood) -> Vec<String> {
     findall_words(&sh::clean_or_text(reading).to_lowercase())
 }
 
+/// `_reading_words` of the leaned-on line (a dict with "words" and "text", and no "clean").
+fn _lean_words(leaned: &crate::understood::LeansOn) -> Vec<String> {
+    if !leaned.words.is_empty() {
+        return leaned.words.iter().map(|w| sh::strip_punct(&w.to_lowercase()).to_string()).collect();
+    }
+    findall_words(&leaned.text.to_lowercase())
+}
+
 /// False when the line's only "back" is the particle in "come back" or "is back again".
 pub fn _the_back_is_a_back(understood: &Understood) -> bool {
-    let words = _reading_words(understood);
-    // LEANS_ON: Python adds the words of the reading this line leans on (a dict); none here.
+    let mut words = _reading_words(understood);
+    if let Some(leaned) = &understood.leans_on {
+        // a follow-up says "it keeps coming back", so the back a chat was about is in the line
+        // this one leans on: "it hurts when i sit" after "my back aches" is still a back.
+        words.extend(_lean_words(leaned));
+    }
     if words.is_empty() {
         return true;
     }

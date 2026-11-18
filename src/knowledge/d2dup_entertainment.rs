@@ -23,27 +23,8 @@ pub use crate::knowledge::cooking::names_a_dish;
 static KEPT_AVOID: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.kept_animals._AVOID"));
 static KEPT_ASKS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.kept_animals._ASKS"));
 
-// DUP(bot.knowledge.kept_animals::keeping_an_animal)
-/// True when the line asks how to keep an animal, rather than how to cook one.
-pub fn keeping_an_animal(understood: &Understood) -> bool {
-    let joined;
-    let said = if !understood.text.is_empty() {
-        understood.text.as_str()
-    } else if !understood.clean.is_empty() {
-        understood.clean.as_str()
-    } else {
-        joined = understood.words.join(" ");
-        joined.as_str()
-    };
-    let text = said.to_lowercase();
-    if text.is_empty() {
-        return false;
-    }
-    if KEPT_AVOID.is_match(&text) {
-        return false;
-    }
-    KEPT_ASKS.is_match(&text)
-}
+// was DUP(bot.knowledge.kept_animals::keeping_an_animal): now the real port
+pub use crate::knowledge::kept_animals::keeping_an_animal;
 
 // ---------------------------------------------------------------------------------------------
 // bot/understanding/attempts.py (U)
@@ -103,41 +84,8 @@ fn _where_the_attempt_ends(words: &[String], at: usize) -> usize {
     words.len()
 }
 
-// DUP(bot.understanding.attempts::the_rest_after_the_try)
-/// The words left in the line once the thing it says was tried is behind it.
-pub fn the_rest_after_the_try(norm: &[String]) -> Vec<String> {
-    let words = _tokens(norm);
-    for at in 0..words.len() {
-        if words[at] != "tried" || !_a_report(&words, at) {
-            continue;
-        }
-        return words[_where_the_attempt_ends(&words, at)..].to_vec();
-    }
-    Vec::new()
-}
+// was DUP(bot.understanding.attempts::the_rest_after_the_try): now the real port
+pub use crate::understanding::attempts::the_rest_after_the_try;
 
-// DUP(bot.understanding.attempts::asks_for_one_more)
-/// True when the line, past whatever was tried, asks for one more of it.
-pub fn asks_for_one_more(norm: &[String]) -> bool {
-    let rest = the_rest_after_the_try(norm);
-    if rest.is_empty() {
-        return false;
-    }
-    if !rest.iter().any(|w| ONE_MORE.contains(w)) {
-        return false;
-    }
-    if rest.iter().any(|w| HANDS_OVER.contains(w)) {
-        return true;
-    }
-    let joined = rest.join(" ");
-    if CAN_YOU.is_match(&joined) {
-        return true;
-    }
-    if rest.iter().any(|w| STARTS_A_QUESTION.contains(w)) {
-        return true;
-    }
-    if rest.iter().any(|w| HANDS_OVER.contains(w)) && FOR_ME.is_match(&joined) {
-        return true;
-    }
-    false
-}
+// was DUP(bot.understanding.attempts::asks_for_one_more): now the real port
+pub use crate::understanding::attempts::asks_for_one_more;

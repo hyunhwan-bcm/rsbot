@@ -831,33 +831,67 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The reply factories: the closures they make, as `FnRef`s with what they captured.
 
-    /// Python: bot/knowledge/geography.py:106 `_world(reply)` (never called on the trace corpus)
-    pub fn _world(reply: &str) -> Value {
-        crate::unported!("bot.knowledge.geography:_world")
-    }
+use crate::knowledge::built;
 
-    /// Python: bot/knowledge/geography.py:551 `country_extreme(kind, world_reply)` (never called on the trace corpus)
-    pub fn country_extreme(kind: &str, world_reply: &str) -> Value {
-        crate::unported!("bot.knowledge.geography:country_extreme")
-    }
-
-    /// Python: bot/knowledge/geography.py:772 `region_extreme(kind, world_reply)` (never called on the trace corpus)
-    pub fn region_extreme(kind: &str, world_reply: &str) -> Value {
-        crate::unported!("bot.knowledge.geography:region_extreme")
-    }
-
+/// `_world(reply)`: a world record, unless the line asks about a named region.
+pub fn _world(reply: &str) -> FnRef {
+    let place = Re::new(r"\b(?:in|of|make up|makes up|making up)\s+(?:the\s+)?([a-z']+)", crate::py::re::U);
+    let whole = ["world", "earth", "planet", "all", "them", "these", "those"];
+    let unit = [
+        "feet", "foot", "metres", "meters", "metre", "meter", "kilometres", "kilometers", "km", "miles", "mile", "centimetres", "centimeters", "cm",
+        "inches", "inch", "total",
+    ];
+    let words = |list: &[&str]| built::words(&list.iter().map(|s| s.to_string()).collect::<Vec<_>>());
+    built::closure(
+        "bot.knowledge.geography:_world.<locals>.answer:117",
+        vec![("place", Value::Re(std::sync::Arc::new(place))), ("reply", Value::from(reply)), ("unit", words(&unit)), ("whole", words(&whole))],
+    )
 }
 
+/// `country_extreme(kind, world_reply)`: the region's own largest or smallest country, or the
+/// world record on an unqualified line.
+pub fn country_extreme(kind: &str, world_reply: &str) -> FnRef {
+    built::closure("bot.knowledge.geography:country_extreme.<locals>.answer:557", vec![("kind", Value::from(kind)), ("world_reply", Value::from(world_reply))])
+}
+
+/// `region_extreme(kind, world_reply)`: the region's own river, mountain or desert; the world
+/// answer (through `_world`) only on an unqualified line.
+pub fn region_extreme(kind: &str, world_reply: &str) -> FnRef {
+    built::closure(
+        "bot.knowledge.geography:region_extreme.<locals>.answer:780",
+        vec![("kind", Value::from(kind)), ("world", Value::Fn(std::sync::Arc::new(_world(world_reply))))],
+    )
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    /// Every closure these factories made at import is what they make here from its own values.
+    #[test]
+    fn closures_rebuild() {
+        data::load();
+        let mut n = 0;
+        for row in crate::knowledge::entries() {
+            let crate::knowledge::entry::Reply::Fn(f) = &row.reply else { continue };
+            let cell = |k: &str| f.cell(k).map(Value::str).unwrap_or("").to_string();
+            let ours = match f.name() {
+                "bot.knowledge.geography:_world.<locals>.answer" => _world(&cell("reply")),
+                "bot.knowledge.geography:country_extreme.<locals>.answer" => country_extreme(&cell("kind"), &cell("world_reply")),
+                "bot.knowledge.geography:region_extreme.<locals>.answer" => {
+                    let world = f.cell("world").and_then(Value::as_fn).unwrap();
+                    region_extreme(&cell("kind"), world.cell("reply").unwrap().str())
+                }
+                _ => continue,
+            };
+            let mine = crate::knowledge::entry::Reply::Fn(ours);
+            let probe = |r: &crate::knowledge::entry::Reply| { let mut e = row.clone(); e.reply = r.clone(); e };
+            assert_eq!(built::same_entry(&probe(&mine), row), None);
+            n += 1;
+        }
+        assert!(n > 3, "{n}");
+    }
+}

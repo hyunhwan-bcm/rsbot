@@ -215,33 +215,104 @@ mod tests {
 }
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The import-time passes over the rows, ported on built entries (`knowledge::built`).
 
-    /// Python: bot/knowledge/swaps.py:1115 `_fenced(row, said)` (never called on the trace corpus)
-    pub fn _fenced(row: &'static Entry, said: &str) -> Value {
-        crate::unported!("bot.knowledge.swaps:_fenced")
+use crate::knowledge::entry::{Entry, KeyPart, Reply};
+
+/// A key part as the Python value it was: a word, or a tuple of words.
+fn part_value(part: &KeyPart) -> Value {
+    match part {
+        KeyPart::Word(w) => Value::from(w.as_str()),
+        KeyPart::Any(v) => crate::knowledge::built::words(v),
     }
-
-    /// Python: bot/knowledge/swaps.py:1154 `_fence_every_row(rows)` (never called on the trace corpus)
-    pub fn _fence_every_row(rows: &Value) {
-        crate::unported!("bot.knowledge.swaps:_fence_every_row")
-    }
-
-    /// Python: bot/knowledge/swaps.py:1179 `_the_other_side_of_a_swap(rows)` (never called on the trace corpus)
-    pub fn _the_other_side_of_a_swap(rows: &Value) {
-        crate::unported!("bot.knowledge.swaps:_the_other_side_of_a_swap")
-    }
-
 }
 
+/// A reply as the Python value it was.
+fn reply_value(reply: &Reply) -> Value {
+    match reply {
+        Reply::Text(s) => Value::from(s.as_str()),
+        Reply::Fn(f) => Value::Fn(std::sync::Arc::new(f.clone())),
+        Reply::Choices(v) => crate::knowledge::built::words(v),
+    }
+}
+
+/// `_fenced(row, said)`: the row's reply, with the two general stand-downs in front of it
+/// (`fenced_answer`). The closure keeps the row's own words, the row and what it said.
+pub fn _fenced(row: &Entry, said: &Value) -> FnRef {
+    let first = row.key.first().map(part_value).unwrap_or(Value::None);
+    let mut own: Vec<Value> = Vec::new();
+    for name in _names(&first) {
+        for word in text::split(&name.to_lowercase()) {
+            let word = Value::from(word.as_str());
+            if !own.contains(&word) {
+                own.push(word);
+            }
+        }
+    }
+    crate::knowledge::built::closure(
+        "bot.knowledge.swaps:_fenced.<locals>.answer:1133",
+        vec![
+            ("own", Value::Set(std::sync::Arc::new(own))),
+            ("row", row.raw.clone()),
+            ("said", said.clone()),
+            ("taste_row", Value::Bool(row.id == "swap-what-i-will-not-eat")),
+        ],
+    )
+}
+
+/// `_fence_every_row(rows)`: every row is fenced, so a row added later is fenced too.
+pub fn _fence_every_row(rows: &mut [Entry]) {
+    for row in rows.iter_mut() {
+        let said = reply_value(&row.reply);
+        row.reply = Reply::Fn(_fenced(row, &said));
+    }
+}
+
+/// `_the_other_side_of_a_swap(rows)`: give every row the name of every other ingredient on the
+/// far side of "instead of", leaving out its own names and the names inside its own.
+pub fn _the_other_side_of_a_swap(rows: &mut [Entry]) {
+    let firsts: Vec<Vec<String>> = rows.iter().map(|r| r.key.first().map(|p| _names(&part_value(p))).unwrap_or_default()).collect();
+    for (i, row) in rows.iter_mut().enumerate() {
+        let mine: Vec<String> = firsts[i].iter().map(|n| n.to_lowercase()).collect();
+        let own_words: Vec<String> = mine.iter().flat_map(|n| text::split(n)).collect();
+        let mut phrases = Vec::new();
+        for (j, names) in firsts.iter().enumerate() {
+            if j == i {
+                continue;
+            }
+            for name in names {
+                if mine.contains(&name.to_lowercase()) || _inside(name, &own_words) {
+                    continue;
+                }
+                phrases.push(format!("instead of {name}"));
+                phrases.push(format!("in place of {name}"));
+            }
+        }
+        row.avoid.extend(phrases);
+    }
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    /// A fenced row's closure is what `_fenced` makes of the row and what it said.
+    #[test]
+    fn fences_rebuild() {
+        crate::data::load();
+        let rows = crate::knowledge::built::exported("bot.knowledge.swaps.ENTRIES");
+        let mut n = 0;
+        for row in &rows {
+            let Reply::Fn(f) = &row.reply else { continue };
+            if !f.id.starts_with("bot.knowledge.swaps:_fenced") {
+                continue;
+            }
+            let ours = _fenced(row, f.cell("said").unwrap());
+            assert_eq!(ours.cell("own"), f.cell("own"), "{}", row.id);
+            assert_eq!(ours.cell("taste_row"), f.cell("taste_row"), "{}", row.id);
+            n += 1;
+        }
+        assert!(n > 50);
+    }
+}

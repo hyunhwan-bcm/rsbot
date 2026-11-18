@@ -345,28 +345,80 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories (`knowledge::built`).
 
-    /// Python: bot/knowledge/costs.py:123 `_repair_phrases(name)` (never called on the trace corpus)
-    pub fn _repair_phrases(name: &str) -> Value {
-        crate::unported!("bot.knowledge.costs:_repair_phrases")
-    }
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, Reply};
 
-    /// Python: bot/knowledge/costs.py:1543 `time_entries()` (never called on the trace corpus)
-    pub fn time_entries(keys: &[Value]) -> Value {
-        crate::unported!("bot.knowledge.costs:time_entries")
-    }
-
+/// `_repair_phrases(name)`: the ways a repair of this thing is asked for.
+pub fn _repair_phrases(name: &str) -> Vec<String> {
+    let article = if name.starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" };
+    let mut out: Vec<String> = ["fix", "repair"].iter().map(|verb| format!("{verb} {article} {name}")).collect();
+    out.extend([
+        format!("fix the {name}"),
+        format!("repair the {name}"),
+        format!("fix my {name}"),
+        format!("repair my {name}"),
+        format!("repair on the {name}"),
+        format!("fix on the {name}"),
+        format!("repair on a {name}"),
+        format!("{name} repair"),
+        format!("{name} repairs"),
+        format!("{name} fix"),
+        format!("get the {name} fixed"),
+        format!("get my {name} fixed"),
+        format!("get {article} {name} fixed"),
+        format!("get the {name} repaired"),
+        format!("get my {name} repaired"),
+        format!("have the {name} fixed"),
+        format!("have my {name} fixed"),
+        format!("have {article} {name} fixed"),
+        format!("have the {name} repaired"),
+        format!("have my {name} repaired"),
+        format!("have {article} {name} repaired"),
+        format!("{name} fixed"),
+        format!("{name} repaired"),
+        format!("{name} looked at"),
+        format!("look at the {name}"),
+        format!("look at my {name}"),
+    ]);
+    out
 }
 
+/// `time_entries(*keys)`: the how-long rows for the jobs named, from `JOB_TIMES`.
+pub fn time_entries(keys: &[&str]) -> Vec<Entry> {
+    let g = |n: &str| data::get(&format!("bot.knowledge.costs.{n}"));
+    keys.iter()
+        .map(|key| {
+            let job = g("JOB_TIMES").get(key).unwrap_or_else(|| panic!("KeyError: {key:?}"));
+            let mut names = job.get("names").unwrap_or_else(|| panic!("KeyError: 'names'")).strs();
+            match job.get("bare") {
+                Some(Value::Str(s)) => names.push(s.to_string()),
+                Some(other) => names.extend(other.strs()),
+                None => {}
+            }
+            let bias = job.get("bias").and_then(Value::as_int).unwrap_or(0).max(3);
+            built::entry(
+                &format!("time-{key}"),
+                vec![built::part(&names), built::part(&g("_TIME").strs())],
+                Reply::Text(job.get("reply").map(Value::str).unwrap_or_else(|| panic!("KeyError: 'reply'")).to_string()),
+                &[g("_A_WAIT").clone(), g("_A_CAREER").clone(), g("A_AGE_OWNED").clone(), g("_DIY").clone(), job.get("avoid").cloned().unwrap_or(Value::None)],
+                bias,
+                vec![],
+                None,
+            )
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod factory_tests {
+    #[test]
+    fn time_rows_rebuild() {
+        crate::data::load();
+        let rows = super::time_entries(&["tyres", "car-service"]);
+        crate::knowledge::built::assert_rows_match(&rows, "bot.knowledge.cars.ENTRIES");
+        crate::knowledge::built::assert_rows_match(&super::time_entries(&["house-survey"]), "bot.knowledge.job_times.ENTRIES");
+    }
+}

@@ -10,168 +10,36 @@ use std::sync::LazyLock;
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.lookup
 
-/// DUP(bot.knowledge.lookup::tokens): the loose words of a line, lower case, for matching
-/// against keys (`WORD.findall(text.translate(_CURLY).lower())`, WORD = `[a-z0-9]+(?:'[a-z]+)?`).
-pub fn tokens(text: &str) -> Vec<String> {
-    let low: String = text
-        .chars()
-        .map(|c| match c {
-            '\u{2019}' | '\u{2018}' | '\u{2bc}' => '\'',
-            c => c,
-        })
-        .collect::<String>()
-        .to_lowercase();
-    let b = low.as_bytes();
-    let is_w = |c: u8| c.is_ascii_lowercase() || c.is_ascii_digit();
-    let mut out = Vec::new();
-    let mut i = 0;
-    while i < b.len() {
-        if is_w(b[i]) {
-            let s = i;
-            while i < b.len() && is_w(b[i]) {
-                i += 1;
-            }
-            if i + 1 < b.len() && b[i] == b'\'' && b[i + 1].is_ascii_lowercase() {
-                i += 1;
-                while i < b.len() && b[i].is_ascii_lowercase() {
-                    i += 1;
-                }
-            }
-            out.push(low[s..i].to_string());
-        } else {
-            i += 1;
-        }
-    }
-    out
-}
+// was DUP(bot.knowledge.lookup::tokens): now the real port
+pub use crate::knowledge::lookup::tokens;
 
 /// DUP(bot.knowledge.lookup::MIN_TYPO_LENGTH).
 pub static MIN_TYPO_LENGTH: LazyLock<usize> =
     LazyLock::new(|| data::get("bot.knowledge.lookup.MIN_TYPO_LENGTH").as_int().unwrap_or(4) as usize);
 
-/// DUP(bot.knowledge.lookup::_one_edit): true when the two words are one slip apart (a letter
-/// wrong, missing, extra, or two neighbours swapped).
-pub fn _one_edit(shorter: &str, longer: &str) -> bool {
-    if shorter == longer {
-        return true;
-    }
-    let mut s: Vec<char> = shorter.chars().collect();
-    let mut l: Vec<char> = longer.chars().collect();
-    if s.len().abs_diff(l.len()) > 1 {
-        return false;
-    }
-    if s.len() > l.len() {
-        std::mem::swap(&mut s, &mut l);
-    }
-    let mut i = 0;
-    while i < s.len() && s[i] == l[i] {
-        i += 1;
-    }
-    if s.len() < l.len() {
-        return s[i..] == l[i + 1..];
-    }
-    let (rest, tail) = (&s[i..], &l[i..]);
-    if rest.get(1..) == tail.get(1..) {
-        return true;
-    }
-    rest.len() > 1 && rest[0] == tail[1] && rest[1] == tail[0] && rest[2..] == tail[2..]
-}
+// was DUP(bot.knowledge.lookup::_one_edit): now the real port
+pub use crate::knowledge::lookup::_one_edit;
 
-static ENDINGS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.ENDINGS"));
 
-/// DUP(bot.knowledge.lookup::_stem): the word a form belongs to (radiator/radiators are one).
-pub fn _stem(word: &str) -> &str {
-    let n = word.chars().count();
-    for ending in ENDINGS.iter() {
-        if word.ends_with(ending.as_str()) && n >= ending.chars().count() + 3 {
-            return &word[..word.len() - ending.len()];
-        }
-    }
-    word
-}
 
-static COMMON: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup._COMMON"));
-static COMMON_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.COMMON_WORDS"));
-static STEMS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup._STEMS"));
-static COLOUR_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.COLOUR_WORDS"));
-static LEX_CHAT: LazyLock<HashSet<String>> = LazyLock::new(|| dict_keys("bot.understanding.lexicon.CHAT"));
-static LEX_EXPAND: LazyLock<HashSet<String>> = LazyLock::new(|| dict_keys("bot.understanding.lexicon.EXPAND"));
 
-fn dict_keys(name: &str) -> HashSet<String> {
-    data::get(name).pairs().iter().filter_map(|(k, _)| k.as_str().map(str::to_string)).collect()
-}
 
-/// DUP(bot.knowledge.lookup::_engine_reads): true when the understanding engine already reads
-/// this word, as English or chat-speak, so it is never bent into a key word as a slip.
-pub fn _engine_reads(word: &str) -> bool {
-    COMMON.contains(word)
-        || COMMON_WORDS.contains(word)
-        || LEX_CHAT.contains(word)
-        || LEX_EXPAND.contains(word)
-        || STEMS.contains(_stem(word))
-        || every_word().contains(word)
-        || COLOUR_WORDS.contains(word)
-}
 
-static GONE_OFF_SIGNS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.GONE_OFF_SIGNS"));
+// was DUP(bot.knowledge.lookup::_engine_reads): now the real port
+pub use crate::knowledge::lookup::_engine_reads;
 
-/// DUP(bot.knowledge.lookup::says_it_has_gone_off): true when the line says the food has gone
-/// off, or asks whether it has.
-pub fn says_it_has_gone_off(clean: &str) -> bool {
-    let low = format!(" {} ", clean.to_lowercase());
-    GONE_OFF_SIGNS
-        .iter()
-        .any(|sign| low.contains(&format!(" {sign} ")) || low.contains(&format!(" {sign}")))
-}
+
+// was DUP(bot.knowledge.lookup::says_it_has_gone_off): now the real port
+pub use crate::knowledge::lookup::says_it_has_gone_off;
 
 // ---------------------------------------------------------------------------------------------
 // bot.understanding
 
-/// DUP(bot.understanding.lexicon::every_word): every word the reading's own tables (lexicon,
-/// topics, kinds, body) have a meaning for, as one set: the closing fence on a typo.
-pub fn every_word() -> &'static HashSet<String> {
-    static WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| {
-        let mut words = HashSet::new();
-        for prefix in [
-            "bot.understanding.lexicon.",
-            "bot.understanding.topics.",
-            "bot.understanding.kinds.",
-            "bot.understanding.body.",
-        ] {
-            for full in data::names_with_prefix(prefix) {
-                let name = &full[prefix.len()..];
-                if name.contains('.') || name.starts_with('_') || name.contains("MISSPELLING") {
-                    continue;
-                }
-                let value = data::get(full);
-                let items: Vec<&Value> = match value {
-                    Value::Set(v) | Value::Tuple(v) | Value::List(v) => v.iter().collect(),
-                    Value::Dict(d) => d.iter().map(|(k, _)| k).collect(),
-                    _ => continue,
-                };
-                for item in items {
-                    let Some(s) = item.as_str() else { continue };
-                    for word in s.to_lowercase().replace(',', " ").split_whitespace() {
-                        if word.chars().all(char::is_alphabetic) {
-                            words.insert(word.to_string());
-                        }
-                    }
-                }
-            }
-        }
-        words
-    });
-    &WORDS
-}
+// was DUP(bot.understanding.lexicon::every_word): now the real port
+pub use crate::understanding::lexicon::every_word;
 
-/// DUP(bot.understanding::line_as_read): the line with the engine's repairs (`plain`), or the
-/// line as typed when there is no plain line.
-pub fn line_as_read(u: &Understood) -> String {
-    if !u.plain.trim().is_empty() {
-        return u.plain.clone();
-    }
-    sh::clean_or_text(u).to_string()
-}
+// was DUP(bot.understanding::line_as_read): now the real port
+pub use crate::understanding::line_as_read;
 
 static SENSE_ELSEWHERE_FORMS: LazyLock<HashMap<String, Vec<(i64, HashSet<String>)>>> = LazyLock::new(|| {
     data::get("bot.understanding.topics.SENSE_ELSEWHERE_FORMS")
@@ -237,104 +105,39 @@ pub fn _means_something_else(norm: &[String], position: usize) -> bool {
     _sense_cue(norm, &[position], tiers)
 }
 
-/// DUP(bot.understanding.topics::names_another_thing): positions of two-life words a cue has
-/// taken to their other life.
+/// `understanding.topics.names_another_thing(norm)` (the real port), in order.
 pub fn names_another_thing(norm: &[String]) -> Vec<usize> {
-    (0..norm.len())
-        .filter(|&at| SENSE_ELSEWHERE_FORMS.contains_key(&norm[at]) && _means_something_else(norm, at))
-        .collect()
+    crate::understanding::topics::names_another_thing(norm).into_iter().collect()
 }
 
-/// DUP(bot.understanding.topics::says_another_thing): the two-life words in a line that a cue
-/// has taken to their other life.
-pub fn says_another_thing(text: &str) -> HashSet<String> {
-    static SPLIT: LazyLock<crate::py::re::Re> = LazyLock::new(|| crate::py::re::Re::new(r"[^a-z0-9]+", 0));
-    let norm: Vec<String> = SPLIT.split(&text.to_lowercase()).into_iter().filter(|w| !w.is_empty()).collect();
-    names_another_thing(&norm).into_iter().map(|at| norm[at].clone()).collect()
-}
+// was DUP(bot.understanding.topics::says_another_thing): now the real port
+pub use crate::understanding::topics::says_another_thing;
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.cleaning and bot.compose.fit
 
-static LANDED_ON: LazyLock<&'static crate::py::re::Re> = LazyLock::new(|| data::re("bot.knowledge.cleaning.LANDED_ON"));
-static LANDED_ON_THINGS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cleaning.LANDED_ON_THINGS"));
 
-/// DUP(bot.knowledge.cleaning::landed_on_a_thing): the line says what is on a garment or a
-/// surface ("i got egg on my shirt"), not what it is made of.
-pub fn landed_on_a_thing(u: &Understood) -> bool {
-    let text = format!(" {} ", sh::text_or_clean(u).to_lowercase());
-    for m in LANDED_ON.finditer(&text) {
-        if LANDED_ON_THINGS.iter().any(|t| t == m.str(1)) {
-            return true;
-        }
-    }
-    if [" on it ", " on them ", " on those ", " on that ", " on this "].iter().any(|p| text.contains(p)) {
-        return LANDED_ON_THINGS.iter().any(|w| text.contains(w.as_str()));
-    }
-    false
-}
+// was DUP(bot.knowledge.cleaning::landed_on_a_thing): now the real port
+pub use crate::knowledge::cleaning::landed_on_a_thing;
 
-/// DUP(bot.knowledge.cleaning::not_a_mark_on_a_thing): the stand-down for a food row.
-pub fn not_a_mark_on_a_thing(u: &Understood) -> bool {
-    !landed_on_a_thing(u)
-}
+// was DUP(bot.knowledge.cleaning::not_a_mark_on_a_thing): now the real port
+pub use crate::knowledge::cleaning::not_a_mark_on_a_thing;
 
-static FIT_WANTS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.fit.WANTS"));
 
-/// DUP(bot.compose.fit::wanted): the shape of answer this turn asked for, from the store
-/// (`memory["understood"]["wants"]`, else `memory["intent_wants"]`).
-pub fn fit_wanted(memory: &crate::state::Memory) -> Option<String> {
-    if let Some(u) = &memory.understood {
-        if let Some(w) = &u.wants {
-            if FIT_WANTS.contains(w) {
-                return Some(w.clone());
-            }
-        }
-    }
-    memory.intent_wants.clone().filter(|w| FIT_WANTS.contains(w))
-}
+// was DUP(bot.compose.fit::wanted): now the real port
+pub use crate::compose::fit::wanted as fit_wanted;
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.lookup: the kinds ask, and the engine's `find`
 
-static KINDS_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KINDS_WORDS"));
-static KINDS_SHAPE: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.lookup.KINDS_SHAPE"));
-static KINDS_ASKS_ME: LazyLock<&'static crate::py::re::Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_ASKS_ME"));
-static KINDS_ASKS_WITH_A_VERB: LazyLock<&'static crate::py::re::Re> =
-    LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_ASKS_WITH_A_VERB"));
-static KINDS_SAYS_HOW_IT_IS: LazyLock<&'static crate::py::re::Re> =
-    LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_SAYS_HOW_IT_IS"));
-static KINDS_NAMED_A_USE: LazyLock<&'static crate::py::re::Re> =
-    LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_NAMED_A_USE"));
 
-/// DUP(bot.knowledge.lookup::asks_the_kinds): the line asks which families a thing comes in
-/// ("what kinds of tea are there"), in its own words or leaning on the kinds ask before it.
-pub fn asks_the_kinds(u: &Understood) -> bool {
-    let said = sh::clean_or_text(u);
-    if !said.is_empty() && KINDS_ASKS_ME.is_match(said) {
-        return false;
-    }
-    if !said.is_empty() && !KINDS_NAMED_A_USE.is_match(said) {
-        let cleaned = said.to_lowercase().replace(['[', ']', ',', '\''], " ");
-        let words = format!(" {} ", cleaned.split_whitespace().collect::<Vec<_>>().join(" "));
-        let lowered = said.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ");
-        let says_it = u.intent == "news"
-            || (u.kind != "question" && !KINDS_ASKS_WITH_A_VERB.is_match(&lowered) && KINDS_SAYS_HOW_IT_IS.is_match(&lowered));
-        if !says_it && KINDS_WORDS.iter().any(|k| words.contains(k.as_str())) {
-            return true;
-        }
-    }
-    u.wants.as_deref() == Some(KINDS_SHAPE.as_str())
-        && !KINDS_NAMED_A_USE.is_match(said)
-        && u.asks.iter().all(|a| a == "what" || a == "yesno")
-}
+// was DUP(bot.knowledge.lookup::asks_the_kinds): now the real port
+pub use crate::knowledge::lookup::asks_the_kinds;
 
-/// DUP(bot.knowledge.lookup::find) as `find(understood) is not None`. UNRESOLVED: the matching
-/// engine (lookup.find, score, _the_best_entry ...) belongs to the engine workstream and is not
-/// ported; None stands for "the engine could not answer" (the callers treat it as Python treats
-/// an exception there).
-pub fn lookup_find_is_some(_u: &Understood) -> Option<bool> {
-    None
+/// `find(understood) is not None` (the real `lookup.find`); None where it raises, which the
+/// caller treats as Python's `except` does.
+pub fn lookup_find_is_some(u: &Understood) -> Option<bool> {
+    crate::runtime::guarded(|| crate::knowledge::lookup::find(u, None, None, false).is_some())
 }
 
 // ---------------------------------------------------------------------------------------------

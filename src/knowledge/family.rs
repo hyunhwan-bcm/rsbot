@@ -234,7 +234,9 @@ pub fn _not_a_thing_made_of_glass(understood: &Understood) -> bool {
 /// fourth value is the verb that goes with the subject ("does", "do").
 pub fn _the_child_pronouns(memory: &Memory, understood: &Understood) -> (&'static str, &'static str, &'static str, &'static str) {
     let mut said: Vec<&str> = vec![sh::text_or_clean(understood)];
-    // LEANS_ON: the line this one leans on would be read here; always absent on one turn.
+    if let Some(leaned) = &understood.leans_on {
+        said.push(&leaned.text);
+    }
     said.extend(turn_users(memory));
     for line in said {
         let low = format!(" {} ", line.to_lowercase());
@@ -621,8 +623,11 @@ pub fn _any_age_in(clean: &str) -> Option<i64> {
 
 /// The child's age, from the line, then from the line it leans on, then from the chat.
 pub fn _the_child_age_in_the_chat(memory: &Memory, understood: &Understood) -> Option<i64> {
-    // LEANS_ON: the leaned-on line's text would be read after these; absent on one turn.
-    for said in [&understood.text, &understood.clean, &understood.norm_text] {
+    let mut said = vec![&understood.text, &understood.clean, &understood.norm_text];
+    if let Some(leaned) = &understood.leans_on {
+        said.push(&leaned.text);
+    }
+    for said in said {
         if let Some(age) = _any_age_in(&said.to_lowercase()) {
             return Some(age);
         }
@@ -872,10 +877,13 @@ pub fn _an_age_ten_or_over(text_: &str, words: &[String]) -> bool {
 }
 
 /// True when the line this turn leans on is about a person of ten or over.
-pub fn _the_chat_names_a_teen(_understood: &Understood) -> bool {
-    // LEANS_ON: Python reads the leaned-on reading's `subject_type`, `text` and `words`; a
-    // single-turn reading leans on nothing, which is False.
-    false
+pub fn _the_chat_names_a_teen(understood: &Understood) -> bool {
+    let Some(leaned) = &understood.leans_on else { return false };
+    if leaned.subject_type.as_deref() != Some("person") {
+        return false;
+    }
+    let text_ = format!(" {} ", leaned.text.to_lowercase());
+    _an_age_ten_or_over(&text_, &leaned.words)
 }
 
 /// False only for a grunt that belongs to a mouth rather than to a pair of lungs.
@@ -1371,7 +1379,10 @@ pub fn _the_talker_ages(memory: &Memory, understood: &Understood) -> String {
 /// The quiet card, worded for the grown-up or the child the chat is about.
 pub fn _wont_talk_reply(memory: &Memory, understood: &Understood) -> Option<String> {
     let mut said: Vec<String> = vec![understood.text.clone()];
-    // LEANS_ON: the leaned-on reading's subject and text would be added here.
+    if let Some(leans) = &understood.leans_on {
+        said.push(leans.subject.clone().unwrap_or_default());
+        said.push(leans.text.clone());
+    }
     if let Some(Value::Dict(_)) = memory.extra.get("user") {
         if let Some(Value::List(people)) = memory.extra.get("user").and_then(|u| u.get("people")) {
             said.extend(people.iter().filter_map(|p| p.as_str().map(str::to_string)));
@@ -1750,8 +1761,7 @@ pub fn _not_asking_for_a_present_for_them(understood: &Understood) -> bool {
 /// True when the line (or the line it follows) names the home or a visit to it.
 pub fn _the_home_or_a_visit_is_named(understood: &Understood) -> bool {
     let text_ = sh::text_or_clean(understood);
-    // LEANS_ON: the leaned-on line's text would be read beside this one; absent on one turn.
-    let above = "";
+    let above = understood.leans_on.as_ref().map(|l| l.text.as_str()).unwrap_or("");
     if text_.is_empty() && above.is_empty() {
         return true;
     }

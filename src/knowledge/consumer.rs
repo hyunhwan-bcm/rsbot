@@ -632,9 +632,7 @@ pub fn _change_of_mind_verdict(understood: &Understood) -> String {
 
 /// Whether a bicycle brake cable line is a repair question rather than a shop claim.
 pub fn _a_brake_cable_repair_ask(understood: &Understood) -> bool {
-    // TYPE: Python reads `(leans_on or {}).get("text")`; `leans_on` is a dict on a follow-up
-    // turn, which the typed reading does not carry yet, so the line before is "" here.
-    let above = "";
+    let above = understood.leans_on.as_ref().map(|l| l.text.as_str()).unwrap_or("");
     let said = or(&understood.clean, &understood.text);
     let text = format!("{above} {said}").to_lowercase();
     if !_A_BICYCLE_CABLE.is_match(&text) {

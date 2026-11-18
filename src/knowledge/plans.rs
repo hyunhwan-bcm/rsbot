@@ -400,9 +400,8 @@ pub fn _free_weekend_fits(understood: &Understood) -> bool {
     if _asks_about_the_world(&said) {
         return false;
     }
-    // TYPE: Python reads `leans_on` as a dict (`subject`, `topic`) on a follow-up turn; the
-    // typed reading does not carry that yet, so the line leans on nothing here.
-    let follows = false;
+    let leans = understood.leans_on.as_ref();
+    let follows = leans.is_some_and(|l| l.subject.as_deref().is_some_and(|s| !s.is_empty()));
     if _holds(&said, &_BRING_IT) && BRING_TO.is_match(&said) {
         return false;
     }
@@ -410,7 +409,9 @@ pub fn _free_weekend_fits(understood: &Understood) -> bool {
         return _holds(&_said_now(understood), &_OWN_ACTIVITY);
     }
     if !_a_medicine_line(&said) {
-        // `follows and leans_on["topic"] == "health" and ...` cannot hold without a leans_on
+        if follows && leans.and_then(|l| l.topic.as_deref()) == Some("health") && !_holds(&said, &_OWN_ACTIVITY) {
+            return false;
+        }
         return true;
     }
     !follows

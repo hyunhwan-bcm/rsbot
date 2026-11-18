@@ -57,8 +57,6 @@ static _PERSON_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.comp
 static OPENS_ON_A_FRAGMENT_QUESTION: LazyLock<&'static Re> =
     LazyLock::new(|| data::re("bot.compose.OPENS_ON_A_FRAGMENT_QUESTION"));
 static _NOT_A_FRAGMENT: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.compose._NOT_A_FRAGMENT"));
-static CLAIMS_A_PAST: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.history.CLAIMS_A_PAST"));
-static GREETS_A_RETURN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.history.GREETS_A_RETURN"));
 static A_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z']+", 0));
 
 /// DUP(bot.compose::said_again): the sentence with whoever it is about blanked, so two sayings
@@ -103,22 +101,12 @@ fn _earlier_turns<'m>(memory: &'m Memory, text: &str) -> Vec<&'m crate::state::T
         .collect()
 }
 
-/// DUP(bot.memory.history::an_earlier_turn): whether the conversation has a turn before this one.
-pub fn an_earlier_turn(memory: &Memory, text: &str) -> bool {
-    !_earlier_turns(memory, text).is_empty()
-}
+// was DUP(bot.memory.history::an_earlier_turn): now the real port
+pub use crate::memory::history::an_earlier_turn;
 
-/// DUP(bot.memory.history::a_past_that_is_not_there), as `pick` calls it (no `said`): a reply
-/// that points back at a conversation that has not happened yet.
+/// `memory.history.a_past_that_is_not_there(reply, memory)` (the real port, `said` left out).
 pub fn a_past_that_is_not_there(reply: &str, memory: &Memory) -> bool {
-    if an_earlier_turn(memory, "") {
-        return false;
-    }
-    let low = sh::squash_lower(reply);
-    if low.is_empty() {
-        return false;
-    }
-    CLAIMS_A_PAST.is_match(&low) || GREETS_A_RETURN.match_(&low).is_some()
+    crate::memory::history::a_past_that_is_not_there(reply, Some(memory), None)
 }
 
 /// DUP(bot.compose::pick): one of `options`, never the reply just given, preferring one the bot
@@ -178,60 +166,19 @@ pub fn pick_strs(options: &[&str], memory: &Memory) -> String {
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.lookup
 
-static HAS_GONE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.HAS_GONE"));
-static GONE_INTENSIFIER: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.GONE_INTENSIFIER"));
-static GONE_STATE: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.GONE_STATE"));
-static WHERE_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.WHERE_PHRASES"));
 
-/// DUP(bot.knowledge.lookup::the_thing_has_gone): whether "gone"/"went" is what the thing did
-/// ("my kettle's gone"), rather than the state it went into ("the milk has gone off").
-pub fn the_thing_has_gone(understood: &Understood) -> bool {
-    let said: Vec<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
-    let line = if said.is_empty() {
-        format!(" {} ", sh::clean_or_text(understood).to_lowercase())
-    } else {
-        format!(" {} ", said.join(" "))
-    };
-    for found in HAS_GONE.finditer(&line) {
-        let tail = found.str(1);
-        let mut words: Vec<&str> = crate::py::text::split_ref(tail)
-            .into_iter()
-            .map(|w| crate::py::text::strip_chars(w, "'.,!?"))
-            .filter(|w| !w.is_empty())
-            .collect();
-        while !words.is_empty() && GONE_INTENSIFIER.contains(words[0]) {
-            words.remove(0);
-        }
-        if words.is_empty() || !GONE_STATE.contains(words[0]) {
-            return true;
-        }
-    }
-    false
-}
+// was DUP(bot.knowledge.lookup::the_thing_has_gone): now the real port
+pub use crate::knowledge::lookup::the_thing_has_gone;
 
-/// DUP(bot.knowledge.lookup::asks_where): the line asks where to get something.
-pub fn asks_where(understood: &Understood) -> bool {
-    if understood.asks.iter().any(|a| a == "where") {
-        return true;
-    }
-    let text = format!(" {} ", understood.words.join(" ").to_lowercase());
-    WHERE_PHRASES.iter().any(|p| text.contains(p.as_str()))
-}
+// was DUP(bot.knowledge.lookup::asks_where): now the real port
+pub use crate::knowledge::lookup::asks_where;
 
 // ---------------------------------------------------------------------------------------------
 // bot.understanding.topics
 
-static MACHINE_BIN_WORDS: LazyLock<HashSet<String>> =
-    LazyLock::new(|| data::set("bot.understanding.topics.MACHINE_BIN_WORDS"));
 
-/// DUP(bot.understanding.topics::the_bin_is_on_a_machine): the line's bin is the one on a
-/// computer, not the one under the sink.
-pub fn the_bin_is_on_a_machine(understood: &Understood) -> bool {
-    if understood.words.iter().any(|w| MACHINE_BIN_WORDS.contains(w)) {
-        return true;
-    }
-    understood.topics.iter().any(|t| t == "technology")
-}
+// was DUP(bot.understanding.topics::the_bin_is_on_a_machine): now the real port
+pub use crate::understanding::topics::the_bin_is_on_a_machine;
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.body
@@ -248,75 +195,28 @@ static _COOK_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.k
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.travel
 
-static AMBIGUOUS_PLACES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.travel.AMBIGUOUS_PLACES"));
 static _PLACE_SHAPE: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.travel._PLACE_SHAPE"));
 
-/// DUP(bot.knowledge.travel::_worth_a_visit): the line asks whether the place is worth the
-/// journey, naming it as a place.
-pub fn _worth_a_visit(text: &str, name: &str) -> bool {
-    let name = sh::escape(name);
-    let pattern = format!(
-        r"(?<![a-z]){name}\s+(?:is\s+)?worth|\bis\s+{name}\s+worth|\bworth\s+(?:visiting|seeing|going to)\s+{name}\b"
-    );
-    sh::re_search(&pattern, text, 0)
-}
+// was DUP(bot.knowledge.travel::_worth_a_visit): now the real port
+pub use crate::knowledge::travel::_worth_a_visit;
 
-/// DUP(bot.knowledge.travel::_names_place): the word is used as a place, not as the everyday
-/// word it shares ("bath", "split", "cork").
-pub fn _names_place(text: &str, name: &str) -> bool {
-    if !AMBIGUOUS_PLACES.iter().any(|p| p == name) {
-        return true;
-    }
-    let shape = _PLACE_SHAPE.replacen("%s", &sh::escape(name), 1);
-    if sh::re_search(&shape, text, 0) {
-        return true;
-    }
-    _worth_a_visit(text, name)
-}
+// was DUP(bot.knowledge.travel::_names_place): now the real port
+pub use crate::knowledge::travel::_names_place;
 
-/// DUP(bot.knowledge.travel::_find_in): the key of `table` the line names, longest first.
-pub fn _find_in(text: &str, table: &[String]) -> Option<String> {
-    let mut names: Vec<&String> = table.iter().collect();
-    names.sort_by(|a, b| b.chars().count().cmp(&a.chars().count()));
-    for name in names {
-        let pattern = format!(r"(?<![a-z]){}(?![a-z])", sh::escape(name));
-        if sh::re_search(&pattern, text, 0) && _names_place(text, name) {
-            return Some(name.clone());
-        }
-    }
-    None
-}
 
-/// The keys of `bot.knowledge.travel.CITY_DAYS`, in dict order.
-pub static CITY_DAYS: LazyLock<Vec<String>> = LazyLock::new(|| {
-    data::get("bot.knowledge.travel.CITY_DAYS").pairs().iter().filter_map(|(k, _)| k.as_str().map(str::to_string)).collect()
-});
 
-/// `_find_in(text, CITY_DAYS)` with the keys sorted and their patterns compiled once.
+
+/// `travel._find_in(text, CITY_DAYS)` (the real port): the city the line names.
 pub fn find_city(text: &str) -> Option<String> {
-    static SORTED: LazyLock<Vec<(String, Re)>> = LazyLock::new(|| {
-        let mut names: Vec<&String> = CITY_DAYS.iter().collect();
-        names.sort_by(|a, b| b.chars().count().cmp(&a.chars().count()));
-        names
-            .into_iter()
-            .map(|n| (n.clone(), Re::new(&format!(r"(?<![a-z]){}(?![a-z])", sh::escape(n)), 0)))
-            .collect()
-    });
-    SORTED.iter().find(|(name, re)| re.is_match(text) && _names_place(text, name)).map(|(name, _)| name.clone())
+    crate::knowledge::travel::_find_in(text, &crate::knowledge::travel::CITY_DAYS).map(str::to_string)
 }
 
 // ---------------------------------------------------------------------------------------------
 // bot.memory.topics
 
-/// DUP(bot.memory.topics::context): the last n topic texts, oldest first.
+/// `memory.topics.context(memory, n)` (the real port).
 pub fn topics_context(memory: &Memory, n: usize) -> Vec<String> {
-    let Some(Value::List(records)) = memory.extra.get("topics") else { return Vec::new() };
-    let start = records.len().saturating_sub(n);
-    records[start..]
-        .iter()
-        .filter_map(|r| r.get("text").map(|t| t.str().to_string()))
-        .filter(|t| !t.is_empty())
-        .collect()
+    crate::memory::topics::context(memory, n as i64)
 }
 
 /// Python's float floor division `a // b` (CPython's `float_floor_div`: fmod first, so

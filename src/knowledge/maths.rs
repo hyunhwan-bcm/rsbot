@@ -1046,20 +1046,11 @@ impl Date {
     }
 }
 
-/// `datetime.date.today()`: the pinned clock of the oracle runs (2026-11-17), or RSBOT_TODAY.
+/// `datetime.date.today()`, from the shared clock (`py::clock`).
 pub fn today() -> Date {
-    static TODAY: LazyLock<Date> = LazyLock::new(|| {
-        if let Ok(s) = std::env::var("RSBOT_TODAY") {
-            let p: Vec<i64> = s.split('-').filter_map(|x| x.parse().ok()).collect();
-            if p.len() == 3 {
-                if let Some(d) = Date::new(p[0], p[1], p[2]) {
-                    return d;
-                }
-            }
-        }
-        Date { year: 2026, month: 11, day: 17 }
-    });
-    *TODAY
+    use chrono::Datelike;
+    let d = crate::py::clock::today();
+    Date { year: d.year() as _, month: d.month() as _, day: d.day() as _ }
 }
 
 // =============================================================================================
@@ -3308,8 +3299,8 @@ pub fn _at_a_pace(clean: &str, memory: Option<&Memory>, a_verdict: bool) -> Opti
 /// A unit conversion, from the one table of units (bot/knowledge/units.py).
 pub fn _convert(clean: &str, memory: Option<&mut Memory>) -> Option<String> {
     let fact = _unit_fact(clean);
-    let table = dup::units_convert(clean, memory);
-    if fact.is_some() && !dup::units_answers_more_than_a_pair(clean) {
+    let table = crate::knowledge::units::convert(clean, memory.as_deref());
+    if fact.is_some() && !crate::knowledge::units::answers_more_than_a_pair(clean) {
         return fact;
     }
     table.filter(|t| !t.is_empty()).or(fact)

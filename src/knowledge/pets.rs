@@ -2652,8 +2652,8 @@ pub fn _eaten_thing_is_not_food(understood: &Understood) -> bool {
 
 /// False for a line that only says what happened, or that leans on the turn before.
 pub fn _it_asks_what_to_do(understood: &Understood) -> bool {
-    // LEANS_ON: Python reads `understood["leans_on"]` (an earlier reading) here; it is always
-    // None on a single-turn reading.
+    // "how old is he" after "we got a kitten" is a question about the age (a leaned-on line is a
+    // dict with five keys, so it is always truthy).
     if understood.leans_on.is_some() {
         return false;
     }
@@ -3608,28 +3608,60 @@ fn s_the_buying_shape(_f: &FnRef, text_: &str) -> bool {
 pub const SHAPES: &[(&str, ShapeFn)] = &[("bot.knowledge.pets:_the_buying_shape:583", s_the_buying_shape)];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories (`knowledge::built`).
 
-    /// Python: bot/knowledge/pets.py:2588 `_bird_lifespan(reply)` (never called on the trace corpus)
-    pub fn _bird_lifespan(reply: &str) -> Value {
-        crate::unported!("bot.knowledge.pets:_bird_lifespan")
-    }
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, Reply};
 
-    /// Python: bot/knowledge/pets.py:2670 `_lifespan_entries()` (never called on the trace corpus)
-    pub fn _lifespan_entries() -> Value {
-        crate::unported!("bot.knowledge.pets:_lifespan_entries")
-    }
-
+/// `_bird_lifespan(reply)`: a bird's life for a line that says life; None (pass) for the same
+/// bird on a plate.
+pub fn _bird_lifespan(reply: &str) -> FnRef {
+    built::closure("bot.knowledge.pets:_bird_lifespan.<locals>.say:2590", vec![("reply", Value::from(reply))])
 }
 
+/// `_lifespan_entries()`: one row per animal, so a second animal in the same chat is a new
+/// subject, and the row for an animal the table does not name.
+pub fn _lifespan_entries() -> Vec<Entry> {
+    let ask = g("_LIFESPAN_ASK").strs();
+    let avoid = g("_LIFESPAN_AVOID").clone();
+    let birds = g("_BIRD_ALSO_MEAT").strs();
+    let mut out: Vec<Entry> = g("_PET_LIFESPAN")
+        .items()
+        .iter()
+        .map(|row| {
+            let names = row.items()[0].strs();
+            let said = row.items()[1].str();
+            let reply = if birds.contains(&names[0]) { Reply::Fn(_bird_lifespan(said)) } else { Reply::Text(said.to_string()) };
+            built::entry(
+                &format!("pet-lifespan-{}", names[0].replace(' ', "-")),
+                vec![built::part(&ask), built::part(&names)],
+                reply,
+                &[avoid.clone()],
+                1,
+                vec![],
+                Some(built::function("bot.knowledge.pets:_not_a_weight_of_food:2659")),
+            )
+        })
+        .collect();
+    let any: Vec<String> = ["pet", "pets", "animal", "animals"].iter().map(|s| s.to_string()).collect();
+    out.push(built::entry(
+        "pet-lifespan",
+        vec![built::part(&ask), built::part(&any)],
+        Reply::Text(g("_LIFESPAN_UNKNOWN").str().to_string()),
+        &[avoid],
+        1,
+        vec![],
+        None,
+    ));
+    out
+}
+
+#[cfg(test)]
+mod factory_tests {
+    #[test]
+    fn lifespan_rows_rebuild() {
+        crate::data::load();
+        crate::knowledge::built::assert_rows_match(&super::_lifespan_entries(), "bot.knowledge.pets.ENTRIES");
+    }
+}

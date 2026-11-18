@@ -231,23 +231,14 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The reply factory.
 
-    /// Python: bot/knowledge/whenbuy.py:293 `_whenbuy(reply, own)` (never called on the trace corpus)
-    pub fn _whenbuy(reply: &str, own: &str) -> Value {
-        crate::unported!("bot.knowledge.whenbuy:_whenbuy")
-    }
-
+/// `_whenbuy(reply, own)`: a calendar row's answer, and None for a line that is not asking the
+/// calendar question.
+pub fn _whenbuy(reply: &str, own: &str) -> FnRef {
+    crate::knowledge::built::closure(
+        "bot.knowledge.whenbuy:_whenbuy.<locals>.answer:296",
+        vec![("own", crate::data::Value::from(own)), ("reply", crate::data::Value::from(reply))],
+    )
 }
-

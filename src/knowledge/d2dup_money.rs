@@ -39,30 +39,19 @@ impl Date {
     }
 }
 
-// NEEDS(clock: datetime.date.today) — PyBot's runs (and every oracle) pin the date to
-// 2026-11-17; RSBOT_TODAY=YYYY-MM-DD overrides it.
-/// `datetime.date.today()`.
+/// `datetime.date.today()`, from the shared clock (`py::clock`).
 pub fn today() -> Date {
-    if let Ok(s) = std::env::var("RSBOT_TODAY") {
-        let p: Vec<&str> = s.split('-').collect();
-        if p.len() == 3 {
-            if let (Ok(y), Ok(m), Ok(d)) = (p[0].parse(), p[1].parse(), p[2].parse()) {
-                return Date { year: y, month: m, day: d };
-            }
-        }
-    }
-    Date { year: 2026, month: 11, day: 17 }
+    use chrono::Datelike;
+    let d = crate::py::clock::today();
+    Date { year: d.year() as _, month: d.month() as _, day: d.day() as _ }
 }
 
 // ---------------------------------------------------------------------------------------------
 // bot/memory/facts.py
 
-// NEEDS(bot.memory.facts::extract) — the facts reader is a 10k-line module owned elsewhere;
-// `money._a_first_meeting` only reads `extract(text).get("name")`. Until the port is merged
-// this reads no name, so the saving answer is never held back for a welcome.
-/// `extract(text).get("name")`.
-pub fn extract_name(_text: &str) -> Option<String> {
-    None
+/// `extract(text).get("name")`: the name the memory owner's own reader finds in the line.
+pub fn extract_name(text: &str) -> Option<String> {
+    crate::memory::facts::extract(text, false).get("name").filter(|n| n.truthy()).map(|n| n.str().to_string())
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -92,22 +81,7 @@ static _GROUP_VALUE: LazyLock<Vec<(String, i64)>> = LazyLock::new(|| str_int_pai
 // was DUP-D2(bot.knowledge.cooking::_people_after): now the real port
 pub use crate::knowledge::cooking::_people_after;
 
-// DUP(bot.knowledge.units::people_in_groups)
-/// How many people the groups named in the line add up to, or None when it names none.
-pub fn people_in_groups(text: &str) -> Option<i64> {
-    let mut total = 0;
-    for raw in _TABLE_GROUPS.findall_str(&text.to_lowercase()) {
-        let count = if text::is_digit(&raw) {
-            raw.parse().ok()
-        } else {
-            _GROUP_VALUE.iter().find(|(k, _)| *k == raw).map(|(_, v)| *v)
-        };
-        if let Some(c) = count.filter(|c| *c != 0) {
-            total += c;
-        }
-    }
-    if total != 0 { Some(total) } else { None }
-}
+pub use crate::knowledge::units::people_in_groups;
 
 // was DUP-D2(bot.knowledge.cooking::_crowd): now the real port
 pub use crate::knowledge::cooking::_crowd;
@@ -133,31 +107,8 @@ static COUNTRY_ALIASES: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
         .collect()
 });
 
-// DUP(bot.knowledge.geography::_countries_said)
-/// The countries a line names, in the order it says them, as keys into COUNTRIES.
-pub fn _countries_said(clean: &str) -> Vec<String> {
-    let mut found: Vec<(usize, String)> = Vec::new();
-    let mut taken: Vec<(usize, usize)> = Vec::new();
-    for (phrase, re) in COUNTRY_PHRASES.iter() {
-        for m in re.finditer(clean) {
-            let (start, end) = (m.start(), m.end());
-            if taken.iter().any(|&(before, after)| before < end && start < after) {
-                continue;
-            }
-            taken.push((start, end));
-            let name = COUNTRY_ALIASES.iter().find(|(k, _)| k == phrase).map(|(_, v)| v.clone()).unwrap_or_else(|| phrase.clone());
-            found.push((start, name));
-        }
-    }
-    found.sort();
-    let mut said: Vec<String> = Vec::new();
-    for (_, name) in found {
-        if !said.contains(&name) {
-            said.push(name);
-        }
-    }
-    said
-}
+// was DUP(bot.knowledge.geography::_countries_said): now the real port
+pub use crate::knowledge::geography::_countries_said;
 
 #[cfg(test)]
 mod tests {
@@ -168,5 +119,17 @@ mod tests {
         assert_eq!(d.weekday(), 1); // a Tuesday
         assert_eq!(Date { year: 2026, month: 12, day: 1 }.days_since(&d), 14);
         assert_eq!(Date { year: 2027, month: 1, day: 1 }.days_since(&d), 45);
+    }
+}
+
+#[cfg(test)]
+mod wired_tests {
+    /// Expected values from `pycall.py bot.knowledge.money _a_first_meeting`.
+    #[test]
+    #[ignore = "facts::extract still reaches bot.memory.taste:read_other, which is not ported yet"]
+    fn a_name_in_the_line() {
+        crate::data::load();
+        assert!(super::extract_name("hi im jess, im saving for a car").is_some_and(|n| !n.is_empty()));
+        assert!(super::extract_name("im saving for a car").is_none());
     }
 }

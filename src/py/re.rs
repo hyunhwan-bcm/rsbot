@@ -509,16 +509,15 @@ impl Template {
     }
 }
 
-/// `re.escape(text)`.
+/// `re.escape(text)`: CPython (3.7+) escapes only the characters special in a pattern
+/// (`()[]{}?*+-|^$\\.&~#`, space and the whitespace controls), so the pattern text is the same.
 pub fn escape(text: &str) -> String {
     let mut out = String::with_capacity(text.len() * 2);
     for c in text.chars() {
-        if c.is_ascii_alphanumeric() || c == '_' || !c.is_ascii() {
-            out.push(c);
-        } else {
+        if "()[]{}?*+-|^$\\.&~# \t\n\r\x0b\x0c".contains(c) {
             out.push('\\');
-            out.push(c);
         }
+        out.push(c);
     }
     out
 }

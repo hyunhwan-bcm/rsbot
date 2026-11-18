@@ -697,9 +697,10 @@ fn word_in(word: &str, text: &str) -> bool {
 /// nothing in the line says what happened.
 pub fn _comfort(_memory: &Memory, understood: &Understood) -> Option<String> {
     let said = format!(" {} ", understood.clean.to_lowercase());
-    // LEANS_ON: the line this one follows (`leans_on["words"]`) is a dict only on a later turn;
-    // the typed reading holds no words for it, so `earlier` is "" here.
-    let earlier = String::new();
+    let earlier = match &understood.leans_on {
+        Some(leans) => format!(" {} ", leans.words.join(" ").to_lowercase()),
+        None => String::new(),
+    };
     let both = format!("{said}{earlier}");
     for (words, reply) in COMFORT.iter() {
         for word in words {

@@ -145,38 +145,72 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The factories PyBot ran at import: the key words, the closures and the curiosity rows.
 
-    /// Python: bot/knowledge/animals.py:836 `_names_with(fact, rows=ANIMALS)` (never called on the trace corpus)
-    pub fn _names_with(fact: &str, rows: &Value) -> Value {
-        crate::unported!("bot.knowledge.animals:_names_with")
-    }
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, Reply};
 
-    /// Python: bot/knowledge/animals.py:841 `_the_word(kind)` (never called on the trace corpus)
-    pub fn _the_word(kind: &str) -> Value {
-        crate::unported!("bot.knowledge.animals:_the_word")
-    }
-
-    /// Python: bot/knowledge/animals.py:859 `_fact(fact)` (never called on the trace corpus)
-    pub fn _fact(fact: &str) -> Value {
-        crate::unported!("bot.knowledge.animals:_fact")
-    }
-
-    /// Python: bot/knowledge/animals.py:910 `_curiosity(animal, cue, reply, avoid=(), bias=0, ask=())` (never called on the trace corpus)
-    pub fn _curiosity(animal: &Value, cue: &Value, reply: &str, avoid: &Value, bias: &Value, ask: &str) -> Value {
-        crate::unported!("bot.knowledge.animals:_curiosity")
-    }
-
+/// `_names_with(fact, rows=ANIMALS)`: every animal name whose row has this fact, for a key.
+/// `rows` None is Python's default (`ANIMALS`).
+pub fn _names_with(fact: &str, rows: Option<&Value>) -> Vec<String> {
+    let rows = rows.unwrap_or(&ANIMALS);
+    rows.items().iter().filter(|row| row.get(fact).is_some_and(Value::truthy)).flat_map(names_of).collect()
 }
 
+/// `_the_word(kind)`: the reply that gives the word for this kind of name (`the_word_reply`).
+pub fn _the_word(kind: &str) -> FnRef {
+    built::closure("bot.knowledge.animals:_the_word.<locals>.reply:847", vec![("kind", Value::from(kind))])
+}
+
+/// `_fact(fact)`: the reply that gives this fact from the row the line names.
+pub fn _fact(fact: &str) -> FnRef {
+    built::closure("bot.knowledge.animals:_fact.<locals>.reply:861", vec![("fact", Value::from(fact))])
+}
+
+static NOT_AN_ID: LazyLock<Re> = LazyLock::new(|| Re::new(r"[^a-z0-9]+", 0));
+
+/// `_curiosity(animal, cue, reply, avoid=(), bias=0, ask=())`: one entry per curiosity row,
+/// keyed by the animal and the words that ask it.
+pub fn _curiosity(animal: &[String], cue: &[String], reply: &str, avoid: &[String], bias: i64, ask: &[String]) -> Entry {
+    let id = format!("animal-{}", NOT_AN_ID.sub("-", &format!("{}-{}", animal[0], cue[0])));
+    built::entry(
+        &id,
+        vec![built::part(animal), built::part(cue)],
+        Reply::Text(reply.to_string()),
+        &[built::words(avoid)],
+        bias,
+        ask.iter().map(|w| crate::knowledge::entry::KeyPart::Word(w.clone())).collect(),
+        None,
+    )
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    /// The curiosity rows rebuild from their own key, reply, avoid and bias.
+    #[test]
+    fn curiosity_rows_rebuild() {
+        crate::data::load();
+        let mut n = 0;
+        for row in built::exported("bot.knowledge.animals.ENTRIES") {
+            if !row.id.starts_with("animal-") || row.guard.is_some() || row.key.len() != 2 {
+                continue;
+            }
+            let (Reply::Text(reply), crate::knowledge::entry::KeyPart::Any(animal), crate::knowledge::entry::KeyPart::Any(cue)) = (&row.reply, &row.key[0], &row.key[1]) else { continue };
+            let ask: Vec<String> = row.ask.iter().flat_map(|p| p.words().into_iter().map(str::to_string)).collect();
+            let ours = _curiosity(animal, cue, reply, &row.avoid, row.bias, &ask);
+            if ours.id == row.id {
+                assert_eq!(built::same_entry(&ours, &row), None);
+                n += 1;
+            }
+        }
+        assert!(n > 5, "{n} curiosity rows");
+        let rows = built::exported("bot.knowledge.animals.ENTRIES");
+        for fact in ["life", "gestation", "size"] {
+            let names = crate::knowledge::entry::KeyPart::Any(_names_with(fact, None));
+            assert!(rows.iter().any(|r| r.key.first() == Some(&names)), "{fact}");
+        }
+    }
+}

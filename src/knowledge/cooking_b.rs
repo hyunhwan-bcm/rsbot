@@ -722,7 +722,7 @@ static FOOD_NUTRIENTS: LazyLock<IndexMap<String, NutrientRow>> = LazyLock::new(|
         })
         .collect()
 });
-static NUTRIENT_TABLE: LazyLock<FoodTable> = LazyLock::new(|| FoodTable::of("FOOD_NUTRIENTS"));
+pub static NUTRIENT_TABLE: LazyLock<FoodTable> = LazyLock::new(|| FoodTable::of("FOOD_NUTRIENTS"));
 static NUTRIENT_DISH: LazyLock<Vec<String>> = LazyLock::new(|| cstrs("_NUTRIENT_DISH"));
 static NUTRIENT_JOIN: LazyLock<Vec<String>> = LazyLock::new(|| cstrs("_NUTRIENT_JOIN"));
 static NUTRIENT_WORDS: LazyLock<Vec<(Re, String)>> = LazyLock::new(|| {

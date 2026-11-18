@@ -126,23 +126,26 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factory (`knowledge::built`).
 
-    /// Python: bot/knowledge/joints.py:261 `_a_replacement()` (never called on the trace corpus)
-    pub fn _a_replacement(args: &[Value]) -> Value {
-        crate::unported!("bot.knowledge.joints:_a_replacement")
-    }
-
+/// `_a_replacement(*args, **kwargs)`: one of the cards about a joint that was replaced, which a
+/// road line must not reach - `_not_a_road` and `_not_something_else_replaced` folded into its
+/// guard, with the row's own guard (`asked`) after them.
+#[allow(clippy::too_many_arguments)]
+pub fn _a_replacement(
+    id: &str,
+    key: Vec<crate::knowledge::entry::KeyPart>,
+    reply: crate::knowledge::entry::Reply,
+    avoid: &[crate::data::Value],
+    bias: i64,
+    ask: Vec<crate::knowledge::entry::KeyPart>,
+    asked: Option<FnRef>,
+) -> crate::knowledge::entry::Entry {
+    use crate::knowledge::built;
+    let guard = match asked {
+        None => built::function("bot.knowledge.joints:_a_replacement.<locals>.<lambda>:265"),
+        Some(g) => built::closure("bot.knowledge.joints:_a_replacement.<locals>.<lambda>:268", vec![("asked", crate::data::Value::Fn(std::sync::Arc::new(g)))]),
+    };
+    built::entry(id, key, reply, avoid, bias, ask, Some(guard))
 }
-

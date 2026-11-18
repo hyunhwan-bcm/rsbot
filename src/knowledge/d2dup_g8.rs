@@ -58,10 +58,8 @@ pub use crate::knowledge::cooking::without as cooking_without;
 // ---------------------------------------------------------------------------------------------
 // DUP(bot.knowledge.dishes::a_dish_is_already_the_plan)
 
-static PLAN_MARKER: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes._PLAN_MARKER"));
-static IDEA_ASK: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes._IDEA_ASK"));
 
-// NEEDS(bot.knowledge.dishes::dish_in)
+// `dishes.dish_in` (the real port), owned as a String.
 /// The plan key a piece of text names, or None. Needs D1's `dishes._named` (the dish-name
 /// matcher, with `understanding.topics.says_another_thing` and lookup's typo rules); until that
 /// is merged it names nothing.
@@ -69,19 +67,5 @@ pub fn dish_in(text: &str) -> Option<String> {
     crate::knowledge::dishes::dish_in(text).map(str::to_string)
 }
 
-// DUP(bot.knowledge.dishes::a_dish_is_already_the_plan)
-/// True when the line names a dish and says that is what is being cooked.
-pub fn a_dish_is_already_the_plan(text: &str) -> bool {
-    let text = text.to_lowercase();
-    // `dish_in` is free of side effects, so the cheap tests go first
-    if text.is_empty() {
-        return false;
-    }
-    if !PLAN_MARKER.iter().any(|m| text.contains(m.as_str())) {
-        return false;
-    }
-    if IDEA_ASK.iter().any(|p| text.contains(p.as_str())) {
-        return false;
-    }
-    dish_in(&text).is_some()
-}
+// was DUP(bot.knowledge.dishes::a_dish_is_already_the_plan): now the real port
+pub use crate::knowledge::dishes::a_dish_is_already_the_plan;

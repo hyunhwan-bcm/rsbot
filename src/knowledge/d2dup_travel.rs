@@ -27,85 +27,30 @@ pub fn char_window(s: &str, byte: usize, n: usize) -> &str {
 // ---------------------------------------------------------------------------------------------
 // bot/memory/when.py
 
-// DUP(bot.memory.when::the_plan)
-/// The newest plan the store keeps, in the person's own words, or None.
-pub fn the_plan(memory: &Memory) -> Option<String> {
-    let known = user_dict(memory)?;
-    if let Some(Value::Str(plan)) = known.get("plan") {
-        if !text::strip(plan).is_empty() {
-            return Some(text::squash(plan));
-        }
-    }
-    let plans: Vec<&str> = known
-        .get("plans")
-        .map(|p| p.items().iter().filter_map(|x| x.as_str()).filter(|s| !text::strip(s).is_empty()).collect())
-        .unwrap_or_default();
-    plans.last().map(|p| text::squash(p))
-}
+// was DUP(bot.memory.when::the_plan): now the real port
+pub use crate::memory::when::the_plan;
 
 // ---------------------------------------------------------------------------------------------
 // bot/memory/topics.py
 
 // DUP(bot.memory.topics::LIVES_THERE)
 pub static LIVES_THERE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.LIVES_THERE"));
-static TRIP_FRAME: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.TRIP_FRAME"));
 
-// DUP(bot.memory.topics::going_there)
-/// Whether the topic says the person is going to the place, not living in it.
-pub fn going_there(place: &str, topic: &str) -> bool {
-    let said = topic.to_lowercase();
-    for m in LIVES_THERE.finditer(&said) {
-        if char_window(&said, m.end(), 40).contains(place) {
-            return false;
-        }
-    }
-    TRIP_FRAME.is_match(&said)
-}
+// was DUP(bot.memory.topics::going_there): now the real port
+pub use crate::memory::topics::going_there;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/geography.py (D1)
 
-static G_CROSSING_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.geography._CROSSING_WORD"));
-static G_DIRECTION: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.geography._DIRECTION"));
-static G_DESTINATION: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.geography._DESTINATION"));
-static G_ARTICLE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.geography._ARTICLE"));
-static G_NOT_A_PLACE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.geography._NOT_A_PLACE"));
-static G_EVERYDAY_PLACE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.geography._EVERYDAY_PLACE"));
-static G_BRITAIN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.geography._BRITAIN"));
 
-// DUP(bot.knowledge.geography::_bare_place)
-/// The place words after a direction, without the article in front of them.
-pub fn _bare_place(phrase: &str) -> String {
-    let mut phrase = text::strip_chars(text::strip(phrase), ".,!?;:").to_string();
-    loop {
-        let shorter = G_ARTICLE.subn("", &phrase, 1);
-        if shorter == phrase {
-            return phrase;
-        }
-        phrase = shorter;
-    }
-}
+// was DUP(bot.knowledge.geography::_bare_place): now the real port
+pub use crate::knowledge::geography::_bare_place;
 
-// DUP(bot.knowledge.geography::directed_place)
-/// The place a line carries something towards, in its own words, or None.
-pub fn directed_place(line: &str) -> Option<String> {
-    for m in G_DIRECTION.finditer(line) {
-        let place = _bare_place(m.str(1));
-        if !place.is_empty() && !G_NOT_A_PLACE.iter().any(|w| *w == place) {
-            return Some(place);
-        }
-    }
-    None
-}
+// was DUP(bot.knowledge.geography::directed_place): now the real port
+pub use crate::knowledge::geography::directed_place;
 
-// DUP(bot.knowledge.geography::_is_everyday)
-/// True when the place words name a room, a building or a do rather than a country.
-pub fn _is_everyday(place: &str) -> bool {
-    let place = _bare_place(place);
-    G_EVERYDAY_PLACE.iter().any(|name| {
-        place == *name || place.starts_with(&format!("{name} ")) || place.ends_with(&format!(" {name}"))
-    })
-}
+// was DUP(bot.knowledge.geography::_is_everyday): now the real port
+pub use crate::knowledge::geography::_is_everyday;
 
 // DUP(bot.knowledge.geography::_is_a_place)
 fn _is_a_place(line: &str) -> Option<String> {
@@ -116,38 +61,14 @@ fn _is_a_place(line: &str) -> Option<String> {
     Some(place)
 }
 
-// DUP(bot.knowledge.geography::crosses_a_border)
-/// True when the line carries something across a border rather than to a do.
-pub fn crosses_a_border(line: &str) -> bool {
-    let line = line.to_lowercase();
-    if G_CROSSING_WORD.is_match(&line) {
-        return true;
-    }
-    _is_a_place(&line).is_some()
-}
+// was DUP(bot.knowledge.geography::crosses_a_border): now the real port
+pub use crate::knowledge::geography::crosses_a_border;
 
-// DUP(bot.knowledge.geography::destination_place)
-/// The place a line travels into or to, in its own words, or None.
-pub fn destination_place(line: &str) -> Option<String> {
-    let low = line.to_lowercase();
-    for m in G_DESTINATION.finditer(&low) {
-        let place = _bare_place(m.str(1));
-        if !place.is_empty() && !G_NOT_A_PLACE.iter().any(|w| *w == place) {
-            return Some(place);
-        }
-    }
-    None
-}
+// was DUP(bot.knowledge.geography::destination_place): now the real port
+pub use crate::knowledge::geography::destination_place;
 
-// DUP(bot.knowledge.geography::carries_it_out_of_britain)
-/// True when the place travelled to is named and is not Britain.
-pub fn carries_it_out_of_britain(line: &str) -> bool {
-    let Some(place) = destination_place(line) else { return false };
-    if _is_everyday(&place) {
-        return false;
-    }
-    !G_BRITAIN.iter().any(|b| *b == place)
-}
+// was DUP(bot.knowledge.geography::carries_it_out_of_britain): now the real port
+pub use crate::knowledge::geography::carries_it_out_of_britain;
 
 // ---------------------------------------------------------------------------------------------
 // The clock
@@ -162,10 +83,11 @@ pub struct Moment {
     pub minute: i64,
 }
 
-// NEEDS(runtime clock: datetime.datetime.now(datetime.timezone.utc))
-/// `datetime.now(timezone.utc)`: pinned to 2026-11-17 12:00 UTC, as in every oracle run.
+/// `datetime.now(timezone.utc)`, from the shared clock (`py::clock`), to the minute.
 pub fn now_utc() -> Moment {
-    Moment { year: 2026, month: 11, day: 17, hour: 12, minute: 0 }
+    use chrono::{Datelike, Timelike};
+    let now = crate::py::clock::now_utc();
+    Moment { year: now.year() as i64, month: now.month() as i64, day: now.day() as i64, hour: now.hour() as i64, minute: now.minute() as i64 }
 }
 
 /// Days since 1970-01-01 of a civil date (proleptic Gregorian).

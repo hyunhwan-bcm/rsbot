@@ -1,19 +1,10 @@
-//! Port of `bot/knowledge/notable.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/knowledge/notable.py`: the people and numbers in the news (who holds an office,
+//! who plays a part, how big a city is). The rows are data (`ENTRIES`, kept in a second file in
+//! Python); `_row` is the helper that keeps one.
 
-use crate::data::{self, Value};
 use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
-use std::sync::LazyLock;
 
-/// Python: bot/knowledge/notable.py:39 `_row()` (never called on the trace corpus)
-pub fn _row(args: &[Value]) {
-    crate::unported!("bot.knowledge.notable:_row")
+/// `_row(*args, **kwargs)`: keep one entry - `entry()` builds it, the domain needs the list.
+pub fn _row(entries: &mut Vec<Entry>, row: Entry) {
+    entries.push(row);
 }
-

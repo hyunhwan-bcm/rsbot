@@ -439,58 +439,150 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories. PyBot ran them at import and the bundle holds their rows; they build the
+// same entries here (`knowledge::built`), and the closures they make run through the guards above.
 
-    /// Python: bot/knowledge/explains.py:130 `_explain(id, subject, reply, bias=1, avoid=(), guard=None)` (never called on the trace corpus)
-    pub fn _explain(id: &Value, subject: &str, reply: &str, bias: &Value, avoid: &Value, guard: &Value) -> Value {
-        crate::unported!("bot.knowledge.explains:_explain")
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, KeyPart, Reply};
+
+/// A key part as Python wrote it: a word, or a tuple of words.
+fn key_part(v: &Value) -> KeyPart {
+    match v {
+        Value::Str(s) => KeyPart::Word(s.to_string()),
+        other => KeyPart::Any(other.strs()),
     }
-
-    /// Python: bot/knowledge/explains.py:193 `_as_written(words)` (never called on the trace corpus)
-    pub fn _as_written(words: &[String]) -> Value {
-        crate::unported!("bot.knowledge.explains:_as_written")
-    }
-
-    /// Python: bot/knowledge/explains.py:240 `_about_the_word(subject)` (never called on the trace corpus)
-    pub fn _about_the_word(subject: &str) -> Value {
-        crate::unported!("bot.knowledge.explains:_about_the_word")
-    }
-
-    /// Python: bot/knowledge/explains.py:270 `_both()` (never called on the trace corpus)
-    pub fn _both(guards: &[Value]) -> Value {
-        crate::unported!("bot.knowledge.explains:_both")
-    }
-
-    /// Python: bot/knowledge/explains.py:282 `_name(id, subject, reply, bias=2, avoid=())` (never called on the trace corpus)
-    pub fn _name(id: &Value, subject: &str, reply: &str, bias: &Value, avoid: &Value) -> Value {
-        crate::unported!("bot.knowledge.explains:_name")
-    }
-
-    /// Python: bot/knowledge/explains.py:2974 `_choosing_rows()`
-    pub fn _choosing_rows() -> Value {
-        crate::unported!("bot.knowledge.explains:_choosing_rows")
-    }
-
-    /// Python: bot/knowledge/explains.py:3125 `_civics_new(id, subject, reply, also=(), avoid=(), asks=None, guard=None)` (never called on the trace corpus)
-    pub fn _civics_new(id: &Value, subject: &str, reply: &str, also: &Value, avoid: &Value, asks: &Value, guard: &Value) -> Value {
-        crate::unported!("bot.knowledge.explains:_civics_new")
-    }
-
-    /// Python: bot/knowledge/explains.py:3131 `_civics(id, subject, reply, also=(), avoid=(), asks=None, guard=None, blocked=_NOT_CIVICS, ask=None)` (never called on the trace corpus)
-    pub fn _civics(id: &Value, subject: &str, reply: &str, also: &Value, avoid: &Value, asks: &Value, guard: &Value, blocked: &Value, ask: &str) -> Value {
-        crate::unported!("bot.knowledge.explains:_civics")
-    }
-
 }
 
+/// A tuple of words as the `ask` of an entry: each word one part.
+fn ask_words(words: &[String]) -> Vec<KeyPart> {
+    words.iter().map(|w| KeyPart::Word(w.clone())).collect()
+}
+
+/// `_explain(id, subject, reply, bias=1, avoid=(), guard=None)`: one explanation, keyed on the
+/// thing named plus the ask for its mechanism.
+pub fn _explain(id: &str, subject: &Value, reply: Reply, bias: i64, avoid: &[String], guard: Option<FnRef>) -> Entry {
+    let guard = match guard {
+        None => built::function("bot.knowledge.explains:_not_a_how_to_ask:151"),
+        Some(g) => built::closure("bot.knowledge.explains:_explain.<locals>.<lambda>:133", vec![("guard", Value::Fn(std::sync::Arc::new(g)))]),
+    };
+    built::entry(
+        id,
+        vec![key_part(subject), built::part(&strs("WORKS"))],
+        reply,
+        &[built::words(&strs("TROUBLE")), built::words(&strs("SYMPTOM")), built::words(avoid)],
+        bias,
+        ask_words(&strs("EXPLAIN")),
+        Some(guard),
+    )
+}
+
+/// `_as_written(words)`: the guard that wants the letters as typed, or the long name.
+pub fn _as_written(words: &[String]) -> FnRef {
+    let single: Vec<String> = words.iter().filter(|w| !w.contains(' ')).cloned().collect();
+    let phrased: Vec<String> = words.iter().filter(|w| w.contains(' ')).cloned().collect();
+    built::closure("bot.knowledge.explains:_as_written.<locals>.guard:206", vec![("phrased", built::words(&phrased)), ("single", built::words(&single))])
+}
+
+/// `_about_the_word(subject)`: the guard that wants the line to ask about the letters.
+pub fn _about_the_word(subject: &[String]) -> FnRef {
+    let words: Vec<String> = subject.iter().filter(|w| !text::strip(w).is_empty()).map(|w| text::lower(w)).collect();
+    let pattern = format!("(?<![a-z0-9])(?:{})(?![a-z0-9])", words.iter().map(|w| crate::py::re::escape(w)).collect::<Vec<_>>().join("|"));
+    let re = Re::new(&pattern, crate::py::re::I | crate::py::re::U);
+    built::closure("bot.knowledge.explains:_about_the_word.<locals>.guard:251", vec![("pattern", Value::Re(std::sync::Arc::new(re)))])
+}
+
+/// `_both(*guards)`: every guard has to pass.
+pub fn _both(guards: Vec<FnRef>) -> FnRef {
+    let guards = guards.into_iter().map(|g| Value::Fn(std::sync::Arc::new(g))).collect();
+    built::closure("bot.knowledge.explains:_both.<locals>.guard:277", vec![("guards", built::tuple(guards))])
+}
+
+/// `_name(id, subject, reply, bias=2, avoid=())`: one acronym spelled out.
+pub fn _name(id: &str, subject: &[String], reply: Reply, bias: i64, avoid: &[String]) -> Entry {
+    built::entry(
+        id,
+        vec![built::part(subject), built::part(&strs("ASKS_A_NAME"))],
+        reply,
+        &[built::words(&strs("TROUBLE")), built::words(avoid)],
+        bias,
+        ask_words(&strs("EXPLAIN")),
+        Some(_both(vec![_as_written(subject), _about_the_word(subject)])),
+    )
+}
+
+/// `_choosing_rows()`: each row as (left, right, asks, reply, needs), `needs` empty where the
+/// row has none.
+pub fn _choosing_rows() -> &'static [(Names, Names, Names, String, Names)] {
+    &CHOOSING
+}
+
+/// `_civics_new(...)`: `_civics` for a row whose subject the older rows stand down on.
+#[allow(clippy::too_many_arguments)]
+pub fn _civics_new(id: &str, subject: &Value, reply: Reply, also: &[Value], avoid: &[String], asks: Option<&[String]>, guard: Option<FnRef>) -> Entry {
+    _civics(id, subject, reply, also, avoid, asks, guard, &strs("_NOT_CIVICS_ELSE"), None)
+}
+
+/// `_civics(id, subject, reply, also=(), avoid=(), asks=None, guard=None, blocked=_NOT_CIVICS,
+/// ask=None)`: one row about how the country is run.
+#[allow(clippy::too_many_arguments)]
+pub fn _civics(
+    id: &str,
+    subject: &Value,
+    reply: Reply,
+    also: &[Value],
+    avoid: &[String],
+    asks: Option<&[String]>,
+    guard: Option<FnRef>,
+    blocked: &[String],
+    ask: Option<&[String]>,
+) -> Entry {
+    let asks = asks.map(<[String]>::to_vec).unwrap_or_else(|| strs("_GOVERNMENT_ASK"));
+    let mut key = vec![key_part(subject), built::part(&asks)];
+    key.extend(also.iter().map(key_part));
+    let ask = ask.map(<[String]>::to_vec).unwrap_or_else(|| strs("_CIVICS_ASK"));
+    built::entry(id, key, reply, &[built::words(blocked), built::words(avoid)], 0, ask_words(&ask), guard)
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    /// Each factory rebuilds the exported rows it made, from the values those rows hold.
+    #[test]
+    fn the_factories_rebuild_their_rows() {
+        data::load();
+        let rows = built::exported(&key("ENTRIES"));
+        let (mut named, mut explained) = (0, 0);
+        let trouble = strs("TROUBLE");
+        let symptom = strs("SYMPTOM");
+        for row in &rows {
+            let reply = row.reply.clone();
+            let guard_id = row.guard.as_ref().map(|g| g.id.clone()).unwrap_or_default();
+            if guard_id.starts_with("bot.knowledge.explains:_both.<locals>.guard") {
+                let subject = match &row.key[0] {
+                    KeyPart::Any(v) => v.clone(),
+                    KeyPart::Word(w) => vec![w.clone()],
+                };
+                let extra: Vec<String> = row.avoid[trouble.len().min(row.avoid.len())..].to_vec();
+                let ours = _name(&row.id, &subject, reply, row.bias, &extra);
+                assert_eq!(built::same_entry(&ours, row), None);
+                named += 1;
+            } else if guard_id.starts_with("bot.knowledge.explains:_not_a_how_to_ask") || guard_id.starts_with("bot.knowledge.explains:_explain.<locals>") {
+                let subject = match &row.key[0] {
+                    KeyPart::Any(v) => built::words(v),
+                    KeyPart::Word(w) => Value::from(w.as_str()),
+                };
+                let skip = (trouble.len() + symptom.len()).min(row.avoid.len());
+                let extra: Vec<String> = row.avoid[skip..].to_vec();
+                let inner = row.guard.as_ref().unwrap().cell("guard").and_then(Value::as_fn).cloned();
+                let ours = _explain(&row.id, &subject, reply, row.bias, &extra, inner);
+                if built::same_entry(&ours, row).is_none() {
+                    explained += 1;
+                }
+            }
+        }
+        assert!(named > 10, "{named} letter rows");
+        assert!(explained > 50, "{explained} explanation rows");
+    }
+}

@@ -62,12 +62,11 @@ static PRODUCE: LazyLock<Vec<(String, Re)>> = LazyLock::new(|| {
 static WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z']+", 0));
 static NOT_PLAIN: LazyLock<Re> = LazyLock::new(|| Re::new(r"[^a-z0-9' ]+", 0));
 
-/// When the next full moon is, from the pinned clock.
+/// When the next full moon is, from the clock (to the second).
 pub fn _next_full_moon(_memory: &Memory, _understood: &Understood) -> String {
     let new_moon = dup::days_from_civil(2000, 1, 6) * 86400 + 18 * 3600 + 14 * 60;
-    let (y, m, d) = dup::TODAY;
-    let today = dup::days_from_civil(y, m, d);
-    let now = today * 86400 + dup::NOW_HOUR * 3600;
+    let (today, seconds) = dup::now_local();
+    let now = today * 86400 + seconds;
     let cycles = (now - new_moon) as f64 / 86400.0 / *SYNODIC_MONTH;
     let full = (cycles - 0.5) as i64 + 1;
     let micros = ((full as f64 + 0.5) * *SYNODIC_MONTH * 86_400_000_000.0).round() as i64;
