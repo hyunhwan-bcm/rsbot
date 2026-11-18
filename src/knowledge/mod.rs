@@ -56,3 +56,15 @@ pub mod swaps;
 pub mod tenancy;
 pub mod cooking;
 pub mod d2dup_cooka;
+pub mod cooking_b;
+#[allow(non_snake_case)]
+pub mod d2dup_cookB;
+pub mod babyfood;
+pub mod cooking_gaps;
+pub mod costs;
+pub mod d2dup_g9;
+pub mod devices;
+pub mod family_more;
+pub mod fruit;
+pub mod keeping;
+pub mod opinions;
