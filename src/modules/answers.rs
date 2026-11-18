@@ -7763,10 +7763,1106 @@ pub fn _the_ask_is_for_words(reading: &Understood) -> bool {
     py_try(|| compose::fit::asks_for_words(reading)).unwrap_or(false)
 }
 
-// ==== ported code ends; the stubs below are the functions not yet ported ====
+strs_static!(_OVEN_CHECK_WORDS, _OVEN_WORDS, _PROPERTY_WORDS);
+static SHORT_AGAIN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.memory.again.SHORT_AGAIN"));
+static COOKING_SIDE_ASKS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.cooking.SIDE_ASKS"));
+static USE_UP_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes.USE_UP_PHRASES"));
+static TOPICS_YES_NO: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.YES_NO"));
+
+/// A tuple another file's function returned (`(question, old)` and the like), or None.
+pub trait PyTuple {
+    fn tuple(self) -> Option<Vec<Value>>;
+}
+impl PyTuple for () {
+    fn tuple(self) -> Option<Vec<Value>> {
+        None
+    }
+}
+impl PyTuple for Value {
+    fn tuple(self) -> Option<Vec<Value>> {
+        match self {
+            Value::Tuple(v) | Value::List(v) => Some(v.to_vec()),
+            _ => None,
+        }
+    }
+}
+impl PyTuple for Option<Value> {
+    fn tuple(self) -> Option<Vec<Value>> {
+        self.and_then(PyTuple::tuple)
+    }
+}
+
+/// `str[:1].upper() + str[1:]` of an entry's sentence.
+fn sentence_case(s: &str) -> String {
+    up1(s)
+}
 
 /// Python: bot/modules/answers.py:10759 `_respond(text, memory)`
-pub fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.modules.answers:_respond")
+pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
+    use crate::knowledge::lookup::find;
+    let mut text = text_.to_string();
+    if let Some(verse) = _the_verse_said_again(&text, memory) {
+        return Some(verse);
+    }
+    {
+        if let Some(baked) = memory::baking::written_out(&text, memory).py().filter(|b| !b.is_empty() && *b != text) {
+            let asked = understanding::understand(&baked, Some(&*memory));
+            let (item, reply) = _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&asked, None, reject, false)), memory, &asked);
+            if let (Some(_), Some(reply)) = (item, reply.filter(|r| !r.is_empty())) {
+                if !_already_on_the_screen(&reply, memory, 4) {
+                    return Some(reply);
+                }
+            }
+        }
+        if let Some(covered) = memory::outfit::the_sentence_answered(&text, memory).py() {
+            return Some(covered);
+        }
+        if let Some(outfitted) = memory::outfit::written_out(&text, memory).py().filter(|o| !o.is_empty() && *o != text) {
+            let asked = understanding::understand(&outfitted, Some(&*memory));
+            let (item, reply) = _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&asked, None, reject, false)), memory, &asked);
+            if let (Some(_), Some(reply)) = (item, reply.filter(|r| !r.is_empty())) {
+                if !_already_on_the_screen(&reply, memory, 4) {
+                    return Some(reply);
+                }
+            }
+        }
+        if let Some(attributed) = memory::topics::attribute_of_the_thing(&text, memory).py().filter(|a| !a.is_empty() && *a != text) {
+            let asked = understanding::understand(&attributed, Some(&*memory));
+            let (item, reply) = _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&asked, None, reject, false)), memory, &asked);
+            if let (Some(_), Some(reply)) = (item, reply.filter(|r| !r.is_empty())) {
+                if _already_on_the_screen(&reply, memory, 4) {
+                    let frame = knowledge::d1_dup_g1::pick(&SHORT_AGAIN, memory, &text);
+                    return Some(py_format(&frame, &[("reply", &reply)]));
+                }
+                return Some(sentence_case(&reply));
+            }
+        }
+    }
+    if memory::trips::the_bag_beats_the_list(&text, memory) {
+        return None;
+    }
+    if _only_the_office(memory) {
+        return None;
+    }
+    {
+        let read = understanding::understand(&text, Some(&*memory));
+        if let Some(verdict) = knowledge::shopping::the_verdict_on_a_present(memory, &read).filter(|v| !v.is_empty()) {
+            return Some(verdict);
+        }
+        if let Some(longer) = knowledge::entertainment::the_verse_longer(&text, memory).filter(|v| !v.is_empty()) {
+            return Some(longer);
+        }
+        if let Some(another) = knowledge::entertainment::the_next_verse(&text, memory).filter(|v| !v.is_empty()) {
+            return Some(another);
+        }
+    }
+    if LIMIT_SHAPE.is_match(&text) {
+        let read = understanding::understand(&text, Some(&*memory));
+        if let Some(priced) = _the_present_with_a_price(&text, &read, memory).filter(|p| !p.is_empty()) {
+            return Some(priced);
+        }
+    }
+    let kind_now = memory::narrow::kind_of(&text);
+    if last_module(memory).as_deref() == Some("answers")
+        && memory.understood.as_ref().is_some_and(|u| memory::topics::asks_only(u) && !u.change_of_subject)
+        && matches!(kind_now.as_deref(), Some("amount") | Some("money"))
+        && inline_re!(r"\bhow much\b", RE_I).is_match(&text)
+        && !inline_re!(r"\b(?:cost|costs|costing|price|prices|charge|charges)\b", RE_I).is_match(&text)
+    {
+        let u = memory.understood.clone().unwrap();
+        let signal = |k: &str, s: &str| SIGNALS.iter().find(|(n, _)| n == k).is_some_and(|(_, rx)| rx.is_match(s));
+        let stated = memory::topics::same_as_before(&u, &memory_value(memory)).py();
+        let last = memory::last_bot(memory);
+        if let Some(mut stated) = stated.filter(|s| !s.is_empty()) {
+            if inline_re!(r"\d").is_match(&stated)
+                && memory::narrow::flat(&stated) != memory::narrow::flat(&last)
+                && (signal("money", &stated) || signal("amount", &stated))
+            {
+                if _REPEAT_OPENS.match_(&stated).is_some() {
+                    stated = text::lstrip_chars(&_REPEAT_OPENS.sub("", &stated), " :,-").to_string();
+                }
+                let whole = _the_sentence_around(&stated, &last);
+                if !whole.is_empty()
+                    && inline_re!(r"\d").is_match(&text::slice(&whole, text::len(&stated) as isize, None))
+                    && _REPEAT_OPENS.match_(&whole).is_none()
+                {
+                    return Some(whole);
+                }
+                return Some(stated);
+            }
+        }
+        let same = if _A_BARE_MEASURE.fullmatch(text::strip(&text)).is_some() { _the_sentence_with_a_figure(&last) } else { String::new() };
+        if !same.is_empty() && _REPEAT_OPENS.match_(&same).is_none() {
+            return Some(same);
+        }
+    }
+    if _asks_who_the_bot_is(memory.understood.as_ref(), &text) {
+        return None;
+    }
+    if PLAN_RECALL.is_match(&text) && _keeps_a_plan(memory) {
+        return None;
+    }
+    if memory::limit::reads_the_answer(&text, memory) {
+        return None;
+    }
+    if memory::tried::might_be_a_report(&text) && memory::tried::pool_for(&text, memory).py_truth() {
+        return None;
+    }
+    if memory::returned::pool_for(&text, memory).py_truth() {
+        return None;
+    }
+    if memory::narrow::only_a_length(&text) && memory::ack::reply(&text, memory).py_truth() {
+        return None;
+    }
+    if memory::facts::a_name_picked(&text, memory).py_truth() {
+        return None;
+    }
+    if knowledge::lookup::about_the_chat(&text) {
+        return None;
+    }
+    if memory::taste::asks_about_a_taste(&_the_line_as_said(&text)) {
+        return None;
+    }
+    if memory::recall::ask(&text, false).is_some_and(|a| !a.is_empty()) && !HOW_TO.is_match(&_flat(&text)) {
+        return None;
+    }
+    if memory::taste::only_a_taste(&_the_line_as_said(&text)) && !_a_pick_is_asked(&text) {
+        let read = match memory.understood.clone() {
+            Some(u) => u,
+            None => understanding::understand(&text, Some(&*memory)),
+        };
+        if !(knowledge::dishes::has_a_diet_reply(memory, &read)
+            || knowledge::dishes::has_a_dislike_reply(memory, &read)
+            || _a_choice_with_one_thing_left_out(&text))
+        {
+            return None;
+        }
+    }
+    let mut understood = match memory.understood.clone() {
+        Some(u) => u,
+        None => understanding::understand(&text, Some(&*memory)),
+    };
+    let introduction = memory::topics::introduction_question(&text, memory);
+    if !introduction.is_empty() {
+        let intro = understanding::understand(&introduction, Some(&*memory));
+        let (item, reply) = _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&intro, None, reject, false)), memory, &intro);
+        if item.is_some() {
+            return reply;
+        }
+    }
+    if _the_food_they_do_not_eat(&text, Some(&understood)) {
+        return None;
+    }
+    if _store_keeps_the_line(&text, &understood) {
+        return None;
+    }
+    if RECALL.is_match(&text) && !memory::recall::asks_for_a_word(&text) {
+        return None;
+    }
+    if _a_bare_thanks(Some(&understood)) {
+        let rest = memory::repeat::after_an_ack(&text);
+        let reread = if rest.is_empty() { None } else { Some(understanding::understand(&rest, None)) };
+        match reread {
+            Some(r) if !r.agrees_to_try && !["", "thanks", "greeting", "empty"].contains(&r.kind.as_str()) => {
+                text = rest;
+                understood = r;
+            }
+            _ => return None,
+        }
+    }
+    let text = text;
+    let left_out = knowledge::freshness::says_a_food_was_left_out(&text);
+    if !left_out {
+        if let Some(verdict) = knowledge::freshness::the_still_ok_follow_up(&text, memory).filter(|v| !v.is_empty()) {
+            return Some(verdict);
+        }
+    }
+    if !left_out && knowledge::dishes::ask_kind(&understood) == Some("done") {
+        if let Some(readied) = knowledge::dishes::follow_up(memory, &understood).filter(|r| !text::strip(r).is_empty()) {
+            return Some(readied);
+        }
+    }
+    if !left_out && _a_dish_was_offered(memory) {
+        if let Some(planned) = knowledge::cooking_more::follow_up(&understood, memory).filter(|p| !text::strip(p).is_empty()) {
+            return Some(planned);
+        }
+    }
+    if _someones_else_diet(&text, memory, Some(&understood)) {
+        return None;
+    }
+    if _asks_about_their_taste(&text) {
+        return None;
+    }
+    if let Some(calculated) = knowledge::maths::solve(&text, &understood, memory).filter(|c| !text::strip(c).is_empty()) {
+        return Some(calculated);
+    }
+    if _filling_in_an_emergency(Some(&understood), memory) {
+        return None;
+    }
+    if let Some(began) = memory::onset::reply(&text, memory).py() {
+        return Some(began);
+    }
+    let helped = _something_for(&text);
+    if !helped.is_empty() {
+        let again = understanding::understand(&format!("what helps {helped}"), Some(&*memory));
+        let (other, said) = _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&again, None, reject, false)), memory, &again);
+        if let (Some(other), Some(said)) = (other, said.filter(|s| !text::strip(s).is_empty())) {
+            if let Some(given_to) = SOMETHING_FOR_GIVEN_TO.search(&_flat(&text).to_lowercase()) {
+                let who = given_to.str(1).to_string();
+                let (own, own_said) =
+                    _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&understood, None, reject, false)), memory, &understood);
+                if let (Some(own), Some(own_said)) = (own, own_said) {
+                    if !std::ptr::eq(own, other) && !text::strip(&own_said).is_empty() && _keyed_on_the_person(own, &who) {
+                        return Some(own_said);
+                    }
+                }
+            }
+            return Some(said);
+        }
+    }
+    let planned = if left_out {
+        None
+    } else {
+        knowledge::cooking_more::follow_up(&understood, memory)
+            .filter(|p| !p.is_empty())
+            .or_else(|| knowledge::cooking_more::first_plan(&understood, Some(&*memory)))
+    };
+    if let Some(planned) = planned.filter(|p| !text::strip(p).is_empty()) {
+        return Some(planned);
+    }
+    let mut reading = _without_names(&understood);
+    if let Some(asked) = _reword_ask(&text) {
+        if asked.is_empty() {
+            let Some((asked, tones)) = _last_rewrite(memory) else {
+                return Some("Paste the words you want to send and I'll soften them: who it is going to helps too.".to_string());
+            };
+            let all: HashSet<String> = tones.union(&_tone_of(&text)).cloned().collect();
+            return Some(_rewritten(&asked, &all, true));
+        }
+        return Some(_rewritten(&asked, &_tone_of(&text), false));
+    }
+    let short_line = text::split_ref(&_flat(&text)).len() <= 4;
+    if short_line && CONTINUED.is_match(&_flat(&text)) {
+        if let Some((asked, tones)) = _last_rewrite(memory) {
+            let all: HashSet<String> = tones.union(&_tone_of(&text)).cloned().collect();
+            return Some(_rewritten(&asked, &all, true));
+        }
+    }
+    let mut own = _own_thing(&understood);
+    if let Some(cooked_ask) = _a_cooking_ask_after_a_keeping_answer(&understood, memory) {
+        return Some(cooked_ask);
+    }
+    let pointed = knowledge::cooking::pointed(memory, &understood);
+    if let Some((pointed_reading, _)) = pointed.as_ref() {
+        if memory::topics::pairing(&text) && COOKING_SIDE_ASKS.is_match(&_flat(&text).to_lowercase()) {
+            if let Some(side) = knowledge::cooking::side_for(memory, &_flat(&text)).filter(|s| !s.is_empty()) {
+                return Some(side);
+            }
+        }
+        let _ = pointed_reading;
+    }
+    if let Some((pointed_reading, new_dish_only)) = pointed.as_ref() {
+        let mut said: Vec<String> = knowledge::cooking::recent_replies(memory, 2);
+        if said.is_empty() {
+            said = vec![memory::last_bot(memory)];
+        }
+        let said: Vec<String> = said.into_iter().filter(|t| !t.is_empty()).collect();
+        let mut picked = knowledge::cooking::dish(pointed_reading, &said, None).filter(|p| !text::strip(p).is_empty()).or_else(|| {
+            knowledge::cooking::meal(
+                pointed_reading,
+                knowledge::cooking::MealArgs { avoid: said.clone(), pointed_back: true, ..Default::default() },
+            )
+        });
+        if !picked.as_deref().is_some_and(|p| !text::strip(p).is_empty()) && !new_dish_only {
+            picked = knowledge::cooking::dish(pointed_reading, &[], None);
+            if !picked.as_deref().is_some_and(|p| !text::strip(p).is_empty()) {
+                if let Some(again) = knowledge::cooking::meal(pointed_reading, Default::default()).filter(|a| !text::strip(a).is_empty()) {
+                    picked = Some(if said.contains(&again) { format!("The one I'd go back to: {}", low1(&again)) } else { again });
+                }
+            }
+        }
+        if let Some(picked) = picked.filter(|p| !text::strip(p).is_empty()) {
+            if !knowledge::cooking::unusable(&picked, pointed_reading) {
+                return Some(picked);
+            }
+        }
+    }
+    if let Some(suits) = knowledge::cooking::suits_them(&understood, memory).filter(|s| !text::strip(s).is_empty()) {
+        return Some(suits);
+    }
+    if let Some(without) = knowledge::cooking::a_dinner_without(&understood, Some(&*memory)).filter(|s| !text::strip(s).is_empty()) {
+        return Some(without);
+    }
+    let named_foods = knowledge::cooking::ingredients(&reading);
+    if named_foods.len() > 1 && !knowledge::cooking_more::asks_a_food_fact(&understood) {
+        let cooked = knowledge::cooking::dish(&understood, &[], Some(&*memory))
+            .filter(|c| !c.is_empty())
+            .or_else(|| knowledge::cooking::meal(&understood, knowledge::cooking::MealArgs { memory: Some(&*memory), ..Default::default() }));
+        if let Some(cooked) = cooked.filter(|c| !text::strip(c).is_empty()) {
+            if !knowledge::cooking::unusable(&cooked, &understood) {
+                return Some(cooked);
+            }
+        }
+    }
+    if let Some(about_the_food) = _keeping_about_the_food_there(memory, Some(&understood)) {
+        return Some(about_the_food);
+    }
+    if let Some(amount) = _amount_asked(&text, memory) {
+        return Some(amount);
+    }
+    if let Some(again) = _the_amount_they_named_again(&text, memory) {
+        return Some(again);
+    }
+    if knowledge::cooking::keeping_ask(&understood) && _asks_storing(memory) {
+        let thing = _keeping_thing(memory);
+        if let Some(specific) = _keeping_entry(&text, memory, Some(&thing), true).filter(|s| !text::strip(s).is_empty()) {
+            if let Some(planned) = _the_plan_keeps(Some(&understood), memory) {
+                if _opening(&planned, 8) != _opening(&specific, 8) {
+                    return Some(planned);
+                }
+            }
+            return Some(specific);
+        }
+    }
+    if let Some(kept) = knowledge::cooking::keeping_followup(&understood, memory).filter(|k| !text::strip(k).is_empty()) {
+        if let Some(specific) = _keeping_entry(&text, memory, None, false).filter(|s| !text::strip(s).is_empty()) {
+            return Some(specific);
+        }
+        if let Some(planned) = _the_plan_keeps(Some(&understood), memory) {
+            return Some(planned);
+        }
+        return Some(kept);
+    }
+    if let Some(ours) = _the_dish_time(Some(&understood), memory) {
+        return Some(ours);
+    }
+    if let Some(timed) = knowledge::cooking::timing_followup(&understood, memory).filter(|t| !text::strip(t).is_empty()) {
+        return Some(timed);
+    }
+    if let Some(repaired) = _the_machine_follow_up(&text, Some(&reading), memory) {
+        return Some(repaired);
+    }
+    if !_care_holds(&text, memory) {
+        if let Some(announced) = knowledge::dishes::announced_part(memory, &understood).filter(|a| !a.is_empty()) {
+            return Some(announced);
+        }
+    }
+    if let Some(meal) = memory::topics::meal_follow_up(&understood, memory).reading() {
+        let (_meal_entry, meal_reply) =
+            _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&meal, None, reject, false)), memory, &meal);
+        if let Some(r) = meal_reply.filter(|r| !r.is_empty()) {
+            return Some(r);
+        }
+    }
+    let mut asks_a_part = if _A_PERIOD.is_match(&text) {
+        false
+    } else {
+        let run = _the_run_said(memory, &memory::last_bot(memory));
+        !(!own.is_empty() && _new_thing(&own, &run) && !memory::topics::asks_only(&understood))
+    };
+    if asks_a_part && memory::named::asks_a_part_of_the_trip(&text, memory) {
+        asks_a_part = false;
+    }
+    if asks_a_part && memory::topics::answer_about(&text, memory).py_truth() {
+        asks_a_part = false;
+    }
+    if asks_a_part && find(&understood, None, None, false).is_some() && !understood.entities.is_empty() {
+        asks_a_part = false;
+    }
+    let mut part = if asks_a_part { _part_asked(&text, memory) } else { None };
+    if part.as_deref().is_some_and(|p| !p.is_empty()) && knowledge::cooking::keeping_ask(&understood) && !FIGURE.is_match(part.as_deref().unwrap()) {
+        part = None;
+    }
+    if let Some(part) = part.filter(|p| !p.is_empty()) {
+        return Some(_the_part_said_again(&part, &text, Some(&understood), memory));
+    }
+    if let Some(again) = _the_plan_said_again(&understood, &text, memory) {
+        return Some(again);
+    }
+    let earlier = _last_answer(memory);
+    if let Some(earlier_rec) = earlier.as_ref() {
+        if memory::narrow::kind_of(&text).is_some_and(|k| !k.is_empty())
+            && _names_a_property(&text)
+            && _only_a_property(&memory::topics::keywords(&text))
+            && !_a_property_word_names_a_thing(&text)
+            && !RATE.is_match(&text)
+        {
+            if let Some(plan) = _the_plan_for(&text, memory, &understood) {
+                return Some(plan);
+            }
+            let subject = memory::topics::subject(memory);
+            let (found, said) = _the_answer_from_thing(&text, &subject, memory);
+            if found.is_some() {
+                for thing in _the_things_to_try(Some(&understood), memory) {
+                    if thing == subject {
+                        break;
+                    }
+                    let (newer, newer_said) = _the_answer_from_thing(&text, &thing, memory);
+                    if newer.is_some() {
+                        return newer_said;
+                    }
+                }
+                return said;
+            }
+            let words: HashSet<String> = memory::topics::keywords(&text).into_iter().collect();
+            let keys = record_keys(earlier_rec);
+            if words.is_empty() || !words.is_subset(&keys) {
+                if !_asks_only_the_length(&text) {
+                    return None;
+                }
+                if let Some(part) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|p| !p.is_empty()) {
+                    return Some(part);
+                }
+                return _figure_missing(&record_str(earlier_rec, "reply"), &text);
+            }
+            let mut fuller = _with_subject(&text, memory, None);
+            if text::strip(&fuller) == text::strip(&text) {
+                fuller = if memory::topics::written_out(&text, memory).py_truth() { text.clone() } else { _about_subject(&text, memory, None) };
+            }
+            let same =
+                if text::strip(&fuller) != text::strip(&text) { find(&understanding::understand(&fuller, Some(&*memory)), None, None, false) } else { None };
+            if same.is_none_or(|s| !_is_about(s, &memory::topics::subject(memory))) {
+                if let Some(written) = _written_ask_with_an_answer(&text, memory) {
+                    fuller = written;
+                } else {
+                    if !_asks_only_the_length(&text) {
+                        return None;
+                    }
+                    if let Some(part) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|p| !p.is_empty()) {
+                        return Some(part);
+                    }
+                    return _figure_missing(&record_str(earlier_rec, "reply"), &text);
+                }
+            }
+            reading = understanding::understand(&fuller, Some(&*memory));
+        }
+    }
+    let mut plan_first: Vec<&str> = vec!["ahead", "fill", "sides"];
+    let kind = knowledge::dishes::ask_kind(&understood);
+    let words: HashSet<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
+    if kind == Some("keep") && ["it", "that", "this", "them", "they"].iter().any(|w| words.contains(*w)) {
+        if _the_plan_answers_this(memory) || _cooked_thing(memory) {
+            plan_first.push("keep");
+        }
+    }
+    let oven_words: Vec<&str> = _OVEN_WORDS.iter().map(String::as_str).collect();
+    let oven_checks: Vec<&str> = _OVEN_CHECK_WORDS.iter().map(String::as_str).collect();
+    if kind == Some("temp") && _the_plan_answers_this(memory) && _says_line(&text, &oven_words) && !_says_line(&text, &oven_checks) {
+        plan_first.push("temp");
+        if !own.is_empty() && _PROPERTY_WORDS.contains(&own.to_lowercase()) {
+            own = String::new();
+        }
+    }
+    if own.is_empty() && kind.is_some_and(|k| plan_first.contains(&k)) && !_care_holds(&text, memory) {
+        if let Some(plan) = knowledge::dishes::follow_up(memory, &understood).filter(|p| !p.is_empty()) {
+            return Some(plan);
+        }
+    }
+    let off_topic = _off_the_topic(Some(&understood), memory);
+    let fenced = !off_topic.1.is_empty() || off_topic.2;
+    // `_guard(reject)`: the caller's veto, with the fence round the chat's own domain
+    let guard = |one: &Entry, reject: Reject| reject.is_some_and(|r| r(one)) || (fenced && _from_another_domain(one, &off_topic));
+    let (mut item, mut reply) = {
+        let mut keeping = _keeping_reader(&reading, memory);
+        _offer_with(
+            &mut |m: &mut Memory, reject: Reject| {
+                let g = |one: &Entry| guard(one, reject);
+                keeping(m, Some(&g))
+            },
+            memory,
+            &reading,
+        )
+    };
+    if item.is_some_and(|i| i.id == *KEEPING_FROM_THE_ANSWER) {
+        return reply;
+    }
+    if own.is_empty() && understood.kind == "statement" {
+        if let Some(detail) = _a_detail_answered(&text, memory) {
+            return Some(detail);
+        }
+        if let Some(figure) = _a_figure_the_answer_has(&text, memory) {
+            return Some(figure);
+        }
+    }
+    if own.is_empty() {
+        if let Some(beside) = memory::topics::the_thing_a_detail_belongs_to(&understood, memory).reading() {
+            let vouched = find(&beside, None, None, false);
+            let (mut other, mut said) = {
+                let mut keeping = _keeping_reader(&beside, memory);
+                _offer_with(&mut |m: &mut Memory, reject: Reject| keeping(m, reject), memory, &beside)
+            };
+            if let (Some(o), Some(v)) = (other, vouched) {
+                if o.key != v.key {
+                    other = None;
+                    said = Some(String::new());
+                }
+            }
+            if let Some(other) = other {
+                let said_text = said.clone().unwrap_or_default();
+                if _said_before(&said_text, memory, 3) || _already_said(&said_text, memory, 3) {
+                    if let Some(again) = _the_detail_said_again(&said_text, &text, memory).filter(|a| !a.is_empty()) {
+                        let keys: Vec<String> = _key_words(other).into_iter().collect();
+                        memory::topics::remember_answer(memory, &said_text, &keys);
+                        _remember_answer(memory, Some(other), &said_text, &[]);
+                        return Some(again);
+                    }
+                }
+                if item.is_none_or(|i| i.id != other.id) {
+                    item = Some(other);
+                    reply = said;
+                    reading = beside;
+                }
+            }
+        }
+    }
+    if let Some(found) = item.filter(|_| own.is_empty()) {
+        let head = _head_thing(&memory::topics::subject(memory));
+        let other_food = _names_another_food(&understood, &memory::topics::subject(memory).to_lowercase());
+        let defined = _a_definition_of_the_entry(&text, found);
+        if !head.is_empty() && !other_food && !defined && !_is_about(found, &head) {
+            let (other, said) = _offer_with(
+                &mut |m: &mut Memory, reject: Reject| {
+                    let g = |one: &Entry| guard(one, reject);
+                    _in_context_with(&text, m, Some(&g))
+                },
+                memory,
+                &reading,
+            );
+            if other.is_some() {
+                item = other;
+                reply = said;
+            }
+        }
+    }
+    if let Some(found) = item {
+        if own.is_empty() && !_about_the_talk(found, &text, memory, &reading) {
+            item = None;
+            reply = None;
+        }
+    }
+    let mut follow_up = false;
+    if item.is_none() {
+        if let Some(resized) = memory::resize::rewritten(&text, &memory_value(memory)).py() {
+            let again = understanding::understand(&resized, Some(&*memory));
+            if let Some(calculated) = knowledge::maths::solve(&resized, &again, memory) {
+                if !text::strip(&calculated).is_empty() && memory::narrow::flat(&calculated) != memory::narrow::flat(&memory::last_bot(memory)) {
+                    return Some(calculated);
+                }
+            }
+            let (i, r) = _offer_with(
+                &mut |_: &mut Memory, reject: Reject| {
+                    let g = |one: &Entry| guard(one, reject);
+                    reader_entry(find(&again, None, Some(&g), false))
+                },
+                memory,
+                &again,
+            );
+            item = i;
+            reply = r;
+            if item.is_some() {
+                own = _own_thing(&again);
+                reading = again;
+            }
+        }
+        if item.is_none() && ADDING_TO_THE_SUBJECT.match_(&text).is_some() && A_MEASURE_OF_THE_SUBJECT.match_(&text).is_none() && _the_answer_was_about_the_subject(memory) {
+            let (other, said) = _offer_with(
+                &mut |m: &mut Memory, reject: Reject| {
+                    let g = |one: &Entry| guard(one, reject);
+                    _in_context_with(&text, m, Some(&g))
+                },
+                memory,
+                &reading,
+            );
+            if other.is_some() {
+                item = other;
+                reply = said;
+            }
+        }
+        if item.is_none() {
+            let older = memory::swap::rewritten(&text, &memory_value(memory)).tuple();
+            let mut readings: Vec<Vec<Value>> = if memory::swap::is_repair(&text) {
+                memory::swap::candidates(&text, memory, &Value::Int(3)).items().iter().filter_map(|c| c.clone().tuple()).collect()
+            } else {
+                vec![]
+            };
+            if let Some(older) = older.as_ref() {
+                if readings.iter().all(|read| read[0] != older[0]) {
+                    readings.push(older.clone());
+                }
+            }
+            if readings.is_empty() {
+                if let Some(older) = older.clone() {
+                    readings = vec![older];
+                }
+            }
+            let mut handed = false;
+            for swapped in &readings {
+                let question = py_str(&swapped[0]);
+                let again = understanding::understand(&question, Some(&*memory));
+                let (other, said) = _offer_with(
+                    &mut |_: &mut Memory, reject: Reject| {
+                        let g = |one: &Entry| guard(one, reject);
+                        reader_entry(find(&again, None, Some(&g), false))
+                    },
+                    memory,
+                    &again,
+                );
+                let said_text = said.clone().unwrap_or_default();
+                let same_answer = _already_said(&said_text, memory, 3) && _written_for(other, &py_str(&swapped[1]));
+                let thing = memory::swap::thing(&text).py().unwrap_or_default();
+                let thing_words: HashSet<String> = az_words(&thing.to_lowercase()).into_iter().collect();
+                let rest = text::split_ref(&question)
+                    .into_iter()
+                    .filter(|w| az_words(&w.to_lowercase()).iter().any(|x| !thing_words.contains(x)))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                let kept = _written_for(other, &thing) && _more_than_the_thing(other, &rest);
+                if let Some(o) = other {
+                    if same_answer
+                        || kept
+                        || memory::swap::names(&swapped[1], &said_text, &text, memory, &question)
+                        || _about_the_rest_of_the_question(o, &question, &thing)
+                    {
+                        let mut said_out = said_text.clone();
+                        if same_answer || _already_said(&said_text, memory, 3) {
+                            let parting = _same_where_they_asked(&text, &said_text);
+                            if !parting.is_empty() {
+                                said_out = parting;
+                            }
+                        }
+                        item = Some(o);
+                        reply = Some(said_out);
+                        reading = again;
+                        handed = true;
+                        break;
+                    }
+                }
+            }
+            if !handed && _a_place_they_asked(&text) && _a_place_of_the_same_kind(earlier.as_ref(), &text) {
+                let parting = _same_where_they_asked(&text, &memory::last_bot(memory));
+                if !parting.is_empty() {
+                    return Some(parting);
+                }
+            }
+        }
+        if item.is_none() {
+            if let Some(about_someone) = memory::swap::rewritten_person(&text, &memory_value(memory)).tuple() {
+                let question = py_str(&about_someone[0]);
+                let again = understanding::understand(&question, Some(&*memory));
+                let (other, said) =
+                    _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&again, None, reject, false)), memory, &again);
+                let said_text = said.clone().unwrap_or_default();
+                if other.is_some() && memory::swap::names_person(&about_someone[1], &said_text, &text, &memory::last_bot(memory)) {
+                    item = other;
+                    reply = said;
+                    reading = again;
+                }
+            }
+        }
+    }
+    let plan_kinds = ["fill", "sides", "done", "keep", "fix"];
+    let care = item.is_none() && _care_holds(&text, memory);
+    if item.is_none() && !care {
+        if knowledge::dishes::ask_kind(&understood).is_some_and(|k| plan_kinds.contains(&k)) {
+            if let Some(plan) = knowledge::dishes::follow_up(memory, &understood).filter(|p| !p.is_empty()) {
+                return Some(plan);
+            }
+        }
+        if memory::topics::asks_only(&understood) && last_module(memory).as_deref() == Some("answers") {
+            if let Some(cooked) = _a_cooking_ask_after_a_keeping_answer(&understood, memory) {
+                return Some(cooked);
+            }
+            let other_food = _names_another_food(&understood, &memory::topics::subject(memory).to_lowercase());
+            let last = memory::last_bot(memory);
+            if memory::topics::has_time(&last) && !other_food {
+                if let Some(said) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|s| !s.is_empty()) {
+                    if said != last {
+                        return Some(said);
+                    }
+                }
+            }
+            if let Some(again) = _the_entry_asked_again(&text, memory) {
+                return Some(again);
+            }
+        }
+        if !care && last_module(memory).as_deref() == Some("answers") && _adds_a_figure(&text) {
+            if let Some(again) = _the_entry_asked_again(&text, memory) {
+                if _new_figure(&again, &memory::last_bot(memory)) {
+                    return Some(again);
+                }
+            }
+            if _the_plan_answers_this(memory) && !memory::topics::pairing(&text) {
+                if let Some(plan) = knowledge::dishes::follow_up(memory, &understood).filter(|p| !p.is_empty()) {
+                    let said = if memory::topics::pairing(&text) { 0 } else { _answer_said(&plan, memory) };
+                    if said >= 3 {
+                        return Some(py_format(&AGAIN_HELP, &[("reply", &plan)]));
+                    }
+                    if said > 0 {
+                        return Some(py_format(&AGAIN[(said - 1) as usize], &[("reply", &_repeat_short(&plan, &text, Some(memory)))]));
+                    }
+                    return Some(plan);
+                }
+            }
+        }
+        follow_up = true;
+        if WHEN_AM_I.is_match(&text) {
+            return None;
+        }
+        if let Some(meal) = memory::topics::meal_follow_up(&understood, memory).reading() {
+            reading = meal;
+        }
+        let other_food = _names_another_food(&understood, &memory::topics::subject(memory).to_lowercase());
+        let own_thing = _names_its_own_thing(&text, Some(memory));
+        let use_context = !other_food && !own_thing;
+        let (i, r) = _offer_with(
+            &mut |_: &mut Memory, reject: Reject| {
+                let g = |one: &Entry| guard(one, reject);
+                reader_entry(find(&reading, None, Some(&g), use_context))
+            },
+            memory,
+            &reading,
+        );
+        item = i;
+        reply = r;
+        if let Some(found) = item {
+            if let Some(owed) = _the_outcome_owed(Some(found), &text) {
+                if _said_before(reply.as_deref().unwrap_or(""), memory, 3) || knowledge::lookup::names_nothing_of_its_own(&reading) {
+                    return Some(owed);
+                }
+            }
+        }
+        if let Some(found) = item {
+            if _said_before(reply.as_deref().unwrap_or(""), memory, 3) {
+                let wider = memory::topics::followup_reading(&understood, &memory_value(memory));
+                if wider != understood {
+                    let (wider_item, wider_reply) = _offer_with(
+                        &mut |_: &mut Memory, reject: Reject| {
+                            let g = |one: &Entry| guard(one, reject);
+                            reader_entry(find(&wider, None, Some(&g), false))
+                        },
+                        memory,
+                        &wider,
+                    );
+                    if let Some(w) = wider_item {
+                        if w.key != found.key {
+                            reading = wider;
+                            item = Some(w);
+                            reply = wider_reply;
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(found) = item {
+            if !_about_the_talk(found, &text, memory, &reading) {
+                let (i, r) = _offer_with(
+                    &mut |_: &mut Memory, reject: Reject| {
+                        let g = |one: &Entry| guard(one, reject);
+                        let veto = _in_this_conversation(Some(&g), &reading);
+                        reader_entry(find(&reading, None, Some(&veto), use_context))
+                    },
+                    memory,
+                    &reading,
+                );
+                item = i;
+                reply = r;
+            }
+        }
+        if item.is_none() {
+            let (i, r) = _offer_with(
+                &mut |m: &mut Memory, reject: Reject| {
+                    let g = |one: &Entry| guard(one, reject);
+                    _in_context_with(&text, m, Some(&g))
+                },
+                memory,
+                &reading,
+            );
+            item = i;
+            reply = r;
+            if let Some((chosen_reading, chosen_item, chosen_reply)) = _choosing(&text, memory) {
+                reading = chosen_reading;
+                item = Some(chosen_item);
+                reply = Some(chosen_reply);
+            }
+        }
+    }
+    if item.is_none() {
+        let (i, r) = _offer_with(
+            &mut |m: &mut Memory, reject: Reject| {
+                let g = |one: &Entry| guard(one, reject);
+                _in_bare_context(&text, m, Some(&g))
+            },
+            memory,
+            &reading,
+        );
+        item = i;
+        reply = r;
+        follow_up = item.is_some();
+    }
+    let mut bare = false;
+    if item.is_none() && !care {
+        let wider = memory::topics::followup_reading(&understood, &memory_value(memory));
+        if wider != understood {
+            reading = wider;
+            let (i, r) = _offer_with(
+                &mut |_: &mut Memory, reject: Reject| {
+                    let g = |one: &Entry| guard(one, reject);
+                    reader_entry(find(&reading, None, Some(&g), false))
+                },
+                memory,
+                &reading,
+            );
+            item = i;
+            reply = r;
+            bare = memory::topics::bare_question(&understood, memory);
+            if item.is_some() && bare {
+                let figure = _asked_figure(&text, reply.as_deref().unwrap_or(""), "");
+                if !figure.is_empty() {
+                    reply = Some(figure);
+                }
+            }
+            if let Some(found) = item {
+                if !own.is_empty() && !_is_about(found, &own) {
+                    item = None;
+                    reply = None;
+                    reading = understood.clone();
+                }
+            }
+            let written_out = reading != understood
+                && !memory::topics::the_prognosis_the_line_asks(&understood, &memory_value(memory)).is_py_none();
+            if let Some(found) = item {
+                if !written_out && !_leans_on(&understood, found, memory) && understood.kind == "question" {
+                    if let Some(someone) = _the_person_to_call(&text, memory) {
+                        return Some(someone);
+                    }
+                    return None;
+                }
+            }
+            follow_up = item.is_some();
+        }
+    }
+    if item.is_none() && !care {
+        if let Some(written) = _written_ask_with_an_answer(&text, memory) {
+            let asked = understanding::understand(&written, Some(&*memory));
+            let (i, r) = _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&asked, None, reject, false)), memory, &asked);
+            item = i;
+            reply = r;
+            if item.is_some_and(|i| !_is_about(i, &memory::topics::subject(memory))) {
+                item = None;
+                reply = None;
+            }
+            if item.is_some() && !_answers_a_length(item, reply.as_deref().unwrap_or("")) {
+                item = None;
+                reply = None;
+            }
+            if item.is_some() {
+                reading = asked;
+                follow_up = true;
+            }
+        }
+    }
+    if item.is_none()
+        && !care
+        && memory::topics::written_out(&text, memory).py_truth()
+        && !memory::topics::same_as_before(&understood, &memory_value(memory)).py_truth()
+    {
+        return None;
+    }
+    let Some(item) = item else {
+        if let Some(about) = _the_sentence_about(&text, memory) {
+            return Some(about);
+        }
+        if let Some(someone) = _the_person_to_call(&text, memory) {
+            return Some(someone);
+        }
+        let low = text.to_lowercase();
+        let use_up = USE_UP_PHRASES.iter().any(|p| low.contains(p.as_str()));
+        let followed = if use_up || bare { None } else { memory::topics::same_as_before(&understood, &memory_value(memory)).py() };
+        if let Some(followed) = followed.filter(|f| !text::strip(f).is_empty()) {
+            if !_new_thing(&own, &followed) {
+                return Some(_the_part_said_again(&followed, &text, Some(&understood), memory));
+            }
+        }
+        if let Some(thinking) = knowledge::cooking::considered(&understood, memory).filter(|t| !t.is_empty()) {
+            return Some(thinking);
+        }
+        let meal = if compose::repair::amends_to(&text) {
+            None
+        } else {
+            knowledge::cooking::meal(&understood, knowledge::cooking::MealArgs { text: Some(&text), memory: Some(&*memory), ..Default::default() })
+        };
+        if let Some(meal) = meal.filter(|m| !text::strip(m).is_empty()) {
+            if !knowledge::cooking::unusable(&meal, &understood) {
+                return Some(meal);
+            }
+        }
+        if let Some(pointed) = memory::topics::the_ask_about_the_thing_it_points_at(&understood, &memory_value(memory)).reading() {
+            let (i, r) = _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&pointed, None, reject, false)), memory, &pointed);
+            if let (Some(_), Some(r)) = (i, r.filter(|r| !text::strip(r).is_empty())) {
+                return Some(r);
+            }
+        }
+        return knowledge::cooking::without(&understood);
+    };
+    let mut item: &'static Entry = item;
+    if item.fault {
+        if let Some(kitchen) = knowledge::cooking::without(&reading).filter(|k| !text::strip(k).is_empty()) {
+            return Some(kitchen);
+        }
+    }
+    if !_usable(item, &reading, memory) {
+        let kitchen = knowledge::cooking::without(&reading);
+        if let Some(k) = kitchen.as_ref().filter(|k| !text::strip(k).is_empty()) {
+            return Some(k.clone());
+        }
+        let Some(next) = _next_usable(item, &reading, memory) else { return kitchen };
+        item = next;
+        reply = Some(_payload_mut(item, memory, &reading));
+        if reply.as_deref().is_none_or(|r| text::strip(r).is_empty()) {
+            if let Some(k) = kitchen.as_ref().filter(|k| !text::strip(k).is_empty()) {
+                return Some(k.clone());
+            }
+        }
+    }
+    let Some(reply) = reply.filter(|r| !text::strip(r).is_empty()) else { return None };
+    if own.is_empty() && _reaches_another_subject(&text, item, memory) {
+        return None;
+    }
+    let said = if memory::topics::asks_only(&understood) && !memory::topics::pairing(&text) { _answer_said(&reply, memory) } else { 0 };
+    if (own.is_empty() || _is_about(item, &own)) && _only_a_size_of(item, &text) {
+        let keys: Vec<String> = _key_words(item).into_iter().collect();
+        if let Some(sized) = memory::topics::sized_reply(&reply, &text, memory, &keys).py() {
+            memory::topics::remember_answer(memory, &reply, &keys);
+            return Some(sized);
+        }
+    }
+    if said == 0 && !follow_up && _said_before(&reply, memory, 3) {
+        if let Some(part) = memory::narrow::narrow(&reply, &text, "") {
+            if !text::strip(&part).is_empty() && memory::narrow::flat(&part) != memory::narrow::flat(&reply) {
+                if let Some(part) = _part_not_repeated(Some(&part), &reply, memory) {
+                    if let Some(again) = _the_detail_said_again(&reply, &text, memory).filter(|a| !a.is_empty()) {
+                        return Some(again);
+                    }
+                    return Some(part);
+                }
+            }
+        }
+    }
+    if CHOICE_ASK.match_(&text::squash(&text.to_lowercase())).is_some() {
+        if let Some(picked) = _the_one_to_pick_for(&text, memory) {
+            return Some(picked);
+        }
+    }
+    let same_line = _asked_again(&text, &reply, memory);
+    if own.is_empty()
+        && same_line == 0
+        && _said_before(&reply, memory, 3)
+        && !_names_another_food(&understood, &memory::topics::subject(memory).to_lowercase())
+        && (!memory::topics::written_out(&text, memory).py_truth() || memory::topics::same_as_before(&understood, &memory_value(memory)).py_truth())
+    {
+        if let Some(part) = memory::topics::same_as_before(&understood, &memory_value(memory)).py() {
+            if !text::strip(&part).is_empty() && memory::narrow::flat(&part) != memory::narrow::flat(&memory::last_bot(memory)) {
+                return Some(part);
+            }
+        }
+    }
+    if said > 0 && memory::topics::written_out(&text, memory).py_truth() && !memory::topics::same_as_before(&understood, &memory_value(memory)).py_truth() {
+        return None;
+    }
+    let asked = same_line.max(said);
+    if asked > 0 && _said_before(&reply, memory, 3) {
+        if let Some(step) = memory::repeat::the_move(&text, &reply, memory).filter(|m| !m.is_empty()) {
+            return Some(step);
+        }
+        if asked >= 3 {
+            return Some(py_format(&AGAIN_HELP, &[("reply", &reply)]));
+        }
+        if let Some(honest) = _figure_missing(&reply, &text) {
+            return Some(honest);
+        }
+        return Some(py_format(&AGAIN[(asked - 1) as usize], &[("reply", &_repeat_short(&reply, &text, Some(memory)))]));
+    }
+    let line = if memory::topics::names_nothing(&text) { "" } else { text.as_str() };
+    if let Some(framed) = memory::topics::said_again(&reply, memory, line).py() {
+        return Some(framed);
+    }
+    let added = if follow_up && _said_before(&reply, memory, 3) { _the_new_part(&reply, memory, 3) } else { None };
+    if let Some(added) = added {
+        let keys: Vec<String> = _key_words(item).into_iter().collect();
+        memory::topics::remember_answer(memory, &reply, &keys);
+        _remember_answer(memory, Some(item), &reply, &[]);
+        return Some(added);
+    }
+    if follow_up && _said_before(&reply, memory, 3) {
+        if _a_question_about_another_thing(&text, &reply, Some(&understood), memory, !own.is_empty(), Some(item)) {
+            return None;
+        }
+        let figure = _the_figure(&text, &reply);
+        if !figure.is_empty() {
+            return Some(figure);
+        }
+        if let Some((_, _, chosen)) = _choosing(&text, memory) {
+            if !_said_before(&chosen, memory, 3) {
+                return Some(chosen);
+            }
+        }
+        if let Some(same) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|s| !s.is_empty()) {
+            return Some(same);
+        }
+        if let Some(sentence) = _the_sentence_about(&text, memory) {
+            return Some(sentence);
+        }
+        if understood.kind == "question" && _covered(&text, &reply, memory, Some(&understood)) && !_asks_of_another_subject(&text, Some(&understood)) {
+            let clean = understood.clean.clone();
+            let bare_ask = !TOPICS_YES_NO.is_match(&clean)
+                && memory::topics::content(&clean)
+                    .iter()
+                    .all(|w| ASKING.contains(w) || BARE_GENERIC.contains(w) || ASKING_VERBS.contains(w) || PROPERTY_WORDS.contains(w));
+            if bare_ask && understood.kind == "question" && !_asks_of_another_subject(&text, Some(&understood)) {
+                return memory::again::instead(&reply, &text, memory).py().or_else(|| memory::topics::said_again(&reply, memory, &text).py());
+            }
+            return memory::topics::said_again(&reply, memory, &text).py();
+        }
+        return memory::repeat::the_move(&text, &reply, memory);
+    }
+    if asked == 0 && follow_up && _already_said(&reply, memory, 3) {
+        let figure = _the_figure(&text, &reply);
+        if !figure.is_empty() {
+            return Some(figure);
+        }
+        if let Some(same) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|s| !s.is_empty()) {
+            return Some(same);
+        }
+        if understood.kind == "question" && !_asks_of_another_subject(&text, Some(&understood)) {
+            return memory::topics::said_again(&reply, memory, &text).py();
+        }
+        return memory::repeat::the_move(&text, &reply, memory);
+    }
+    if asked >= 3 {
+        return Some(py_format(&AGAIN_HELP, &[("reply", &reply)]));
+    }
+    if asked > 0 {
+        if let Some(honest) = _figure_missing(&reply, &text) {
+            return Some(honest);
+        }
+        return Some(py_format(&AGAIN[(asked - 1) as usize], &[("reply", &_repeat_short(&reply, &text, Some(memory)))]));
+    }
+    if own.is_empty() && _said_before(&reply, memory, 3) && _covered(&text, &reply, memory, Some(&understood)) {
+        if let Some(again) = _the_detail_said_again(&reply, &text, memory).filter(|a| !a.is_empty()) {
+            return Some(again);
+        }
+        if let Some(framed) = memory::topics::said_again(&reply, memory, "").py() {
+            return Some(framed);
+        }
+    }
+    if _a_question_about_another_thing(&text, &reply, Some(&understood), memory, !own.is_empty(), Some(item)) {
+        return None;
+    }
+    let keys: Vec<String> = _key_words(item).into_iter().collect();
+    memory::topics::remember_answer(memory, &reply, &keys);
+    _remember_answer(memory, Some(item), &reply, &[]);
+    Some(memory::again::instead(&reply, &text, memory).py().unwrap_or(reply))
 }
+
+// ==== ported code ends; the stubs below are the functions not yet ported ====
 
