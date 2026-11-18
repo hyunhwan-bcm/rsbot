@@ -211,7 +211,7 @@ pub fn _earlier(memory: &Memory, text_: &str, n: usize, wide: bool) -> Vec<(Stri
 /// words; a line with no subject of its own has nothing to offer.
 pub fn _about(question: &str) -> Option<String> {
     // `except Exception`: a line that cannot be read offers no subject.
-    let read = std::panic::catch_unwind(|| crate::understanding::understand(question, Some(&Memory::new()))).ok()?;
+    let read = super::pyv::attempt(|| crate::understanding::understand(question, Some(&Memory::new())))?;
     let flat = _said(read.subject.as_deref().unwrap_or(""));
     let subject = text::strip_chars(&flat, ENDS_AND_COMMA);
     if subject.is_empty() || text::split_ref(subject).len() > 3 {

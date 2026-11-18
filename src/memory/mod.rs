@@ -356,9 +356,21 @@ pub mod pyv {
         }
     }
 
-    /// `try: f() except Exception: None`: a panic (Python's exception) is caught.
+    /// `try: f() except Exception: None`: a panic (Python's exception) is caught. A function
+    /// another workstream has not ported yet is not an exception of PyBot's, so that one goes on
+    /// up, for the runtime and the checkers to count.
     pub fn attempt<T>(f: impl FnOnce() -> T) -> Option<T> {
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).ok()
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+            Ok(v) => Some(v),
+            Err(e) => {
+                let unported = e.downcast_ref::<String>().is_some_and(|m| m.starts_with("UNPORTED"))
+                    || e.downcast_ref::<&str>().is_some_and(|m| m.starts_with("UNPORTED"));
+                if unported {
+                    std::panic::resume_unwind(e);
+                }
+                None
+            }
+        }
     }
 
     /// `isinstance(v, int)` (a bool is an int in Python).
