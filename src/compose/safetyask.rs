@@ -1,49 +1,123 @@
-//! Port of `bot/compose/safetyask.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/safetyask.py`: "is it safe to leave it on" about a thing of theirs that
+//! plugs in gets the plain test (a burning smell, sparks, heat), unless a card answers it better
+//! or the bot already ruled it off.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
+use crate::compose::fallback_chain::{caught, py_format};
+use crate::data;
+use crate::memory::{last_bot, last_user};
 use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
+use crate::py::text;
+use crate::state::Memory;
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
-/// Python: bot/compose/safetyask.py:110 `reply_for(clean, memory)`
-pub fn reply_for(clean: &str, memory: &Memory) {
-    crate::unported!("bot.compose.safetyask:reply_for")
+const M: &str = "bot.compose.safetyask.";
+macro_rules! regexes {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<&'static Re> =
+            LazyLock::new(|| data::re(concat!("bot.compose.safetyask.", stringify!($name))));)*
+    };
+}
+regexes!(ASK_IF_A_THING_IS_SAFE, A_SAFETY_WORD, A_FAULT_DESCRIBED, A_DANGER_SAID);
+static A_THING_THAT_PLUGS_IN: LazyLock<HashSet<String>> = LazyLock::new(|| data::set(&format!("{M}A_THING_THAT_PLUGS_IN")));
+static A_SAFETY_TEST_LINES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(&format!("{M}A_SAFETY_TEST_LINES")));
+static A_RULING_ALREADY: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(&format!("{M}A_RULING_ALREADY")));
+static A_SAFETY_ALREADY_RULED: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(&format!("{M}A_SAFETY_ALREADY_RULED")));
+/// `re.findall(r"[a-z']{3,20}", ...)`, written inline in `_the_thing_on_the_table`.
+static A_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z']{3,20}", 0));
+const SHRUGS: [&str; 12] = [
+    "i don't know enough", "i do not know enough", "beyond what i know", "rather not guess",
+    "not sure about that one", "i'm not sure about that", "search should sort", "quick search",
+    "search online", "better sources", "can't call that one", "cant call that one",
+];
+
+/// `str(last_user(memory) or "")`
+fn the_line_before(memory: &Memory) -> String {
+    last_user(memory, 1).as_str().unwrap_or("").to_string()
 }
 
-/// Python: bot/compose/safetyask.py:132 `_a_safety_word(clean)` (never called on the trace corpus)
+/// Python: bot/compose/safetyask.py:84 `reply_for(clean, memory)`
+///
+/// The lines for a safety question about a thing of theirs, or None.
+pub fn reply_for(clean: &str, memory: &Memory) -> Option<Vec<String>> {
+    let text = text::squash(&text::lower(clean));
+    if text.is_empty() || !ASK_IF_A_THING_IS_SAFE.is_match(&text) {
+        return None;
+    }
+    let thing = _the_thing_on_the_table(&text, memory);
+    if thing.is_empty() {
+        return None;
+    }
+    if !(_a_safety_word(&text) || _the_thing_is_described_faulty(memory, &thing)) {
+        return None;
+    }
+    if let Some(card) = _the_answers_have_this(&text, memory) {
+        if text::lower(&card).contains(&thing) || !_a_shrug(&card) {
+            return None;
+        }
+    }
+    if the_bot_already_ruled(memory) {
+        return Some(A_SAFETY_ALREADY_RULED.clone());
+    }
+    let named = format!("the {thing}");
+    Some(A_SAFETY_TEST_LINES.iter().map(|line| py_format(line, &[("thing", &named)])).collect())
+}
+
+/// Python: bot/compose/safetyask.py:105 `_a_safety_word(clean)`
 pub fn _a_safety_word(clean: &str) -> bool {
-    crate::unported!("bot.compose.safetyask:_a_safety_word")
+    A_SAFETY_WORD.is_match(&text::lower(clean))
 }
 
-/// Python: bot/compose/safetyask.py:137 `_the_thing_is_described_faulty(memory, thing)` (never called on the trace corpus)
+/// Python: bot/compose/safetyask.py:110 `_the_thing_is_described_faulty(memory, thing)`
+///
+/// True when the line before describes the thing as faulty in a way that could bite.
 pub fn _the_thing_is_described_faulty(memory: &Memory, thing: &str) -> bool {
-    crate::unported!("bot.compose.safetyask:_the_thing_is_described_faulty")
+    let said = text::squash(&text::lower(&the_line_before(memory)));
+    if said.is_empty() || thing.is_empty() || !said.contains(thing) {
+        return false;
+    }
+    A_FAULT_DESCRIBED.is_match(&said)
 }
 
-/// Python: bot/compose/safetyask.py:149 `_a_shrug(reply)` (never called on the trace corpus)
+/// Python: bot/compose/safetyask.py:121 `_a_shrug(reply)`
+///
+/// True when an answer to this line says the bot cannot answer it.
 pub fn _a_shrug(reply: &str) -> bool {
-    crate::unported!("bot.compose.safetyask:_a_shrug")
+    let said = text::lower(reply);
+    SHRUGS.iter().any(|phrase| said.contains(phrase))
 }
 
-/// Python: bot/compose/safetyask.py:162 `_the_thing_on_the_table(clean, memory)`
+/// Python: bot/compose/safetyask.py:133 `_the_thing_on_the_table(clean, memory)`
+///
+/// The appliance a follow-up safety question is about (the last one named, in the line or else
+/// in the line before), or "".
 pub fn _the_thing_on_the_table(clean: &str, memory: &Memory) -> String {
-    crate::unported!("bot.compose.safetyask:_the_thing_on_the_table")
+    let in_the_line = |said: &str| A_WORD.findall_str(&text::lower(said)).into_iter().filter(|w| A_THING_THAT_PLUGS_IN.contains(w)).last();
+    if let Some(found) = in_the_line(clean) {
+        return found;
+    }
+    in_the_line(&the_line_before(memory)).unwrap_or_default()
 }
 
-/// Python: bot/compose/safetyask.py:188 `the_bot_already_ruled(memory)`
+/// Python: bot/compose/safetyask.py:152 `the_bot_already_ruled(memory)`
+///
+/// Whether the bot's own last reply told the person to stop using the thing, and why not to.
 pub fn the_bot_already_ruled(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.safetyask:the_bot_already_ruled")
+    let said = text::lower(&last_bot(memory));
+    if !A_RULING_ALREADY.iter().any(|phrase| said.contains(phrase.as_str())) {
+        return false;
+    }
+    A_DANGER_SAID.is_match(&said)
 }
 
-/// Python: bot/compose/safetyask.py:201 `_the_answers_have_this(clean, memory)` (never called on the trace corpus)
-pub fn _the_answers_have_this(clean: &str, memory: &Memory) -> Value {
-    crate::unported!("bot.compose.safetyask:_the_answers_have_this")
+/// Python: bot/compose/safetyask.py:164 `_the_answers_have_this(clean, memory)`
+///
+/// The knowledge module's own answer to this line, asked with a copy of the conversation, or None.
+pub fn _the_answers_have_this(clean: &str, memory: &Memory) -> Option<String> {
+    let mut copy = memory.clone();
+    let said = caught(|| crate::modules::answers::respond(clean, &mut copy)).flatten()?;
+    if text::strip(&said).is_empty() {
+        return None;
+    }
+    Some(said)
 }
-
