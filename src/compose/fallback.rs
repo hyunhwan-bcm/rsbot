@@ -163,196 +163,6 @@ fn format_named(template: &str, fields: &[(&str, &str)]) -> String {
     out
 }
 
-/// Python: bot/compose/fallback.py:7133 `reads_as_a_judgement(text)`
-pub fn reads_as_a_judgement(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback:reads_as_a_judgement")
-}
-
-/// Python: bot/compose/fallback.py:7268 `reads_as_a_change_of_medicine(text)`
-pub fn reads_as_a_change_of_medicine(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback:reads_as_a_change_of_medicine")
-}
-
-/// Python: bot/compose/fallback.py:7345 `_plan_reported(clean, mood)`
-pub fn _plan_reported(clean: &str, mood: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_plan_reported")
-}
-
-/// Python: bot/compose/fallback.py:7411 `a_comparison_of_standing(clean)`
-pub fn a_comparison_of_standing(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:a_comparison_of_standing")
-}
-
-/// Python: bot/compose/fallback.py:7466 `_a_relationship_ending(clean)`
-pub fn _a_relationship_ending(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_relationship_ending")
-}
-
-/// Python: bot/compose/fallback.py:7586 `_advice_in(last)`
-pub fn _advice_in(last: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_advice_in")
-}
-
-/// Python: bot/compose/fallback.py:7625 `_the_words_in(advice)`
-pub fn _the_words_in(advice: &str) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_the_words_in")
-}
-
-/// Python: bot/compose/fallback.py:7779 `_asks_about_the_advice(clean, last)`
-pub fn _asks_about_the_advice(clean: &str, last: &str) {
-    crate::unported!("bot.compose.fallback:_asks_about_the_advice")
-}
-
-/// Python: bot/compose/fallback.py:7817 `_feels_better(clean)`
-pub fn _feels_better(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_feels_better")
-}
-
-/// Python: bot/compose/fallback.py:7848 `_no_relief(memory, last='')` (never called on the trace corpus)
-pub fn _no_relief(memory: &Memory, last: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_no_relief")
-}
-
-/// Python: bot/compose/fallback.py:7874 `_someone_is_arriving(clean)`
-pub fn _someone_is_arriving(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_someone_is_arriving")
-}
-
-/// Python: bot/compose/fallback.py:8030 `_is_presence_check(clean)`
-pub fn _is_presence_check(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_is_presence_check")
-}
-
-/// Python: bot/compose/fallback.py:8049 `_the_store_takes_it(clean)` (never called on the trace corpus)
-pub fn _the_store_takes_it(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_the_store_takes_it")
-}
-
-/// Python: bot/compose/fallback.py:8102 `_the_answers_take_it(clean)` (never called on the trace corpus)
-pub fn _the_answers_take_it(clean: &str) -> Option<bool> {
-    crate::unported!("bot.compose.fallback:_the_answers_take_it")
-}
-
-/// Python: bot/compose/fallback.py:8166 `_free_tail(tail)` (never called on the trace corpus)
-pub fn _free_tail(tail: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_free_tail")
-}
-
-/// Python: bot/compose/fallback.py:8208 `_choice_advice(clean)`
-pub fn _choice_advice(clean: &str) -> String {
-    crate::unported!("bot.compose.fallback:_choice_advice")
-}
-
-/// Python: bot/compose/fallback.py:8213 `_unframed(clean)`
-pub fn _unframed(clean: &str) -> String {
-    crate::unported!("bot.compose.fallback:_unframed")
-}
-
-/// Python: bot/compose/fallback.py:8234 `_refuses_the_pair(clean)`
-pub fn _refuses_the_pair(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_refuses_the_pair")
-}
-
-/// Python: bot/compose/fallback.py:8240 `_is_a_choice(clean)`
-pub fn _is_a_choice(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_is_a_choice")
-}
-
-/// Python: bot/compose/fallback.py:8401 `_an_order_of_work(sides, clean)`
-pub fn _an_order_of_work(sides: Option<&[String]>, clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_an_order_of_work")
-}
-
-/// Python: bot/compose/fallback.py:8419 `_choice_sides(clean)`
-pub fn _choice_sides(clean: &str) -> Option<Vec<String>> {
-    crate::unported!("bot.compose.fallback:_choice_sides")
-}
-
-/// Python: bot/compose/fallback.py:8441 `_capital(side)`
-pub fn _capital(side: &str) -> String {
-    crate::unported!("bot.compose.fallback:_capital")
-}
-
-/// Python: bot/compose/fallback.py:8447 `_named(side, memory=None)`
-pub fn _named(side: &str, memory: &Memory) -> String {
-    crate::unported!("bot.compose.fallback:_named")
-}
-
-/// Python: bot/compose/fallback.py:8460 `_a_pick(sides, clean, memory=None)`
-pub fn _a_pick(sides: &[String], clean: &str, memory: &Memory) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_a_pick")
-}
-
-/// Python: bot/compose/fallback.py:8474 `_between_people(sides, clean)`
-pub fn _between_people(sides: &[String], clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_between_people")
-}
-
-/// Python: bot/compose/fallback.py:8487 `_choice_light(clean, memory=None)`
-pub fn _choice_light(clean: &str, memory: &Memory) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_choice_light")
-}
-
-/// Python: bot/compose/fallback.py:8499 `_choice_pool(clean, memory=None)`
-pub fn _choice_pool(clean: &str, memory: &Memory) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_choice_pool")
-}
-
-/// Python: bot/compose/fallback.py:8535 `_their_own_phrase(clean, things)`
-pub fn _their_own_phrase(clean: &str, things: &[String]) {
-    crate::unported!("bot.compose.fallback:_their_own_phrase")
-}
-
-/// Python: bot/compose/fallback.py:8593 `_a_person_is_the_thing(clean)`
-pub fn _a_person_is_the_thing(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_person_is_the_thing")
-}
-
-/// Python: bot/compose/fallback.py:8711 `_their_own_bill(clean)`
-pub fn _their_own_bill(clean: &str) {
-    crate::unported!("bot.compose.fallback:_their_own_bill")
-}
-
-/// Python: bot/compose/fallback.py:8720 `_their_own_points(clean)`
-pub fn _their_own_points(clean: &str) {
-    crate::unported!("bot.compose.fallback:_their_own_points")
-}
-
-/// Python: bot/compose/fallback.py:8733 `_an_office_record(clean, asking)`
-pub fn _an_office_record(clean: &str, asking: bool) {
-    crate::unported!("bot.compose.fallback:_an_office_record")
-}
-
-/// Python: bot/compose/fallback.py:8763 `_their_own_record(clean, asking)`
-pub fn _their_own_record(clean: &str, asking: bool) {
-    crate::unported!("bot.compose.fallback:_their_own_record")
-}
-
-/// Python: bot/compose/fallback.py:8852 `_their_own_week(clean)`
-pub fn _their_own_week(clean: &str) {
-    crate::unported!("bot.compose.fallback:_their_own_week")
-}
-
-/// Python: bot/compose/fallback.py:8906 `_names_place(clean, places)`
-pub fn _names_place(clean: &str, places: &[String]) -> bool {
-    crate::unported!("bot.compose.fallback:_names_place")
-}
-
-/// Python: bot/compose/fallback.py:8918 `_their_contact_number(clean, asking)`
-pub fn _their_contact_number(clean: &str, asking: bool) {
-    crate::unported!("bot.compose.fallback:_their_contact_number")
-}
-
-/// Python: bot/compose/fallback.py:8966 `_their_own_day(clean)`
-pub fn _their_own_day(clean: &str) {
-    crate::unported!("bot.compose.fallback:_their_own_day")
-}
-
-/// Python: bot/compose/fallback.py:8999 `_a_bare_wear_ask(clean)` (never called on the trace corpus)
-pub fn _a_bare_wear_ask(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_bare_wear_ask")
-}
-
 /// Python: bot/compose/fallback.py:9080 `_asks_for_something(text)` (never called on the trace corpus)
 pub fn _asks_for_something(text: &str) -> bool {
     crate::unported!("bot.compose.fallback:_asks_for_something")
@@ -4698,4 +4508,676 @@ pub fn _a_doable(clean: &str, memory: &Memory) -> Option<String> {
 pub fn a_doable(text_: &str, memory: &Memory) -> Option<String> {
     let clean = text::squash(&lower(text_));
     _a_doable(&clean, memory)
+}
+
+// ---- fallback.py:7134-7640: judgement, a change of medicine, plans, standing, advice words ----
+
+/// Python: bot/compose/fallback.py:7133 `reads_as_a_judgement(text)`
+/// Read by answers: is this line a judgement rather than a thing?
+pub fn reads_as_a_judgement(text_: &str) -> bool {
+    _reads_as_a_judgement(text_)
+}
+
+regexes!(PLAN_MEDICINE, _SPLITTING_A_TABLET, _A_QUESTION, _A_QUALIFIED_PERSON_DOES_IT);
+
+/// Python: bot/compose/fallback.py:7268 `reads_as_a_change_of_medicine(text)`
+/// Is this line the person's own plan to change what they take?
+pub fn reads_as_a_change_of_medicine(text_: &str) -> bool {
+    if !PLAN_MEDICINE.is_match(text_) {
+        return false;
+    }
+    if _SPLITTING_A_TABLET.is_match(text_) {
+        return false;
+    }
+    if _A_QUESTION.is_match(text::strip(text_)) {
+        return false;
+    }
+    !_A_QUALIFIED_PERSON_DOES_IT.is_match(text_)
+}
+
+regexes!(PLAN_NOT, PLAN_IDIOM, PLAN_OPENING, PLAN_DECIDED, RELATIONSHIP_ENDING);
+pools!(PLAN_DONE);
+
+/// Python: bot/compose/fallback.py:7345 `_plan_reported(clean, mood)`
+/// True when the line is the person saying what they will do next, not a trouble.
+pub fn _plan_reported(clean: &str, mood: &str) -> bool {
+    if mood == "negative" || PLAN_NOT.is_match(clean) || PLAN_IDIOM.is_match(clean) {
+        return false;
+    }
+    PLAN_OPENING.match_(clean).is_some() || PLAN_DECIDED.match_(clean).is_some() || PLAN_DONE.iter().any(|p| clean.contains(p.as_str()))
+}
+
+regexes!(A_CROWD_SUBJECT, A_MARKER_OF_STANDING, A_PARENT_STILL_THERE, MY_OWN_AGE, THE_PERSON_IS_THE_SUBJECT, AN_ASK_ON_TOP);
+
+/// Python: bot/compose/fallback.py:7411 `a_comparison_of_standing(clean)`
+/// True when the line measures the person's life against a crowd's - the feeling of being behind.
+pub fn a_comparison_of_standing(clean: &str) -> bool {
+    let line = text::squash(clean);
+    if line.is_empty() || line.contains('?') {
+        return false;
+    }
+    if text::split_ref(&line).len() > 14 {
+        return false;
+    }
+    if A_PARENT_STILL_THERE.is_match(&line) && rx_flags_i(r"\bstill\b").is_match(&line) {
+        return false;
+    }
+    let mut comparison: &str = &line;
+    if THE_PERSON_IS_THE_SUBJECT.match_(&line).is_some() {
+        // re.split(r"(?:,|\band\b|\bbut\b)", line, maxsplit=1)
+        let Some(turn) = rx(r"(?:,|\band\b|\bbut\b)").search(&line) else { return false };
+        comparison = &line[turn.end()..];
+        if !A_CROWD_SUBJECT.is_match(comparison) {
+            return false;
+        }
+    }
+    if !A_CROWD_SUBJECT.is_match(comparison) {
+        return rx_flags_i(r"\bat (?:my|our) age\b").is_match(comparison);
+    }
+    if AN_ASK_ON_TOP.is_match(&line) {
+        return false;
+    }
+    if MY_OWN_AGE.is_match(comparison) {
+        return true;
+    }
+    A_MARKER_OF_STANDING.is_match(comparison)
+}
+
+/// Python: bot/compose/fallback.py:7466 `_a_relationship_ending(clean)`
+pub fn _a_relationship_ending(clean: &str) -> bool {
+    RELATIONSHIP_ENDING.is_match(clean)
+}
+
+regexes!(ADVICE_CUE);
+static ADVICE_LENGTH: LazyLock<usize> = LazyLock::new(|| data::get("bot.compose.fallback.ADVICE_LENGTH").as_int().unwrap() as usize);
+static IRREGULAR_STEP: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.IRREGULAR_STEP").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str().to_string())).collect()
+});
+
+/// Python: bot/compose/fallback.py:7586 `_advice_in(last)`
+/// Was the last answer something the person could do and report back on?
+pub fn _advice_in(last: &str) -> bool {
+    text::len(last) >= *ADVICE_LENGTH || ADVICE_CUE.is_match(&lower(last))
+}
+
+/// Python: bot/compose/fallback.py:7625 `_the_words_in(advice)`
+/// The words of an answer, with the past forms a report would write its steps in (a set).
+pub fn _the_words_in(advice: &str) -> HashSet<String> {
+    if advice.is_empty() {
+        return HashSet::new();
+    }
+    let said = az_set(&lower(advice));
+    if said.is_empty() {
+        return HashSet::new();
+    }
+    let mut words = said.clone();
+    for word in &said {
+        let n = word.chars().count();
+        if n < 3 {
+            continue;
+        }
+        if word.ends_with("ing") && n > 4 {
+            let stem = &word[..word.len() - 3];
+            words.insert(stem.to_string());
+            words.insert(format!("{stem}e"));
+            let b = stem.as_bytes();
+            // stem[-1:] == stem[-2:-1]
+            let last = &stem[stem.len().saturating_sub(1)..];
+            let before = if stem.len() >= 2 { &stem[stem.len() - 2..stem.len() - 1] } else { "" };
+            if last == before && !b.is_empty() {
+                words.insert(stem[..stem.len() - 1].to_string());
+            }
+        }
+    }
+    let mut forms = words.clone();
+    for word in &words {
+        if word.is_empty() {
+            continue;
+        }
+        let last = word.chars().last().unwrap();
+        forms.insert(format!("{word}ed"));
+        forms.insert(format!("{word}d"));
+        forms.insert(format!("{word}{last}ed"));
+    }
+    for (past, base) in IRREGULAR_STEP.iter() {
+        if words.contains(base) {
+            forms.insert(past.clone());
+        }
+    }
+    forms
+}
+
+// ---- fallback.py:7764-7990: the advice asked about, easing, arrivals, presence, the store ----
+
+regexes!(ADVICE_COOL_ASK, ADVICE_TIME_WORDS, ADVICE_WORSE_ASK, ADVICE_TIME_ASK, ADVICE_AGAIN_ASK);
+pools!(ADVICE_COOL_WORDS, ADVICE_COOL, ADVICE_WORSE, ADVICE_TIME, ADVICE_AGAIN);
+
+/// Python: bot/compose/fallback.py:7779 `_asks_about_the_advice(clean, last)`
+/// The pool for a question about the advice just given, or None. (The skeleton's `()` return
+/// could not carry the pool.)
+pub fn _asks_about_the_advice(clean: &str, last: &str) -> Option<Vec<String>> {
+    if ADVICE_COOL_ASK.is_match(clean) && ADVICE_COOL_WORDS.iter().any(|w| last.contains(w.as_str())) {
+        return Some(ADVICE_COOL.clone());
+    }
+    if !ADVICE_TIME_WORDS.is_match(last) {
+        return None;
+    }
+    if ADVICE_WORSE_ASK.is_match(clean) {
+        return Some(ADVICE_WORSE.clone());
+    }
+    if ADVICE_TIME_ASK.is_match(clean) {
+        return Some(ADVICE_TIME.clone());
+    }
+    if ADVICE_AGAIN_ASK.is_match(clean) {
+        return Some(ADVICE_AGAIN.clone());
+    }
+    None
+}
+
+regexes!(FEELS_BETTER, FEELS_NOT_BETTER, MOVE_ON, NO_RELIEF, ROUTE_NAMED, WITH_YOU, ARRIVING, STILL_HERE);
+word_sets!(EASING_FILLER, PRESENCE_LEFTOVER);
+pools!(CRISIS_WORDS);
+
+/// Python: bot/compose/fallback.py:7817 `_feels_better(clean)`
+/// True for a line that says they are easing, and says nothing else.
+pub fn _feels_better(clean: &str) -> bool {
+    if !FEELS_BETTER.is_match(clean) || FEELS_NOT_BETTER.is_match(clean) {
+        return false;
+    }
+    if clean.contains('?') || MOVE_ON.is_match(clean) {
+        return false;
+    }
+    az_words(clean)
+        .iter()
+        .all(|w| EASING_FILLER.contains(w) || SYMPTOM_WORDS.contains(w) || BODY_PARTS.contains(w) || HEALTH_WORDS.contains(w))
+}
+
+/// Python: bot/compose/fallback.py:7848 `_no_relief(memory, last='')` (never called on the trace corpus)
+/// True when the thread is one where feeling better does not mean being out of danger.
+pub fn _no_relief(memory: &Memory, last: &str) -> bool {
+    let mut lines: Vec<&str> = vec![last];
+    for past in &memory.turns {
+        lines.push(&past.user);
+        lines.push(&past.bot);
+    }
+    if lines.iter().any(|l| !l.is_empty() && NO_RELIEF.is_match(&lower(l))) {
+        return true;
+    }
+    for past in &memory.turns {
+        let said = &past.bot;
+        let low = lower(said);
+        if CRISIS_WORDS.iter().any(|w| low.contains(w.as_str())) {
+            continue;
+        }
+        // re.split(r"(?<=[.?!])\s", said.strip(), 1)[0].lower()
+        let stripped = text::strip(said);
+        let opening = match rx(r"(?<=[.?!])\s").search(stripped) {
+            Some(m) => &stripped[..m.start()],
+            None => stripped,
+        };
+        let opening = lower(opening);
+        if !opening.is_empty() && ROUTE_NAMED.is_match(&opening) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:7874 `_someone_is_arriving(clean)`
+pub fn _someone_is_arriving(clean: &str) -> bool {
+    if WITH_YOU.is_match(clean) {
+        return true;
+    }
+    rx(r"\b(?:come|coming|let)\s+(?:in|round)\b").is_match(clean) && ARRIVING.is_match(clean)
+}
+
+/// Python: bot/compose/fallback.py:8030 `_is_presence_check(clean)`
+/// True when the line is only "are you there / can you hear me", and nothing more.
+pub fn _is_presence_check(clean: &str) -> bool {
+    let Some(m) = STILL_HERE.search(clean) else { return false };
+    let rest = az_words(&format!("{} {}", &clean[..m.start()], &clean[m.end()..]));
+    rest.len() <= 2 && rest.iter().all(|w| PRESENCE_LEFTOVER.contains(w))
+}
+
+static MEMORY_STORE_FIRST_ASK: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.modules.memory_store.FIRST_ASK"));
+
+/// Python: bot/compose/fallback.py:8049 `_the_store_takes_it(clean)` (never called on the trace corpus)
+/// The card stands down only on a line the memory store will answer (`FIRST_ASK`).
+pub fn _the_store_takes_it(clean: &str) -> bool {
+    MEMORY_STORE_FIRST_ASK.is_match(clean)
+}
+
+// ---- fallback.py:8016-9018: the identity check, choices, the person's own records and days ----
+
+/// Python: bot/compose/fallback.py:8102 `_the_answers_take_it(clean)` (never called on the trace corpus)
+/// Whether the knowledge module will answer this line itself (always a bool in Python; the
+/// contract's `Option` is kept and is always `Some`).
+pub fn _the_answers_take_it(clean: &str) -> Option<bool> {
+    let taken = py_try(|| crate::modules::answers::respond(clean, &mut Memory::new()).is_some()).unwrap_or(false);
+    Some(taken)
+}
+
+word_sets!(HELP_TAIL);
+
+/// Python: bot/compose/fallback.py:8166 `_free_tail(tail)` (never called on the trace corpus)
+/// True when nothing but subject-free words follow the offer.
+pub fn _free_tail(tail: &str) -> bool {
+    az_words(tail).iter().all(|w| HELP_TAIL.contains(w))
+}
+
+regexes!(CHOICE, CHOICE_WORRY, CHOICE_FRAME, CHOICE_ARTICLE, JOINT_FRAME, CHOICE_REFUSED);
+
+/// Python: bot/compose/fallback.py:8208 `_choice_advice(clean)`
+/// `clean` with a joint question frame taken off, for the advice-word test.
+pub fn _choice_advice(clean: &str) -> String {
+    if JOINT_FRAME.match_(text::strip(clean)).is_some() { _unframed(clean) } else { clean.to_string() }
+}
+
+/// Python: bot/compose/fallback.py:8213 `_unframed(clean)`
+/// `clean` without the question frame in front of a choice, and without its article.
+pub fn _unframed(clean: &str) -> String {
+    let line = CHOICE_FRAME.sub("", text::strip(clean));
+    let line = CHOICE_ARTICLE.sub("", text::strip(&line));
+    text::strip(&line).to_string()
+}
+
+/// Python: bot/compose/fallback.py:8234 `_refuses_the_pair(clean)`
+/// True when the line turns both things down instead of asking which to take.
+pub fn _refuses_the_pair(clean: &str) -> bool {
+    let head = clean.split(" or ").next().unwrap_or("");
+    CHOICE_REFUSED.is_match(head)
+}
+
+/// Python: bot/compose/fallback.py:8240 `_is_a_choice(clean)`
+/// True for a bare "x or y" that names two things, not a question with a clause in it.
+pub fn _is_a_choice(clean: &str) -> bool {
+    let asked = CHOICE.match_(clean).is_some() || CHOICE.match_(&_unframed(clean)).is_some();
+    asked && !CHOICE_WORRY.is_match(clean) && !crate::understanding::kinds::two_ends_of_one_scale(clean) && !_refuses_the_pair(clean)
+}
+
+regexes!(ORDER_SIDE_END, ORDER_BEFORE_AFTER, ORDER_WORD_TAIL, ORDER_WORD_LEAD, CHOICE_SIDE_LEAD, CHOICE_SIDE_TAIL, CHOICE_SIDE_WHEN, CHOICE_PERSON_SIDE);
+word_sets!(ORDER_ONLY);
+
+/// Python: bot/compose/fallback.py:8401 `_an_order_of_work(sides, clean)`
+/// True when the two options are the steps of one job rather than two things to pick from.
+pub fn _an_order_of_work(sides: Option<&[String]>, clean: &str) -> bool {
+    if ORDER_BEFORE_AFTER.is_match(clean) {
+        return true;
+    }
+    let sides = sides.unwrap_or(&[]);
+    if !sides.iter().any(|s| ORDER_SIDE_END.is_match(s)) {
+        return false;
+    }
+    for side in sides {
+        let core = ORDER_WORD_TAIL.sub("", &ORDER_WORD_LEAD.sub("", side));
+        let core = CHOICE_ARTICLE.sub("", text::strip(&core));
+        let core = text::strip(&core);
+        if ORDER_ONLY.contains(core) || text::len(core) < 2 {
+            return false;
+        }
+    }
+    true
+}
+
+/// Python: bot/compose/fallback.py:8419 `_choice_sides(clean)`
+/// The two things a bare choice names, as the person typed them, or None.
+pub fn _choice_sides(clean: &str) -> Option<Vec<String>> {
+    let unframed = _unframed(clean);
+    let head = unframed.trim_end_matches('?');
+    let parts: Vec<&str> = head.split(" or ").collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let mut sides = Vec::new();
+    for part in parts {
+        let side = CHOICE_SIDE_TAIL.sub("", &CHOICE_SIDE_LEAD.sub("", text::strip(part)));
+        let side = CHOICE_SIDE_WHEN.sub("", text::strip(&side));
+        let side = CHOICE_ARTICLE.sub("", text::strip(&side));
+        let side = text::strip(&side).to_string();
+        if side.is_empty() || !side.chars().any(|c| c.is_ascii_lowercase()) {
+            return None;
+        }
+        sides.push(side);
+    }
+    Some(sides)
+}
+
+/// Python: bot/compose/fallback.py:8441 `_capital(side)`
+/// `side` with its first letter as a capital, which is how a name or an option starts.
+pub fn _capital(side: &str) -> String {
+    let side = text::squash(side);
+    if side.is_empty() {
+        return side;
+    }
+    format!("{}{}", text::upper(&text::slice(&side, 0, Some(1))), text::slice(&side, 1, None))
+}
+
+pools!(NAMED_TYPES);
+
+/// Python: bot/compose/fallback.py:8447 `_named(side, memory=None)`
+/// `side` with any name in it spelled the way the person spelled it.
+pub fn _named(side: &str, memory: &Memory) -> String {
+    let mut side = side.to_string();
+    let Some(understood) = &memory.understood else { return side };
+    for entity in &understood.entities {
+        if !NAMED_TYPES.contains(&entity.kind) {
+            continue;
+        }
+        let name = text::strip(&entity.text).to_string();
+        if text::len(&name) < 2 || !side.contains(&lower(&name)) {
+            continue;
+        }
+        let pattern = format!(r"\b{}\b", crate::py::re::escape(&lower(&name)));
+        side = rx(&pattern).sub(&name, &side);
+    }
+    side
+}
+
+/// Python: bot/compose/fallback.py:8460 `_a_pick(sides, clean, memory=None)`
+/// One side of the choice, said as a reply, and the other one quoted beside it: `[take, other]`.
+pub fn _a_pick(sides: &[String], clean: &str, memory: &Memory) -> Vec<String> {
+    let (first, second) = (&sides[0], &sides[1]);
+    let seed: i128 = clean.chars().map(|c| c as i128).sum();
+    let (take, other) = if crate::py::random::Random::new(seed).getrandbits(1) != 0 { (first, second) } else { (second, first) };
+    vec![_capital(&_named(take, memory)), _named(other, memory)]
+}
+
+word_sets!(CHOICE_PEOPLE, CHOICE_HEALTH, CHOICE_THERAPY, CHOICE_STAKES);
+pools!(CHOICE_LIGHT, CHOICE_BETWEEN_PEOPLE, CHOICE_LIGHT_PICK, CHOICE_WEIGH, CHOICE_PHARMACIST);
+
+/// Python: bot/compose/fallback.py:8474 `_between_people(sides, clean)`
+/// True when the two things are two people rather than two things.
+pub fn _between_people(sides: &[String], clean: &str) -> bool {
+    for side in sides {
+        if text::split_ref(side).iter().any(|w| CHOICE_PEOPLE.contains(*w)) {
+            return true;
+        }
+    }
+    CHOICE_PERSON_SIDE.is_match(clean)
+}
+
+/// Python: bot/compose/fallback.py:8487 `_choice_light(clean, memory=None)`
+pub fn _choice_light(clean: &str, memory: &Memory) -> Vec<String> {
+    let Some(sides) = _choice_sides(clean) else { return CHOICE_LIGHT.clone() };
+    if _between_people(&sides, clean) {
+        return CHOICE_BETWEEN_PEOPLE.clone();
+    }
+    let pick = _a_pick(&sides, clean, memory);
+    CHOICE_LIGHT_PICK.iter().map(|l| format_named(l, &[("pick", &pick[0]), ("other", &pick[1])])).collect()
+}
+
+/// Python: bot/compose/fallback.py:8499 `_choice_pool(clean, memory=None)`
+pub fn _choice_pool(clean: &str, memory: &Memory) -> Vec<String> {
+    let words = text::split_ref(clean);
+    if words.iter().any(|w| CHOICE_HEALTH.contains(*w)) {
+        if words.iter().any(|w| CHOICE_THERAPY.contains(*w)) {
+            return CHOICE_WEIGH.clone();
+        }
+        return CHOICE_PHARMACIST.clone();
+    }
+    if _an_order_of_work(_choice_sides(clean).as_deref(), clean) {
+        return ORDER_OF_WORK.clone();
+    }
+    if words.iter().any(|w| CHOICE_STAKES.contains(*w)) {
+        return CHOICE_WEIGH.clone();
+    }
+    _choice_light(clean, memory)
+}
+
+regexes!(OWN_RECORD_NOT, RECORD_STATE, RECORD_QUALIFIED, OFFICE_STATE, MY_ANY_THING, A_TILL_ASK, NOT_AN_OFFICE, RECORD_CHECK, MY_OWN_STATE, CARD_VALIDITY_ASK, CARD_BALANCE_ASK, CARD_NOT_A_BALANCE);
+
+/// Python: bot/compose/fallback.py:8535 `_their_own_phrase(clean, things)`
+/// The possessive phrase naming one of the person's own things, or None. (Python keeps the
+/// compiled patterns in `MY_OWN`; `rx` is the same cache.)
+pub fn _their_own_phrase<'t>(clean: &'t str, things: &[String]) -> Option<Match<'t>> {
+    for thing in things {
+        let pattern = format!(r"\b(?:my|our)\s+(?:[a-z']+\s+){{0,2}}{}(?![a-z])", crate::py::re::escape(thing));
+        let re_: &'static Re = rx(&pattern);
+        if let Some(m) = re_.search(clean) {
+            return Some(m);
+        }
+    }
+    None
+}
+
+/// `pattern.match(text, pos)`: a match that starts exactly at `pos` (a byte offset).
+fn match_at<'t>(pattern: &'t Re, text_: &'t str, pos: usize) -> Option<Match<'t>> {
+    pattern.search_at(text_, pos).filter(|m| m.start() == pos)
+}
+
+static _A_MY_PERSON: LazyLock<Re> = LazyLock::new(|| {
+    let mut words: Vec<String> = data::get("bot.compose.loss.PEOPLE").strs().iter().map(|w| crate::py::re::escape(w)).collect();
+    words.sort_by(|a, b| text::len(b).cmp(&text::len(a)));
+    Re::new(
+        &format!(
+            concat!(
+                r"\b(?:my|our|his|her|their|the)\s+(?:{})(?:\'s|s\')?",
+                r"(?=\s*(?:$|[,.!?;]|(?:has|have|had|is|are|was|were|did|does|do|not|never|just|now|",
+                r"still|yet|already|arrived|arrive|arrives|coming|come|came|returned|returns|got|",
+                r"gotten|been|being|at|home|there|back|in|out|safe|ok|alright|fine|well|on|off|to|",
+                r"from|away|left|gone|late|early|waiting)\b))"
+            ),
+            words.join("|")
+        ),
+        crate::py::re::I,
+    )
+});
+
+/// Python: bot/compose/fallback.py:8593 `_a_person_is_the_thing(clean)`
+/// True when the person is the subject of the state, not the owner of a record.
+pub fn _a_person_is_the_thing(clean: &str) -> bool {
+    _A_MY_PERSON.is_match(clean)
+}
+
+regexes!(MY_BILL_THING, MY_BILL_MINE, MY_BILL_ASK, MY_BILL_NOT, POINTS_SCHEME, POINTS_ASK, POINTS_NOT);
+pools!(MY_BILL_LINES, POINTS_LINES, AT_THE_TILL, OFFICE_RECORD_LINES, CARD_VALIDITY, CARD_RECORD_THINGS, RECORD_THINGS, HEALTH_RECORD, HEALTH_WORLD, HEALTH_RECORD_LINES);
+static MY_RECORDS: LazyLock<Vec<(String, Vec<String>, Vec<String>)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.MY_RECORDS")
+        .items()
+        .iter()
+        .map(|r| (r.items()[0].str().to_string(), r.items()[1].strs(), r.items()[2].strs()))
+        .collect()
+});
+/// `MY_CARD_ROW`, `MY_MONEY_ROW`, `MY_APPLICATION_ROW`: a row's options, or None.
+fn row_of(name: &str) -> Option<Vec<String>> {
+    let v = data::get(&format!("{M}{name}"));
+    if v.is_none() { None } else { Some(v.strs()) }
+}
+static MY_CARD_ROW: LazyLock<Option<Vec<String>>> = LazyLock::new(|| row_of("MY_CARD_ROW"));
+static MY_MONEY_ROW: LazyLock<Option<Vec<String>>> = LazyLock::new(|| row_of("MY_MONEY_ROW"));
+static MY_APPLICATION_ROW: LazyLock<Option<Vec<String>>> = LazyLock::new(|| row_of("MY_APPLICATION_ROW"));
+
+/// Python: bot/compose/fallback.py:8711 `_their_own_bill(clean)`
+/// The honest line for the price of something the person already pays for, or None.
+pub fn _their_own_bill(clean: &str) -> Option<Vec<String>> {
+    if !MY_BILL_MINE.is_match(clean) || !MY_BILL_THING.is_match(clean) {
+        return None;
+    }
+    if !MY_BILL_ASK.is_match(clean) || MY_BILL_NOT.is_match(clean) {
+        return None;
+    }
+    Some(MY_BILL_LINES.clone())
+}
+
+/// Python: bot/compose/fallback.py:8720 `_their_own_points(clean)`
+/// The honest line for a points or stamps balance, or None.
+pub fn _their_own_points(clean: &str) -> Option<Vec<String>> {
+    if !POINTS_SCHEME.is_match(clean) || POINTS_NOT.is_match(clean) {
+        return None;
+    }
+    if !POINTS_ASK.is_match(clean) {
+        return None;
+    }
+    Some(POINTS_LINES.clone())
+}
+
+/// Python: bot/compose/fallback.py:8733 `_an_office_record(clean, asking)`
+/// The honest line for a record only an office can see, or None.
+pub fn _an_office_record(clean: &str, asking: bool) -> Option<Vec<String>> {
+    if !asking || NOT_AN_OFFICE.is_match(clean) {
+        return None;
+    }
+    if A_TILL_ASK.is_match(clean) {
+        return Some(AT_THE_TILL.clone());
+    }
+    if _a_person_is_the_thing(clean) {
+        return None;
+    }
+    if OFFICE_STATE.is_match(clean) && MY_ANY_THING.is_match(clean) {
+        return Some(OFFICE_RECORD_LINES.clone());
+    }
+    if MY_OWN_STATE.is_match(clean) {
+        let money: Vec<String> = ["paid", "pay", "wages", "salary", "money", "expenses"].iter().map(|s| s.to_string()).collect();
+        if _has(clean, &money) {
+            if let Some(row) = MY_MONEY_ROW.as_ref() {
+                return Some(row.clone());
+            }
+        }
+        if let Some(row) = MY_APPLICATION_ROW.as_ref() {
+            return Some(row.clone());
+        }
+    }
+    None
+}
+
+/// Python: bot/compose/fallback.py:8763 `_their_own_record(clean, asking)`
+/// The honest line for one of the person's own records, or None.
+pub fn _their_own_record(clean: &str, asking: bool) -> Option<Vec<String>> {
+    if let Some(said) = _their_own_week(clean) {
+        if !said.is_empty() {
+            return Some(said);
+        }
+    }
+    if let Some(said) = _their_own_points(clean) {
+        if !said.is_empty() {
+            return Some(said);
+        }
+    }
+    let checking = RECORD_CHECK.is_match(clean) && _their_own_phrase(clean, &RECORD_THINGS).is_some();
+    let validity = CARD_VALIDITY_ASK.is_match(clean) && _their_own_phrase(clean, &CARD_RECORD_THINGS).is_some();
+    if !(asking || checking || validity) || OWN_RECORD_NOT.is_match(clean) {
+        return None;
+    }
+    if validity {
+        return Some(CARD_VALIDITY.clone());
+    }
+    if !(RECORD_STATE.is_match(clean) || checking) {
+        return _an_office_record(clean, asking);
+    }
+    let mut rows: Vec<&(String, Vec<String>, Vec<String>)> = MY_RECORDS.iter().collect();
+    if _their_own_phrase(clean, &CARD_RECORD_THINGS).is_some() {
+        rows.sort_by_key(|row| row.0 != "card");
+    }
+    for (_, things, options) in rows {
+        if let Some(phrase) = _their_own_phrase(clean, things) {
+            if match_at(&RECORD_QUALIFIED, clean, phrase.end()).is_none() {
+                return Some(options.clone());
+            }
+        }
+    }
+    if let Some(row) = MY_CARD_ROW.as_ref() {
+        if CARD_BALANCE_ASK.is_match(clean) && !CARD_NOT_A_BALANCE.is_match(clean) && _their_own_phrase(clean, &["card".to_string()]).is_some() {
+            return Some(row.clone());
+        }
+    }
+    if let Some(phrase) = _their_own_phrase(clean, &HEALTH_RECORD) {
+        if match_at(&RECORD_QUALIFIED, clean, phrase.end()).is_none() && _has(clean, &HEALTH_WORLD) {
+            return Some(HEALTH_RECORD_LINES.clone());
+        }
+    }
+    _an_office_record(clean, asking)
+}
+
+regexes!(A_DAY_AGO, MY_OWN_DOING, NOT_ABOUT_THEIR_DAY);
+pools!(MY_OWN_DAY_LINES);
+
+/// Python: bot/compose/fallback.py:8852 `_their_own_week(clean)`
+/// The honest line for what the person did on a day gone by, or None.
+pub fn _their_own_week(clean: &str) -> Option<Vec<String>> {
+    let said = text::squash(&lower(clean));
+    if said.is_empty() {
+        return None;
+    }
+    if NOT_ABOUT_THEIR_DAY.is_match(&said) {
+        return None;
+    }
+    if A_DAY_AGO.is_match(&said) && MY_OWN_DOING.is_match(&said) {
+        return Some(MY_OWN_DAY_LINES.clone());
+    }
+    None
+}
+
+regexes!(NUMBER_WANTED, NUMBER_OF, NUMBER_OF_PHONE, NUMBER_REPORT);
+pools!(NUMBER_NOT);
+static NUMBER_PLACES: LazyLock<Vec<(Vec<String>, Vec<String>)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.NUMBER_PLACES").items().iter().map(|p| (p.items()[0].strs(), p.items()[1].strs())).collect()
+});
+
+/// Python: bot/compose/fallback.py:8906 `_names_place(clean, places)`
+/// True when the line names one of these places, plural or not ("the councils number"). (Python
+/// keeps the compiled patterns in `NUMBER_PLACE_PATTERNS`; `rx` is the same cache.)
+pub fn _names_place(clean: &str, places: &[String]) -> bool {
+    places.iter().any(|place| rx(&format!(r"\b{}(?:s|es)?\b", crate::py::re::escape(place))).is_match(clean))
+}
+
+/// Python: bot/compose/fallback.py:8918 `_their_contact_number(clean, asking)`
+/// The honest line for the phone number of a place the person wants to ring, or None. (The
+/// skeleton's `()` return could not carry the pool.)
+pub fn _their_contact_number(clean: &str, asking: bool) -> Option<Vec<String>> {
+    if !NUMBER_WANTED.is_match(clean) || _has(clean, &NUMBER_NOT) {
+        return None;
+    }
+    if NUMBER_REPORT.is_match(clean) {
+        return None;
+    }
+    if NUMBER_OF.is_match(clean) && !NUMBER_OF_PHONE.is_match(clean) {
+        return None;
+    }
+    for (places, options) in NUMBER_PLACES.iter() {
+        if _names_place(clean, places) {
+            return Some(options.clone());
+        }
+    }
+    None
+}
+
+regexes!(MY_DAY_ASK, MY_DAY_NOT);
+word_sets!(MY_DAY_SAID);
+pools!(MY_OWN_DAY);
+
+/// Python: bot/compose/fallback.py:8966 `_their_own_day(clean)`
+/// The honest line for their own shift, or None. (The skeleton's `()` return could not carry
+/// the pool.)
+pub fn _their_own_day(clean: &str) -> Option<Vec<String>> {
+    let m = MY_DAY_ASK.search(clean)?;
+    if MY_DAY_NOT.is_match(clean) {
+        return None;
+    }
+    let work: Vec<String> = ["work", "works", "working", "job", "shift", "shifts", "rota", "hours"].iter().map(|s| s.to_string()).collect();
+    if !(_has(clean, &work) || rx(r"\bclock(?:ed|s)? (?:in|off|on)\b").is_match(clean)) {
+        return None;
+    }
+    let rest = format!("{} {}", &clean[..m.start()], &clean[m.end()..]);
+    if az_words(&rest).iter().any(|w| !MY_DAY_SAID.contains(w)) {
+        return None;
+    }
+    Some(MY_OWN_DAY.clone())
+}
+
+pools!(LIVE_TAKE_ASK, LIVE_WEAR, LIVE_SOON);
+word_sets!(LIVE_TAKE_ALLOWED);
+
+/// Python: bot/compose/fallback.py:8999 `_a_bare_wear_ask(clean)` (never called on the trace corpus)
+/// True when a take/wear ask is the whole of the line and nothing else is attached.
+pub fn _a_bare_wear_ask(clean: &str) -> bool {
+    let mut t = clean.to_string();
+    let mut asks: Vec<&String> = LIVE_TAKE_ASK.iter().collect();
+    asks.sort_by(|a, b| text::len(b).cmp(&text::len(a)));
+    for phrase in asks {
+        t = t.replace(phrase.as_str(), " ");
+    }
+    for word in LIVE_WEAR.iter().chain(LIVE_SOON.iter()) {
+        t = t.replace(word.as_str(), " ");
+    }
+    az_words(&t).iter().all(|w| LIVE_TAKE_ALLOWED.contains(w))
 }
