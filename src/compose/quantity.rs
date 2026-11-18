@@ -57,11 +57,11 @@ static UNITS: LazyLock<HashMap<String, (String, f64)>> = LazyLock::new(|| {
     named("UNITS").pairs().iter().map(|(k, v)| (k.str().to_string(), (v.items()[0].str().to_string(), number(&v.items()[1])))).collect()
 });
 /// `NUMBERS`, in dict order (the size reading sorts the keys).
-static NUMBERS: LazyLock<Vec<(String, i64)>> =
-    LazyLock::new(|| named("NUMBERS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.as_int().expect("an int"))).collect());
+static NUMBERS: LazyLock<Vec<(String, f64)>> =
+    LazyLock::new(|| named("NUMBERS").pairs().iter().map(|(k, v)| (k.str().to_string(), number(v))).collect());
 /// `TENS`, in dict order.
-static TENS: LazyLock<Vec<(String, i64)>> =
-    LazyLock::new(|| named("TENS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.as_int().expect("an int"))).collect());
+static TENS: LazyLock<Vec<(String, f64)>> =
+    LazyLock::new(|| named("TENS").pairs().iter().map(|(k, v)| (k.str().to_string(), number(v))).collect());
 /// `PERIODS`: (said, name) in order.
 static PERIODS: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
     named("PERIODS").items().iter().map(|row| (row.items()[0].str().to_string(), row.items()[1].str().to_string())).collect()
@@ -149,7 +149,7 @@ pub fn _number_at(words: &[String], at: usize) -> (Option<f64>, usize) {
         let low = text::lower(&words[at]);
         if TENS.iter().any(|(t, _)| *t == low) && ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"].contains(&nxt.as_str()) {
             let units = NUMBERS.iter().find(|(w, _)| *w == nxt).map(|(_, n)| *n).unwrap_or_else(|| panic!("KeyError: {nxt:?}"));
-            return (Some(first + units as f64), 2);
+            return (Some(first + units), 2);
         }
     }
     (Some(first), 1)
@@ -167,12 +167,12 @@ pub fn _amount(word: &str) -> Option<f64> {
         return Some(decimal_float(&plain));
     }
     if let Some((_, n)) = NUMBERS.iter().find(|(w, _)| *w == plain) {
-        return Some(*n as f64);
+        return Some(*n);
     }
     for (ten, base) in TENS.iter() {
         if let Some(rest) = plain.strip_prefix(ten.as_str()) {
             if let Some((_, n)) = NUMBERS.iter().find(|(w, _)| w == rest) {
-                return Some((base + n) as f64);
+                return Some(base + n);
             }
         }
     }
