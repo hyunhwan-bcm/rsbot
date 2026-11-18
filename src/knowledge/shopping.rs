@@ -1217,3 +1217,40 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.shopping:_the_person_row.<locals>.reply:1571", _the_person_row_reply),
     ("bot.knowledge.shopping:_watch_help:1776", |_: &FnRef, m: &mut Memory, u: &Understood| _watch_help(m, u)),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/shopping.py:597 `_present_answer(text)` (never called on the trace corpus)
+    pub fn _present_answer(text: &str) -> Value {
+        crate::unported!("bot.knowledge.shopping:_present_answer")
+    }
+
+    /// Python: bot/knowledge/shopping.py:700 `_gift_row(fallback)` (never called on the trace corpus)
+    pub fn _gift_row(fallback: &Value) -> Value {
+        crate::unported!("bot.knowledge.shopping:_gift_row")
+    }
+
+    /// Python: bot/knowledge/shopping.py:927 `_openings()` (never called on the trace corpus)
+    pub fn _openings(pools: &[Value]) -> Value {
+        crate::unported!("bot.knowledge.shopping:_openings")
+    }
+
+    /// Python: bot/knowledge/shopping.py:1561 `_the_person_row(adult, child)` (never called on the trace corpus)
+    pub fn _the_person_row(adult: &Value, child: &Value) -> Value {
+        crate::unported!("bot.knowledge.shopping:_the_person_row")
+    }
+
+}
+

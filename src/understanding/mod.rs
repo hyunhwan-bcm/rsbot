@@ -1677,3 +1677,25 @@ pub fn match_at<'t>(re: &Re, text: &'t str, pos: usize) -> Option<crate::py::re:
     let wrapped = format!("{}\\G(?:{}{})", &p[..lead_end], &p[lead_end..], sep);
     rx_flags(&wrapped, re.flags()).search_at(text, pos)
 }
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/understanding/__init__.py:425 `_turns(memory)`
+    pub fn _turns(memory: &Memory) -> Vec<String> {
+        crate::unported!("bot.understanding:_turns")
+    }
+
+}
+

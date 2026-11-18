@@ -223,3 +223,35 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.history:the_past_named:1965", |_: &FnRef, m: &mut Memory, u: &Understood| the_past_named(m, u)),
     ("bot.knowledge.history:the_inventor:1984", |_: &FnRef, m: &mut Memory, u: &Understood| the_inventor(m, u)),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/history.py:1882 `names_a_row(table)` (never called on the trace corpus)
+    pub fn names_a_row(table: &Value) -> Value {
+        crate::unported!("bot.knowledge.history:names_a_row")
+    }
+
+    /// Python: bot/knowledge/history.py:1913 `names_a_row_or_a_question_after_one(table)` (never called on the trace corpus)
+    pub fn names_a_row_or_a_question_after_one(table: &Value) -> Value {
+        crate::unported!("bot.knowledge.history:names_a_row_or_a_question_after_one")
+    }
+
+    /// Python: bot/knowledge/history.py:1928 `a_short_question_about_the_last_one(table)` (never called on the trace corpus)
+    pub fn a_short_question_about_the_last_one(table: &Value) -> Value {
+        crate::unported!("bot.knowledge.history:a_short_question_about_the_last_one")
+    }
+
+}
+

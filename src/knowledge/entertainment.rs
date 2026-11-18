@@ -4320,3 +4320,55 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.entertainment:_worth_it_unnamed:2496", |_, m, u| _worth_it_unnamed(m, u)),
     ("bot.knowledge.entertainment:who_made:538", |_, m, u| who_made(m, u)),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/entertainment.py:3259 `_mood_key_words(moods, drop=())` (never called on the trace corpus)
+    pub fn _mood_key_words(moods: &Value, drop: &Value) -> Value {
+        crate::unported!("bot.knowledge.entertainment:_mood_key_words")
+    }
+
+    /// Python: bot/knowledge/entertainment.py:3291 `_mood_signals(words)` (never called on the trace corpus)
+    pub fn _mood_signals(words: &[String]) -> Value {
+        crate::unported!("bot.knowledge.entertainment:_mood_signals")
+    }
+
+    /// Python: bot/knowledge/entertainment.py:3525 `_mood_pick(picks)` (never called on the trace corpus)
+    pub fn _mood_pick(picks: &Value) -> Value {
+        crate::unported!("bot.knowledge.entertainment:_mood_pick")
+    }
+
+    /// Python: bot/knowledge/entertainment.py:3586 `_picks_by_title()` (never called on the trace corpus)
+    pub fn _picks_by_title() -> Value {
+        crate::unported!("bot.knowledge.entertainment:_picks_by_title")
+    }
+
+    /// Python: bot/knowledge/entertainment.py:5336 `_with_the_detail_asked_for(build, form)` (never called on the trace corpus)
+    pub fn _with_the_detail_asked_for(build: &Value, form: &Value) -> Value {
+        crate::unported!("bot.knowledge.entertainment:_with_the_detail_asked_for")
+    }
+
+    /// Python: bot/knowledge/entertainment.py:5358 `_a_second_one_read_first(writer, form)` (never called on the trace corpus)
+    pub fn _a_second_one_read_first(writer: &Value, form: &Value) -> Value {
+        crate::unported!("bot.knowledge.entertainment:_a_second_one_read_first")
+    }
+
+    /// Python: bot/knowledge/entertainment.py:9526 `_film_list(text)` (never called on the trace corpus)
+    pub fn _film_list(text: &str) -> Value {
+        crate::unported!("bot.knowledge.entertainment:_film_list")
+    }
+
+}
+

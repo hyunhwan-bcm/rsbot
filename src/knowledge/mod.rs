@@ -4,6 +4,57 @@
 //! The knowledge base is data: every domain module's `ENTRIES` (exported in the bundle as
 //! `bot.knowledge.<domain>.ENTRIES`), gathered here in Python's order by [`entries`].
 
+pub mod a_plain_noise_word_on_a_machine;
+pub mod bake_faults;
+pub mod bikes;
+pub mod cakes;
+pub mod conditions;
+pub mod cook_kit;
+pub mod cooking_fats;
+pub mod cooking_tables;
+pub mod cooling;
+pub mod crisis_replies;
+pub mod desk_setup;
+pub mod dish_verdicts;
+pub mod drinks;
+pub mod eithers;
+pub mod everyday_lines;
+pub mod food_left_out;
+pub mod garden_tools;
+pub mod how_it_works;
+pub mod idioms;
+pub mod ingredient_swaps;
+pub mod job_times;
+pub mod keeping_cooked;
+pub mod kitchen;
+pub mod kits_and_claims;
+pub mod land;
+pub mod machine_door;
+pub mod meat_in_a_card;
+pub mod microwave_methods;
+pub mod money_words;
+pub mod notable;
+pub mod nursing;
+pub mod parking;
+pub mod pasta;
+pub mod pets_health;
+pub mod photography;
+pub mod picks;
+pub mod power_heat;
+pub mod procedures;
+pub mod quantity;
+pub mod rice;
+pub mod sauces;
+pub mod school_day;
+pub mod school_days;
+pub mod seasoning;
+pub mod spice_heat;
+pub mod trades;
+pub mod units;
+pub mod vegetables;
+pub mod warm_food;
+pub mod water_out;
+pub mod what_damages_what;
 pub mod entry;
 pub mod lookup;
 pub mod registry;
@@ -188,3 +239,25 @@ pub const GUARDS: &[(&str, GuardFn)] = &[("bot.knowledge:_with_one_more_test.<lo
 pub fn entries() -> &'static [Entry] {
     crate::knowledge::entry::entries()
 }
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/__init__.py:132 `_with_one_more_test(guard, extra)`
+    pub fn _with_one_more_test(guard: &Value, extra: &Value) -> Value {
+        crate::unported!("bot.knowledge:_with_one_more_test")
+    }
+
+}
+

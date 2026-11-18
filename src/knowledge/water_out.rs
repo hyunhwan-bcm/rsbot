@@ -1,0 +1,19 @@
+//! Port of `bot/knowledge/water_out.py`.
+//!
+//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
+//! signatures are the contract other files call against; keep them.
+#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+
+use crate::data::{self, Value};
+use crate::knowledge::entry::Entry;
+use crate::py::re::Re;
+use crate::runtime::Candidate;
+use crate::state::{Memory, Turn};
+use crate::understood::Understood;
+use std::sync::LazyLock;
+
+/// Python: bot/knowledge/water_out.py:114 `_water_out_of_a_thing(memory, reading)` (never called on the trace corpus)
+pub fn _water_out_of_a_thing(memory: &Memory, reading: &Understood) -> Value {
+    crate::unported!("bot.knowledge.water_out:_water_out_of_a_thing")
+}
+

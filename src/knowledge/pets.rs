@@ -3606,3 +3606,30 @@ fn s_the_buying_shape(_f: &FnRef, text_: &str) -> bool {
 }
 
 pub const SHAPES: &[(&str, ShapeFn)] = &[("bot.knowledge.pets:_the_buying_shape:583", s_the_buying_shape)];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/pets.py:2588 `_bird_lifespan(reply)` (never called on the trace corpus)
+    pub fn _bird_lifespan(reply: &str) -> Value {
+        crate::unported!("bot.knowledge.pets:_bird_lifespan")
+    }
+
+    /// Python: bot/knowledge/pets.py:2670 `_lifespan_entries()` (never called on the trace corpus)
+    pub fn _lifespan_entries() -> Value {
+        crate::unported!("bot.knowledge.pets:_lifespan_entries")
+    }
+
+}
+

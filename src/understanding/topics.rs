@@ -2179,3 +2179,25 @@ pub fn _index() -> IndexMap<String, Vec<(String, i64)>> {
     }
     table
 }
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/understanding/topics.py:2338 `_function_words()`
+    pub fn _function_words() -> Vec<String> {
+        crate::unported!("bot.understanding.topics:_function_words")
+    }
+
+}
+

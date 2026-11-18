@@ -795,3 +795,560 @@ pub fn line_text_fields() -> &'static [String] {
 
 #[allow(dead_code)]
 fn _unused(_: &Re, _: &IndexMap<String, String>) {}
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/compose/fit.py:117 `_the_rule_settles_it(opening, line, reply=None)`
+    pub fn _the_rule_settles_it(opening: &str, line: &str, reply: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_rule_settles_it")
+    }
+
+    /// Python: bot/compose/fit.py:1671 `wanted(memory)`
+    pub fn wanted(memory: &Memory) -> Option<String> {
+        crate::unported!("bot.compose.fit:wanted")
+    }
+
+    /// Python: bot/compose/fit.py:2328 `_an_amount_with_a_unit(opening)`
+    pub fn _an_amount_with_a_unit(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_amount_with_a_unit")
+    }
+
+    /// Python: bot/compose/fit.py:2355 `_about_the_thing_the_line_named(opening, said)`
+    pub fn _about_the_thing_the_line_named(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_about_the_thing_the_line_named")
+    }
+
+    /// Python: bot/compose/fit.py:2440 `_do_with_ask(said)`
+    pub fn _do_with_ask(said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_do_with_ask")
+    }
+
+    /// Python: bot/compose/fit.py:2544 `asks_for_words(understood)`
+    pub fn asks_for_words(understood: &Understood) -> bool {
+        crate::unported!("bot.compose.fit:asks_for_words")
+    }
+
+    /// Python: bot/compose/fit.py:2589 `_the_shape_a_reply_gives(reply, want, line=None)`
+    pub fn _the_shape_a_reply_gives(reply: &str, want: &str, line: &str) -> Option<bool> {
+        crate::unported!("bot.compose.fit:_the_shape_a_reply_gives")
+    }
+
+    /// Python: bot/compose/fit.py:3034 `_a_sign_answers(want, line, reply)`
+    pub fn _a_sign_answers(want: &str, line: &str, reply: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_sign_answers")
+    }
+
+    /// Python: bot/compose/fit.py:3054 `gives(reply, wants_, line=None)`
+    pub fn gives(reply: &str, wants_: &str, line: &str) -> Option<bool> {
+        crate::unported!("bot.compose.fit:gives")
+    }
+
+    /// Python: bot/compose/fit.py:3062 `missing(reply, wants_, line=None)` (never called on the trace corpus)
+    pub fn missing(reply: &str, wants_: &Value, line: &str) -> Value {
+        crate::unported!("bot.compose.fit:missing")
+    }
+
+    /// Python: bot/compose/fit.py:3073 `second_sentence(reply)`
+    pub fn second_sentence(reply: &str) -> String {
+        crate::unported!("bot.compose.fit:second_sentence")
+    }
+
+    /// Python: bot/compose/fit.py:3182 `_a_time_a_sentence_on(reply)`
+    pub fn _a_time_a_sentence_on(reply: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_time_a_sentence_on")
+    }
+
+    /// Python: bot/compose/fit.py:3200 `first_sentence(reply)`
+    pub fn first_sentence(reply: &str) -> String {
+        crate::unported!("bot.compose.fit:first_sentence")
+    }
+
+    /// Python: bot/compose/fit.py:3218 `_opening_two(reply)`
+    pub fn _opening_two(reply: &str) -> String {
+        crate::unported!("bot.compose.fit:_opening_two")
+    }
+
+    /// Python: bot/compose/fit.py:3253 `_three_names(text)`
+    pub fn _three_names(text: &str) -> bool {
+        crate::unported!("bot.compose.fit:_three_names")
+    }
+
+    /// Python: bot/compose/fit.py:3474 `_a_figure(opening)` (never called on the trace corpus)
+    pub fn _a_figure(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_figure")
+    }
+
+    /// Python: bot/compose/fit.py:3597 `_a_time(opening)`
+    pub fn _a_time(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_time")
+    }
+
+    /// Python: bot/compose/fit.py:3632 `_a_clear_time(opening)`
+    pub fn _a_clear_time(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_clear_time")
+    }
+
+    /// Python: bot/compose/fit.py:3684 `_an_age_is_given(opening)` (never called on the trace corpus)
+    pub fn _an_age_is_given(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_age_is_given")
+    }
+
+    /// Python: bot/compose/fit.py:3690 `_an_amount(opening)`
+    pub fn _an_amount(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_amount")
+    }
+
+    /// Python: bot/compose/fit.py:3714 `_a_price_asked(line)`
+    pub fn _a_price_asked(line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_price_asked")
+    }
+
+    /// Python: bot/compose/fit.py:3738 `_a_figure_that_counts(opening)`
+    pub fn _a_figure_that_counts(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_figure_that_counts")
+    }
+
+    /// Python: bot/compose/fit.py:3744 `_an_amount_to_read(opening)`
+    pub fn _an_amount_to_read(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_amount_to_read")
+    }
+
+    /// Python: bot/compose/fit.py:3767 `_figure_at_the_head(opening, pattern)`
+    pub fn _figure_at_the_head(opening: &str, pattern: &Value) -> bool {
+        crate::unported!("bot.compose.fit:_figure_at_the_head")
+    }
+
+    /// Python: bot/compose/fit.py:3773 `_a_clear_time_at_the_head(opening)`
+    pub fn _a_clear_time_at_the_head(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_clear_time_at_the_head")
+    }
+
+    /// Python: bot/compose/fit.py:3792 `_an_amount_at_the_head(opening)`
+    pub fn _an_amount_at_the_head(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_amount_at_the_head")
+    }
+
+    /// Python: bot/compose/fit.py:3993 `_a_party(opening)`
+    pub fn _a_party(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_party")
+    }
+
+    /// Python: bot/compose/fit.py:4082 `_the_spot_a_thing_has(found)` (never called on the trace corpus)
+    pub fn _the_spot_a_thing_has(found: &Value) -> Option<String> {
+        crate::unported!("bot.compose.fit:_the_spot_a_thing_has")
+    }
+
+    /// Python: bot/compose/fit.py:4089 `_names_a_spot(opening)`
+    pub fn _names_a_spot(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_names_a_spot")
+    }
+
+    /// Python: bot/compose/fit.py:4099 `_a_place(opening)`
+    pub fn _a_place(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_place")
+    }
+
+    /// Python: bot/compose/fit.py:4107 `_a_person(opening)`
+    pub fn _a_person(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_person")
+    }
+
+    /// Python: bot/compose/fit.py:4214 `_an_origin(opening)`
+    pub fn _an_origin(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_origin")
+    }
+
+    /// Python: bot/compose/fit.py:4247 `_a_past_definition(opening)`
+    pub fn _a_past_definition(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_past_definition")
+    }
+
+    /// Python: bot/compose/fit.py:4260 `_a_meaning(opening)`
+    pub fn _a_meaning(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_meaning")
+    }
+
+    /// Python: bot/compose/fit.py:4419 `_the_quality_is_about_the_thing(clause, line)`
+    pub fn _the_quality_is_about_the_thing(clause: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_quality_is_about_the_thing")
+    }
+
+    /// Python: bot/compose/fit.py:4444 `_the_tail_says_what_it_is_about(clause, line)`
+    pub fn _the_tail_says_what_it_is_about(clause: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_tail_says_what_it_is_about")
+    }
+
+    /// Python: bot/compose/fit.py:4493 `_the_quality_it_was_asked_about(opening, said)`
+    pub fn _the_quality_it_was_asked_about(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_quality_it_was_asked_about")
+    }
+
+    /// Python: bot/compose/fit.py:4531 `_the_quality_is_said_of_the_thing(head, at, said)` (never called on the trace corpus)
+    pub fn _the_quality_is_said_of_the_thing(head: &str, at: i64, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_quality_is_said_of_the_thing")
+    }
+
+    /// Python: bot/compose/fit.py:4568 `_the_verdict_is_inside(clause, line)`
+    pub fn _the_verdict_is_inside(clause: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_verdict_is_inside")
+    }
+
+    /// Python: bot/compose/fit.py:4580 `_the_quality_answers(clause, line)`
+    pub fn _the_quality_answers(clause: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_quality_answers")
+    }
+
+    /// Python: bot/compose/fit.py:4682 `is_a_punt(opening)`
+    pub fn is_a_punt(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:is_a_punt")
+    }
+
+    /// Python: bot/compose/fit.py:4723 `is_directed(opening)`
+    pub fn is_directed(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:is_directed")
+    }
+
+    /// Python: bot/compose/fit.py:4750 `_the_first_sentence(reply)`
+    pub fn _the_first_sentence(reply: &str) -> String {
+        crate::unported!("bot.compose.fit:_the_first_sentence")
+    }
+
+    /// Python: bot/compose/fit.py:4772 `_the_echo_question(opening, line)`
+    pub fn _the_echo_question(opening: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_echo_question")
+    }
+
+    /// Python: bot/compose/fit.py:4782 `is_a_question_back(reply, line=None)`
+    pub fn is_a_question_back(reply: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:is_a_question_back")
+    }
+
+    /// Python: bot/compose/fit.py:4808 `_an_outcome_of_their_own_doing(line)`
+    pub fn _an_outcome_of_their_own_doing(line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_outcome_of_their_own_doing")
+    }
+
+    /// Python: bot/compose/fit.py:4844 `_names_the_lines_thing(opening, said)`
+    pub fn _names_the_lines_thing(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_names_the_lines_thing")
+    }
+
+    /// Python: bot/compose/fit.py:4859 `_says_no_about_the_asked_thing(opening, line)`
+    pub fn _says_no_about_the_asked_thing(opening: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_says_no_about_the_asked_thing")
+    }
+
+    /// Python: bot/compose/fit.py:4950 `_the_job_is_split(opening)`
+    pub fn _the_job_is_split(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_job_is_split")
+    }
+
+    /// Python: bot/compose/fit.py:5060 `_the_same_word(word, text)`
+    pub fn _the_same_word(word: &str, text: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_same_word")
+    }
+
+    /// Python: bot/compose/fit.py:5066 `_names_what_the_line_named(opening, said)`
+    pub fn _names_what_the_line_named(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_names_what_the_line_named")
+    }
+
+    /// Python: bot/compose/fit.py:5083 `_the_rule_names_both_sides(reply)`
+    pub fn _the_rule_names_both_sides(reply: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_rule_names_both_sides")
+    }
+
+    /// Python: bot/compose/fit.py:5123 `_a_sign_off(opening)`
+    pub fn _a_sign_off(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_sign_off")
+    }
+
+    /// Python: bot/compose/fit.py:5159 `_a_yesno(opening, line=None)`
+    pub fn _a_yesno(opening: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_yesno")
+    }
+
+    /// Python: bot/compose/fit.py:5249 `_a_rule_of_its_use(opening, line)`
+    pub fn _a_rule_of_its_use(opening: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_rule_of_its_use")
+    }
+
+    /// Python: bot/compose/fit.py:5294 `_the_thing_is_named_as_what_it_usually_is(opening, line)`
+    pub fn _the_thing_is_named_as_what_it_usually_is(opening: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_thing_is_named_as_what_it_usually_is")
+    }
+
+    /// Python: bot/compose/fit.py:5320 `_an_echoed_no(opening, line)`
+    pub fn _an_echoed_no(opening: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_echoed_no")
+    }
+
+    /// Python: bot/compose/fit.py:5335 `_the_job_answers(opening, line)`
+    pub fn _the_job_answers(opening: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_job_answers")
+    }
+
+    /// Python: bot/compose/fit.py:5422 `_undecorated(head)`
+    pub fn _undecorated(head: &str) -> String {
+        crate::unported!("bot.compose.fit:_undecorated")
+    }
+
+    /// Python: bot/compose/fit.py:5528 `_listed_after(label_lead)`
+    pub fn _listed_after(label_lead: &str) -> bool {
+        crate::unported!("bot.compose.fit:_listed_after")
+    }
+
+    /// Python: bot/compose/fit.py:5537 `_marked_things(opening)`
+    pub fn _marked_things(opening: &str) -> i64 {
+        crate::unported!("bot.compose.fit:_marked_things")
+    }
+
+    /// Python: bot/compose/fit.py:5555 `_a_pick(opening)`
+    pub fn _a_pick(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_pick")
+    }
+
+    /// Python: bot/compose/fit.py:5732 `_asks_the_person(said)`
+    pub fn _asks_the_person(said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_asks_the_person")
+    }
+
+    /// Python: bot/compose/fit.py:5777 `_an_instruction(sentence)`
+    pub fn _an_instruction(sentence: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_instruction")
+    }
+
+    /// Python: bot/compose/fit.py:5782 `_imperative(sentence)`
+    pub fn _imperative(sentence: &str) -> bool {
+        crate::unported!("bot.compose.fit:_imperative")
+    }
+
+    /// Python: bot/compose/fit.py:5792 `_opens_on_a_job(sentence)`
+    pub fn _opens_on_a_job(sentence: &str) -> bool {
+        crate::unported!("bot.compose.fit:_opens_on_a_job")
+    }
+
+    /// Python: bot/compose/fit.py:5820 `_stem(word)`
+    pub fn _stem(word: &str) -> String {
+        crate::unported!("bot.compose.fit:_stem")
+    }
+
+    /// Python: bot/compose/fit.py:5828 `_subject_words(text)`
+    pub fn _subject_words(text: &str) -> Vec<String> {
+        crate::unported!("bot.compose.fit:_subject_words")
+    }
+
+    /// Python: bot/compose/fit.py:5847 `_the_same_subject(opening, line)`
+    pub fn _the_same_subject(opening: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_same_subject")
+    }
+
+    /// Python: bot/compose/fit.py:5888 `_instruction_after_a_clause(text)`
+    pub fn _instruction_after_a_clause(text: &str) -> bool {
+        crate::unported!("bot.compose.fit:_instruction_after_a_clause")
+    }
+
+    /// Python: bot/compose/fit.py:5971 `_a_comparison(opening)`
+    pub fn _a_comparison(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_comparison")
+    }
+
+    /// Python: bot/compose/fit.py:5987 `_a_list_of_things(opening)`
+    pub fn _a_list_of_things(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_list_of_things")
+    }
+
+    /// Python: bot/compose/fit.py:5996 `_options(opening)`
+    pub fn _options(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_options")
+    }
+
+    /// Python: bot/compose/fit.py:6036 `_two_things_to_do(opening)`
+    pub fn _two_things_to_do(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_two_things_to_do")
+    }
+
+    /// Python: bot/compose/fit.py:6052 `_three_things_after_the_colon(opening)`
+    pub fn _three_things_after_the_colon(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_three_things_after_the_colon")
+    }
+
+    /// Python: bot/compose/fit.py:6227 `_a_reason(opening, line=None)`
+    pub fn _a_reason(opening: &str, line: Option<&str>) -> bool {
+        crate::unported!("bot.compose.fit:_a_reason")
+    }
+
+    /// Python: bot/compose/fit.py:6312 `_head_explains(opening)`
+    pub fn _head_explains(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_head_explains")
+    }
+
+    /// Python: bot/compose/fit.py:6372 `_a_meaning_or_a_statement(opening)`
+    pub fn _a_meaning_or_a_statement(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_meaning_or_a_statement")
+    }
+
+    /// Python: bot/compose/fit.py:6391 `_a_statement_answers_it(opening)`
+    pub fn _a_statement_answers_it(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_statement_answers_it")
+    }
+
+    /// Python: bot/compose/fit.py:6503 `_an_opening_job(opening)`
+    pub fn _an_opening_job(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_an_opening_job")
+    }
+
+    /// Python: bot/compose/fit.py:6532 `fits(reply, want, line=None)` (never called on the trace corpus)
+    pub fn fits(reply: &str, want: &Value, line: &str) -> Value {
+        crate::unported!("bot.compose.fit:fits")
+    }
+
+    /// Python: bot/compose/fit.py:6635 `_words(text)`
+    pub fn _words(text: &str) -> Vec<String> {
+        crate::unported!("bot.compose.fit:_words")
+    }
+
+    /// Python: bot/compose/fit.py:6667 `_the_thing_asked(said)`
+    pub fn _the_thing_asked(said: &str) -> String {
+        crate::unported!("bot.compose.fit:_the_thing_asked")
+    }
+
+    /// Python: bot/compose/fit.py:6734 `_uses_the_thing(opening, thing)`
+    pub fn _uses_the_thing(opening: &str, thing: &str) -> bool {
+        crate::unported!("bot.compose.fit:_uses_the_thing")
+    }
+
+    /// Python: bot/compose/fit.py:6745 `_defines_the_thing(opening, said)`
+    pub fn _defines_the_thing(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_defines_the_thing")
+    }
+
+    /// Python: bot/compose/fit.py:6772 `_name_words(text)`
+    pub fn _name_words(text: &str) -> Vec<String> {
+        crate::unported!("bot.compose.fit:_name_words")
+    }
+
+    /// Python: bot/compose/fit.py:6778 `_long_enough_a_name(word, least=3)`
+    pub fn _long_enough_a_name(word: &str, least: i64) -> bool {
+        crate::unported!("bot.compose.fit:_long_enough_a_name")
+    }
+
+    /// Python: bot/compose/fit.py:6784 `_names(opening, said)`
+    pub fn _names(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_names")
+    }
+
+    /// Python: bot/compose/fit.py:6797 `_names_the_subject(opening, said)`
+    pub fn _names_the_subject(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_names_the_subject")
+    }
+
+    /// Python: bot/compose/fit.py:6828 `_opens_on_the_lines_verb(opening, said)`
+    pub fn _opens_on_the_lines_verb(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_opens_on_the_lines_verb")
+    }
+
+    /// Python: bot/compose/fit.py:6846 `_trimmed(words)` (never called on the trace corpus)
+    pub fn _trimmed(words: &[String]) -> Value {
+        crate::unported!("bot.compose.fit:_trimmed")
+    }
+
+    /// Python: bot/compose/fit.py:6856 `_the_pair_up(text)`
+    pub fn _the_pair_up(text: &str) {
+        crate::unported!("bot.compose.fit:_the_pair_up")
+    }
+
+    /// Python: bot/compose/fit.py:6887 `_a_side_said_in_the_reply(side, ordered, words)`
+    pub fn _a_side_said_in_the_reply(side: &[String], ordered: &[String], words: &[String]) -> bool {
+        crate::unported!("bot.compose.fit:_a_side_said_in_the_reply")
+    }
+
+    /// Python: bot/compose/fit.py:6905 `_the_side_wins(opening, line)`
+    pub fn _the_side_wins(opening: &str, line: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_side_wins")
+    }
+
+    /// Python: bot/compose/fit.py:6928 `_names_a_side(opening, said)`
+    pub fn _names_a_side(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_names_a_side")
+    }
+
+    /// Python: bot/compose/fit.py:6951 `_a_side_word_is_named(word, ordered, words)`
+    pub fn _a_side_word_is_named(word: &str, ordered: &[String], words: &[String]) -> bool {
+        crate::unported!("bot.compose.fit:_a_side_word_is_named")
+    }
+
+    /// Python: bot/compose/fit.py:6975 `_initials_named(word, reply_words)`
+    pub fn _initials_named(word: &str, reply_words: &[String]) -> bool {
+        crate::unported!("bot.compose.fit:_initials_named")
+    }
+
+    /// Python: bot/compose/fit.py:6990 `_names_both_sides(reply, said)`
+    pub fn _names_both_sides(reply: &str, said: &str) -> Option<bool> {
+        crate::unported!("bot.compose.fit:_names_both_sides")
+    }
+
+    /// Python: bot/compose/fit.py:7044 `_the_job_named(opening, said)`
+    pub fn _the_job_named(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_job_named")
+    }
+
+    /// Python: bot/compose/fit.py:7116 `_a_step_told_as_what_not_to_do(text)`
+    pub fn _a_step_told_as_what_not_to_do(text: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_step_told_as_what_not_to_do")
+    }
+
+    /// Python: bot/compose/fit.py:7134 `_steps_in(reply)`
+    pub fn _steps_in(reply: &str) -> bool {
+        crate::unported!("bot.compose.fit:_steps_in")
+    }
+
+    /// Python: bot/compose/fit.py:7166 `_words_handed_over(text)`
+    pub fn _words_handed_over(text: &str) -> bool {
+        crate::unported!("bot.compose.fit:_words_handed_over")
+    }
+
+    /// Python: bot/compose/fit.py:7181 `_a_money_rate(opening)`
+    pub fn _a_money_rate(opening: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_money_rate")
+    }
+
+    /// Python: bot/compose/fit.py:7186 `_without_a_money_rate(opening)`
+    pub fn _without_a_money_rate(opening: &str) -> String {
+        crate::unported!("bot.compose.fit:_without_a_money_rate")
+    }
+
+    /// Python: bot/compose/fit.py:7229 `_the_figure_against_the_standard(opening, said)`
+    pub fn _the_figure_against_the_standard(opening: &str, said: &str) -> bool {
+        crate::unported!("bot.compose.fit:_the_figure_against_the_standard")
+    }
+
+    /// Python: bot/compose/fit.py:7257 `_a_figure_then_the_verdict(opening, reply)`
+    pub fn _a_figure_then_the_verdict(opening: &str, reply: &str) -> bool {
+        crate::unported!("bot.compose.fit:_a_figure_then_the_verdict")
+    }
+
+    /// Python: bot/compose/fit.py:7354 `_opens_on_a_job_to_do(sentence)`
+    pub fn _opens_on_a_job_to_do(sentence: &str) -> bool {
+        crate::unported!("bot.compose.fit:_opens_on_a_job_to_do")
+    }
+
+    /// Python: bot/compose/fit.py:7383 `_steps(opening, after='')`
+    pub fn _steps(opening: &str, after: &str) -> bool {
+        crate::unported!("bot.compose.fit:_steps")
+    }
+
+}
+

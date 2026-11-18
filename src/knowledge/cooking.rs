@@ -3912,3 +3912,40 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     reply!("bot.knowledge.cooking:_turkey_cut:3394", _turkey_cut),
     reply!("bot.knowledge.cooking:_watery:2406", _watery),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/cooking.py:132 `_baked_keep()` (never called on the trace corpus)
+    pub fn _baked_keep() -> Value {
+        crate::unported!("bot.knowledge.cooking:_baked_keep")
+    }
+
+    /// Python: bot/knowledge/cooking.py:8091 `_bread_rise_answer()` (never called on the trace corpus)
+    pub fn _bread_rise_answer() -> Value {
+        crate::unported!("bot.knowledge.cooking:_bread_rise_answer")
+    }
+
+    /// Python: bot/knowledge/cooking.py:10303 `_fold_meal_ideas()` (never called on the trace corpus)
+    pub fn _fold_meal_ideas() {
+        crate::unported!("bot.knowledge.cooking:_fold_meal_ideas")
+    }
+
+    /// Python: bot/knowledge/cooking.py:12240 `_recipe_only_when_asked_for_this(reply, names=(), no_yeast_ok=False)` (never called on the trace corpus)
+    pub fn _recipe_only_when_asked_for_this(reply: &str, names: &[String], no_yeast_ok: &Value) -> Value {
+        crate::unported!("bot.knowledge.cooking:_recipe_only_when_asked_for_this")
+    }
+
+}
+

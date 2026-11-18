@@ -671,3 +671,30 @@ pub const GUARDS: &[(&str, GuardFn)] = &[
 ];
 
 pub const REPLIES: &[(&str, ReplyFn)] = &[("bot.knowledge.babyfood:_only_for_a_baby.<locals>.gated:2320", gated)];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/babyfood.py:1408 `_verdict(names, reply, extra=(), bias=0, own_ask=None, pronoun=False)` (never called on the trace corpus)
+    pub fn _verdict(names: &[String], reply: &str, extra: &Value, bias: &Value, own_ask: &Value, pronoun: &Value) -> Value {
+        crate::unported!("bot.knowledge.babyfood:_verdict")
+    }
+
+    /// Python: bot/knowledge/babyfood.py:2311 `_only_for_a_baby(row)` (never called on the trace corpus)
+    pub fn _only_for_a_baby(row: &'static Entry) -> Value {
+        crate::unported!("bot.knowledge.babyfood:_only_for_a_baby")
+    }
+
+}
+

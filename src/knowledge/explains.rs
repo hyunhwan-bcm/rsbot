@@ -437,3 +437,60 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.explains:_difference:2515", r_difference),
     ("bot.knowledge.explains:_the_coil:2604", r_coil),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/explains.py:130 `_explain(id, subject, reply, bias=1, avoid=(), guard=None)` (never called on the trace corpus)
+    pub fn _explain(id: &Value, subject: &str, reply: &str, bias: &Value, avoid: &Value, guard: &Value) -> Value {
+        crate::unported!("bot.knowledge.explains:_explain")
+    }
+
+    /// Python: bot/knowledge/explains.py:193 `_as_written(words)` (never called on the trace corpus)
+    pub fn _as_written(words: &[String]) -> Value {
+        crate::unported!("bot.knowledge.explains:_as_written")
+    }
+
+    /// Python: bot/knowledge/explains.py:240 `_about_the_word(subject)` (never called on the trace corpus)
+    pub fn _about_the_word(subject: &str) -> Value {
+        crate::unported!("bot.knowledge.explains:_about_the_word")
+    }
+
+    /// Python: bot/knowledge/explains.py:270 `_both()` (never called on the trace corpus)
+    pub fn _both(guards: &[Value]) -> Value {
+        crate::unported!("bot.knowledge.explains:_both")
+    }
+
+    /// Python: bot/knowledge/explains.py:282 `_name(id, subject, reply, bias=2, avoid=())` (never called on the trace corpus)
+    pub fn _name(id: &Value, subject: &str, reply: &str, bias: &Value, avoid: &Value) -> Value {
+        crate::unported!("bot.knowledge.explains:_name")
+    }
+
+    /// Python: bot/knowledge/explains.py:2974 `_choosing_rows()`
+    pub fn _choosing_rows() -> Value {
+        crate::unported!("bot.knowledge.explains:_choosing_rows")
+    }
+
+    /// Python: bot/knowledge/explains.py:3125 `_civics_new(id, subject, reply, also=(), avoid=(), asks=None, guard=None)` (never called on the trace corpus)
+    pub fn _civics_new(id: &Value, subject: &str, reply: &str, also: &Value, avoid: &Value, asks: &Value, guard: &Value) -> Value {
+        crate::unported!("bot.knowledge.explains:_civics_new")
+    }
+
+    /// Python: bot/knowledge/explains.py:3131 `_civics(id, subject, reply, also=(), avoid=(), asks=None, guard=None, blocked=_NOT_CIVICS, ask=None)` (never called on the trace corpus)
+    pub fn _civics(id: &Value, subject: &str, reply: &str, also: &Value, avoid: &Value, asks: &Value, guard: &Value, blocked: &Value, ask: &str) -> Value {
+        crate::unported!("bot.knowledge.explains:_civics")
+    }
+
+}
+

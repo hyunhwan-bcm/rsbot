@@ -688,3 +688,30 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.home_craft:_the_wood_and_the_nail:781", r_the_wood_and_the_nail),
     ("bot.knowledge.home_craft:_wallpaper_for_the_room:699", r_wallpaper_for_the_room),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/home_craft.py:160 `_the_stopped_fixture_entries(entry)` (never called on the trace corpus)
+    pub fn _the_stopped_fixture_entries(entry: &'static Entry) -> Value {
+        crate::unported!("bot.knowledge.home_craft:_the_stopped_fixture_entries")
+    }
+
+    /// Python: bot/knowledge/home_craft.py:887 `entries()` (never called on the trace corpus)
+    pub fn entries() -> Value {
+        crate::unported!("bot.knowledge.home_craft:entries")
+    }
+
+}
+

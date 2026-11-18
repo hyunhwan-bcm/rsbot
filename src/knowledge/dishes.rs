@@ -2621,3 +2621,25 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.dishes:_veggie:4234", r_veggie),
     ("bot.knowledge.dishes:_what_is_a_dish:6258", r_what_is_a_dish),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/dishes.py:848 `not_ruled_out()` (never called on the trace corpus)
+    pub fn not_ruled_out(keys: &[Value]) -> Value {
+        crate::unported!("bot.knowledge.dishes:not_ruled_out")
+    }
+
+}
+

@@ -1121,3 +1121,40 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     r!("bot.knowledge.cooking_entries:_tins_keep:1791", _tins_keep),
     r!("bot.knowledge.cooking_entries:_tomato_sauce:1806", _tomato_sauce),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/cooking_entries.py:781 `_not_short_of()` (never called on the trace corpus)
+    pub fn _not_short_of(foods: &[Value]) -> Value {
+        crate::unported!("bot.knowledge.cooking_entries:_not_short_of")
+    }
+
+    /// Python: bot/knowledge/cooking_entries.py:796 `_make_it(nouns, props)` (never called on the trace corpus)
+    pub fn _make_it(nouns: &Value, props: &Value) -> Value {
+        crate::unported!("bot.knowledge.cooking_entries:_make_it")
+    }
+
+    /// Python: bot/knowledge/cooking_entries.py:1165 `_swap(entry_id, key, reply)` (never called on the trace corpus)
+    pub fn _swap(entry_id: &Value, key: &str, reply: &str) -> Value {
+        crate::unported!("bot.knowledge.cooking_entries:_swap")
+    }
+
+    /// Python: bot/knowledge/cooking_entries.py:1202 `_leaves_out()` (never called on the trace corpus)
+    pub fn _leaves_out(ingredients: &[Value]) -> Value {
+        crate::unported!("bot.knowledge.cooking_entries:_leaves_out")
+    }
+
+}
+

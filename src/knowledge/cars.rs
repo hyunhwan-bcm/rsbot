@@ -611,3 +611,30 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 pub const SHAPES: &[(&str, ShapeFn)] = &[("bot.knowledge.cars:_an_animal_struck:348", shape_an_animal_struck)];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/cars.py:398 `_entry(name, keys, reply, avoid=())` (never called on the trace corpus)
+    pub fn _entry(name: &str, keys: &Value, reply: &str, avoid: &Value) -> Value {
+        crate::unported!("bot.knowledge.cars:_entry")
+    }
+
+    /// Python: bot/knowledge/cars.py:4727 `_how_to(reply)` (never called on the trace corpus)
+    pub fn _how_to(reply: &str) -> Value {
+        crate::unported!("bot.knowledge.cars:_how_to")
+    }
+
+}
+

@@ -15,3 +15,30 @@ pub const GUARDS: &[(&str, GuardFn)] =
     &[("bot.knowledge.differences:_with_cream:274", |_: &FnRef, u: &Understood| _with_cream(u))];
 
 pub const REPLIES: &[(&str, ReplyFn)] = &[];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/differences.py:280 `_slug(name)` (never called on the trace corpus)
+    pub fn _slug(name: &str) -> String {
+        crate::unported!("bot.knowledge.differences:_slug")
+    }
+
+    /// Python: bot/knowledge/differences.py:285 `_pair(row)` (never called on the trace corpus)
+    pub fn _pair(row: &'static Entry) -> Value {
+        crate::unported!("bot.knowledge.differences:_pair")
+    }
+
+}
+
