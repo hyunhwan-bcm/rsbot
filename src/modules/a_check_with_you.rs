@@ -1,19 +1,18 @@
-//! Port of `bot/modules/a_check_with_you.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/modules/a_check_with_you.py`: a check of a plan against the bot gets the agreement, not a search hedge or a receipt.
+#![allow(unused_variables, unused_imports, non_snake_case, non_upper_case_globals, dead_code, clippy::all)]
 
+use super::mod4::*;
 use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
+use crate::py::re::{self as pyre, Match, Re};
+use crate::py::text;
 use crate::state::{Memory, Turn};
-use crate::understood::Understood;
-use std::sync::LazyLock;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, LazyLock};
 
 /// Python: bot/modules/a_check_with_you.py:17 `respond(text, memory)` - a runtime hook; its signature is the runtime's.
+///
+/// The agreement line, or None when this is not a check-with-you question.
 pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.modules.a_check_with_you:respond")
+    // `check_with_you.answer_for(text, memory)`: `choose` is left at its default, None.
+    as_reply(crate::compose::check_with_you::answer_for(text, memory, &Value::None))
 }
-
