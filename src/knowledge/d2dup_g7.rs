@@ -148,36 +148,25 @@ pub fn py_int(v: Option<&Value>) -> Option<i64> {
 // ---------------------------------------------------------------------------------------------
 // bot/memory/__init__.py
 
-// DUP(bot.memory::recent)
-/// The last n turns, oldest first.
+/// `memory.recent(memory, n)` (the real port): the last n turns.
 pub fn recent(memory: &Memory, n: usize) -> &[Turn] {
-    let t = &memory.turns;
-    &t[t.len().saturating_sub(n)..]
+    crate::memory::recent(Some(memory), n as i64)
 }
 
 // was DUP(bot.memory::last_bot): now the real port
 pub use crate::memory::last_bot;
 
-// DUP(bot.memory::others)
-/// Facts about other people the user mentioned (`memory["others"]`, made a list when missing).
+/// `memory.others(memory)` (the real port), as the items of the list.
 pub fn others(memory: &mut Memory) -> Vec<Value> {
-    match memory.extra.get("others") {
-        Some(Value::List(v)) => v.to_vec(),
-        _ => {
-            memory.extra.insert("others".to_string(), Value::List(Arc::new(Vec::new())));
-            Vec::new()
-        }
-    }
+    crate::memory::others(memory).items().to_vec()
 }
 
 // ---------------------------------------------------------------------------------------------
 // bot/memory/thread.py
 
-// DUP(bot.memory.thread::user_lines)
-/// The user's earlier lines, oldest first (the texts; the reading Python pairs them with is not
-/// read by these callers).
+/// The texts of `memory.thread.user_lines(memory)` (the real port; the readings are not read).
 pub fn user_lines(memory: &Memory) -> Vec<String> {
-    memory.turns.iter().filter(|t| !text::strip(&t.user).is_empty()).map(|t| t.user.clone()).collect()
+    crate::memory::thread::user_lines(memory).items().iter().map(|pair| pair.items()[0].str().to_string()).collect()
 }
 
 // ---------------------------------------------------------------------------------------------

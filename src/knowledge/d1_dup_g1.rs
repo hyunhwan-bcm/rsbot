@@ -106,17 +106,9 @@ fn _earlier_turns<'m>(memory: &'m Memory, text: &str) -> Vec<&'m crate::state::T
 // was DUP(bot.memory.history::an_earlier_turn): now the real port
 pub use crate::memory::history::an_earlier_turn;
 
-/// DUP(bot.memory.history::a_past_that_is_not_there), as `pick` calls it (no `said`): a reply
-/// that points back at a conversation that has not happened yet.
+/// `memory.history.a_past_that_is_not_there(reply, memory)` (the real port, `said` left out).
 pub fn a_past_that_is_not_there(reply: &str, memory: &Memory) -> bool {
-    if an_earlier_turn(memory, "") {
-        return false;
-    }
-    let low = sh::squash_lower(reply);
-    if low.is_empty() {
-        return false;
-    }
-    CLAIMS_A_PAST.is_match(&low) || GREETS_A_RETURN.match_(&low).is_some()
+    crate::memory::history::a_past_that_is_not_there(reply, Some(memory), None)
 }
 
 /// DUP(bot.compose::pick): one of `options`, never the reply just given, preferring one the bot
@@ -254,15 +246,9 @@ pub fn find_city(text: &str) -> Option<String> {
 // ---------------------------------------------------------------------------------------------
 // bot.memory.topics
 
-/// DUP(bot.memory.topics::context): the last n topic texts, oldest first.
+/// `memory.topics.context(memory, n)` (the real port).
 pub fn topics_context(memory: &Memory, n: usize) -> Vec<String> {
-    let Some(Value::List(records)) = memory.extra.get("topics") else { return Vec::new() };
-    let start = records.len().saturating_sub(n);
-    records[start..]
-        .iter()
-        .filter_map(|r| r.get("text").map(|t| t.str().to_string()))
-        .filter(|t| !t.is_empty())
-        .collect()
+    crate::memory::topics::context(memory, n as i64)
 }
 
 /// Python's float floor division `a // b` (CPython's `float_floor_div`: fmod first, so

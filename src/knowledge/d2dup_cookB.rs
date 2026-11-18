@@ -40,24 +40,14 @@ pub fn chars_before(text: &str, at: usize, n: usize) -> &str {
 // was DUP(bot.understanding::line_as_read): now the real port
 pub use crate::understanding::line_as_read;
 
-// DUP(bot.memory::recent)
-/// The last n turns, oldest first.
+/// `memory.recent(memory, n)` (the real port): the last n turns.
 pub fn recent(memory: &Memory, n: usize) -> &[Turn] {
-    let turns = &memory.turns;
-    &turns[turns.len().saturating_sub(n)..]
+    crate::memory::recent(Some(memory), n as i64)
 }
 
-// DUP(bot.memory::user)
-/// The user's facts (a dict), created on first use.
+/// `memory.user(memory)` (the real port), as a copy of the dict.
 pub fn user(memory: &mut Memory) -> Value {
-    match memory.extra.get("user") {
-        Some(v @ Value::Dict(_)) => v.clone(),
-        _ => {
-            let empty = Value::Dict(Arc::new(Vec::new()));
-            memory.extra.insert("user".to_string(), empty.clone());
-            empty
-        }
-    }
+    crate::memory::user(memory).clone()
 }
 
 static TABLE_GROUPS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.units._TABLE_GROUPS"));

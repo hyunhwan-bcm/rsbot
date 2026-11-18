@@ -52,11 +52,9 @@ pub fn the_appliance_swallows_the_name<S: AsRef<str>>(understood: &Understood, n
 // ---------------------------------------------------------------------------------------------
 // bot/memory
 
-// DUP(bot.memory::recent)
-/// The last n turns, oldest first.
+/// `memory.recent(memory, n)` (the real port): the last n turns.
 pub fn recent(memory: &crate::state::Memory, n: usize) -> &[crate::state::Turn] {
-    let turns = &memory.turns;
-    &turns[turns.len().saturating_sub(n)..]
+    crate::memory::recent(Some(memory), n as i64)
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -39,26 +39,10 @@ fn rec_str<'a>(record: &'a Value, key: &str) -> &'a str {
     }
 }
 
-/// DUP(bot.memory.topics::context): the last n topic texts, oldest first. None where Python
-/// would raise (a record that is not a dict), which the caller catches.
+/// `memory.topics.context(memory, n)` (the real port); None where Python raises (a topic record
+/// that is not a dict).
 pub fn topics_context(memory: &Memory, n: usize) -> Option<Vec<String>> {
-    let Some(Value::List(records)) = mem(memory, "topics") else {
-        return Some(Vec::new());
-    };
-    let start = records.len().saturating_sub(n);
-    let mut out = Vec::new();
-    for r in &records[start..] {
-        if !matches!(r, Value::Dict(_)) {
-            return None; // r.get on a non-dict raises
-        }
-        // only truthy texts are kept; the store only ever writes a str there
-        if let Some(Value::Str(s)) = r.get("text") {
-            if !s.is_empty() {
-                out.push(s.to_string());
-            }
-        }
-    }
-    Some(out)
+    crate::runtime::guarded(|| crate::memory::topics::context(memory, n as i64))
 }
 
 /// DUP(bot.memory.topics::current): the current topic record, or None.

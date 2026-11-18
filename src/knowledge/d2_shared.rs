@@ -159,17 +159,9 @@ static FLAT_WORD: LazyLock<Re> = LazyLock::new(|| Re::new("\\bflat\\b", crate::p
 // was DUP(bot.knowledge.lookup::the_line): now the real port
 pub use crate::knowledge::lookup::the_line;
 
-// DUP(bot.knowledge.lookup::said_text)
-/// The line's own words as one string, from whichever reading has them ("" when neither).
-/// (The Python returns None only for a non-dict reading; a reading here is always a dict.)
+/// `lookup.said_text(understood)` (the real port).
 pub fn said_text(u: &Understood) -> Option<String> {
-    if !u.words.is_empty() {
-        return Some(u.words.join(" "));
-    }
-    if !u.norm.is_empty() {
-        return Some(u.norm.join(" "));
-    }
-    Some(String::new())
+    Some(crate::knowledge::lookup::said_text(u))
 }
 
 // was DUP(bot.knowledge.lookup::tokens): now the real port
@@ -267,24 +259,9 @@ pub use crate::memory::history::brings_nothing_of_its_own;
 // was DUP(bot.memory.history::an_earlier_turn): now the real port
 pub use crate::memory::history::an_earlier_turn;
 
-// DUP(bot.memory.history::a_past_that_is_not_there)
-/// Whether a reply leans on a conversation that has not happened yet.
+/// `memory.history.a_past_that_is_not_there(reply, memory, said)` (the real port).
 pub fn a_past_that_is_not_there(reply: &str, memory: &Memory, said: Option<&str>) -> bool {
-    if an_earlier_turn(memory, "") {
-        return false;
-    }
-    let low = text::squash(reply).to_lowercase();
-    if low.is_empty() {
-        return false;
-    }
-    if CLAIMS_A_PAST.is_match(&low) || GREETS_A_RETURN.match_(&low).is_some() {
-        return true;
-    }
-    let Some(said) = said else { return false };
-    if !brings_nothing_of_its_own(said) {
-        return false;
-    }
-    ANSWERS_AN_EARLIER_TURN.iter().any(|f| low.contains(f.as_str()))
+    crate::memory::history::a_past_that_is_not_there(reply, Some(memory), said)
 }
 
 // DUP(bot.compose::pick)

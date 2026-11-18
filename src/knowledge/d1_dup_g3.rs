@@ -169,12 +169,10 @@ static KINDS_NAMED_A_USE: LazyLock<&'static crate::py::re::Re> =
 // was DUP(bot.knowledge.lookup::asks_the_kinds): now the real port
 pub use crate::knowledge::lookup::asks_the_kinds;
 
-/// DUP(bot.knowledge.lookup::find) as `find(understood) is not None`. UNRESOLVED: the matching
-/// engine (lookup.find, score, _the_best_entry ...) belongs to the engine workstream and is not
-/// ported; None stands for "the engine could not answer" (the callers treat it as Python treats
-/// an exception there).
-pub fn lookup_find_is_some(_u: &Understood) -> Option<bool> {
-    None
+/// `find(understood) is not None` (the real `lookup.find`); None where it raises, which the
+/// caller treats as Python's `except` does.
+pub fn lookup_find_is_some(u: &Understood) -> Option<bool> {
+    crate::runtime::guarded(|| crate::knowledge::lookup::find(u, None, None, false).is_some())
 }
 
 // ---------------------------------------------------------------------------------------------

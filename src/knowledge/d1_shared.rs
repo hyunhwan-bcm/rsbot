@@ -153,9 +153,9 @@ pub fn call_guard(f: &Value, reading: &Understood) -> bool {
 // ---------------------------------------------------------------------------------------------
 // DUP ports of helpers owned by other workstreams (full original logic).
 
-/// DUP(bot.memory::last_user): the person's previous line; "" on a single-turn reply.
+/// `memory.last_user(memory)` (the real port): the user's last line before this turn, or "".
 pub fn last_user(memory: &Memory) -> String {
-    memory.turns.last().map(|t| t.user.clone()).unwrap_or_default()
+    crate::memory::last_user(memory, 1).str().to_string()
 }
 
 // was DUP(bot.knowledge.lookup::the_line): now the real port

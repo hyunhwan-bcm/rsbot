@@ -1419,8 +1419,7 @@ pub fn _left_to_the_meal_entry(understood: &Understood, context: &Context) -> bo
         return true;
     }
     if context.keys().filter(|k| *k != "started" && *k != "turn").all(|k| k == "sweet") {
-        // UNRESOLVED(lookup.find): the matching engine is not ported. Python wraps the call in
-        // try/except and carries on, which is what an engine that cannot answer does here.
+        // Python wraps the call in try/except and carries on.
         if let Some(true) = dup::lookup_find_is_some(understood) {
             return true;
         }

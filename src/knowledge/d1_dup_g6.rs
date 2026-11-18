@@ -331,16 +331,9 @@ pub fn _nutrient_food(clean: &str) -> Option<(String, f64)> {
 // was DUP(bot.understanding.topics::the_bin_is_on_a_machine): now the real port
 pub use crate::understanding::topics::the_bin_is_on_a_machine;
 
-/// DUP(bot.memory.topics::context): the last `n` topic texts, oldest first
-/// (`memory["topics"]`, a list of records with a "text").
+/// `memory.topics.context(memory, n)` (the real port).
 pub fn memory_topics_context(memory: &Memory, n: usize) -> Vec<String> {
-    let Some(Value::List(records)) = memory.extra.get("topics") else { return Vec::new() };
-    records[records.len().saturating_sub(n)..]
-        .iter()
-        .filter_map(|r| r.get("text").and_then(Value::as_str))
-        .filter(|t| !t.is_empty())
-        .map(str::to_string)
-        .collect()
+    crate::memory::topics::context(memory, n as i64)
 }
 
 /// Python's `repr()` of an exported value (`str()` of a container is its repr): enough to

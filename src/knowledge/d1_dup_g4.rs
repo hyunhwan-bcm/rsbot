@@ -187,11 +187,9 @@ pub use crate::knowledge::lookup::a_food_is_being_kept as lookup_a_food_is_being
 // ---------------------------------------------------------------------------------------------
 // bot.memory.thread
 
-/// DUP(bot.memory.thread::user_lines): the user's earlier lines, oldest first. Python pairs
-/// each with `understand(text, {})`; the one caller here (science `_night_waking`) reads only
-/// the text, so the readings are not made.
+/// The texts of `memory.thread.user_lines(memory)` (the real port; the readings are not read).
 pub fn thread_user_lines(memory: &Memory) -> Vec<String> {
-    memory.turns.iter().filter(|t| !text::strip(&t.user).is_empty()).map(|t| t.user.clone()).collect()
+    crate::memory::thread::user_lines(memory).items().iter().map(|pair| pair.items()[0].str().to_string()).collect()
 }
 
 /// `memory.get(key)` for a key a module keeps in `extra`, as Python truthiness.

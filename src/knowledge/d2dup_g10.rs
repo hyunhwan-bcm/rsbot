@@ -84,21 +84,14 @@ pub fn re_cached(pattern: &str, flags: u32) -> &'static crate::py::re::Re {
 // ---------------------------------------------------------------------------------------------
 // bot/compose/loss.py (owned elsewhere; a large reader of death and dying)
 
-// NEEDS(bot.compose.loss::dying_in_the_chat)
-/// True when a line earlier in this chat said that someone of ours is dying. Exact with no
-/// earlier turns (False); with turns it needs `loss.is_dying_now`, which is not ported here, so
-/// it says False (the most neutral reading: the reply goes ahead).
+/// `compose.loss.dying_in_the_chat(memory)` (the real port, `turns=6`).
 pub fn dying_in_the_chat(memory: &Memory) -> bool {
-    let _ = memory.turns.len();
-    false
+    crate::compose::loss::dying_in_the_chat(memory, 6)
 }
 
-// NEEDS(bot.compose.loss::reads_as_loss)
-/// True when the line is about a death or a loss of a person or a pet. Not ported here (a large
-/// reader in compose.loss): False, so a reply goes ahead.
+/// `compose.loss.reads_as_loss(text)` (the real port, `words=None, a_pet=False`).
 pub fn reads_as_loss(text: &str) -> bool {
-    let _ = text;
-    false
+    crate::compose::loss::reads_as_loss(text, None, false)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -137,10 +130,9 @@ pub fn percent_named(template: &str, values: &[(&str, &str)]) -> String {
     out
 }
 
-// DUP(bot.memory::last_user)
-/// The user's last line before this turn ("" when there is none).
+/// `memory.last_user(memory)` (the real port): the user's last line before this turn, or "".
 pub fn last_user(memory: &Memory) -> String {
-    memory.turns.last().map(|t| t.user.clone()).unwrap_or_default()
+    crate::memory::last_user(memory, 1).str().to_string()
 }
 
 /// TYPE(leans_on): on a follow-up Python's `reading["leans_on"]` is a dict ("text", "subject",

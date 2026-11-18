@@ -69,22 +69,11 @@ fn pounds(figure: Option<&str>, unit: Option<&str>) -> i64 {
     if value >= 20.0 { value.round_ties_even() as i64 } else { 0 }
 }
 
-// DUP(bot.memory.saving::the_pot_and_the_rest)
-/// (money already held, money still to find) when the line names both, else (0, 0).
+/// `memory.saving.the_pot_and_the_rest(text)` (the real port), as (pot, rest).
 pub fn the_pot_and_the_rest(line: &str) -> (i64, i64) {
-    if text::strip(line).is_empty() {
-        return (0, 0);
-    }
-    let (Some(further), Some(held)) = (FURTHER_SAID.search(line), HELD_SAID.search(line)) else { return (0, 0) };
-    if further.start() < held.start() {
-        return (0, 0);
-    }
-    let pot = pounds(held.get(1), held.get(2));
-    let rest = pounds(further.get(1), further.get(2));
-    if pot == 0 || rest == 0 {
-        return (0, 0);
-    }
-    (pot, rest)
+    let both = crate::memory::saving::the_pot_and_the_rest(line);
+    let items = both.items();
+    (items[0].as_int().unwrap_or(0), items[1].as_int().unwrap_or(0))
 }
 
 // was DUP(bot.memory.saving::the_pot_said_alone): now the real port
