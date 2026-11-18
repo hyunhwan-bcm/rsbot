@@ -347,7 +347,22 @@ fn main() {
                 t[3] += 1;
                 continue;
             }
-            let pos = row["args"].as_array().cloned().unwrap_or_default();
+            let mut pos = row["args"].as_array().cloned().unwrap_or_default();
+            // Keyword arguments, put where the signature has them.
+            if let Some(kw) = row["kwargs"].as_object() {
+                for (key, at) in [("cards", 2usize), ("wrap", 2), ("questions_are_steps", 1), ("memory", 1), ("text", 2), ("before", 1), ("pot", 3), ("named_here", 2)] {
+                    if let Some(v) = kw.get(key) {
+                        while pos.len() < at {
+                            pos.push(J::Null);
+                        }
+                        if pos.len() == at {
+                            pos.push(v.clone());
+                        } else {
+                            pos[at] = v.clone();
+                        }
+                    }
+                }
+            }
             let got = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| call(&name, &Args(&pos))));
             match got {
                 Ok(None) => t[4] += 1,
