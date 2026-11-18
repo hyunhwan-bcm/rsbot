@@ -6141,179 +6141,826 @@ pub fn _says_the_verb(plan: &str, verb: &str) -> bool {
     text::split(plan).iter().any(|w| forms.contains(&text::strip_chars(w, ".,!?;:").to_lowercase()))
 }
 
-/// Python: bot/memory/store_replies.py:6125 `_job_reply(memory, where=False)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6125 `_job_reply(memory, where=False)`
 pub fn _job_reply(memory: &mut Memory, r#where: bool) -> String {
-    crate::unported!("bot.memory.store_replies:_job_reply")
+    let known = user(memory);
+    let job = known.get("job").cloned().unwrap_or(Value::None);
+    let city = known.get("city").cloned().unwrap_or(Value::None);
+    let place = text::strip(&sget(&known, "workplace")).to_string();
+    if r#where && !place.is_empty() {
+        // The place is exactly what was asked for, so it is the answer, with the role left out.
+        return "You work ".to_string() + &_place_phrase(&place) + ".";
+    }
+    if job.truthy() && city.truthy() {
+        let said = _job_said(&known);
+        let city = py_str(&city);
+        return pick(
+            &[said.clone() + " in " + &city + ".", "You're in ".to_string() + &city + " \u{2014} " + &lower_first(&said) + "."],
+            memory,
+            "",
+        );
+    }
+    if job.truthy() {
+        return _job_said(&known) + ".";
+    }
+    if city.truthy() && r#where {
+        // Only a where-ask can be answered with the town.
+        return "You said you live in ".to_string() + &py_str(&city) + ".";
+    }
+    let denial = pick(&["You haven't told me what you do yet.", "I don't know your job \u{2014} you haven't said."], memory, "");
+    _deny(memory, "job", &denial, None)
 }
 
-/// Python: bot/memory/store_replies.py:6147 `_yours(value)` (never called on the trace corpus)
-pub fn _yours(value: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_yours")
+/// Python: bot/memory/store_replies.py:6147 `_yours(value)`
+///
+/// The value said back with their own words turned round: "for myself" -> "for yourself".
+pub fn _yours(value: &str) -> String {
+    text::split(value)
+        .iter()
+        .map(|word| {
+            let low = text::strip_chars(&word.to_lowercase(), ".,!?").to_string();
+            match low.as_str() {
+                "myself" => "yourself".to_string(),
+                "my" => "your".to_string(),
+                "me" => "you".to_string(),
+                "i" => "you".to_string(),
+                "myself." => "yourself.".to_string(),
+                "our" => "your".to_string(),
+                "us" => "you".to_string(),
+                _ => word.clone(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
-/// Python: bot/memory/store_replies.py:6161 `_a_circumstance(job)` (never called on the trace corpus)
-pub fn _a_circumstance(job: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_circumstance")
+strset!(WORK_CIRCUMSTANCE);
+static WORDS_AND_DIGITS: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z0-9']+", 0));
+
+/// Python: bot/memory/store_replies.py:6161 `_a_circumstance(job)`
+///
+/// Whether the word after "I work" is how they work, not what they do.
+pub fn _a_circumstance(job: &str) -> bool {
+    let words = WORDS_AND_DIGITS.findall_str(&job.to_lowercase());
+    let Some(last) = words.last() else { return true };
+    if words.iter().any(|w| WORK_CIRCUMSTANCE.contains(w)) {
+        return true;
+    }
+    last.ends_with('s') && !last.ends_with("ss")
 }
 
-/// Python: bot/memory/store_replies.py:6177 `_job_said(known)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6177 `_job_said(known)`
+///
+/// The job said back the way they said it: "You work in a warehouse", "You're a nurse".
 pub fn _job_said(known: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_job_said")
+    use crate::memory::relations::_a;
+    let job = _yours(text::strip(&sget(known, "job")));
+    let frame = text::strip(&sget(known, "job_frame")).to_string();
+    let preposition = frame.split(' ').next().unwrap_or("").to_string();
+    if frame == "was" {
+        // The job was given in the past, so it is said back in the past.
+        if _a_circumstance(&job) {
+            return "You did ".to_string() + &job;
+        }
+        return "You were ".to_string() + &_a(&job);
+    }
+    if frame == "work" {
+        // "i work nights": the verb is the frame; a role said with the same frame is "you're a chef".
+        if _a_circumstance(&job) {
+            return "You work ".to_string() + &job;
+        }
+        return "You're ".to_string() + &_a(&job);
+    }
+    if ["in", "for", "on", "with"].contains(&preposition.as_str()) || preposition == "as" {
+        // The preposition they said is the one said back.
+        return "You work ".to_string() + &frame + " " + &job;
+    }
+    if preposition == "at" {
+        // "at" alone is followed by a name, which keeps its capital.
+        if frame == "at" {
+            return "You work at ".to_string() + &text::upper_first(&job);
+        }
+        return "You work ".to_string() + &frame + " " + &job;
+    }
+    "You told me you're ".to_string() + &_a(&job)
 }
 
-/// Python: bot/memory/store_replies.py:6217 `_place_phrase(place)` (never called on the trace corpus)
-pub fn _place_phrase(place: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_place_phrase")
+/// Python: bot/memory/store_replies.py:6217 `_place_phrase(place)`
+///
+/// Where they work, as the line said it: "in a school", "at Tesco".
+pub fn _place_phrase(place: &str) -> String {
+    let place = text::strip(place).to_string();
+    let (head, _, rest) = text::partition(&place, " ");
+    if head.to_lowercase() == "at" && !rest.is_empty() && rest.to_lowercase() == rest {
+        let first = text::split(rest).first().map(|w| w.to_lowercase()).expect("IndexError: list index out of range");
+        if !["the", "a", "an"].contains(&first.as_str()) {
+            return "at ".to_string() + &text::upper_first(rest);
+        }
+    }
+    place
 }
 
-/// Python: bot/memory/store_replies.py:6232 `_job_phrase(known)` (never called on the trace corpus)
-pub fn _job_phrase(known: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_job_phrase")
+/// Python: bot/memory/store_replies.py:6232 `_job_phrase(known)`
+///
+/// The job as a clause inside another sentence: "you work nights", "you're a nurse".
+pub fn _job_phrase(known: &Value) -> String {
+    let said = _job_said(known);
+    let low = lower_first(&said);
+    match low.strip_prefix("you told me ") {
+        Some(rest) => rest.to_string(),
+        None => low,
+    }
 }
 
-/// Python: bot/memory/store_replies.py:6246 `_places_reply(memory, low)` (never called on the trace corpus)
+static BORN: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bborn\b", 0));
+static HOMETOWN: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bhometown\b", 0));
+static GOING_AWAY: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bgoing\b|\btrip\b|\bholiday\b|\btravel", 0));
+static FROM_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bfrom\b", 0));
+static COME_FROM: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bfrom\b|\bcome from\b", 0));
+static WHERE_DO_I_LIVE: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bwhere (?:do|does) (?:i|we) live\b|\bwhere am i (?:living|based)\b", 0));
+
+/// A str value that says something (`isinstance(v, str) and v`).
+fn a_str(v: Option<&Value>) -> Option<String> {
+    match v {
+        Some(Value::Str(s)) if !s.is_empty() => Some(s.to_string()),
+        _ => None,
+    }
+}
+
+/// Python: bot/memory/store_replies.py:6246 `_places_reply(memory, low)`
 pub fn _places_reply(memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_places_reply")
+    let known = user(memory);
+    // "where does my sister live" is about her, not about the user.
+    let who = crate::memory::places::_asked_person(memory, low);
+    if !who.is_empty() {
+        if let Some(hers) = crate::memory::places::_other_place(memory, &who).filter(|h| !h.is_empty()) {
+            return Some(hers);
+        }
+        return Some("You haven't said where your ".to_string() + &who + if who.to_lowercase().ends_with('s') { " live." } else { " lives." });
+    }
+    let city = known.get("city").cloned().unwrap_or(Value::None);
+    if BORN.is_match(low) {
+        // A birth is not where they are from.
+        if let Some(born) = a_str(known.get("born")) {
+            return Some(pick(&["You were born in ".to_string() + &born + ".", born.clone() + " \u{2014} you were born there."], memory, ""));
+        }
+        if let Some(origin) = a_str(known.get("from")) {
+            return Some(pick(
+                &[
+                    "You haven't told me where you were born \u{2014} you're from ".to_string() + &origin + ".",
+                    "I don't know where you were born. You told me you're from ".to_string() + &origin + ".",
+                ],
+                memory,
+                "",
+            ));
+        }
+        return Some(pick(
+            &["You haven't told me where you were born.", "I don't know that one \u{2014} you haven't said where you were born."],
+            memory,
+            "",
+        ));
+    }
+    if HOMETOWN.is_match(low) {
+        return Some(_from_reply(memory));
+    }
+    if GROWN_UP_ASK.is_match(low) {
+        // "where did i grow up" is said back as growing up.
+        return Some(_grown_up_reply(memory));
+    }
+    let going = GOING_AWAY.is_match(low);
+    // "where am I from" asks where they grew up, not where they live now.
+    if let Some(c) = a_str(Some(&city)) {
+        if known.get("home").map(Value::truthy).unwrap_or(false) && !going && !FROM_WORD.is_match(low) {
+            let said_with = known.get("home").unwrap();
+            return Some("You live in ".to_string() + &(if let Value::Str(s) = said_with { s.to_string() } else { c }) + ".");
+        }
+    }
+    if COME_FROM.is_match(low) {
+        return Some(_from_reply(memory));
+    }
+    let mut places: Vec<String> = known.get("places").map(py_list).unwrap_or_default().iter().filter_map(|p| p.as_str().map(str::to_string)).collect();
+    if going {
+        // "where am I going" is about the trip, so the place they live is not the answer.
+        let city_s = if let Value::Str(c) = &city { Some(c.to_string()) } else { None };
+        let away: Vec<String> = places.iter().filter(|p| city_s.as_ref().map(|c| c != *p).unwrap_or(false)).cloned().collect();
+        if !away.is_empty() {
+            places = away;
+        }
+    }
+    if low.contains("city") || low.contains("town") {
+        let cities: Vec<String> = places.iter().filter(|p| !FACTS_COUNTRIES.contains(&p.to_lowercase())).cloned().collect();
+        if !cities.is_empty() {
+            places = cities;
+        }
+    }
+    if places.is_empty() {
+        return Some(_deny(memory, "place", "You haven't mentioned a place yet.", None));
+    }
+    if WHERE_DO_I_LIVE.is_match(low) {
+        // They asked where they live and never said: the place they named is not an answer.
+        if let Some(origin) = a_str(known.get("from")) {
+            return Some(pick(
+                &[
+                    "You haven't told me where you live \u{2014} I know you're from ".to_string() + &origin + ".",
+                    "I don't know where you live. You're from ".to_string() + &origin + ", that I do know.",
+                ],
+                memory,
+                "",
+            ));
+        }
+        return Some(if places.len() == 1 {
+            "You haven't told me where you live. You mentioned ".to_string() + &places[0] + "."
+        } else {
+            "You haven't told me where you live. You mentioned ".to_string() + &places[0] + ", then " + &places[1..].join(", ") + "."
+        });
+    }
+    let first = places[0].clone();
+    let rest: Vec<String> = places[1..].iter().filter(|p| **p != first).cloned().collect();
+    if !rest.is_empty() {
+        return Some("You said ".to_string() + &first + " first, then " + &rest.join(", ") + ".");
+    }
+    Some("You mentioned ".to_string() + &first + ".")
 }
 
-/// Python: bot/memory/store_replies.py:6321 `_grown_up_reply(memory)` (never called on the trace corpus)
-pub fn _grown_up_reply(memory: &mut Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_grown_up_reply")
+/// Python: bot/memory/store_replies.py:6321 `_grown_up_reply(memory)`
+///
+/// Where they grew up, said as growing up rather than as where they are from.
+pub fn _grown_up_reply(memory: &mut Memory) -> String {
+    let known = user(memory);
+    if let Some(origin) = a_str(known.get("from")) {
+        return pick(&["You grew up in ".to_string() + &origin + ".", origin.clone() + " \u{2014} that's where you grew up."], memory, "");
+    }
+    if let Some(city) = a_str(known.get("city")) {
+        return pick(
+            &[
+                "You haven't said where you grew up \u{2014} I know you live in ".to_string() + &city + ".",
+                "Not sure where you grew up. You mentioned ".to_string() + &city + " though.",
+            ],
+            memory,
+            "",
+        );
+    }
+    pick(&["You haven't said where you grew up yet.", "I don't know that one \u{2014} you haven't told me where you grew up."], memory, "")
 }
 
-/// Python: bot/memory/store_replies.py:6334 `_from_reply(memory)` (never called on the trace corpus)
-pub fn _from_reply(memory: &mut Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_from_reply")
+/// Python: bot/memory/store_replies.py:6334 `_from_reply(memory)`
+///
+/// Where they are from, which is a different question from where they live now.
+pub fn _from_reply(memory: &mut Memory) -> String {
+    let known = user(memory);
+    let origin = known.get("from").cloned().unwrap_or(Value::None);
+    let city = known.get("city").cloned().unwrap_or(Value::None);
+    if origin.truthy() && city.truthy() && py_str(&origin).to_lowercase() != py_str(&city).to_lowercase() {
+        let (o, c) = (py_str(&origin), py_str(&city));
+        return pick(
+            &[
+                "You're from ".to_string() + &o + " originally, and you live in " + &c + " now.",
+                "You said you're from ".to_string() + &o + ", and you're in " + &c + " now.",
+            ],
+            memory,
+            "",
+        );
+    }
+    if origin.truthy() {
+        let o = py_str(&origin);
+        return pick(&["You're from ".to_string() + &o + ".", o.clone() + " \u{2014} you told me you're from there."], memory, "");
+    }
+    if city.truthy() {
+        let c = py_str(&city);
+        return pick(
+            &[
+                "You haven't said where you're from \u{2014} I know you live in ".to_string() + &c + ".",
+                "Not sure where you're from. You mentioned ".to_string() + &c + " though.",
+            ],
+            memory,
+            "",
+        );
+    }
+    pick(&["You haven't said where you're from yet.", "I don't know that one \u{2014} you haven't said."], memory, "")
 }
 
-/// Python: bot/memory/store_replies.py:6351 `_is_are(who)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6351 `_is_are(who)`
 pub fn _is_are(who: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_is_are")
+    if crate::memory::relations::_plural_person(who) { " are " } else { " is " }.to_string()
 }
 
-/// Python: bot/memory/store_replies.py:6354 `_eats(who)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6354 `_eats(who)`
 pub fn _eats(who: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_eats")
+    if crate::memory::relations::_plural_person(who) { " eat" } else { " eats" }.to_string()
 }
 
-/// Python: bot/memory/store_replies.py:6357 `_does_not(who)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6357 `_does_not(who)`
 pub fn _does_not(who: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_does_not")
+    if crate::memory::relations::_plural_person(who) { " don't" } else { " doesn't" }.to_string()
 }
 
-/// Python: bot/memory/store_replies.py:6360 `_they(who)` (never called on the trace corpus)
+static FACTS_SHE: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.facts.SHE"));
+static FACTS_HE: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.facts.HE"));
+
+/// Python: bot/memory/store_replies.py:6360 `_they(who)`
+///
+/// The word for the person at the front of a sentence of their own: "she", "he", "they".
 pub fn _they(who: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_they")
+    let low = text::strip(&who.to_lowercase()).to_string();
+    if FACTS_SHE.contains(&low) {
+        return "she".into();
+    }
+    if FACTS_HE.contains(&low) {
+        return "he".into();
+    }
+    "they".into()
 }
 
-/// Python: bot/memory/store_replies.py:6369 `_a_diet_predicate(who, diet)` (never called on the trace corpus)
-pub fn _a_diet_predicate(who: &str, diet: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_a_diet_predicate")
+/// Python: bot/memory/store_replies.py:6369 `_a_diet_predicate(who, diet)`
+///
+/// A person's diet as the words after their name: "eats fish", "doesn't eat meat", "is vegan".
+pub fn _a_diet_predicate(who: &str, diet: &str) -> String {
+    let said = text::strip(diet).to_string();
+    if let Some(rest) = said.strip_prefix("eats ") {
+        return text::strip(&(_eats(who) + " " + rest)).to_string();
+    }
+    if said.starts_with("no ") {
+        // What they drink is not what they eat.
+        return text::strip(&(_does_not(who) + " " + &_diet_how(&said) + " " + &text::slice(&said, 3, None))).to_string();
+    }
+    text::strip(&(_is_are(who) + &said)).to_string()
 }
 
-/// Python: bot/memory/store_replies.py:6385 `_their_pronoun(who)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6385 `_their_pronoun(who)`
+///
+/// The word for the person in the second half of a sentence: "for her", "for them".
 pub fn _their_pronoun(who: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_their_pronoun")
+    let low = text::strip(&who.to_lowercase()).to_string();
+    let (hers, his) = (FACTS_SHE.contains(&low), FACTS_HE.contains(&low));
+    if hers && !his {
+        return "her".into();
+    }
+    if his && !hers {
+        return "him".into();
+    }
+    "them".into()
 }
 
-/// Python: bot/memory/store_replies.py:6400 `_no_diet(who)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6400 `_no_diet(who)`
+///
+/// An ask about how someone else eats when nothing food-shaped is kept for them.
 pub fn _no_diet(who: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_no_diet")
+    if text::strip(who).to_lowercase() == "baby" {
+        return None;
+    }
+    let whose = if who.is_empty() { "they".to_string() } else { "your ".to_string() + who };
+    Some("You haven't told me what ".to_string() + &whose + &_eats(who) + " \u{2014} tell me and I'll plan the meals round it.")
 }
 
-/// Python: bot/memory/store_replies.py:6414 `_a_condition_rules_out(condition)` (never called on the trace corpus)
+static CONDITION_FOOD: LazyLock<HashMap<String, String>> = LazyLock::new(|| data::str_map("bot.memory.ack.CONDITION_FOOD"));
+
+/// Python: bot/memory/store_replies.py:6414 `_a_condition_rules_out(condition)`
+///
+/// Whether a condition rules a food out, by the bot's own table: coeliac is gluten.
 pub fn _a_condition_rules_out(condition: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_condition_rules_out")
+    let kept: Vec<Value> = match condition {
+        Value::List(items) | Value::Tuple(items) => items.to_vec(),
+        other => vec![other.clone()],
+    };
+    kept.iter().any(|w| CONDITION_FOOD.get(&text::strip(&py_str(w)).to_lowercase()).map(|f| !f.is_empty()).unwrap_or(false))
 }
 
-/// Python: bot/memory/store_replies.py:6423 `_both_food_facts(who, allergies, diet)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6423 `_both_food_facts(who, allergies, diet)`
+///
+/// An allergy and a diet kept for the same person, said in one answer.
 pub fn _both_food_facts(who: &str, allergies: &Value, diet: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_both_food_facts")
+    let said = _allergy_is_their_food(who, allergies, false, "");
+    let them = text::upper_first(&_they(who));
+    let mut rest = _diet_sentence(who, diet);
+    let first_lead = if who.is_empty() { "They".to_string() } else { "Your ".to_string() + who };
+    for lead in [first_lead.as_str(), "They"] {
+        if rest.starts_with(lead) {
+            rest = them.clone() + &rest[lead.len()..];
+            break;
+        }
+    }
+    said + " " + &rest
 }
 
-/// Python: bot/memory/store_replies.py:6441 `_allergy_is_their_food(who, allergies, only=True, low='')` (never called on the trace corpus)
-pub fn _allergy_is_their_food(who: &str, allergies: &Value, only: &Value, low: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_allergy_is_their_food")
+/// Python: bot/memory/store_replies.py:6441 `_allergy_is_their_food(who, allergies, only=True, low="")`
+///
+/// What a person can eat, from the only food fact kept for them: the allergy.
+pub fn _allergy_is_their_food(who: &str, allergies: &Value, only: bool, low: &str) -> String {
+    let owner = if who.is_empty() { "They".to_string() } else { "Your ".to_string() + who };
+    let said: Vec<String> = py_list(allergies).iter().map(py_str).filter(|a| !text::strip(a).is_empty()).collect();
+    for one in &said {
+        let (named, thing) = if low.is_empty() { (String::new(), String::new()) } else { _what_the_food_has(low, one) };
+        if !named.is_empty() {
+            // The food in their hand is the answer.
+            return text::upper_first(&named) + " has " + &thing + " in it, so it's off the table for " + &_their_pronoun(who) + ".";
+        }
+    }
+    let ruled = if said.len() == 1 {
+        said[0].clone()
+    } else {
+        "any of ".to_string() + &said.join(", ")
+    };
+    let tail = if only { " \u{2014} that's all I have on food for ".to_string() + &_their_pronoun(who) } else { String::new() };
+    owner + &_is_are(who) + "allergic to " + &said.join(", ") + ", so nothing with " + &ruled + " in it" + &tail + "."
 }
 
-/// Python: bot/memory/store_replies.py:6467 `_what_the_food_has(low, ruled)` (never called on the trace corpus)
-pub fn _what_the_food_has(low: &str, ruled: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_what_the_food_has")
+static FOOD_PHRASES: LazyLock<HashMap<String, Vec<String>>> = LazyLock::new(|| g("FOOD_PHRASES").str_list_map());
+/// `FOOD_HAS` as lists, in the exported (sorted) order of each set: `sorted(..., key=len)` keeps
+/// Python's set order among words of one length, which depends on the hash seed.
+static FOOD_HAS_LISTS: LazyLock<HashMap<String, Vec<String>>> = LazyLock::new(|| g("FOOD_HAS").str_list_map());
+static RULED_SPLIT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s*(?:,|\bor\b|\band\b)\s*", 0));
+
+/// Python: bot/memory/store_replies.py:6467 `_what_the_food_has(low, ruled)`
+///
+/// The food the line names, when it is a thing the person cannot have: ("cheese", "dairy").
+pub fn _what_the_food_has(low: &str, ruled: &str) -> (String, String) {
+    for thing in RULED_SPLIT.split(ruled) {
+        let thing = text::strip(&thing).to_lowercase();
+        if thing.is_empty() {
+            continue;
+        }
+        for phrase in FOOD_PHRASES.get(&thing).cloned().unwrap_or_default() {
+            if Re::new(&format!(r"\b{}s?\b", crate::py::re::escape(&phrase)), 0).is_match(low) {
+                return (phrase, thing);
+            }
+        }
+        // The longest food word wins, so "peanut butter" is not answered as "peanut".
+        let mut words = FOOD_HAS_LISTS.get(&thing).cloned().unwrap_or_default();
+        words.sort_by(|a, b| text::len(b).cmp(&text::len(a)));
+        for word in words {
+            if word == thing {
+                continue;
+            }
+            if Re::new(&format!(r"\b{}s?\b", crate::py::re::escape(&word)), 0).is_match(low) {
+                return (word, thing);
+            }
+        }
+    }
+    (String::new(), String::new())
 }
 
-/// Python: bot/memory/store_replies.py:6491 `_diet_is_their_food(who, diet, low='', plain=False)` (never called on the trace corpus)
-pub fn _diet_is_their_food(who: &str, diet: &Value, low: &str, plain: &Value) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_diet_is_their_food")
+/// `DIET_RULES_OUT`: a diet -> (what it rules out, the tail said after it).
+static DIET_RULES_OUT: LazyLock<HashMap<String, (String, String)>> = LazyLock::new(|| {
+    g("DIET_RULES_OUT").pairs().iter().map(|(k, v)| (k.str().to_string(), (v.items()[0].str().to_string(), v.items()[1].str().to_string()))).collect()
+});
+static A_LIST_OF_THINGS: LazyLock<Re> = LazyLock::new(|| Re::new(r",|\bor\b|\band\b", 0));
+
+/// Python: bot/memory/store_replies.py:6491 `_diet_is_their_food(who, diet, low="", plain=False)`
+///
+/// What a person cannot have, from the diet kept for them, or None when the diet says it.
+pub fn _diet_is_their_food(who: &str, diet: &str, low: &str, plain: bool) -> Option<String> {
+    let said = fold(low);
+    let diet_low = fold(diet);
+    let owner = if who.is_empty() { "They".to_string() } else { "Your ".to_string() + who };
+    if diet_low.starts_with("no ") {
+        if plain {
+            return None;
+        }
+        // The food said as missing is the answer.
+        return Some(owner + " can't have " + &text::slice(&diet_low, 3, None) + " \u{2014} that's all I have on food for " + &_their_pronoun(who) + ".");
+    }
+    let (rule, tail) = DIET_RULES_OUT.get(&diet_low)?.clone();
+    if plain && A_LIST_OF_THINGS.is_match(&rule) {
+        return None;
+    }
+    let (named, thing) = if said.is_empty() { (String::new(), String::new()) } else { _what_the_food_has(&said, &rule) };
+    if !named.is_empty() {
+        // The food in their hand is the answer.
+        return Some(text::upper_first(&named) + " has " + &thing + " in it, and " + &owner.to_lowercase() + &_is_are(who) + &diet_low + ".");
+    }
+    Some(owner + &_is_are(who) + &diet_low + ", so nothing with " + &rule + " in it" + &tail + " \u{2014} that's all I have on food for " + &_their_pronoun(who) + ".")
 }
 
-/// Python: bot/memory/store_replies.py:6536 `_last_answer(memory)`
+rx!(DISLIKE_ASK);
+
+/// Python: bot/memory/store_replies.py:6534 `_last_answer(memory)`
+///
+/// The bot's last knowledge answer, or "" when the previous turn was something else.
 pub fn _last_answer(memory: &Memory) -> String {
-    crate::unported!("bot.memory.store_replies:_last_answer")
+    match memory.turns.last() {
+        Some(last) if last.module.as_deref() == Some("answers") => last.bot.clone(),
+        _ => String::new(),
+    }
 }
 
-/// Python: bot/memory/store_replies.py:6547 `_one_half_of_the_dish(food, taste)` (never called on the trace corpus)
-pub fn _one_half_of_the_dish(food: &Value, taste: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_one_half_of_the_dish")
+static A_DISH_OF_TWO: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(?P<one>.+?)\s+(?P<how>and|with|&)\s+(?P<two>.+)$", 0));
+
+/// Python: bot/memory/store_replies.py:6547 `_one_half_of_the_dish(food, taste)`
+///
+/// True when the food the guest reader found is one half of the dish the line names.
+pub fn _one_half_of_the_dish(food: &str, taste: &Value) -> bool {
+    if !taste.is_dict() {
+        return false;
+    }
+    let thing = text::strip(&sget(taste, "thing")).to_lowercase();
+    let food = text::strip(food).to_lowercase();
+    if thing.is_empty() || food.is_empty() || thing == food {
+        return false;
+    }
+    let Some(joined) = A_DISH_OF_TWO.match_(&thing) else { return false };
+    says_word(&food, &(joined.name_str("one").to_string() + " " + joined.name_str("two")))
+}
+
+/// `guest.found(text)`: [(food, where)]. The contract in `memory::guest` types it `Vec<String>`,
+/// which cannot hold the positions; this reads whichever shape it returns.
+trait FoundFoods {
+    fn food_pairs(self) -> Vec<(String, i64)>;
+}
+impl FoundFoods for Vec<String> {
+    fn food_pairs(self) -> Vec<(String, i64)> {
+        if self.is_empty() {
+            return Vec::new();
+        }
+        panic!("contract: bot.memory.guest:found returns (food, at) pairs, typed Vec<String>")
+    }
+}
+impl FoundFoods for Vec<(String, i64)> {
+    fn food_pairs(self) -> Vec<(String, i64)> {
+        self
+    }
+}
+impl FoundFoods for Value {
+    fn food_pairs(self) -> Vec<(String, i64)> {
+        self.items().iter().map(|p| (py_str(&p.items()[0]), p.items()[1].as_int().unwrap_or(0))).collect()
+    }
 }
 
 /// Python: bot/memory/store_replies.py:6567 `_dislikes_here(text)`
-pub fn _dislikes_here(text: &str) -> Vec<String> {
-    crate::unported!("bot.memory.store_replies:_dislikes_here")
+///
+/// [(food, kind)] in the line, a taste nobody else is named for read as their own.
+pub fn _dislikes_here(text_: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for (food, at) in crate::memory::guest::found(text_).food_pairs() {
+        let said = crate::memory::facts::subject(text_, at);
+        let kind = said.first().cloned().unwrap_or_default();
+        out.push((food, if kind.is_empty() { "user".to_string() } else { kind }));
+    }
+    out
 }
 
 /// Python: bot/memory/store_replies.py:6581 `_a_dislike_told(text, memory)`
-pub fn _a_dislike_told(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_a_dislike_told")
+///
+/// The answer just given with the food the guest hates taken out, or None.
+pub fn _a_dislike_told(text_: &str, memory: &mut Memory) -> Option<String> {
+    if DISLIKE_ASK.is_match(text_) {
+        return None;
+    }
+    if _about_this_chat(text_, memory) {
+        return None;
+    }
+    let tastes = crate::memory::taste::read_all(text_).val();
+    if tastes.items().len() > 1 {
+        // A line of more than one taste is the taste module's.
+        return None;
+    }
+    let found = _dislikes_here(text_);
+    if found.iter().any(|(food, _)| tastes.items().iter().any(|t| _one_half_of_the_dish(food, t))) {
+        // A dish said with both its halves is one thing, not its first word.
+        return None;
+    }
+    let mut foods: Vec<String> = found.iter().filter(|(_, k)| k == "user" || k == "other").map(|(f, _)| f.clone()).collect();
+    let mut alone: Vec<String> = Vec::new();
+    if foods.is_empty() && !_last_answer(memory).is_empty() {
+        // A bare "no mushrooms" answers the suggestion the bot has just made.
+        alone = crate::memory::guest::turned_down_alone(text_);
+        foods = alone.clone();
+    }
+    if foods.is_empty() {
+        return None;
+    }
+    let previous = _last_answer(memory);
+    if !previous.is_empty() {
+        if let Some(revised) = crate::memory::guest::revise(&previous, &str_list(&foods)).filter(|r| !r.is_empty()) {
+            return Some(revised);
+        }
+        // The answer on the table does not name the food, so this is a steer on that answer.
+        if or_on_raise(|| crate::compose::ruledout::takes_as_it_comes(text_, memory).unwrap_or(false), false) {
+            return None;
+        }
+    }
+    let a_pair = foods.len() > 1;
+    let mut own: Vec<Value> =
+        found.iter().filter(|(_, k)| k == "user").map(|(f, _)| crate::memory::guest::plain(f, a_pair).val()).collect();
+    if own.is_empty() {
+        own = alone.iter().map(|f| crate::memory::guest::plain(f, false).val()).collect();
+    }
+    let own: Vec<Value> = own.into_iter().filter(Value::truthy).collect();
+    if !own.is_empty() {
+        return crate::memory::guest::left_out(&Value::List(std::sync::Arc::new(own)));
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:6641 `_the_take_back(memory, key)`
-pub fn _the_take_back(memory: &Memory, key: &str) -> Vec<String> {
-    crate::unported!("bot.memory.store_replies:_the_take_back")
+rx!(STOPPED_SAID, NEGATED_SAID, ANY_MORE);
+static STOPPED_LEAD: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(?:i|we)(?:'ve|ve|\s+have|\s+had)?\s+", crate::py::re::I));
+
+/// Python: bot/memory/store_replies.py:6640 `_the_take_back(memory, key)`
+///
+/// The last line that took the fact back, and the value it took back, or ("", "").
+pub fn _the_take_back(memory: &Memory, key: &str) -> (String, String) {
+    for turn in memory.turns.iter().rev() {
+        let line = &turn.user;
+        if text::strip(line).is_empty() {
+            continue;
+        }
+        let denied = crate::memory::facts::denials(line, &Value::None).val();
+        let mut gone = denied.get(key).cloned().unwrap_or(Value::None);
+        if gone.truthy() {
+            // Said back as the fact it took, not as the words the take-back used.
+            let record = mget(memory, "denial");
+            if text::squash(line) == sget(record, "said") {
+                let dropped = record.get(key).cloned().unwrap_or(Value::None);
+                match &dropped {
+                    Value::List(items) if !items.is_empty() => gone = items[0].clone(),
+                    d if d.truthy() => gone = dropped.clone(),
+                    _ => {}
+                }
+            }
+            return (text::squash(line), py_str(&gone));
+        }
+    }
+    (String::new(), String::new())
 }
 
-/// Python: bot/memory/store_replies.py:6662 `_a_take_back_said_back(line, gone)` (never called on the trace corpus)
-pub fn _a_take_back_said_back(line: &str, gone: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_a_take_back_said_back")
+strset!(PLAN_DIETS, WAY_OF_EATING);
+
+/// Python: bot/memory/store_replies.py:6662 `_a_take_back_said_back(line, gone)`
+///
+/// Their own take-back, said back as a statement: "You told me you stopped doing keto."
+pub fn _a_take_back_said_back(line: &str, gone: &str) -> String {
+    let said = text::squash(line);
+    if STOPPED_SAID.match_(&said).is_some() {
+        let rest = STOPPED_LEAD.sub("", &said);
+        return "You told me you ".to_string() + &text::squash(&rest) + ".";
+    }
+    if ["diet", "dieting", "on a diet"].contains(&text::strip(gone).to_lowercase().as_str()) {
+        return "You told me you're not on a diet any more.".to_string();
+    }
+    if NEGATED_SAID.is_match(&said) {
+        // "im not vegetarian" is a fact about now, not a take-back of one they had.
+        return _a_negation_said_back(gone, &said);
+    }
+    if WAY_OF_EATING.contains(gone) {
+        return "You told me you stopped being ".to_string() + &_diet_words(gone) + ".";
+    }
+    if PLAN_DIETS.contains(gone) {
+        return "You told me you stopped doing ".to_string() + &_diet_words(gone) + ".";
+    }
+    "You told me you stopped ".to_string() + &_diet_words(gone) + "."
 }
 
-/// Python: bot/memory/store_replies.py:6687 `_a_negation_said_back(gone, line='')` (never called on the trace corpus)
-pub fn _a_negation_said_back(gone: &Value, line: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_a_negation_said_back")
+/// Python: bot/memory/store_replies.py:6688 `_a_negation_said_back(gone, line="")`
+///
+/// "You told me you're not vegetarian", for a diet said as a negation rather than left.
+pub fn _a_negation_said_back(gone: &str, line: &str) -> String {
+    let value = text::strip(gone).to_lowercase();
+    let tail = if ANY_MORE.is_match(line) { " any more" } else { "" };
+    if value.is_empty() {
+        return "You told me you're not on a diet".to_string() + tail + ".";
+    }
+    if value.starts_with("no ") {
+        return "You told me you don't ".to_string() + &_diet_how(&value) + " " + &text::slice(&value, 3, None) + tail + ".";
+    }
+    if WAY_OF_EATING.contains(&value) {
+        return "You told me you're not ".to_string() + &_diet_words(&value) + tail + ".";
+    }
+    if PLAN_DIETS.contains(&value) {
+        return "You told me you're not doing ".to_string() + &_diet_words(&value) + tail + ".";
+    }
+    "You told me you're not ".to_string() + &_diet_words(&value) + tail + "."
 }
 
-/// Python: bot/memory/store_replies.py:6701 `_says_the_fact(line, key)` (never called on the trace corpus)
+rx!(A_CLAIM_OF_TELLING, ASKING_ABOUT_IT, PLANNING_IT);
+
+/// Python: bot/memory/store_replies.py:6703 `_says_the_fact(line, key)`
+///
+/// Whether a past line tells the thing a denial would deny, rather than asking about it.
 pub fn _says_the_fact(line: &str, key: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_says_the_fact")
+    if crate::memory::facts::extract(line, false).val().get(key).map(Value::truthy).unwrap_or(false) {
+        return true;
+    }
+    let low = fold(line);
+    if ASKING_ABOUT_IT.is_match(&low) || PLANNING_IT.is_match(&low) {
+        return false;
+    }
+    if A_CLAIM_OF_TELLING.match_(&low).is_some() {
+        // "i told you about the damp" carries the word and says nothing about the damp.
+        return false;
+    }
+    true
 }
 
-/// Python: bot/memory/store_replies.py:6736 `_the_line_about(memory, key, own=None)`
-pub fn _the_line_about(memory: &Memory, key: &str, own: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_the_line_about")
+static DENIAL_WORDS: LazyLock<HashMap<String, Vec<String>>> = LazyLock::new(|| g("DENIAL_WORDS").str_list_map());
+static DENIAL_STEMS: LazyLock<HashMap<String, Vec<String>>> = LazyLock::new(|| g("DENIAL_STEMS").str_list_map());
+
+/// Python: bot/memory/store_replies.py:6740 `_the_line_about(memory, key, own=None)`
+///
+/// The last line the person sent that says the thing a denial would deny, or "". `own`, when
+/// given, says whether a line that carries the words carries the fact itself.
+pub fn _the_line_about(memory: &Memory, key: &str, own: Option<fn(&str) -> bool>) -> String {
+    let words = DENIAL_WORDS.get(key).cloned().unwrap_or_default();
+    let stems = DENIAL_STEMS.get(key).cloned().unwrap_or_default();
+    if words.is_empty() && stems.is_empty() {
+        return String::new();
+    }
+    let mut parts: Vec<String> = words.iter().map(|w| format!(r"\b{}\b", crate::py::re::escape(w))).collect();
+    parts.extend(stems.iter().map(|s| format!(r"\b{}", crate::py::re::escape(s))));
+    let wanted = Re::new(&parts.join("|"), 0);
+    for turn in memory.turns.iter().rev() {
+        let line = &turn.user;
+        let found = LETTER_WORDS.findall_str(&line.to_lowercase()).join(" ");
+        if found.is_empty() {
+            continue;
+        }
+        if !wanted.is_match(&found) {
+            continue;
+        }
+        if crate::memory::facts::denials(line, &Value::None).val().contains_str(key) {
+            continue; // a line that takes the fact back is not the fact said
+        }
+        // A line that asks about the thing, or plans around it, is not a line that tells it.
+        if !_says_the_fact(line, key) {
+            continue;
+        }
+        if _said_of_someone_else(line, &wanted) {
+            continue;
+        }
+        if let Some(own) = own {
+            if !own(line) {
+                continue;
+            }
+        }
+        return text::squash(line);
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:6771 `_said_of_someone_else(line, wanted)` (never called on the trace corpus)
-pub fn _said_of_someone_else(line: &str, wanted: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_said_of_someone_else")
+/// Python: bot/memory/store_replies.py:6774 `_said_of_someone_else(line, wanted)`
+///
+/// Whether every place the line has the fact's word it is said of another person.
+pub fn _said_of_someone_else(line: &str, wanted: &Re) -> bool {
+    let mut kinds: Vec<String> = Vec::new();
+    for m in wanted.finditer(line) {
+        let at = text::char_index(line, m.start()) as i64;
+        // A ValueError or IndexError from the subject reader claims nothing.
+        let said = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::memory::facts::subject(line, at)));
+        match said {
+            Ok(v) if !v.is_empty() => kinds.push(v[0].clone()),
+            _ => return false,
+        }
+    }
+    !kinds.is_empty() && kinds.iter().all(|k| k == "other")
 }
 
 /// Python: bot/memory/store_replies.py:6786 `_deny(memory, key, denial, own=None)`
-pub fn _deny(memory: &Memory, key: &str, denial: &str, own: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_deny")
+///
+/// The denial, unless they did say it: then their own line is the honest answer.
+pub fn _deny(memory: &Memory, key: &str, denial: &str, own: Option<fn(&str) -> bool>) -> String {
+    let said = _the_line_about(memory, key, own);
+    if !said.is_empty() {
+        return "You said: \"".to_string() + &said + "\"";
+    }
+    denial.to_string()
 }
 
-/// Python: bot/memory/store_replies.py:6793 `_their_own_diet(line)` (never called on the trace corpus)
+rx!(DIET_NOT_THEIRS, DIET_NEGATED, MEAL_WANTED);
+static WE_EAT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:i|we)\b[^.?!]*\b(?:eat|eats|eating|drink|drinks|diet)\w*\b", crate::py::re::I));
+
+/// Python: bot/memory/store_replies.py:6793 `_their_own_diet(line)`
+///
+/// Whether the line says the diet as the person's own, now.
 pub fn _their_own_diet(line: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_their_own_diet")
+    if crate::memory::facts::extract(line, false).val().get("diet").map(Value::truthy).unwrap_or(false)
+        || crate::memory::facts::denials(line, &Value::None).val().get("diet").map(Value::truthy).unwrap_or(false)
+    {
+        return true;
+    }
+    if DIET_NOT_THEIRS.is_match(line) {
+        return false;
+    }
+    // "i mostly eat low fat stuff" is how they eat now.
+    WE_EAT.is_match(line)
 }
 
-/// Python: bot/memory/store_replies.py:6817 `_diet_words(value)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6817 `_diet_words(value)`
+///
+/// A diet as a person would say it: "slimming world", not the store's "slimming-world".
 pub fn _diet_words(value: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_diet_words")
+    value.replace('-', " ")
 }
 
-/// Python: bot/memory/store_replies.py:6823 `_a_diet_put_back(shown)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6823 `_a_diet_put_back(shown)`
+///
+/// The thing they are back on, when the diet held was a negation, else None.
 pub fn _a_diet_put_back(shown: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_a_diet_put_back")
+    let flat = text::squash(shown);
+    let bare = DIET_NEGATED.match_(&flat)?;
+    let thing = text::strip(bare.str(1)).to_string();
+    let words = text::split(&thing);
+    if words.is_empty() || words.len() > 4 || ["more", "longer", "any", "the"].contains(&words[0].to_lowercase().as_str()) {
+        return None;
+    }
+    Some(thing)
 }
 
 /// Python: bot/memory/store_replies.py:6847 `_diet_reply(memory, low='')`
