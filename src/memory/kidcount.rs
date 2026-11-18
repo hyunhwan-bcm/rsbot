@@ -2,7 +2,7 @@
 //! chat already holds (each child relation named is one child, a child named on their own is
 //! one, the same child said twice is still one).
 
-use super::mem8_py::{py_iter, rx, s_or, strs, val};
+use super::mem8_py::{user_or_empty, py_iter, rx, s_or, strs, val};
 use crate::data::Value;
 use crate::py::random::Random;
 use crate::py::text;
@@ -33,19 +33,6 @@ pub fn _asks(text: &str) -> bool {
     }
     // "how many kids" on its own is the ask said short; anything else has to be about them.
     THEIR_OWN.is_match(&low) || text::split_ref(rest).len() <= 2
-}
-
-/// `memory.get("user") or {}`: a dict, or a panic where Python's `.get` on it would raise.
-fn user_dict(memory: &Memory) -> Value {
-    match memory.get("user") {
-        Some(v) if v.truthy() => {
-            if !v.is_dict() {
-                panic!("AttributeError: the user facts are not a dict");
-            }
-            v.clone()
-        }
-        _ => Value::dict(),
-    }
 }
 
 /// `str(entry.get(key) or "").strip().lower()`.
@@ -87,7 +74,7 @@ pub fn _named_children(memory: &Memory) -> HashSet<String> {
 /// The child relations the person named, each one once, in the order they said them.
 pub fn _relations(memory: &Memory) -> Vec<String> {
     let mut held: Vec<String> = Vec::new();
-    let user = user_dict(memory);
+    let user = user_or_empty(memory);
     for who in py_iter(user.get("people")) {
         let word = text::strip(&s_or(Some(&who))).to_lowercase();
         if CHILD_RELATIONS.contains(&word) && !held.contains(&word) {
@@ -110,7 +97,7 @@ pub fn _relations(memory: &Memory) -> Vec<String> {
 ///
 /// How many children the chat holds, or None when it holds no number worth saying.
 pub fn count(memory: &Memory) -> Option<usize> {
-    let user = user_dict(memory);
+    let user = user_or_empty(memory);
     if user.get("kids").is_some_and(Value::truthy) {
         return None;
     }

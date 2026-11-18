@@ -271,3 +271,17 @@ pub(crate) fn py_iter(value: Option<&Value>) -> Vec<Value> {
         _ => Vec::new(),
     }
 }
+
+/// `memory.get("user") or {}`, where Python goes on to call `.get` on it: a non-dict that is
+/// truthy is Python's AttributeError, which nothing catches.
+pub(crate) fn user_or_empty(memory: &Memory) -> Value {
+    match memory.get("user") {
+        Some(v) if v.truthy() => {
+            if !v.is_dict() {
+                panic!("AttributeError: the user facts are not a dict");
+            }
+            v.clone()
+        }
+        _ => Value::dict(),
+    }
+}
