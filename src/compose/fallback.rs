@@ -163,91 +163,6 @@ fn format_named(template: &str, fields: &[(&str, &str)]) -> String {
     out
 }
 
-/// Python: bot/compose/fallback.py:12104 `_is_a_hedge(said)`
-pub fn _is_a_hedge(said: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_is_a_hedge")
-}
-
-/// Python: bot/compose/fallback.py:12145 `an_outcome_asked_about_someone(text, memory)`
-pub fn an_outcome_asked_about_someone(text: &str, memory: &Memory) -> Option<String> {
-    crate::unported!("bot.compose.fallback:an_outcome_asked_about_someone")
-}
-
-/// Python: bot/compose/fallback.py:12174 `is_a_hedge(said)`
-pub fn is_a_hedge(said: &str) -> bool {
-    crate::unported!("bot.compose.fallback:is_a_hedge")
-}
-
-/// Python: bot/compose/fallback.py:12210 `_the_view_of(said)` (never called on the trace corpus)
-pub fn _the_view_of(said: &str) -> Value {
-    crate::unported!("bot.compose.fallback:_the_view_of")
-}
-
-/// Python: bot/compose/fallback.py:12255 `_a_said_claim(first)` (never called on the trace corpus)
-pub fn _a_said_claim(first: &Value) -> Value {
-    crate::unported!("bot.compose.fallback:_a_said_claim")
-}
-
-/// Python: bot/compose/fallback.py:12313 `asks_for_more(text, memory)`
-pub fn asks_for_more(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:asks_for_more")
-}
-
-/// Python: bot/compose/fallback.py:12332 `_named_recently(named, memory, look_back=3)`
-pub fn _named_recently(named: &str, memory: &Memory, look_back: i64) -> bool {
-    crate::unported!("bot.compose.fallback:_named_recently")
-}
-
-/// Python: bot/compose/fallback.py:12344 `_answered_recently(memory)`
-pub fn _answered_recently(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_answered_recently")
-}
-
-/// Python: bot/compose/fallback.py:12398 `_only_takes_the_answer(said)`
-pub fn _only_takes_the_answer(said: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_only_takes_the_answer")
-}
-
-/// Python: bot/compose/fallback.py:12416 `_told_them_something(said)`
-pub fn _told_them_something(said: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_told_them_something")
-}
-
-/// Python: bot/compose/fallback.py:12428 `_the_answer_above(memory)`
-pub fn _the_answer_above(memory: &Memory) -> String {
-    crate::unported!("bot.compose.fallback:_the_answer_above")
-}
-
-/// Python: bot/compose/fallback.py:12448 `_answered_already(memory)`
-pub fn _answered_already(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_answered_already")
-}
-
-/// Python: bot/compose/fallback.py:12475 `_tips_spoken(text)`
-pub fn _tips_spoken(text: &str) -> String {
-    crate::unported!("bot.compose.fallback:_tips_spoken")
-}
-
-/// Python: bot/compose/fallback.py:12488 `_tips_subject(clean)`
-pub fn _tips_subject(clean: &str) -> Option<String> {
-    crate::unported!("bot.compose.fallback:_tips_subject")
-}
-
-/// Python: bot/compose/fallback.py:12515 `_tips(memory, clean, repaired=None)`
-pub fn _tips(memory: &Memory, clean: &str, repaired: &str) -> String {
-    crate::unported!("bot.compose.fallback:_tips")
-}
-
-/// Python: bot/compose/fallback.py:12625 `_the_figure_in(text)`
-pub fn _the_figure_in(text: &str) -> String {
-    crate::unported!("bot.compose.fallback:_the_figure_in")
-}
-
-/// Python: bot/compose/fallback.py:12631 `_a_price_wants_a_verdict(clean, memory)`
-pub fn _a_price_wants_a_verdict(clean: &str, memory: &Memory) -> Option<Vec<String>> {
-    crate::unported!("bot.compose.fallback:_a_price_wants_a_verdict")
-}
-
 /// Python: bot/compose/fallback.py:12691 `_a_grown_up_asks(clean, words, said)`
 pub fn _a_grown_up_asks(clean: &str, words: &[String], said: &str) -> bool {
     crate::unported!("bot.compose.fallback:_a_grown_up_asks")
@@ -5127,7 +5042,7 @@ pub fn _the_reply_above_judged(memory: &Memory, past_a_question: bool) -> bool {
 regexes!(TRIP_NAMED, NOT_A_PLACE, PLACE_EVALUATIVE, PLACE_OPENER);
 pools!(A_PLACE_I_DONT_KNOW);
 static A_FARE_OR_A_TICKET: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.the_rule_for_it.A_FARE_OR_A_TICKET"));
-static PRICE_VERDICT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.the_rule_for_it.PRICE_VERDICT"));
+static RULE_PRICE_VERDICT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.the_rule_for_it.PRICE_VERDICT"));
 
 /// Python: bot/compose/fallback.py:9767 `_a_place_asked_about(clean, memory)`
 /// The pool for "is it nice" about a trip the person has just named, or None. (The skeleton's
@@ -5140,7 +5055,7 @@ pub fn _a_place_asked_about(clean: &str, memory: &Memory) -> Option<Vec<String>>
     if !PLACE_EVALUATIVE.is_match(&said) {
         return None;
     }
-    if A_FARE_OR_A_TICKET.is_match(&said) && PRICE_VERDICT.is_match(&said) {
+    if A_FARE_OR_A_TICKET.is_match(&said) && RULE_PRICE_VERDICT.is_match(&said) {
         return None;
     }
     if !(PLACE_OPENER.match_(&said).is_some() || clean.contains('?')) {
@@ -6832,4 +6747,346 @@ pub fn _after_a_colon(said: &str) -> Value {
 pub fn _is_an_ask_which_bit(said: &str) -> bool {
     let head = text::strip(said);
     !head.is_empty() && BARE_FOLLOW_UP_REPLIES.iter().any(|r| r == head)
+}
+
+// ---- fallback.py:12104-12659: hedges, an outcome asked about, views, more of it, tips, prices ----
+
+static HEDGE_HEADS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.fallback.HEDGE_HEADS"));
+static HEDGE_PREFIXES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.fallback.HEDGE_PREFIXES"));
+
+/// Python: bot/compose/fallback.py:12104 `_is_a_hedge(said)`
+/// True when a reply is one of the pools that mean the bot cannot answer.
+pub fn _is_a_hedge(said: &str) -> bool {
+    let head = text::slice(said, 0, Some(40));
+    HEDGE_HEADS.iter().any(|line| head == *line) || HEDGE_PREFIXES.iter().any(|p| said.starts_with(p.as_str()))
+}
+
+regexes!(THE_OUTCOME_ASK, WHO_IS_ILL);
+pools!(SAFETY_WORDS, OUTCOME_LINES);
+
+/// The memory as the plain Python dict `compose.pick` takes in its contract.
+fn memory_value(memory: &Memory) -> Value {
+    Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
+}
+
+/// Python: bot/compose/fallback.py:12145 `an_outcome_asked_about_someone(text, memory)`
+/// The line behind "is she going to be ok", answered honestly instead of hedged, or None. (The
+/// skeleton's `()` return could not carry the line.)
+pub fn an_outcome_asked_about_someone(text_: &str, memory: &Memory) -> Option<String> {
+    let clean = text::squash(&lower(text_));
+    if clean.is_empty() || az_words(&clean).len() > 9 {
+        return None;
+    }
+    if THE_OUTCOME_ASK.match_(&clean).is_none() {
+        return None;
+    }
+    if rx(r"\b(?:i|me|my|we|us|our)\b").is_match(&clean) {
+        return None;
+    }
+    let turns = last_n(&memory.turns, 3);
+    let last_turn = turns.last()?;
+    let last = &last_turn.bot;
+    if !last.is_empty() {
+        let low = lower(last);
+        if CRISIS_WORDS.iter().any(|w| low.contains(w.as_str())) || SAFETY_WORDS.iter().any(|w| low.contains(w.as_str())) {
+            return None;
+        }
+    }
+    let mut parts: Vec<&str> = turns.iter().map(|t| t.user.as_str()).collect();
+    parts.push(last);
+    if !WHO_IS_ILL.is_match(&parts.join(" ")) {
+        return None;
+    }
+    Some(crate::compose::pick(&OUTCOME_LINES, &memory_value(memory), &clean))
+}
+
+/// Python: bot/compose/fallback.py:12174 `is_a_hedge(said)`
+/// The public name for the test above, for the arbiter (compared without capitals).
+pub fn is_a_hedge(said: &str) -> bool {
+    let head = lower(&text::slice(said, 0, Some(40)));
+    let low = lower(said);
+    HEDGE_HEADS.iter().any(|line| head == lower(line)) || HEDGE_PREFIXES.iter().any(|p| low.starts_with(&lower(p)))
+}
+
+regexes!(VIEW_MIRROR, VIEW_A_CASE, ASKS_BACK);
+word_sets!(VIEW_LEAD_IN);
+
+/// Python: bot/compose/fallback.py:12210 `_the_view_of(said)` (never called on the trace corpus)
+/// `(claim or None, mirrored)` as a tuple value: the first part of the answer that says
+/// something, cut at a colon, and whether an opener was skipped.
+pub fn _the_view_of(said: &str) -> Value {
+    let (claim, mirrored) = the_view_of(said);
+    Value::Tuple(std::sync::Arc::new(vec![claim.map(Value::from).unwrap_or(Value::None), Value::Bool(mirrored)]))
+}
+
+/// `_the_view_of` as a pair.
+pub fn the_view_of(said: &str) -> (Option<String>, bool) {
+    let parts: Vec<String> = rx(r"(?<=[.!?])\s+").split(text::strip(said)).iter().map(|p| text::strip(p).to_string()).filter(|p| !p.is_empty()).collect();
+    let mut mirrored = false;
+    for part in parts {
+        let (head, colon, tail) = text::partition(&part, ":");
+        let mut chosen = part.clone();
+        if !colon.is_empty() && !text::strip(tail).is_empty() {
+            let words: Vec<String> = text::split_ref(head).iter().map(|w| lower(w.trim_matches([',', '.']))).collect();
+            let swap = (words.len() < 7 && words.iter().any(|w| VIEW_LEAD_IN.contains(w)))
+                || words.len() <= 3
+                || VIEW_A_CASE.match_(&lower(text::strip(head))).is_some();
+            chosen = if swap { tail.to_string() } else { head.to_string() };
+        }
+        let part = chosen;
+        let part = text::strip(&part).to_string();
+        if VIEW_MIRROR.match_(&lower(&part)).is_some() {
+            mirrored = true;
+            continue;
+        }
+        if let Some(claim) = _a_said_claim(&part) {
+            return (Some(claim), mirrored);
+        }
+        mirrored = true;
+    }
+    (None, mirrored)
+}
+
+/// Python: bot/compose/fallback.py:12255 `_a_said_claim(first)` (never called on the trace corpus)
+/// One sentence read as a claim to stand behind, or None when it says nothing.
+pub fn _a_said_claim(first: &str) -> Option<String> {
+    if first.is_empty() || first.ends_with(':') {
+        return None;
+    }
+    if first.ends_with('?') {
+        return if text::split_ref(first).len() >= 4 { Some(first.to_string()) } else { None };
+    }
+    if ASKS_BACK.match_(&lower(first)).is_some() {
+        return None;
+    }
+    let words = text::split_ref(first);
+    let mut first = first.to_string();
+    if words.len() > 30 {
+        let mut cut = 30;
+        for index in 20..words.len().min(44) {
+            if words[index].ends_with(',') {
+                cut = index + 1;
+                break;
+            }
+        }
+        first = format!("{}.", words[..cut].join(" ").trim_end_matches(','));
+    }
+    if text::split_ref(&first).len() < 3 {
+        return None;
+    }
+    Some(format!("{}.", first.trim_end_matches([' ', '.', ';', ',', ':'])))
+}
+
+regexes!(MORE_ON_THIS, WHAT_ABOUT, PERSON_NAMED);
+
+/// Python: bot/compose/fallback.py:12313 `asks_for_more(text, memory)`
+/// True when the line asks for more of the answer just given, about the same thing.
+pub fn asks_for_more(text_: &str, memory: &Memory) -> bool {
+    let said = lower(text::strip(text_));
+    if !MORE_ON_THIS.is_match(&said) {
+        return false;
+    }
+    let Some(tail) = WHAT_ABOUT.search(&said) else { return true };
+    let named = tail.str(1);
+    if PERSON_NAMED.match_(named).is_some() {
+        return false;
+    }
+    _named_recently(named, memory, 3)
+}
+
+/// Python: bot/compose/fallback.py:12332 `_named_recently(named, memory, look_back=3)`
+/// True when the words of the named subject are in the last few turns, either side.
+pub fn _named_recently(named: &str, memory: &Memory, look_back: i64) -> bool {
+    let wanted: HashSet<String> = crate::memory::topics::keywords(named).into_iter().collect();
+    if wanted.is_empty() {
+        return true;
+    }
+    let said: Vec<&str> = last_n(&memory.turns, look_back).iter().flat_map(|t| [t.user.as_str(), t.bot.as_str()]).collect();
+    crate::memory::topics::keywords(&said.join(" ")).iter().any(|w| wanted.contains(w))
+}
+
+word_sets!(NO_MORE_OF);
+regexes!(ACK_ONLY, REACTED_ONLY);
+
+/// Python: bot/compose/fallback.py:12344 `_answered_recently(memory)`
+/// True when the bot answered on the turn just before this one, from any module.
+pub fn _answered_recently(memory: &Memory) -> bool {
+    let turns = &memory.turns;
+    if turns.is_empty() {
+        return false;
+    }
+    let mut index = turns.len() - 1;
+    while index > 0 && _only_takes_the_answer(&turns[index].bot) {
+        index -= 1;
+    }
+    let last = &turns[index];
+    if NO_MORE_OF.contains(last.module.as_deref().unwrap_or("")) {
+        return false;
+    }
+    if !_told_them_something(&last.bot) {
+        return false;
+    }
+    !crate::memory::history::not_a_subject(&last.user)
+}
+
+/// Python: bot/compose/fallback.py:12398 `_only_takes_the_answer(said)`
+/// True when the bot's line only acknowledged what it was told, saying nothing of its own.
+pub fn _only_takes_the_answer(said: &str) -> bool {
+    let t = text::squash(said);
+    if t.is_empty() || text::split_ref(&t).len() > 8 {
+        return false;
+    }
+    ACK_ONLY.match_(&t).is_some()
+}
+
+/// Python: bot/compose/fallback.py:12416 `_told_them_something(said)`
+/// True when the bot's last line said something, rather than asking back or only reacting.
+pub fn _told_them_something(said: &str) -> bool {
+    let t = text::strip(said);
+    if t.is_empty() || t.ends_with('?') {
+        return false;
+    }
+    REACTED_ONLY.match_(t).is_none()
+}
+
+/// The turns with the fact-back notes at the end taken off (`verdict.takes_a_fact_back`).
+fn turns_past_the_notes(memory: &Memory) -> &[Turn] {
+    let mut turns: &[Turn] = &memory.turns;
+    while let Some(last) = turns.last() {
+        if !crate::compose::verdict::takes_a_fact_back(&last.bot) {
+            break;
+        }
+        turns = &turns[..turns.len() - 1];
+    }
+    turns
+}
+
+/// Python: bot/compose/fallback.py:12428 `_the_answer_above(memory)`
+/// The bot's last real answer, as "the reply above" for a bare ask or a repeat.
+pub fn _the_answer_above(memory: &Memory) -> String {
+    turns_past_the_notes(memory).last().map(|t| t.bot.clone()).unwrap_or_default()
+}
+
+/// Python: bot/compose/fallback.py:12448 `_answered_already(memory)`
+/// True when the bot answered on the turn just before this one.
+pub fn _answered_already(memory: &Memory) -> bool {
+    turns_past_the_notes(memory).last().is_some_and(|t| t.module.as_deref() == Some("answers"))
+}
+
+static TIPS_SPOKEN: LazyLock<Vec<(&'static Re, String)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.TIPS_SPOKEN").items().iter().map(|p| (p.items()[0].as_re().unwrap(), p.items()[1].str().to_string())).collect()
+});
+regexes!(TIPS_NUMBER_TAIL, TIPS_SUBJECT_FOR, TIPS_SUBJECT_TAIL, TIPS_LEAD, TIPS_ANY_IDEA, TIPS_WORD, TIPS_REQUEST, TIPS_SOON);
+word_sets!(TIPS_CLAUSE, TIPS_VERB, FILLERS);
+pools!(TIPS_AHEAD, TIPS_THING);
+static TIPS_OWNER: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.TIPS_OWNER").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str().to_string())).collect()
+});
+
+/// Python: bot/compose/fallback.py:12475 `_tips_spoken(text)`
+/// The line with its chat-speak read as words, leaving a number that counts something alone.
+pub fn _tips_spoken(text_: &str) -> String {
+    let mut words = text::split(text_);
+    for i in 0..words.len() {
+        let tail = words.get(i + 1).cloned().unwrap_or_default();
+        if text::is_digit(&words[i]) && TIPS_NUMBER_TAIL.match_(&tail).is_some() {
+            continue;
+        }
+        let mut word = words[i].clone();
+        for (pattern, said) in TIPS_SPOKEN.iter() {
+            word = pattern.sub(said, &word);
+        }
+        words[i] = word;
+    }
+    words.join(" ")
+}
+
+/// Python: bot/compose/fallback.py:12488 `_tips_subject(clean)`
+/// The thing a plea for tips is about, said back, or None when the line names no thing.
+pub fn _tips_subject(clean: &str) -> Option<String> {
+    let t = _tips_spoken(&text::squash(&lower(clean)));
+    if !TIPS_WORD.is_match(&t) && !TIPS_ANY_IDEA.is_match(&t) {
+        return None;
+    }
+    let spaced = format!(" {t}");
+    let mut subject = match TIPS_SUBJECT_FOR.search(&spaced) {
+        Some(found) => found.name_str("subject").to_string(),
+        None => TIPS_SUBJECT_TAIL.sub("", &format!(" {t} ")),
+    };
+    subject = rx(r"[,.!?;:].*$").sub("", subject.trim_matches([' ', ',', '.', '!', '?', ';', ':']));
+    subject = TIPS_LEAD.sub("", &text::squash(&subject));
+    subject = rx(r"^(?:i|we)\s+(?:really\s+)?(?:need|want|would\s+like|am\s+looking\s+for)\s+").sub("", &subject);
+    subject = TIPS_REQUEST.sub("", &TIPS_LEAD.sub("", &subject));
+    subject = TIPS_LEAD.sub("", &subject);
+    if subject.is_empty()
+        || subject.starts_with("to ")
+        || ["it", "that", "this", "some", "anything", "something", "a", "an", "the", "advice", "tips", "help"].contains(&subject.as_str())
+    {
+        return None;
+    }
+    let kept: Vec<&str> = text::split_ref(&subject).into_iter().filter(|w| !FILLERS.contains(*w)).collect();
+    if kept.is_empty() || kept.len() > 6 || text::len(&kept.join(" ")) > 40 {
+        return None;
+    }
+    if kept.iter().any(|w| TIPS_CLAUSE.contains(*w)) || TIPS_VERB.contains(kept[0]) {
+        return None;
+    }
+    let owned: Vec<String> = kept.iter().map(|w| TIPS_OWNER.iter().find(|(k, _)| k == w).map(|(_, v)| v.clone()).unwrap_or_else(|| w.to_string())).collect();
+    Some(owned.join(" "))
+}
+
+/// Python: bot/compose/fallback.py:12515 `_tips(memory, clean, repaired=None)`
+/// A reply that turns a plea for tips into the one question that makes a tip possible, or "".
+pub fn _tips(memory: &Memory, clean: &str, repaired: &str) -> String {
+    let subject = _tips_subject(clean).or_else(|| if repaired != clean { _tips_subject(repaired) } else { None });
+    let Some(subject) = subject else { return String::new() };
+    let said = format!(" {} ", rx(r"[^a-z0-9']").sub(" ", &lower(clean)));
+    let words = text::split(&said.replace('\'', ""));
+    if _who_for(&lower(clean), &said, &words, None).is_some_and(|w| !w.is_empty()) {
+        return String::new();
+    }
+    let pool: &[String] = if TIPS_SOON.is_match(&subject) { &TIPS_AHEAD } else { &TIPS_THING };
+    choose(pool, memory, clean).unwrap_or_default()
+}
+
+regexes!(PRICE_VERDICT, MONEY_IN_A_LINE, A_BARE_FIGURE, A_MONEY_VERB, A_MEASURE, FOR_A_PERSON, SPLIT_BETWEEN_PEOPLE, A_PRICE_ASK);
+pools!(PRICE_VERDICT_LINES);
+
+/// Python: bot/compose/fallback.py:12625 `_the_figure_in(text)`
+/// The sum as the person wrote it, or "" when there is no money in the line.
+pub fn _the_figure_in(text_: &str) -> String {
+    MONEY_IN_A_LINE.search(text_).map(|m| text::squash(m.as_str())).unwrap_or_default()
+}
+
+/// Python: bot/compose/fallback.py:12631 `_a_price_wants_a_verdict(clean, memory)`
+/// The pool for a price asked to be judged, or None for any other line. (The skeleton's `()`
+/// return could not carry the pool.)
+pub fn _a_price_wants_a_verdict(clean: &str, memory: &Memory) -> Option<Vec<String>> {
+    let said = text::squash(&lower(clean));
+    if said.is_empty() || text::split_ref(&said).len() > 7 {
+        return None;
+    }
+    if !A_PRICE_ASK.is_match(&said) || !PRICE_VERDICT.is_match(&said) {
+        return None;
+    }
+    if FOR_A_PERSON.is_match(&said) || SPLIT_BETWEEN_PEOPLE.is_match(&said) || A_MEASURE.is_match(&said) {
+        return None;
+    }
+    let mut figure = _the_figure_in(&said);
+    if figure.is_empty() {
+        figure = A_BARE_FIGURE.search(&said).map(|m| m.as_str().to_string()).unwrap_or_default();
+    }
+    if figure.is_empty() {
+        let before = _the_line_before(memory);
+        figure = _the_figure_in(&before);
+        if figure.is_empty() {
+            let squashed = text::squash(&before);
+            let paid = A_MONEY_VERB.search(&squashed);
+            figure = paid.and_then(|p| A_BARE_FIGURE.search(p.as_str()).map(|b| b.as_str().to_string())).unwrap_or_default();
+        }
+    }
+    if figure.is_empty() {
+        return None;
+    }
+    Some(PRICE_VERDICT_LINES.iter().map(|l| l.replace("{figure}", &figure)).collect())
 }
