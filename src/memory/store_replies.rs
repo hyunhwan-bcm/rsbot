@@ -8635,39 +8635,340 @@ pub fn _the_word_for_them(who: &str) -> Re {
     Re::new(&format!(r"\b(?:{words}){}\s*{}", *POSSESSIVE, PERSON_STANDS.pattern()), crate::py::re::I)
 }
 
-/// Python: bot/memory/store_replies.py:8228 `_about_a_person_reply(memory, low, text='')`
-pub fn _about_a_person_reply(memory: &mut Memory, low: &str, text: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_about_a_person_reply")
+/// A str argument for a contract parameter whatever Rust type it was given: `relations::_one_age`
+/// types its `turns` (the age a person turns, a str in Python) as `&[Turn]`.
+trait FromPyStr<'a> {
+    fn from_py(s: &'a str) -> Self;
+}
+impl<'a> FromPyStr<'a> for &'a str {
+    fn from_py(s: &'a str) -> Self {
+        s
+    }
+}
+impl<'a> FromPyStr<'a> for &'a [Turn] {
+    fn from_py(s: &'a str) -> Self {
+        if s.is_empty() {
+            return &[];
+        }
+        panic!("contract: bot.memory.relations:_one_age takes `turns` as a str, typed &[Turn]")
+    }
 }
 
-/// Python: bot/memory/store_replies.py:8347 `_about_the_children_reply(memory, low)` (never called on the trace corpus)
-pub fn _about_the_children_reply(memory: &mut Memory, low: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_about_the_children_reply")
+rx!(TELLING_ALREADY);
+
+/// Python: bot/memory/store_replies.py:8228 `_about_a_person_reply(memory, low, text="")`
+///
+/// Everything held about someone they mentioned: "what do you know about my sister?".
+pub fn _about_a_person_reply(memory: &mut Memory, low: &str, text_: &str) -> Option<String> {
+    use crate::memory::relations::_called;
+    // "what do you know about ada" is the same ask when Ada is a name the chat was given.
+    let called = _the_person_called(memory, low);
+    let asked = ABOUT_PERSON_ASK.is_match(low)
+        || crate::memory::relations::_continues_an_about_ask(memory, low)
+        || (!called.is_empty() && ABOUT_A_NAME.is_match(low));
+    if !asked {
+        return None;
+    }
+    let mut who = crate::memory::relations::_named_person(low, memory);
+    if who.is_empty() {
+        who = called;
+    }
+    if who.is_empty() {
+        // "what do you know about her" asks about the person the chat was just on.
+        who = _pronoun_person(if text_.is_empty() { low } else { text_ }, memory);
+    }
+    if who.is_empty() {
+        // "what do you know about my kids" names no one relation: the children as a group.
+        if let Some(children) = _about_the_children_reply(memory, low).filter(|c| !c.is_empty()) {
+            return Some(children);
+        }
+        return None;
+    }
+    let (entry, lines) = _a_known_person(memory, &who);
+    let named = match entry.get("name").filter(|n| n.truthy()) {
+        Some(n) => _called(&py_str(n)),
+        None => String::new(),
+    };
+    let clauses = _person_clauses(&who, &entry);
+    let birthday = text::strip(&sget(&entry, "birthday")).to_string();
+    let more = ABOUT_PERSON_MORE.is_match(text_);
+    if !birthday.is_empty() && clauses.is_empty() && lines.is_empty() {
+        // A date filed against a person is a fact about them like an age is.
+        let date = _date_written_as_a_date(&Value::from(birthday.as_str()));
+        return Some(_vary(
+            &["Your ".to_string() + &who + "'s birthday is " + &date + ".", "You told me your ".to_string() + &who + "'s birthday is " + &date + "."],
+            memory,
+        ));
+    }
+    if clauses.is_empty() && !named.is_empty() && lines.is_empty() {
+        // The only thing the chat holds about them is the name they gave for them.
+        return Some(_vary(&["Your ".to_string() + &who + " is called " + &named + ".", "Your ".to_string() + &who + " is " + &named + "."], memory));
+    }
+    if clauses.is_empty() && lines.is_empty() {
+        // A line the chat has about them is something to say, even when no fact was filed from it.
+        if let Some(named_line) = _a_line_about(memory, &who) {
+            let back = text::rstrip_chars(text::strip(&_named_back(&who, &crate::memory::you(&named_line))), ".").to_string();
+            return Some(if !more { "You told me ".to_string() + &back + "." } else { "That's all I have: ".to_string() + &back + "." });
+        }
+        // The person is known to the chat only by name, or not at all.
+        if more {
+            return Some("You haven't told me anything about your ".to_string() + &who + " yet.");
+        }
+        return Some(_vary(
+            &[
+                "You haven't told me anything about your ".to_string() + &who + " yet.",
+                "Nothing on your ".to_string() + &who + " so far \u{2014} tell me and I'll keep it.",
+            ],
+            memory,
+        ));
+    }
+    let subject = "Your ".to_string() + &who + &(if !named.is_empty() && !clauses.is_empty() { " ".to_string() + &named } else { String::new() });
+    let mut facts = String::new();
+    if !clauses.is_empty() {
+        if clauses.len() == 1 {
+            facts = subject.clone() + " " + &clauses[0];
+        } else {
+            let rest: Vec<String> = clauses[1..]
+                .iter()
+                .map(|c| if clauses[0].starts_with("is ") && c.starts_with("is ") { text::slice(c, 3, None) } else { c.clone() })
+                .collect();
+            facts = subject.clone() + " " + &clauses[0] + " and " + &_and_list(&rest);
+        }
+    }
+    let mut said = String::new();
+    if let Some(last) = lines.last() {
+        let line = text::rstrip_chars(text::strip(&crate::memory::you(last)), ".").to_string();
+        // "she doesnt eat meat" is about the person they named a line earlier, so the reply names them.
+        let mut line = _named_back(&who, &line);
+        if !named.is_empty() {
+            // The name they gave is written the way a name is written.
+            line = Re::new(&format!(r"\b{}\b", crate::py::re::escape(&named)), crate::py::re::I).sub(&named, &line);
+        }
+        said = line;
+    }
+    // One line already carrying the facts is the whole answer.
+    let answer = if !said.is_empty() && (facts.is_empty() || _covers(&said, &clauses)) {
+        if TELLING_ALREADY.match_(&said).is_some() {
+            text::upper_first(&said) + "."
+        } else {
+            _vary(&["You told me ".to_string() + &said, "You said ".to_string() + &said], memory) + "."
+        }
+    } else if !facts.is_empty() && !said.is_empty() && _tokens(&said).is_subset(&_tokens(&facts)) {
+        facts.clone() + "."
+    } else if !facts.is_empty() && !said.is_empty() {
+        facts.clone() + ". You also said " + &said + "."
+    } else {
+        facts.clone() + "."
+    };
+    let everything = Re::new(
+        &format!(r"\b(?:everything you've told me|all I've got) (?:about|on) your {}", crate::py::re::escape(&who)),
+        crate::py::re::I,
+    );
+    if more && (_said_everything(&answer, memory) || everything.is_match(&last_turn_bot(memory))) {
+        return Some(_vary(
+            &[
+                "That's everything you've told me about your ".to_string() + &who + ".",
+                "That's still all I've got on your ".to_string() + &who + ".",
+            ],
+            memory,
+        ));
+    }
+    if _said_everything(&answer, memory) {
+        // The same ask twice: the second time it is shorter, and still true.
+        let source = if !facts.is_empty() { &facts } else if !said.is_empty() { &said } else { &answer };
+        let body = text::rstrip_chars(text::strip(source), ".").to_string();
+        let _ = body.chars().next().expect("IndexError: string index out of range");
+        return Some("Still: ".to_string() + &lower_first(&body) + ".");
+    }
+    Some(answer)
 }
 
-/// Python: bot/memory/store_replies.py:8430 `_a_list_of_clauses(clauses)` (never called on the trace corpus)
-pub fn _a_list_of_clauses(clauses: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_a_list_of_clauses")
+/// Python: bot/memory/store_replies.py:8347 `_about_the_children_reply(memory, low)`
+///
+/// What the chat holds about the children as a group: "tell me about my kids".
+pub fn _about_the_children_reply(memory: &mut Memory, low: &str) -> Option<String> {
+    use crate::memory::relations::{_a_list_of_names, _called, _in_the_group};
+    if !CHILDREN_ABOUT.is_match(low) {
+        return None;
+    }
+    let group = str_list(&CHILD_RELATIONS);
+    let kept: Vec<Value> = others(memory).items().iter().filter(|e| e.is_dict() && _in_the_group(&s_or(e.get("who")), &group)).cloned().collect();
+    let mut clauses: Vec<String> = Vec::new();
+    for entry in kept.iter().take(4) {
+        let name = match entry.get("name").filter(|n| n.truthy()) {
+            Some(n) => _called(&py_str(n)),
+            None => String::new(),
+        };
+        let names: Vec<String> = entry.get("names").filter(|v| v.truthy()).map(py_list).unwrap_or_default().iter().map(py_str).filter(|n| !text::strip(n).is_empty()).collect();
+        let who_or = |default: &str| {
+            let w = sget(entry, "who");
+            if w.is_empty() {
+                default.to_string()
+            } else {
+                w
+            }
+        };
+        if names.len() > 1 {
+            // "my kids are called tom and ada" is one fact about several children.
+            let called: Vec<String> = names.iter().map(|n| _called(n)).collect();
+            clauses.push("your ".to_string() + &who_or("children") + " are called " + &_a_list_of_names(&called));
+        } else if entry.get("ages").map(Value::truthy).unwrap_or(false) {
+            // A group given its ages as a list is one fact about the children.
+            let ages: Vec<String> = py_list(entry.get("ages").unwrap()).iter().filter(|a| is_int(Some(*a))).map(py_str).collect();
+            let who = who_or("children");
+            let said = if ages.len() > 1 {
+                ages[..ages.len() - 1].join(", ") + " and " + &ages[ages.len() - 1]
+            } else {
+                ages.first().cloned().expect("IndexError: list index out of range")
+            };
+            clauses.push("your ".to_string() + &who + &_is_are(&who) + &said);
+        } else if entry.get("months").map(Value::truthy).unwrap_or(false) && !entry.get("age").map(Value::truthy).unwrap_or(false) {
+            // A baby's age was given in months, and is said back in months.
+            let lead = if name.is_empty() { "your ".to_string() + &who_or("child") } else { name.clone() };
+            clauses.push(lead + " is " + &py_str(entry.get("months").unwrap()) + " months old");
+        } else if entry.get("age").map(Value::truthy).unwrap_or(false) || entry.get("turns").map(Value::truthy).unwrap_or(false) {
+            let turns = sget(entry, "turns");
+            let said = crate::memory::relations::_one_age(
+                &who_or("child"),
+                entry.get("age").unwrap_or(&Value::None),
+                FromPyStr::from_py(turns.as_str()),
+                entry.get("to_come").unwrap_or(&Value::None),
+                &Value::from(name.as_str()),
+            );
+            clauses.push(text::rstrip_chars(text::strip(&said), ".").to_string());
+        } else if !name.is_empty() {
+            clauses.push("your ".to_string() + &who_or("child") + " is called " + &name);
+        }
+    }
+    // A clause that begins "Your son" is folded into the sentence and takes a small letter.
+    let mut clauses: Vec<String> = clauses.into_iter().map(|c| if c.starts_with("Your ") { lower_first(&c) } else { c }).collect();
+    if clauses.is_empty() {
+        // A name given for the group in words the name readers did not file is still in the chat.
+        let typed = {
+            let kids = crate::memory::relations::_the_group_names_typed("kids", memory).val();
+            if kids.truthy() {
+                kids
+            } else {
+                crate::memory::relations::_the_group_names_typed("children", memory).val()
+            }
+        };
+        if typed.truthy() {
+            let called: Vec<String> = py_list(&typed).iter().map(|n| _called(&py_str(n))).collect();
+            clauses = vec!["your kids are called ".to_string() + &_a_list_of_names(&called)];
+        }
+    }
+    if clauses.is_empty() {
+        let counted = user_facts(memory).get("kids").cloned().unwrap_or(Value::None);
+        if let Value::Int(n) = counted {
+            if n != 0 {
+                let word = _a_number_word(n);
+                return Some(_vary(
+                    &[
+                        "You've told me you have ".to_string() + &word + " " + if n == 1 { "kid" } else { "kids" } + ", and nothing more about them yet.",
+                        "Just the count: ".to_string() + &word + " kids, with no name or age yet.",
+                    ],
+                    memory,
+                ));
+            }
+        }
+        if let Value::Bool(true) = counted {
+            let word = _a_number_word(1);
+            return Some(_vary(
+                &[
+                    "You've told me you have ".to_string() + &word + " kid, and nothing more about them yet.",
+                    "Just the count: ".to_string() + &word + " kids, with no name or age yet.",
+                ],
+                memory,
+            ));
+        }
+        return None;
+    }
+    // One child is "him" or "her".
+    let one = if kept.len() == 1 { sget(&kept[0], "who") } else { String::new() };
+    let about = if one.is_empty() { "them".to_string() } else { _object_pronoun(&one, &Value::None) };
+    if clauses.len() == 1 {
+        let first = "You've told me ".to_string() + &clauses[0] + ".";
+        let second = text::upper_first(&clauses[0]) + " - that's all I've got on " + &about + ".";
+        return Some(_vary(&[first, second], memory));
+    }
+    let facts = _a_list_of_clauses(&clauses);
+    let answer = _vary(
+        &[facts.clone() + " - that's what I've got on " + &about + ".", "That's everything I have on ".to_string() + &about + ": " + &facts + "."],
+        memory,
+    );
+    Some(text::upper_first(&answer))
 }
 
-/// Python: bot/memory/store_replies.py:8437 `_the_person_called(memory, line)`
+/// Python: bot/memory/store_replies.py:8448 `_a_list_of_clauses(clauses)`
+///
+/// "Tom is 8", "Ada is 5" reads "Tom is 8 and Ada is 5", and three read with a comma.
+pub fn _a_list_of_clauses(clauses: &[String]) -> String {
+    let said: Vec<&String> = clauses.iter().filter(|c| !c.is_empty()).collect();
+    if said.len() < 3 {
+        return said.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(" and ");
+    }
+    said[..said.len() - 1].iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ") + " and " + said[said.len() - 1]
+}
+
+static ABOUT_A_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"\babout\s+([a-z][a-z'-]{1,20})\b", crate::py::re::I));
+
+/// Python: bot/memory/store_replies.py:8455 `_the_person_called(memory, line)`
+///
+/// The person whose name the line asks about, or "".
 pub fn _the_person_called(memory: &mut Memory, line: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_the_person_called")
+    for m in ABOUT_A_WORD.finditer(line) {
+        let word = m.str(1).to_lowercase();
+        if FACTS_RELATIONS.contains(&word) || ALONE_PERSON.contains(&word) {
+            continue;
+        }
+        for entry in others(memory).items() {
+            let name = text::strip(&sget(entry, "name")).to_lowercase();
+            if !name.is_empty() && name == word {
+                return sget(entry, "who");
+            }
+        }
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:8454 `_covers(said, clauses)` (never called on the trace corpus)
-pub fn _covers(said: &str, clauses: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_covers")
+/// Python: bot/memory/store_replies.py:8472 `_covers(said, clauses)`
+///
+/// True when one line already says the facts: a number counts as a word to be found.
+pub fn _covers(said: &str, clauses: &[String]) -> bool {
+    let seen = _tokens(said);
+    clauses.iter().all(|c| _tokens(c).is_subset(&seen))
 }
 
-/// Python: bot/memory/store_replies.py:8463 `_tokens(text)` (never called on the trace corpus)
-pub fn _tokens(text: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_tokens")
+static DIGITS: LazyLock<Re> = LazyLock::new(|| Re::new(r"\d+", 0));
+
+/// Python: bot/memory/store_replies.py:8481 `_tokens(text)`
+///
+/// The words of a line to look for, with its numbers kept - content() drops them.
+pub fn _tokens(text_: &str) -> HashSet<String> {
+    let mut words: HashSet<String> = crate::memory::topics::content(text_).into_iter().collect();
+    words.extend(DIGITS.findall_str(text_));
+    words
+        .into_iter()
+        .map(|w| {
+            let bare = text::slice(&w, 0, Some(-1));
+            if w.ends_with('s') && FACTS_RELATIONS.contains(&bare) {
+                bare
+            } else {
+                w
+            }
+        })
+        .collect()
 }
 
-/// Python: bot/memory/store_replies.py:8473 `_said_everything(answer, memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:8491 `_said_everything(answer, memory)`
+///
+/// True when a reply of this chat already carried every word of this one.
 pub fn _said_everything(answer: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_said_everything")
+    let mine = _tokens(answer);
+    if mine.is_empty() {
+        return false;
+    }
+    memory.turns.iter().any(|t| !t.bot.is_empty() && mine.is_subset(&_tokens(&t.bot)))
 }
 
 /// Python: bot/memory/store_replies.py:8490 `_a_pregnancy_of_their_own(text, memory, low)`
