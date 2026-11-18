@@ -163,151 +163,6 @@ fn format_named(template: &str, fields: &[(&str, &str)]) -> String {
     out
 }
 
-/// Python: bot/compose/fallback.py:14963 `_grievance_thread(memory)`
-pub fn _grievance_thread(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_grievance_thread")
-}
-
-/// Python: bot/compose/fallback.py:14981 `_someone_else_minding(clean, words, after=False)`
-pub fn _someone_else_minding(clean: &str, words: &[String], after: bool) -> bool {
-    crate::unported!("bot.compose.fallback:_someone_else_minding")
-}
-
-/// Python: bot/compose/fallback.py:15035 `_short_ack(words)`
-pub fn _short_ack(words: &[String]) -> bool {
-    crate::unported!("bot.compose.fallback:_short_ack")
-}
-
-/// Python: bot/compose/fallback.py:15135 `_hard_week_in_the_thread(memory)`
-pub fn _hard_week_in_the_thread(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_hard_week_in_the_thread")
-}
-
-/// Python: bot/compose/fallback.py:15156 `_a_verdict(clean, memory=None)`
-pub fn _a_verdict(clean: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_a_verdict")
-}
-
-/// Python: bot/compose/fallback.py:15260 `_dreading(clean)`
-pub fn _dreading(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_dreading")
-}
-
-/// Python: bot/compose/fallback.py:15270 `_wants_it_over(clean)`
-pub fn _wants_it_over(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_wants_it_over")
-}
-
-/// Python: bot/compose/fallback.py:15315 `_a_day_ahead(clean)`
-pub fn _a_day_ahead(clean: &str) -> Option<Vec<String>> {
-    crate::unported!("bot.compose.fallback:_a_day_ahead")
-}
-
-/// Python: bot/compose/fallback.py:15336 `_the_wait_is_for_someone_to_turn_up(text)` (never called on the trace corpus)
-pub fn _the_wait_is_for_someone_to_turn_up(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_the_wait_is_for_someone_to_turn_up")
-}
-
-/// Python: bot/compose/fallback.py:15361 `_looking_forward(clean)`
-pub fn _looking_forward(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_looking_forward")
-}
-
-/// Python: bot/compose/fallback.py:15373 `_a_good_time(clean, memory=None)`
-pub fn _a_good_time(clean: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_a_good_time")
-}
-
-/// Python: bot/compose/fallback.py:15458 `_something_funny(clean, memory=None)`
-pub fn _something_funny(clean: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_something_funny")
-}
-
-/// Python: bot/compose/fallback.py:15554 `_the_gap_is_all_there_is(clean)` (never called on the trace corpus)
-pub fn _the_gap_is_all_there_is(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_the_gap_is_all_there_is")
-}
-
-/// Python: bot/compose/fallback.py:15608 `reads_as_pause(clean)`
-pub fn reads_as_pause(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:reads_as_pause")
-}
-
-/// Python: bot/compose/fallback.py:15637 `_came_back(clean)`
-pub fn _came_back(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_came_back")
-}
-
-/// Python: bot/compose/fallback.py:15670 `_a_chat_behind_it(memory)`
-pub fn _a_chat_behind_it(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_a_chat_behind_it")
-}
-
-/// Python: bot/compose/fallback.py:15683 `nothing_said_yet(memory)`
-pub fn nothing_said_yet(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:nothing_said_yet")
-}
-
-/// Python: bot/compose/fallback.py:15688 `nothing_yet_line()` (never called on the trace corpus)
-pub fn nothing_yet_line() -> Value {
-    crate::unported!("bot.compose.fallback:nothing_yet_line")
-}
-
-/// Python: bot/compose/fallback.py:15693 `brings_nothing_of_its_own(text)`
-pub fn brings_nothing_of_its_own(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback:brings_nothing_of_its_own")
-}
-
-/// Python: bot/compose/fallback.py:15707 `assumes_an_earlier_turn(reply)`
-pub fn assumes_an_earlier_turn(reply: &str) -> bool {
-    crate::unported!("bot.compose.fallback:assumes_an_earlier_turn")
-}
-
-/// Python: bot/compose/fallback.py:15723 `reads_as_a_return(clean)`
-pub fn reads_as_a_return(clean: &str) {
-    crate::unported!("bot.compose.fallback:reads_as_a_return")
-}
-
-/// Python: bot/compose/fallback.py:15768 `_only_manners(clean, allowed)`
-pub fn _only_manners(clean: &str, allowed: &[String]) -> bool {
-    crate::unported!("bot.compose.fallback:_only_manners")
-}
-
-/// Python: bot/compose/fallback.py:15774 `_sorry_for_asking(clean)`
-pub fn _sorry_for_asking(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_sorry_for_asking")
-}
-
-/// Python: bot/compose/fallback.py:15803 `_am_i_a_nuisance(clean)`
-pub fn _am_i_a_nuisance(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_am_i_a_nuisance")
-}
-
-/// Python: bot/compose/fallback.py:15859 `_thanks_then_said(clean)`
-pub fn _thanks_then_said(clean: &str) -> String {
-    crate::unported!("bot.compose.fallback:_thanks_then_said")
-}
-
-/// Python: bot/compose/fallback.py:15878 `_thanks_news_went_badly(clean)`
-pub fn _thanks_news_went_badly(clean: &str) -> String {
-    crate::unported!("bot.compose.fallback:_thanks_news_went_badly")
-}
-
-/// Python: bot/compose/fallback.py:15914 `_acknowledges_alone(clean)`
-pub fn _acknowledges_alone(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_acknowledges_alone")
-}
-
-/// Python: bot/compose/fallback.py:15924 `_thanks_with_more(clean)`
-pub fn _thanks_with_more(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_thanks_with_more")
-}
-
-/// Python: bot/compose/fallback.py:15935 `reading(text, memory)`
-pub fn reading(text: &str, memory: &Memory) -> Value {
-    crate::unported!("bot.compose.fallback:reading")
-}
-
 /// Python: bot/compose/fallback.py:15975 `_advice_thread_is_about_the_body(memory)`
 pub fn _advice_thread_is_about_the_body(memory: &Memory) -> bool {
     crate::unported!("bot.compose.fallback:_advice_thread_is_about_the_body")
@@ -414,7 +269,7 @@ pub fn _words_kept(reply: &str, answer: &str) -> i64 {
 }
 
 /// Python: bot/compose/fallback.py:16492 `careful(text, memory)`
-pub fn careful(text: &str, memory: &Memory) {
+pub fn careful(text: &str, memory: &Memory) -> Option<String> {
     crate::unported!("bot.compose.fallback:careful")
 }
 
@@ -8380,4 +8235,486 @@ pub fn _grief_thread(memory: &Memory) -> bool {
         return LOSS_REPLIES.iter().any(|reply| line.starts_with(&text::slice(reply, 0, Some(30))));
     }
     false
+}
+
+// ---- fallback.py:14963-15975: grievances, good times, dread, pauses, returns, manners, reading ----
+
+pools!(GRIEVANCE, GRIEVANCE_HARM_PHRASES, GRIEVANCE_HEALTH_PHRASES, GRIEVANCE_PHRASES, GRIEVANCE_STRAIN);
+regexes!(GRIEVANCE_PRONOUN, GRIEVANCE_MINE, GRIEVANCE_RECUR, GRIEVANCE_MINE_THINGS, GRIEVANCE_STRAIN_SAID);
+word_sets!(GRIEVANCE_PEOPLE, THREAD_PEOPLE, GRIEVANCE_NOT_A_THING, ACKS);
+
+/// Python: bot/compose/fallback.py:14963 `_grievance_thread(memory)`
+/// True when the last thing the bot said about this was the offer to talk it over.
+pub fn _grievance_thread(memory: &Memory) -> bool {
+    for turn in last_n(&memory.turns, *THREAD_TURNS).iter().rev() {
+        let line = &turn.bot;
+        if line.is_empty() {
+            continue;
+        }
+        return GRIEVANCE.iter().any(|reply| line.starts_with(&text::slice(reply, 0, Some(30))));
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:14981 `_someone_else_minding(clean, words, after=False)`
+/// True when the line is about what another person keeps doing, and the person minds it.
+pub fn _someone_else_minding(clean: &str, words: &[String], after: bool) -> bool {
+    let said: HashSet<&str> = words.iter().filter(|w| text::is_alpha(w) || w.contains('\'')).map(String::as_str).collect();
+    let a_person_pronoun = GRIEVANCE_PRONOUN.is_match(clean);
+    if said.iter().any(|w| GRIEVANCE_PEOPLE.contains(*w)) {
+        if !["my", "our", "the"].iter().any(|w| said.contains(w)) {
+            return false;
+        }
+    } else if !(after && said.iter().any(|w| THREAD_PEOPLE.contains(*w))) && !a_person_pronoun {
+        return false;
+    }
+    let spare = clean.replace("thank you", "thanks").replace("thank u", "thanks");
+    if format!(" {spare} ").contains(" you ") {
+        return false;
+    }
+    if said.iter().any(|w| GRIEVANCE_HEALTH.contains(*w)) || said.iter().any(|w| GRIEVANCE_HARM.contains(*w)) {
+        if !(a_date_of_ours_forgotten(clean) && !said.iter().any(|w| GRIEVANCE_HARM.contains(*w))) {
+            return false;
+        }
+    }
+    if GRIEVANCE_HARM_PHRASES.iter().any(|p| clean.contains(p.as_str())) {
+        return false;
+    }
+    if GRIEVANCE_HEALTH_PHRASES.iter().any(|p| clean.contains(p.as_str())) {
+        return false;
+    }
+    let mine: HashSet<String> = GRIEVANCE_MINE.findall_str(clean).into_iter().collect();
+    if _impact_said(clean).iter().any(|w| !mine.contains(w)) {
+        return true;
+    }
+    if GRIEVANCE_RECUR.is_match(clean) {
+        if after && !GRIEVANCE_MINE.is_match(clean) {
+            return true;
+        }
+        if GRIEVANCE_MINE_THINGS.findall_str(clean).iter().any(|w| !GRIEVANCE_PEOPLE.contains(w) && !GRIEVANCE_NOT_A_THING.contains(w)) {
+            return true;
+        }
+    }
+    if GRIEVANCE_PHRASES.iter().any(|p| clean.contains(p.as_str())) {
+        return true;
+    }
+    if GRIEVANCE_STRAIN.iter().any(|p| clean.contains(p.as_str())) {
+        return true;
+    }
+    GRIEVANCE_STRAIN_SAID.is_match(clean)
+}
+
+/// Python: bot/compose/fallback.py:15035 `_short_ack(words)`
+/// True for a bare "ok", "right", "got it" — a nod, not a new subject.
+pub fn _short_ack(words: &[String]) -> bool {
+    words.len() <= 2 && words.iter().any(|w| ACKS.contains(w))
+}
+
+regexes!(GOOD_TIME_SUBJECT, GOOD_TIME_OURS, GOOD_DAY_OURS, GOOD_DAY_BARE, GOOD_DAY_WENT, GOOD_TIME_IT, GOOD_VERDICT);
+word_sets!(GOOD_TIME_WORDS, NOT_A_VERDICT_SUBJECT);
+
+/// Python: bot/compose/fallback.py:15135 `_hard_week_in_the_thread(memory)`
+/// True when the thread still holds a death or an accident the bot was gentle about.
+pub fn _hard_week_in_the_thread(memory: &Memory) -> bool {
+    if memory_is_empty(memory) {
+        return false;
+    }
+    if crate::compose::loss::_loss_is_the_thread(memory) {
+        return true;
+    }
+    for line in last_lines(memory, 2) {
+        if !line.is_empty() && (crate::compose::badnews::reads_as_bad_news(&line) || crate::compose::badnews::reads_as_sudden_loss(&line) || HARD_WEEK.is_match(&line)) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:15156 `_a_verdict(clean, memory=None)`
+/// True when the line is a good verdict on a thing, with nothing asked and nothing after it.
+pub fn _a_verdict(clean: &str, memory: &Memory) -> bool {
+    if _hard_week_in_the_thread(memory) {
+        return false;
+    }
+    let Some(found) = GOOD_VERDICT.search(clean) else { return false };
+    let said = text::split(&lower(found.name_str("subject")));
+    let head = if said.len() > 1 { &said[1] } else { &said[0] };
+    if GRIEVANCE_PEOPLE.contains(head) || TROUBLE_OTHERS.contains(head) {
+        return false;
+    }
+    !NOT_A_VERDICT_SUBJECT.contains(head)
+}
+
+regexes!(LOOKING_FORWARD, A_CANT_WAIT, A_WAITING_IN, A_WAITING_FOR_A_TURN_UP, A_WORKING_DAY, NOT_LOOKED_FORWARD_TO, A_WAIT_FOR_A_LIFE_TO_END, DREADING, NOT_A_MILD_DREAD);
+
+/// Python: bot/compose/fallback.py:15260 `_dreading(clean)`
+/// True for a mild thing coming that the person is not looking forward to.
+pub fn _dreading(clean: &str) -> bool {
+    let t = text::squash(&lower(clean));
+    if t.is_empty() || t.contains('?') || t.split(' ').count() > 20 {
+        return false;
+    }
+    DREADING.is_match(&t) && !NOT_A_MILD_DREAD.is_match(&t)
+}
+
+/// Python: bot/compose/fallback.py:15270 `_wants_it_over(clean)`
+/// True when the thing being waited for is the end of a bad stretch.
+pub fn _wants_it_over(clean: &str) -> bool {
+    let t = text::squash(&lower(clean));
+    if t.is_empty() || t.contains('?') || A_WAIT_FOR_A_LIFE_TO_END.is_match(&t) {
+        return false;
+    }
+    LOOKING_FORWARD.is_match(&t) && NOT_LOOKED_FORWARD_TO.is_match(&t)
+}
+
+regexes!(DATE_AHEAD, DATE_AHEAD_OWN, AHEAD_NICE, AHEAD_TENSE, NOT_A_PLAN);
+pools!(A_DAY_AHEAD, A_DAY_AHEAD_TENSE);
+
+/// Python: bot/compose/fallback.py:15315 `_a_day_ahead(clean)`
+/// The pool for a dated thing ahead of the person, or None.
+pub fn _a_day_ahead(clean: &str) -> Option<Vec<String>> {
+    let t = text::squash(&lower(clean));
+    if t.is_empty() || t.contains('?') {
+        return None;
+    }
+    if !DATE_AHEAD.is_match(&t) || !DATE_AHEAD_OWN.is_match(&t) {
+        return None;
+    }
+    if NOT_A_PLAN.is_match(&t) {
+        return None;
+    }
+    if AHEAD_TENSE.is_match(&t) {
+        return Some(A_DAY_AHEAD_TENSE.clone());
+    }
+    if AHEAD_NICE.is_match(&t) {
+        return Some(A_DAY_AHEAD.clone());
+    }
+    None
+}
+
+/// Python: bot/compose/fallback.py:15336 `_the_wait_is_for_someone_to_turn_up(text)` (never called on the trace corpus)
+/// True when the only looking forward in the line is a "cant wait" that means being at home.
+pub fn _the_wait_is_for_someone_to_turn_up(text_: &str) -> bool {
+    let hits = A_CANT_WAIT.finditer(text_);
+    if hits.is_empty() {
+        return false;
+    }
+    let mut left = text_.to_string();
+    // Python cuts each hit out of the progressively shortened string, at the original offsets
+    // (code points), clamped the way a slice is.
+    for hit in &hits {
+        let (s, e) = (text::char_index(text_, hit.start()) as isize, text::char_index(text_, hit.end()) as isize);
+        left = format!("{} {}", text::slice(&left, 0, Some(s)), text::slice(&left, e, None));
+    }
+    if LOOKING_FORWARD.is_match(&left) {
+        return false;
+    }
+    let working = A_WORKING_DAY.is_match(text_);
+    for hit in &hits {
+        let after = &text_[hit.end()..];
+        if A_WAITING_IN.match_(after).is_some() {
+            continue;
+        }
+        if working && A_WAITING_FOR_A_TURN_UP.is_match(after) {
+            continue;
+        }
+        return false;
+    }
+    true
+}
+
+/// Python: bot/compose/fallback.py:15361 `_looking_forward(clean)`
+/// True when the line is looking forward to something still to come.
+pub fn _looking_forward(clean: &str) -> bool {
+    let t = text::squash(&lower(clean));
+    if t.is_empty() || t.contains('?') {
+        return false;
+    }
+    if !LOOKING_FORWARD.is_match(&t) || A_WAIT_FOR_A_LIFE_TO_END.is_match(&t) {
+        return false;
+    }
+    if _the_wait_is_for_someone_to_turn_up(&t) {
+        return false;
+    }
+    !NOT_LOOKED_FORWARD_TO.is_match(&t)
+}
+
+/// Python: bot/compose/fallback.py:15373 `_a_good_time(clean, memory=None)`
+/// True when the line reports a good time had by a group or by an event.
+pub fn _a_good_time(clean: &str, memory: &Memory) -> bool {
+    if clean.contains('?') || clean.contains(" but ") || clean.contains(" until ") {
+        return false;
+    }
+    if GOOD_DAY_OURS.is_match(clean) || GOOD_DAY_WENT.is_match(clean) || GOOD_DAY_BARE.is_match(clean) || GOOD_TIME_IT.match_(clean).is_some() {
+        return true;
+    }
+    if _a_verdict(clean, memory) {
+        return true;
+    }
+    if QUESTION_OPENERS.contains(text::split_ref(clean).first().copied().unwrap_or("")) {
+        return false;
+    }
+    if GOOD_TIME_OURS.is_match(clean) {
+        return true;
+    }
+    if !GOOD_TIME_SUBJECT.is_match(clean) {
+        return false;
+    }
+    rx("[a-z]+").findall_str(clean).iter().any(|w| GOOD_TIME_WORDS.contains(w))
+}
+
+regexes!(A_FILM, A_LAUGH_ITSELF, A_ROOMS_LAUGH, LAUGHING, LAUGHING_AT);
+
+/// Python: bot/compose/fallback.py:15458 `_something_funny(clean, memory=None)`
+/// True when the line says something was funny and nothing in it says a problem.
+pub fn _something_funny(clean: &str, memory: &Memory) -> bool {
+    if clean.contains('?') || clean.contains(" but ") {
+        return false;
+    }
+    if LAUGHING_AT.is_match(clean) || A_FILM.is_match(clean) || HARM_IN_A_LAUGH.is_match(clean) || LAUGH_STOPPED.is_match(clean) || A_LAUGH_ITSELF.is_match(clean) {
+        return false;
+    }
+    if A_ROOMS_LAUGH.is_match(clean) && !A_OWN_LAUGH.is_match(clean) {
+        return false;
+    }
+    if _in_a_care_thread(memory) {
+        return false;
+    }
+    LAUGHING.is_match(clean)
+}
+
+regexes!(STEPPED_AWAY, GOT_DRAWN_AWAY, A_TURN_THE_PAGE, ABSENCE, _SORRY_LEAD, SPEAKER_ABSENCE, AN_APOLOGY_IN_THE_LINE);
+word_sets!(A_GAP_FOR_ILLNESS, A_GAP_NAMED_PERSON, A_PAUSE_WORD, A_HOW_THE_TIME_WENT);
+
+/// Python: bot/compose/fallback.py:15554 `_the_gap_is_all_there_is(clean)` (never called on the trace corpus)
+/// True when nothing is left of the line once the apology for the gap is taken off.
+pub fn _the_gap_is_all_there_is(clean: &str) -> bool {
+    let mut t = text::squash(&lower(clean).replace('\u{2019}', "'"));
+    if t.is_empty() {
+        return false;
+    }
+    let errand = STEPPED_AWAY.is_match(&t);
+    let spare = if errand { 1 } else { 0 };
+    for pattern in [&*STEPPED_AWAY, &*ABSENCE, &*GOT_DRAWN_AWAY, &*_SORRY_LEAD] {
+        for _ in 0..4 {
+            let Some(m) = pattern.search(&t) else { break };
+            if m.as_str().is_empty() {
+                break;
+            }
+            let joined = format!("{} {}", &t[..m.start()], &t[m.end()..]);
+            t = text::strip(&joined).to_string();
+        }
+    }
+    for m in A_TURN_THE_PAGE.finditer(&t) {
+        if rx("[a-z']").is_match(&t[m.end()..]) {
+            return false;
+        }
+    }
+    let left: Vec<String> = az_words(&t).into_iter().filter(|w| !A_PAUSE_WORD.contains(w)).collect();
+    let rest = &left[spare.min(left.len())..];
+    if rest.is_empty() {
+        return true;
+    }
+    if !rest.iter().any(|w| A_HOW_THE_TIME_WENT.contains(w) || A_GAP_FOR_ILLNESS.contains(w)) {
+        return false;
+    }
+    left.len() <= spare + 6 && rest.iter().all(|w| A_HOW_THE_TIME_WENT.contains(w) || A_GAP_FOR_ILLNESS.contains(w) || A_GAP_NAMED_PERSON.contains(w))
+}
+
+/// Python: bot/compose/fallback.py:15608 `reads_as_pause(clean)`
+/// True when the line is an apology for the conversation having paused.
+pub fn reads_as_pause(clean: &str) -> bool {
+    let t = text::squash(&lower(clean).replace('\u{2019}', "'"));
+    if STEPPED_AWAY.is_match(&t) || GOT_DRAWN_AWAY.is_match(&t) {
+        return _the_gap_is_all_there_is(&t);
+    }
+    if AN_APOLOGY_IN_THE_LINE.is_match(&t) && ABSENCE.is_match(&t) {
+        return _the_gap_is_all_there_is(&t);
+    }
+    if SPEAKER_ABSENCE.is_match(&t) {
+        return _the_gap_is_all_there_is(&t);
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:15637 `_came_back(clean)`
+pub fn _came_back(clean: &str) -> bool {
+    reads_as_pause(clean)
+}
+
+regexes!(POINTS_BACK);
+word_sets!(A_POINTING_FILLER, A_THING_MARKER);
+pools!(RETURNED_TO_IT_FIRST);
+
+/// Python: bot/compose/fallback.py:15670 `_a_chat_behind_it(memory)`
+/// True when the person has already said something, so there is a thread to point back at.
+pub fn _a_chat_behind_it(memory: &Memory) -> bool {
+    crate::memory::history::an_earlier_turn(memory, "")
+}
+
+/// Python: bot/compose/fallback.py:15683 `nothing_said_yet(memory)`
+/// True on a chat's first line.
+pub fn nothing_said_yet(memory: &Memory) -> bool {
+    !crate::memory::history::an_earlier_turn(memory, "")
+}
+
+/// Python: bot/compose/fallback.py:15688 `nothing_yet_line()` (never called on the trace corpus)
+/// The line for a first line whose every candidate answers a turn that never happened.
+pub fn nothing_yet_line() -> String {
+    RETURNED_TO_IT_FIRST.first().cloned().unwrap_or_default()
+}
+
+/// Python: bot/compose/fallback.py:15693 `brings_nothing_of_its_own(text)`
+/// True when the line has no subject of its own, only a point back at the conversation.
+pub fn brings_nothing_of_its_own(text_: &str) -> bool {
+    crate::memory::history::brings_nothing_of_its_own(text_)
+}
+
+/// Python: bot/compose/fallback.py:15707 `assumes_an_earlier_turn(reply)`
+/// Whether the reply answers something the person has said earlier in this chat.
+pub fn assumes_an_earlier_turn(reply: &str) -> bool {
+    crate::memory::history::a_past_that_is_not_there(reply, &Value::dict(), Some(""))
+}
+
+/// Python: bot/compose/fallback.py:15723 `reads_as_a_return(clean)`
+/// What is left of a line that picks the thread back up: None, "" or the thing it names. (The
+/// skeleton's `()` return could not carry it.)
+pub fn reads_as_a_return(clean: &str) -> Option<String> {
+    let t = text::squash(&lower(clean).replace('\u{2019}', "'"));
+    if t.is_empty() || !POINTS_BACK.is_match(&t) {
+        return None;
+    }
+    let mut left = t.clone();
+    for _ in 0..3 {
+        let Some(m) = POINTS_BACK.search(&left) else { break };
+        if m.as_str().is_empty() {
+            break;
+        }
+        let joined = format!("{} {}", &left[..m.start()], &left[m.end()..]);
+        left = text::strip(&joined).to_string();
+    }
+    let tokens: Vec<String> = text::split_ref(&left).iter().map(|w| rx("[^a-z0-9']").sub("", w)).filter(|w| !w.is_empty()).collect();
+    let marker = tokens.iter().position(|w| A_THING_MARKER.contains(w));
+    let Some(marker) = marker else {
+        return if tokens.iter().all(|w| A_POINTING_FILLER.contains(w)) { Some(String::new()) } else { None };
+    };
+    if !tokens[..marker].iter().all(|w| A_POINTING_FILLER.contains(w)) {
+        return None;
+    }
+    let thing = tokens[marker + 1..].iter().filter(|w| !w.is_empty()).cloned().collect::<Vec<_>>().join(" ");
+    let thing = thing.trim_matches([' ', ',', '.', '-', '\u{2026}']).to_string();
+    if thing.is_empty() || text::split_ref(&thing).len() > 4 {
+        return None;
+    }
+    Some(thing)
+}
+
+regexes!(SORRY_ASKING, AM_I_A_NUISANCE, THANKS_OPENS, THANKS_WENT_BADLY, THANKS_GOOD_AGAIN, THANKS_TAKES_A_QUESTION, _ACKNOWLEDGES_ALONE);
+word_sets!(MANNERS_ONLY, NUISANCE_ONLY, THANKS_ONLY, THANK_WORDS);
+
+/// Python: bot/compose/fallback.py:15768 `_only_manners(clean, allowed)`
+/// True when every word of the line is in the allowed set, so it names nothing of its own.
+pub fn _only_manners(clean: &str, allowed: &HashSet<String>) -> bool {
+    let words = az_words(&lower(clean));
+    !words.is_empty() && words.iter().all(|w| allowed.contains(w))
+}
+
+/// Python: bot/compose/fallback.py:15774 `_sorry_for_asking(clean)`
+/// True when the line is an apology for asking and nothing else.
+pub fn _sorry_for_asking(clean: &str) -> bool {
+    let t = lower(clean);
+    SORRY_ASKING.is_match(&t) && _only_manners(&t, &MANNERS_ONLY)
+}
+
+/// Python: bot/compose/fallback.py:15803 `_am_i_a_nuisance(clean)`
+/// True when the line only checks whether the person is being a nuisance.
+pub fn _am_i_a_nuisance(clean: &str) -> bool {
+    let t = text::squash(&lower(clean));
+    AM_I_A_NUISANCE.is_match(&t) && _only_manners(&t, &NUISANCE_ONLY)
+}
+
+/// Python: bot/compose/fallback.py:15859 `_thanks_then_said(clean)`
+/// The outcome they came back to tell me after a thank-you, or "" when there is none.
+pub fn _thanks_then_said(clean: &str) -> String {
+    let line = text::strip(text::strip(clean).trim_end_matches(['.', '!']));
+    let Some(m) = THANKS_OPENS.match_(line) else { return String::new() };
+    let said = text::strip(m.name_str("said")).trim_matches([' ', '.', ',', '!', ';', ':']).to_string();
+    if az_words(&said).len() < 2 {
+        return String::new();
+    }
+    if THANKS_TAKES_A_QUESTION.is_match(&THANKS_GOOD_AGAIN.sub(" ", &said)) {
+        return String::new();
+    }
+    said
+}
+
+/// Python: bot/compose/fallback.py:15878 `_thanks_news_went_badly(clean)`
+/// The outcome when a thank-you came back with bad news, or "" when it did not.
+pub fn _thanks_news_went_badly(clean: &str) -> String {
+    let said = _thanks_then_said(clean);
+    if said.is_empty() || THANKS_GOOD_AGAIN.is_match(&said) {
+        return String::new();
+    }
+    if THANKS_WENT_BADLY.is_match(&said) {
+        return said;
+    }
+    let words = az_words(&said);
+    if _mood(&words, &said) == "negative" { said } else { String::new() }
+}
+
+/// Python: bot/compose/fallback.py:15914 `_acknowledges_alone(clean)`
+/// True when the whole line is "good to know" and nothing else.
+pub fn _acknowledges_alone(clean: &str) -> bool {
+    _ACKNOWLEDGES_ALONE.match_(&text::squash(&lower(clean))).is_some()
+}
+
+/// Python: bot/compose/fallback.py:15924 `_thanks_with_more(clean)`
+/// True when the line is thanks and nothing else, however many words it takes to say it.
+pub fn _thanks_with_more(clean: &str) -> bool {
+    let t = lower(clean);
+    if t.contains('?') {
+        return false;
+    }
+    if !az_words(&t).iter().any(|w| THANK_WORDS.contains(w)) {
+        return false;
+    }
+    _only_manners(&t, &THANKS_ONLY)
+}
+
+strings!(CARE_THREAD, THREAD, PAUSE);
+
+/// Python: bot/compose/fallback.py:15935 `reading(text, memory)`
+/// `(kind, target)` for a line the composer answers itself, or `("", ())` for an ordinary one,
+/// as a tuple value.
+pub fn reading(text_: &str, memory: &Memory) -> Value {
+    let (kind, target) = reading_of(text_, memory);
+    let target = Value::Tuple(std::sync::Arc::new(target.into_iter().map(Value::from).collect()));
+    Value::Tuple(std::sync::Arc::new(vec![Value::from(kind), target]))
+}
+
+/// `reading` as a kind and its targets.
+pub fn reading_of(text_: &str, memory: &Memory) -> (String, Vec<String>) {
+    let continuation = py_try(|| careful(text_, memory)).flatten();
+    if let Some(continuation) = continuation.filter(|c| !c.is_empty()) {
+        let kind = if _a_care_thread(memory) { CARE_THREAD.clone() } else { THREAD.clone() };
+        return (kind, vec![continuation]);
+    }
+    match py_try(|| crate::compose::leaving::reads_as_leaving(&text::squash(&lower(text_)), None)) {
+        Some(true) => return (data::string("bot.compose.leaving.LEAVING"), Vec::new()),
+        Some(false) => {}
+        None => return (String::new(), Vec::new()),
+    }
+    let rest = py_try(|| {
+        if !_grief_thread(memory) && !in_a_safety_thread(memory) && reads_as_pause(&text::squash(&lower(text_))) {
+            return Some(PAUSE.clone());
+        }
+        if !_grief_thread(memory) && !in_a_safety_thread(memory) && _a_chat_behind_it(memory) && reads_as_a_return(text_).is_some() {
+            return Some(PAUSE.clone());
+        }
+        None
+    });
+    match rest {
+        Some(Some(kind)) => (kind, Vec::new()),
+        _ => (String::new(), Vec::new()),
+    }
 }
