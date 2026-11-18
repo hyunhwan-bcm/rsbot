@@ -41,6 +41,25 @@ macro_rules! bundle_vals {
             std::sync::LazyLock::new(|| crate::data::get(concat!($module, ".", stringify!($name))));)*
     };
 }
+/// `static NAME: Vec<&Re>` for module-level tuples of compiled regexes.
+macro_rules! bundle_re_lists {
+    ($module:literal; $($name:ident),* $(,)?) => {
+        $(pub static $name: std::sync::LazyLock<Vec<&'static crate::py::re::Re>> = std::sync::LazyLock::new(|| {
+            crate::data::get(concat!($module, ".", stringify!($name)))
+                .items()
+                .iter()
+                .map(|v| v.as_re().expect(concat!(stringify!($name), " holds compiled patterns")))
+                .collect()
+        });)*
+    };
+}
+/// A string pattern (a module-level str) compiled once, as `re.search(PATTERN, ...)` does.
+macro_rules! bundle_str_res {
+    ($module:literal; $($name:ident),* $(,)?) => {
+        $(pub static $name: std::sync::LazyLock<crate::py::re::Re> =
+            std::sync::LazyLock::new(|| crate::py::re::Re::new(crate::data::get(concat!($module, ".", stringify!($name))).str(), 0));)*
+    };
+}
 /// A regex written inline in a function body.
 macro_rules! inline_re {
     ($name:ident, $pat:expr) => {
@@ -50,7 +69,7 @@ macro_rules! inline_re {
         static $name: std::sync::LazyLock<crate::py::re::Re> = std::sync::LazyLock::new(|| crate::py::re::Re::new($pat, $flags));
     };
 }
-pub(crate) use {bundle_res, bundle_sets, bundle_str, bundle_strs, bundle_vals, inline_re};
+pub(crate) use {bundle_re_lists, bundle_res, bundle_sets, bundle_str, bundle_str_res, bundle_strs, bundle_vals, inline_re};
 
 /// `" ".join(str(text or "").lower().split())`.
 pub fn flat(text: &str) -> String {
@@ -139,4 +158,9 @@ pub fn straight(text: &str) -> String {
 /// `(memory.get("understood") or {}).get("clean") or ""`.
 pub fn understood_clean(memory: &Memory) -> &str {
     memory.understood.as_ref().map(|u| u.clean.as_str()).unwrap_or("")
+}
+
+/// `any(pattern.search(text) for pattern in patterns)`.
+pub fn any_search(patterns: &[&crate::py::re::Re], text: &str) -> bool {
+    patterns.iter().any(|p| p.search(text).is_some())
 }
