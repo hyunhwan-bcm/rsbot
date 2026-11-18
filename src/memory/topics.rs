@@ -6157,22 +6157,28 @@ pub fn followup_reading(understood: &Understood, memory: &Memory) -> Understood 
 }
 
 thread_local! {
-    /// The topic record as `note` left it, to tell whether PyBot's runtime copy has since come
-    /// between `memory["topic"]` and its entry in `memory["topics"]` (see `_the_runtime_copied`).
-    static TOPIC_AFTER_NOTE: std::cell::RefCell<Option<Value>> = const { std::cell::RefCell::new(None) };
+    /// The topic record as the turn's first `note` left it, and the turn it was: the observers
+    /// run before any responder, so this is the record PyBot's runtime copies for the responders
+    /// (see `_the_runtime_copied`).
+    static TOPIC_AFTER_NOTE: std::cell::RefCell<Option<(usize, Value)>> = const { std::cell::RefCell::new(None) };
 }
 
 /// PyBot's runtime deep-copies each memory key on its own for every responder, and a chosen
 /// reply's copy becomes the memory: from then on `memory["topic"]` is no longer the same dict as
 /// its entry in `memory["topics"]`. The Rust runtime's copy shares them, so when the last turn
-/// had a chosen reply and the topic is still the one `note` left, the sharing is ended here.
+/// had a chosen reply and the topic is still the one the observers left, the sharing is ended
+/// here. A record a responder or an after hook put in place was made after the copy, and keeps
+/// whatever it shares, as in Python.
 fn _the_runtime_copied(memory: &mut Memory) {
     let chosen = memory.turns.last().is_some_and(|t_| t_.module.is_some());
     if !chosen {
         return;
     }
     let left = TOPIC_AFTER_NOTE.with(|c| c.borrow().clone());
-    let Some(left) = left else { return };
+    let Some((turn, left)) = left else { return };
+    if turn + 1 != memory.turns.len() {
+        return;
+    }
     if let Some(topic) = memory.get("topic") {
         if same_object(topic, &left) {
             let copied = fresh(topic);
@@ -6190,8 +6196,14 @@ pub fn note(memory: &mut Memory, text_: &str, kind: &str) -> Value {
     let previous = current(memory).cloned();
     let record = _note(memory, text_, kind);
     _the_words_this_turn(memory, &before, &record, previous.as_ref());
-    let left = memory.get("topic").cloned();
-    TOPIC_AFTER_NOTE.with(|c| *c.borrow_mut() = left);
+    let turn = memory.turns.len();
+    TOPIC_AFTER_NOTE.with(|c| {
+        let mut c = c.borrow_mut();
+        // only the turn's first filing: a responder's own filing works on its copy
+        if c.as_ref().is_none_or(|(t_, _)| *t_ != turn) {
+            *c = Some((turn, memory.get("topic").cloned().unwrap_or(Value::None)));
+        }
+    });
     record
 }
 
