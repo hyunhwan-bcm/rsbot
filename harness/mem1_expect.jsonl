@@ -1,0 +1,655 @@
+{"fn": "_bare", "args": ["and remind me what i am allergic to again please"], "kwargs": {}, "memory": null, "result": "what i am allergic to", "raised": null, "after": null}
+{"fn": "_bare", "args": ["can you remind me when my interview is"], "kwargs": {}, "memory": null, "result": "when is my interview", "raised": null, "after": null}
+{"fn": "_bare", "args": ["do you remember when i am going to rome"], "kwargs": {}, "memory": null, "result": "when am i going to rome", "raised": null, "after": null}
+{"fn": "_a_count_ask", "args": ["how many kittens do i have"], "kwargs": {}, "memory": null, "result": "pet", "raised": null, "after": null}
+{"fn": "_a_count_ask", "args": ["how many have i got"], "kwargs": {}, "memory": null, "result": "any", "raised": null, "after": null}
+{"fn": "_a_count_ask", "args": ["what is a cat"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_a_size", "args": ["its 2.5 kilos roughly"], "kwargs": {}, "memory": null, "result": "2.5kg", "raised": null, "after": null}
+{"fn": "_only_names_the_size", "args": ["its about 2kg"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_only_names_the_size", "args": ["its about 2kg and very fresh today"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_clause_that_works_it_out", "args": ["20 minutes per 500g plus 20 minutes at 190C, so a 2kg bird takes roughly 1 hour 40 minutes.", "2kg"], "kwargs": {}, "memory": null, "result": "A 2kg bird takes roughly 1 hour 40 minutes.", "raised": null, "after": null}
+{"fn": "_size_in_grams", "args": ["2kg"], "kwargs": {}, "memory": null, "result": 2000.0, "raised": null, "after": null}
+{"fn": "_size_in_grams", "args": ["10oz"], "kwargs": {}, "memory": null, "result": 283.5, "raised": null, "after": null}
+{"fn": "_size_in_grams", "args": ["3pint"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_the_portion_for_the_food", "args": ["how long do i roast a chicken its 2kg", "about 75 g of dry rice each"], "kwargs": {}, "memory": null, "result": [75.0, "g", "chicken", false], "raised": null, "after": null}
+{"fn": "_the_portion_for_the_food", "args": ["how much rice for 4", "About 75 g of dry rice each, so 300 g for four"], "kwargs": {}, "memory": null, "result": [75.0, "g", "dry rice", false], "raised": null, "after": null}
+{"fn": "_the_portion_reply", "args": ["2kg", [500.0, "g", "chicken", true], 6], "kwargs": {}, "memory": null, "result": "2kg of chicken on the bone is about 500g a person, so it feeds four, and six wants about 3kg.", "raised": null, "after": null}
+{"fn": "_the_portion_reply", "args": ["200g", [75.0, "g", "dry rice", false], 4], "kwargs": {}, "memory": null, "result": "200g of dry rice is about 75g a person, so it feeds two, and four wants about 300g.", "raised": null, "after": null}
+{"fn": "_the_portion_reply", "args": ["1.5kg", [200.0, "g", "", false], 4], "kwargs": {}, "memory": null, "result": "1.5kg of is about 200g a person, so it feeds seven — enough for four, with a second helping in it.", "raised": null, "after": null}
+{"fn": "_the_portion_reply", "args": ["3kg", [250.0, "g", "potatoes", false], 40], "kwargs": {}, "memory": null, "result": "3kg of potatoes is about 250g a person, so it feeds twelve, and forty wants about 10kg.", "raised": null, "after": null}
+{"fn": "_is_or_are", "args": [["nuts"]], "kwargs": {}, "memory": null, "result": "are", "raised": null, "after": null}
+{"fn": "_is_or_are", "args": [["dairy"]], "kwargs": {}, "memory": null, "result": "is", "raised": null, "after": null}
+{"fn": "_is_or_are", "args": [["glass"]], "kwargs": {}, "memory": null, "result": "is", "raised": null, "after": null}
+{"fn": "_is_or_are", "args": [["nuts", "dairy"]], "kwargs": {}, "memory": null, "result": "are", "raised": null, "after": null}
+{"fn": "_the_things", "args": [["nuts", " dairy", "soya "]], "kwargs": {}, "memory": null, "result": "nuts, dairy and soya", "raised": null, "after": null}
+{"fn": "_the_things", "args": [[]], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_their_own", "args": ["Son "], "kwargs": {}, "memory": null, "result": "your son", "raised": null, "after": null}
+{"fn": "_their_own", "args": ["me"], "kwargs": {}, "memory": null, "result": "your", "raised": null, "after": null}
+{"fn": "_said_another_way", "args": ["Your budget is 500 pounds."], "kwargs": {}, "memory": null, "result": "You said 500 pounds.", "raised": null, "after": null}
+{"fn": "_said_another_way", "args": ["You told me you're vegetarian."], "kwargs": {}, "memory": null, "result": "You said you're vegetarian.", "raised": null, "after": null}
+{"fn": "_said_another_way", "args": ["You've got a dog called Rex."], "kwargs": {}, "memory": null, "result": "Still called Rex.", "raised": null, "after": null}
+{"fn": "_said_another_way", "args": ["You've got two cats called Tom and Jerry called X."], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_said_another_way", "args": ["You've got a cat."], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_said_another_way", "args": ["You've got two cats."], "kwargs": {}, "memory": null, "result": "Still two cats.", "raised": null, "after": null}
+{"fn": "_said_another_way", "args": ["You live in Leeds."], "kwargs": {}, "memory": null, "result": "You said Leeds.", "raised": null, "after": null}
+{"fn": "_statement", "args": ["am i vegetarian?"], "kwargs": {}, "memory": null, "result": "i am vegetarian", "raised": null, "after": null}
+{"fn": "_statement", "args": ["is my dog called biscuit"], "kwargs": {}, "memory": null, "result": "my dog is called biscuit", "raised": null, "after": null}
+{"fn": "_statement", "args": ["is my name hard to say"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_restated", "args": ["do you remember that i live in leeds?", null], "kwargs": {}, "memory": null, "result": "i live in leeds", "raised": null, "after": null}
+{"fn": "_restated", "args": ["you know im veggie right", null], "kwargs": {}, "memory": null, "result": "im veggie", "raised": null, "after": null}
+{"fn": "_restated", "args": ["just so you know, im called sam", null], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_third_person", "args": ["go"], "kwargs": {}, "memory": null, "result": "goes", "raised": null, "after": null}
+{"fn": "_third_person", "args": ["try"], "kwargs": {}, "memory": null, "result": "tries", "raised": null, "after": null}
+{"fn": "_third_person", "args": ["play"], "kwargs": {}, "memory": null, "result": "plays", "raised": null, "after": null}
+{"fn": "_third_person", "args": ["watch"], "kwargs": {}, "memory": null, "result": "watches", "raised": null, "after": null}
+{"fn": "_third_person", "args": ["start!"], "kwargs": {}, "memory": null, "result": "starts", "raised": null, "after": null}
+{"fn": "_the_verb_they_asked", "args": ["my course in february", "when does my course start", ""], "kwargs": {}, "memory": null, "result": "my course starts in february", "raised": null, "after": null}
+{"fn": "_the_verb_they_asked", "args": ["my daughters is in june", "when is my daughters birthday", ""], "kwargs": {}, "memory": null, "result": "my daughters birthday is in june", "raised": null, "after": null}
+{"fn": "_the_verb_they_asked", "args": ["my nephew in june", "when is my nephew", "my niece turns 5 in may and my nephew in june"], "kwargs": {}, "memory": null, "result": "my nephew turns five in june", "raised": null, "after": null}
+{"fn": "_the_verb_they_asked", "args": ["my nephew in june", "when is my nephew turning 5", ""], "kwargs": {}, "memory": null, "result": "my nephew is turning 5 in june", "raised": null, "after": null}
+{"fn": "_the_verb_they_asked", "args": ["my dentist appointments on the 3rd of june", "when are my dentist appointments", ""], "kwargs": {}, "memory": null, "result": "my dentist appointments on the 3rd of june", "raised": null, "after": null}
+{"fn": "_a_number_word", "args": [105], "kwargs": {}, "memory": null, "result": "one hundred and five", "raised": null, "after": null}
+{"fn": "_a_number_word", "args": [71], "kwargs": {}, "memory": null, "result": "seventy-one", "raised": null, "after": null}
+{"fn": "_a_number_word", "args": [1000], "kwargs": {}, "memory": null, "result": "1000", "raised": null, "after": null}
+{"fn": "_a_number_word", "args": [-3], "kwargs": {}, "memory": null, "result": "-3", "raised": null, "after": null}
+{"fn": "_a_number_word", "args": [40], "kwargs": {}, "memory": null, "result": "forty", "raised": null, "after": null}
+{"fn": "_yours", "args": ["for myself and my mum"], "kwargs": {}, "memory": null, "result": "for yourself and your mum", "raised": null, "after": null}
+{"fn": "_a_circumstance", "args": ["nights"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_circumstance", "args": ["chef"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_a_circumstance", "args": ["part time"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_place_phrase", "args": ["at tesco"], "kwargs": {}, "memory": null, "result": "at Tesco", "raised": null, "after": null}
+{"fn": "_place_phrase", "args": ["at the hospital"], "kwargs": {}, "memory": null, "result": "at the hospital", "raised": null, "after": null}
+{"fn": "_place_phrase", "args": ["in a school"], "kwargs": {}, "memory": null, "result": "in a school", "raised": null, "after": null}
+{"fn": "_theirs", "args": ["20 minutes", true], "kwargs": {}, "memory": null, "result": "20 minutes", "raised": null, "after": null}
+{"fn": "_theirs", "args": ["an hour.", false], "kwargs": {}, "memory": null, "result": "An hour", "raised": null, "after": null}
+{"fn": "_theirs", "args": ["TV time", true], "kwargs": {}, "memory": null, "result": "TV time", "raised": null, "after": null}
+{"fn": "_seconds", "args": ["half an hour"], "kwargs": {}, "memory": null, "result": 1800, "raised": null, "after": null}
+{"fn": "_seconds", "args": ["a couple of hours"], "kwargs": {}, "memory": null, "result": 7200, "raised": null, "after": null}
+{"fn": "_seconds", "args": ["twenty minutes"], "kwargs": {}, "memory": null, "result": 1200, "raised": null, "after": null}
+{"fn": "_seconds", "args": ["a few days"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_longest", "args": ["one minute of jogging, two of walking, for 20 minutes", false], "kwargs": {}, "memory": null, "result": 1200, "raised": null, "after": null}
+{"fn": "_longest", "args": ["tuna pasta in 15, macaroni cheese in 25", false], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_longest", "args": ["tuna pasta in 15", true], "kwargs": {}, "memory": null, "result": 900, "raised": null, "after": null}
+{"fn": "_first_sentence", "args": ["Bring a pan of water to a bare simmer. Slide the egg in from a cup. Three minutes gives a soft yolk.", 70], "kwargs": {}, "memory": null, "result": "Bring a pan of water to a bare simmer", "raised": null, "after": null}
+{"fn": "_first_sentence", "args": ["A very long opening sentence that goes on and on well past the limit we set for it here today", 40], "kwargs": {}, "memory": null, "result": "A very long opening sentence that goes…", "raised": null, "after": null}
+{"fn": "_quote", "args": ["my daughter's 7th birthday party is on saturday and we have booked the soft play place", 40], "kwargs": {}, "memory": null, "result": "\"my daughter's 7th birthday party is on…\"", "raised": null, "after": null}
+{"fn": "_trim", "args": ["my daughter's 7th birthday party is on saturday and we have booked the soft play place", 30], "kwargs": {}, "memory": null, "result": "my daughter's 7th birthday pa…", "raised": null, "after": null}
+{"fn": "_root", "args": ["swimming"], "kwargs": {}, "memory": null, "result": "swim", "raised": null, "after": null}
+{"fn": "_root", "args": ["stopped"], "kwargs": {}, "memory": null, "result": "stop", "raised": null, "after": null}
+{"fn": "_root", "args": ["drives"], "kwargs": {}, "memory": null, "result": "driv", "raised": null, "after": null}
+{"fn": "_root", "args": ["cakes"], "kwargs": {}, "memory": null, "result": "cak", "raised": null, "after": null}
+{"fn": "_one_word", "args": ["drive", "driving"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_one_word", "args": ["cat", "cats"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_plain_line", "args": ["I don't want to talk about it, OK?!"], "kwargs": {}, "memory": null, "result": "i don't want to talk about it ok", "raised": null, "after": null}
+{"fn": "_closes_the_subject", "args": ["i dont really want to talk about it anymore"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_closes_the_subject", "args": ["drop it in the pan"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_closes_the_subject", "args": ["never mind"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_closes_the_subject", "args": ["i dont want to talk about work"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_plain_frame_closes", "args": ["i dont really want to talk about it"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_summed_up", "args": ["ok so whats our plan then"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_summed_up", "args": ["whats the plan for dinner"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_date_written_as_a_date", "args": ["4th may"], "kwargs": {}, "memory": null, "result": "the 4th of May", "raised": null, "after": null}
+{"fn": "_date_written_as_a_date", "args": ["12 june"], "kwargs": {}, "memory": null, "result": "12 June", "raised": null, "after": null}
+{"fn": "_the_same_relative", "args": ["mum", "mums"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_same_relative", "args": ["", "x"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_expanded", "args": ["You're not gonna believe I'm here, don't you?"], "kwargs": {}, "memory": null, "result": "you are not gonna believe i am here, do not you?", "raised": null, "after": null}
+{"fn": "_a_few_children", "args": [1], "kwargs": {}, "memory": null, "result": "one child", "raised": null, "after": null}
+{"fn": "_a_few_children", "args": [3], "kwargs": {}, "memory": null, "result": "three kids", "raised": null, "after": null}
+{"fn": "_a_few_children", "args": [30], "kwargs": {}, "memory": null, "result": "30 kids", "raised": null, "after": null}
+{"fn": "_diet_how", "args": ["no alcohol"], "kwargs": {}, "memory": null, "result": "drink", "raised": null, "after": null}
+{"fn": "_diet_how", "args": ["no meat"], "kwargs": {}, "memory": null, "result": "eat", "raised": null, "after": null}
+{"fn": "_a_negation_said_back", "args": ["no meat", "i dont eat meat any more"], "kwargs": {}, "memory": null, "result": "You told me you don't eat meat any more.", "raised": null, "after": null}
+{"fn": "_a_negation_said_back", "args": ["keto", ""], "kwargs": {}, "memory": null, "result": "You told me you're not doing keto.", "raised": null, "after": null}
+{"fn": "_a_negation_said_back", "args": ["vegan", ""], "kwargs": {}, "memory": null, "result": "You told me you're not vegan.", "raised": null, "after": null}
+{"fn": "_a_negation_said_back", "args": ["", "not anymore"], "kwargs": {}, "memory": null, "result": "You told me you're not on a diet any more.", "raised": null, "after": null}
+{"fn": "_a_take_back_said_back", "args": ["i stopped keto", "keto"], "kwargs": {}, "memory": null, "result": "You told me you stopped keto.", "raised": null, "after": null}
+{"fn": "_a_take_back_said_back", "args": ["im not on a diet", "on a diet"], "kwargs": {}, "memory": null, "result": "You told me you're not on a diet any more.", "raised": null, "after": null}
+{"fn": "_a_take_back_said_back", "args": ["im not vegetarian", "vegetarian"], "kwargs": {}, "memory": null, "result": "You told me you're not vegetarian.", "raised": null, "after": null}
+{"fn": "_a_take_back_said_back", "args": ["im back on sugar", "cutting-out-sugar"], "kwargs": {}, "memory": null, "result": "You told me you stopped cutting out sugar.", "raised": null, "after": null}
+{"fn": "_a_take_back_said_back", "args": ["vegan over", "vegan"], "kwargs": {}, "memory": null, "result": "You told me you stopped being vegan.", "raised": null, "after": null}
+{"fn": "_what_the_food_has", "args": ["can he have cheese", "dairy"], "kwargs": {}, "memory": null, "result": ["cheese", "dairy"], "raised": null, "after": null}
+{"fn": "_what_the_food_has", "args": ["is peanut butter ok", "nuts"], "kwargs": {}, "memory": null, "result": ["peanut butter", "nuts"], "raised": null, "after": null}
+{"fn": "_what_the_food_has", "args": ["what about eggs", "meat, fish, dairy or eggs"], "kwargs": {}, "memory": null, "result": ["egg", "eggs"], "raised": null, "after": null}
+{"fn": "_a_diet_put_back", "args": ["not eating meat"], "kwargs": {}, "memory": null, "result": "eating meat", "raised": null, "after": null}
+{"fn": "_a_diet_put_back", "args": ["no more meat"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_diet_words", "args": ["slimming-world"], "kwargs": {}, "memory": null, "result": "slimming world", "raised": null, "after": null}
+{"fn": "_summary_ask", "args": ["can you give me a quick recap"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_summary_ask", "args": ["summarise this email for me"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_kids_ask", "args": ["how many kids do i have"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_kids_ask", "args": ["how many kids does my sister have"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_kids_ask", "args": ["how many kids is too many"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_a_clock_ask", "args": ["ok whats the time"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_named_slots", "args": ["what did i call him"], "kwargs": {}, "memory": null, "result": ["name"], "raised": null, "after": null}
+{"fn": "_slot_of", "args": ["what do i drive"], "kwargs": {}, "memory": null, "result": "car", "raised": null, "after": null}
+{"fn": "_slot_named_in", "args": ["my dogs"], "kwargs": {}, "memory": null, "result": "pets", "raised": null, "after": null}
+{"fn": "_turned", "args": ["what is the pay for my job"], "kwargs": {}, "memory": null, "result": "what's the pay for your job", "raised": null, "after": null}
+{"fn": "_yes_then", "args": ["You're Dave."], "kwargs": {}, "memory": null, "result": "Yes — you're Dave.", "raised": null, "after": null}
+{"fn": "_yes_then", "args": ["Dave is your name."], "kwargs": {}, "memory": null, "result": "Yes — Dave is your name.", "raised": null, "after": null}
+{"fn": "_after_the_yes_no_frame", "args": ["is she allergic to nuts? she had a rash"], "kwargs": {}, "memory": null, "result": "she had a rash", "raised": null, "after": null}
+{"fn": "_after_the_yes_no_frame", "args": ["is my son ok he is coughing a lot"], "kwargs": {}, "memory": null, "result": "he is coughing a lot", "raised": null, "after": null}
+{"fn": "_the_food_named", "args": ["red meat"], "kwargs": {}, "memory": null, "result": "meat", "raised": null, "after": null}
+{"fn": "_the_food_named", "args": ["prawns"], "kwargs": {}, "memory": null, "result": "fish", "raised": null, "after": null}
+{"fn": "_the_food_named", "args": ["halloumi"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_a_figure", "args": ["1,500"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_figure", "args": ["2k"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_figure", "args": ["two"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_day_of", "args": ["the gym on friday"], "kwargs": {}, "memory": null, "result": "On Friday.", "raised": null, "after": null}
+{"fn": "_the_day_of", "args": ["my driving test is on the 14th"], "kwargs": {}, "memory": null, "result": "On the 14th.", "raised": null, "after": null}
+{"fn": "_at_the_clock", "args": ["the dentist at 3 on thursday"], "kwargs": {}, "memory": null, "result": "At 3.", "raised": null, "after": null}
+{"fn": "_the_day_before", "args": ["a big work thing on monday"], "kwargs": {}, "memory": null, "result": ["monday", "sunday"], "raised": null, "after": null}
+{"fn": "_the_day_before", "args": ["friday 3 may"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_the_whole_word_in", "args": ["when are my exams again", "exam"], "kwargs": {}, "memory": null, "result": -1, "raised": null, "after": null}
+{"fn": "_says_the_verb", "args": ["i begin my new job on monday", "start"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_when_thing", "args": ["when is the next general election", true], "kwargs": {}, "memory": null, "result": "general", "raised": null, "after": null}
+{"fn": "_when_thing", "args": ["when is the wedding", false], "kwargs": {}, "memory": null, "result": "wedding", "raised": null, "after": null}
+{"fn": "_a_that_fits", "args": ["BMW"], "kwargs": {}, "memory": null, "result": "a", "raised": null, "after": null}
+{"fn": "_a_that_fits", "args": ["iPhone 13"], "kwargs": {}, "memory": null, "result": "an", "raised": null, "after": null}
+{"fn": "_a_that_fits", "args": [""], "kwargs": {}, "memory": null, "result": "an", "raised": null, "after": null}
+{"fn": "_only_a_pointer", "args": ["she isnt"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_only_a_pointer", "args": ["my wife is too"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_only_a_pointer", "args": ["she isnt well today"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_name_in_a_pronoun_line", "args": ["his names tom"], "kwargs": {}, "memory": null, "result": "tom", "raised": null, "after": null}
+{"fn": "_a_name_in_a_pronoun_line", "args": ["her name is not important"], "kwargs": {}, "memory": null, "result": "not", "raised": null, "after": null}
+{"fn": "_a_relation_in", "args": ["my mums car is red"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_a_relation_in", "args": ["my dad had a heart attack"], "kwargs": {}, "memory": null, "result": "dad", "raised": null, "after": null}
+{"fn": "_the_pronoun_in", "args": ["what is he allergic to"], "kwargs": {}, "memory": null, "result": "he", "raised": null, "after": null}
+{"fn": "_the_pronoun_in", "args": ["do they eat meat"], "kwargs": {}, "memory": null, "result": "they", "raised": null, "after": null}
+{"fn": "_nothing_kept_about_them", "args": ["is she allergic to anything"], "kwargs": {}, "memory": null, "result": "You haven't told me about an allergy of hers yet — what is it? I'll keep it out of anything I suggest.", "raised": null, "after": null}
+{"fn": "_nothing_kept_about_them", "args": ["what do they eat"], "kwargs": {}, "memory": null, "result": "You haven't told me how they eat yet — what do they avoid? I'll plan the meals round it.", "raised": null, "after": null}
+{"fn": "_asks_for_a_limit_not_advice", "args": ["what can she not eat"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_asks_for_a_limit_not_advice", "args": ["how do i cook for him"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_only_a_nod", "args": ["ok cheers"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_just_a_hello", "args": ["hi there"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_just_a_hello", "args": ["hi we got a cat"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_corrects", "args": ["sorry, Naples not Rome"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_denial", "args": ["You haven't mentioned the cat."], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_judging_themselves", "args": ["im such an idiot"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_judging_themselves", "args": ["im the worst"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_shape", "args": ["i have a dog"], "kwargs": {}, "memory": null, "result": "i have", "raised": null, "after": null}
+{"fn": "_shape", "args": ["im tired"], "kwargs": {}, "memory": null, "result": "im", "raised": null, "after": null}
+{"fn": "_without_the_age", "args": ["you're 41 and you're training for a marathon"], "kwargs": {}, "memory": null, "result": "you're training for a marathon", "raised": null, "after": null}
+{"fn": "_sentences", "args": ["One. Two!  Three?"], "kwargs": {}, "memory": null, "result": ["One.", "Two!", "Three?"], "raised": null, "after": null}
+{"fn": "_halves", "args": ["Roast it for 20 minutes; rest it - then carve, or slice it"], "kwargs": {}, "memory": null, "result": ["Roast it for 20 minutes", "rest it", "then carve", "slice it"], "raised": null, "after": null}
+{"fn": "_says_something", "args": ["20 minutes, give or take"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_names_minutes", "args": ["a twenty-minute walk"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_lead", "args": ["Tips: Roast it hot for 20 minutes. Rest it."], "kwargs": {}, "memory": null, "result": "Roast it hot for 20 minutes", "raised": null, "after": null}
+{"fn": "_tidy", "args": ["roast it, really hot?"], "kwargs": {}, "memory": null, "result": "Roast it, really hot", "raised": null, "after": null}
+{"fn": "_clauses", "args": ["Cut the distance and the speed for a week or two, and see a physio if the pain is sharp."], "kwargs": {}, "memory": null, "result": ["Cut the distance and the speed for a week or two", "see a physio if the pain is sharp"], "raised": null, "after": null}
+{"fn": "_the_limit", "args": ["Cut the distance and the speed for a week or two, and see a physio if the pain is sharp."], "kwargs": {}, "memory": null, "result": "Cut the distance and the speed for a week or two", "raised": null, "after": null}
+{"fn": "_the_condition", "args": ["Cut the distance and the speed for a week or two, and see a physio if the pain is sharp."], "kwargs": {}, "memory": null, "result": "see a physio if the pain is sharp", "raised": null, "after": null}
+{"fn": "_a_remark_about_a_length", "args": ["20 minutes is plenty. That wants longer than 20 minutes."], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_up_to_the_move", "args": ["Bring a pan of water to a bare simmer. 3 minutes gives a soft yolk.", "3 minutes gives a soft yolk"], "kwargs": {}, "memory": null, "result": "Bring a pan of water to a bare simmer. 3 minutes gives a soft yolk.", "raised": null, "after": null}
+{"fn": "_a_rate_of_the_same_length", "args": ["Twenty minutes a day gets you a simple song.", 1200], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_heavy", "args": ["my dad died last week"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_subject_to_leave_alone", "args": ["i dont want to talk about work"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_tidy_words", "args": ["you're going to portugal in june to see turkey"], "kwargs": {}, "memory": null, "result": "you're going to Portugal in June to see turkey", "raised": null, "after": null}
+{"fn": "_the_things", "args": [["a"]], "kwargs": {}, "memory": null, "result": "a", "raised": null, "after": null}
+{"fn": "_kind", "args": ["holiday"], "kwargs": {}, "memory": null, "result": "trip", "raised": null, "after": null}
+{"fn": "_kind", "args": ["laptop"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_a_stay_in_a_place", "args": ["a few days in york"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_place_they_go", "args": ["im going to lisbon in may"], "kwargs": {}, "memory": null, "result": "lisbon", "raised": null, "after": null}
+{"fn": "_a_food", "args": ["nuts"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_food", "args": ["penicillin"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_diet_food", "args": ["no fish"], "kwargs": {}, "memory": null, "result": ["fish"], "raised": null, "after": null}
+{"fn": "_diet_food", "args": ["gluten free"], "kwargs": {}, "memory": null, "result": ["gluten"], "raised": null, "after": null}
+{"fn": "_diet_food", "args": ["vegetarian"], "kwargs": {}, "memory": null, "result": ["meat", "fish"], "raised": null, "after": null}
+{"fn": "_said_list", "args": [["a", "b", "c"]], "kwargs": {}, "memory": null, "result": "a, b and c", "raised": null, "after": null}
+{"fn": "_say_a_list", "args": [["a"]], "kwargs": {}, "memory": null, "result": "a", "raised": null, "after": null}
+{"fn": "_and_list", "args": [["a", "", "b"]], "kwargs": {}, "memory": null, "result": "a and b", "raised": null, "after": null}
+{"fn": "_a_list_of_clauses", "args": [["Tom is 8", "Ada is 5", "Jo is 2"]], "kwargs": {}, "memory": null, "result": "Tom is 8, Ada is 5 and Jo is 2", "raised": null, "after": null}
+{"fn": "_the_words_of_a_fact", "args": [{"a": [1, "x", true], "b": 2.5}], "kwargs": {}, "memory": null, "result": "1 x  2.5", "raised": null, "after": null}
+{"fn": "_plain_words", "args": ["co-op is it's"], "kwargs": {}, "memory": null, "result": ["co", "is", "it's", "op"], "raised": null, "after": null}
+{"fn": "_the_people_that_size_feeds", "args": ["is that enough for 6", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "how long do i roast a chicken", "bot": "20 minutes per 500g plus 20 minutes at 190C, so a 2kg bird takes roughly 1 hour 40 minutes.", "module": "answers"}]}], "result": "2kg of chicken on the bone is about 500g a person, so it feeds four, and six wants about 3kg.", "raised": null, "after": {}}
+{"fn": "_the_people_that_size_feeds", "args": ["its 2kg, enough for 3", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "how long do i roast a chicken", "bot": "20 minutes per 500g plus 20 minutes at 190C, so a 2kg bird takes roughly 1 hour 40 minutes.", "module": "answers"}]}], "result": "2kg of chicken on the bone is about 500g a person, so it feeds four — enough for three, with a second helping in it.", "raised": null, "after": {}}
+{"fn": "_the_people_that_size_feeds", "args": ["will it feed a dozen", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "how long do i roast a chicken", "bot": "20 minutes per 500g plus 20 minutes at 190C, so a 2kg bird takes roughly 1 hour 40 minutes.", "module": "answers"}, {"user": "its 2kg", "bot": "ok", "module": null}]}], "result": "2kg of chicken on the bone is about 500g a person, so it feeds four, and twelve wants about 6kg.", "raised": null, "after": {}}
+{"fn": "_the_amount_they_made", "args": ["i only made 200g", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "how much rice for 4 people", "bot": "About 75 g of dry rice each, so 300 g for four.", "module": "answers"}]}], "result": "200g of dry rice is about 75g a person, so it feeds two, and four wants about 300g.", "raised": null, "after": {}}
+{"fn": "_the_amount_they_made", "args": ["i only made 400g", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "how much rice for 4 people", "bot": "About 75 g of dry rice each, so 300 g for four.", "module": "answers"}]}], "result": "400g of dry rice is about 75g a person, so it feeds five — enough for four, with a second helping in it.", "raised": null, "after": {}}
+{"fn": "_the_figure_for_the_size_they_named", "args": ["its about 2kg", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "how long do i roast a chicken", "bot": "20 minutes per 500g plus 20 minutes at 190C, so a 2kg bird takes roughly 1 hour 40 minutes.", "module": "answers"}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_the_figure_for_the_size_they_named", "args": ["its about 1.5kg", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "how long do i roast a chicken", "bot": "20 minutes per 500g, so a 2kg bird takes roughly 1 hour 40 minutes, and a 1.5kg one takes 1 hour 20 minutes.", "module": "answers"}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_vary", "args": [["a", "b", "c"], null], "kwargs": {}, "memory": [1, {"turns": [{"user": "x", "bot": "a", "module": null}, {"user": "y", "bot": "b", "module": null}]}], "result": "c", "raised": null, "after": {}}
+{"fn": "_vary", "args": [["a", "b"], null], "kwargs": {}, "memory": [1, {"turns": [{"user": "x", "bot": "a", "module": null}, {"user": "y", "bot": "b", "module": null}]}], "result": "a", "raised": null, "after": {}}
+{"fn": "_recent_answers", "args": [null, 3], "kwargs": {}, "memory": [0, {"turns": [{"user": "1", "bot": "one", "module": null}, {"user": "2", "bot": "", "module": null}, {"user": "3", "bot": "three", "module": null}, {"user": "4", "bot": "four", "module": null}, {"user": "5", "bot": " five ", "module": null}]}], "result": ["five", "four", "three"], "raised": null, "after": {}}
+{"fn": "_the_answer_already_gives", "args": ["money", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "ive got a dentist appointment", "bot": "An NHS check-up is £27.40 in England.", "module": "answers"}]}], "result": true, "raised": null, "after": {}}
+{"fn": "_the_answer_already_gives", "args": ["money", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "x", "bot": "How much is it?", "module": "answers"}]}], "result": false, "raised": null, "after": {}}
+{"fn": "_the_plan_was_just_said_back", "args": [null, "i begin my new job on tuesday"], "kwargs": {}, "memory": [0, {"turns": [{"user": "sorry i meant tuesday", "bot": "Got it - you begin your new job on Tuesday.", "module": null}]}], "result": true, "raised": null, "after": {}}
+{"fn": "_a_check_came_before", "args": [null, "did you get that"], "kwargs": {}, "memory": [0, {"turns": [{"user": "did you get that", "bot": "Yes", "module": null}, {"user": "did you get that", "bot": "", "module": null}]}], "result": true, "raised": null, "after": {}}
+{"fn": "_the_line_before_the_check", "args": [null, "did you get that"], "kwargs": {}, "memory": [0, {"turns": [{"user": "my boiler is broken", "bot": "Oh no", "module": null}, {"user": "did you get that", "bot": "", "module": null}]}], "result": "my boiler is broken", "raised": null, "after": {}}
+{"fn": "_a_check_choice", "args": [["Yes — I've got it.", "I heard you, and I'm still here.", "Yes, that came through."], null, 7], "kwargs": {}, "memory": [1, {"turns": [{"user": "a", "bot": "Yes — I've got it.", "module": null}]}], "result": "I heard you, and I'm still here.", "raised": null, "after": {}}
+{"fn": "_held_thread", "args": [null], "kwargs": {}, "memory": [0, {"turns": [{"user": "x", "bot": "Please call an ambulance now", "module": null}]}], "result": true, "raised": null, "after": {}}
+{"fn": "_gentle_subject", "args": [null], "kwargs": {}, "memory": [0, {"turns": [{"user": "my mum died", "bot": "I'm so sorry", "module": "grief"}]}], "result": true, "raised": null, "after": {}}
+{"fn": "_last_answer", "args": [null], "kwargs": {}, "memory": [0, {"turns": [{"user": "q", "bot": "an answer", "module": "answers"}]}], "result": "an answer", "raised": null, "after": {}}
+{"fn": "_last_answer", "args": [null], "kwargs": {}, "memory": [0, {"turns": [{"user": "q", "bot": "an answer", "module": "chat"}]}], "result": "", "raised": null, "after": {}}
+{"fn": "_how_far_along", "args": [null, "how far along am i"], "kwargs": {}, "memory": [0, {"user": {"weeks": 12}}], "result": "Twelve weeks.", "raised": null, "after": {"user": {"weeks": 12}, "others": []}}
+{"fn": "_how_far_along", "args": [null, "how many weeks am i"], "kwargs": {}, "memory": [0, {"user": {"pregnant": true}}], "result": "You didn't say how many weeks — tell me and I'll keep it, so the meal plans fit where you are.", "raised": null, "after": {"user": {"pregnant": true}, "others": []}}
+{"fn": "_how_far_along", "args": [null, "how far along is my wife"], "kwargs": {}, "memory": [0, {"others": [{"who": "wife", "weeks": 8}]}], "result": "Eight weeks.", "raised": null, "after": {"others": [{"who": "wife", "weeks": 8}]}}
+{"fn": "_a_length_i_have", "args": [null, "how far along is she"], "kwargs": {}, "memory": [0, {"others": [{"who": "wife", "weeks": 8}]}], "result": true, "raised": null, "after": {"others": [{"who": "wife", "weeks": 8}]}}
+{"fn": "_kids_reply", "args": [null, "how many kids do i have"], "kwargs": {}, "memory": [0, {"user": {"kids": 0}}], "result": "None — you said you don't have any.", "raised": null, "after": {"user": {"kids": 0}}}
+{"fn": "_kids_reply", "args": [null, "how many kids do i have"], "kwargs": {}, "memory": [0, {"user": {"kids": 3}}], "result": "Three kids — that's what you told me.", "raised": null, "after": {"user": {"kids": 3}}}
+{"fn": "_kids_reply", "args": [null, "how many kids do i have"], "kwargs": {}, "memory": [0, {"user": {"kids": 2}, "turns": [{"user": "a", "bot": "b", "module": null}]}], "result": "You've got two children.", "raised": null, "after": {"user": {"kids": 2}}}
+{"fn": "_kids_reply", "args": [null, "how many children do we have"], "kwargs": {}, "memory": [0, {"user": {"kids": 1}}], "result": "One kid, as you told me.", "raised": null, "after": {"user": {"kids": 1}}}
+{"fn": "_kids_reply", "args": [null, "how many kids do i have"], "kwargs": {}, "memory": [0, {"others": [{"who": "son", "age": 4}]}], "result": "I know about your son, but not a number. How many have you got in all?", "raised": null, "after": {"others": [{"who": "son", "age": 4}], "user": {}}}
+{"fn": "_kids_reply", "args": [null, "how many kids do i have"], "kwargs": {}, "memory": [0, {"user": {"people": ["daughter"]}}], "result": "I know about your daughter, but not a number. How many have you got in all?", "raised": null, "after": {"user": {"people": ["daughter"]}, "others": []}}
+{"fn": "_kids_reply", "args": [null, "how many kids do i have"], "kwargs": {}, "memory": [0, {}], "result": "I don't have a number from you — how many have you got?", "raised": null, "after": {"user": {}, "others": []}}
+{"fn": "_weight_reply", "args": [null], "kwargs": {}, "memory": [0, {"user": {"weight": "90 kilos"}}], "result": "You weigh 90 kilos.", "raised": null, "after": {"user": {"weight": "90 kilos"}}}
+{"fn": "_weight_reply", "args": [null], "kwargs": {}, "memory": [0, {"user": {"weight": "90 kilos"}, "turns": [{"user": "x", "bot": "You weigh 90 kilos.", "module": null}]}], "result": "Still 90 kilos.", "raised": null, "after": {"user": {"weight": "90 kilos"}}}
+{"fn": "_height_reply", "args": [null], "kwargs": {}, "memory": [0, {"user": {}}], "result": "You haven't told me how tall you are.", "raised": null, "after": {"user": {}}}
+{"fn": "_the_fact_on_record", "args": [null], "kwargs": {}, "memory": [0, {"user": {"diet": "vegan", "allergies": []}}], "result": ["diet", "vegan"], "raised": null, "after": {"user": {"diet": "vegan", "allergies": []}}}
+{"fn": "_the_person_last_given_a_fact", "args": [null], "kwargs": {}, "memory": [0, {"others": [{"who": "wife", "allergies": ["nuts"]}, {"who": "son", "age": 3}]}], "result": ["wife", "allergies", ["nuts"]], "raised": null, "after": {"others": [{"who": "wife", "allergies": ["nuts"]}, {"who": "son", "age": 3}]}}
+{"fn": "_food_facts", "args": [null], "kwargs": {}, "memory": [0, {"user": {"allergies": "nuts", "condition": ["coeliac", "asthma"]}}], "result": ["allergic to nuts", "coeliac"], "raised": null, "after": {"user": {"allergies": "nuts", "condition": ["coeliac", "asthma"]}}}
+{"fn": "_what_a_dinner_has_to_leave_out", "args": [null], "kwargs": {}, "memory": [0, {"user": {"allergies": ["nuts", "eggs", "milk"], "condition": "coeliac"}}], "result": [["nuts", "eggs", "milk", "gluten"], ["you're allergic to all of them", "you're coeliac"]], "raised": null, "after": {"user": {"allergies": ["nuts", "eggs", "milk"], "condition": "coeliac"}}}
+{"fn": "_age_compare", "args": [null, "who is older, me or my wife"], "kwargs": {}, "memory": [0, {"user": {"age": 34}, "others": [{"who": "wife", "age": 32}]}], "result": "You're older - 34 to your wife's 32.", "raised": null, "after": {"user": {"age": 34}, "others": [{"who": "wife", "age": 32}]}}
+{"fn": "_age_compare", "args": [null, "how much older am i than my wife"], "kwargs": {}, "memory": [0, {"user": {"age": 34}, "others": [{"who": "wife", "age": 32}]}], "result": "2 years: you're 34 and your wife is 32.", "raised": null, "after": {"user": {"age": 34}, "others": [{"who": "wife", "age": 32}]}}
+{"fn": "_age_compare", "args": [null, "who is older"], "kwargs": {}, "memory": [0, {"others": [{"who": "son", "age": 7}, {"who": "daughter", "age": 4}]}], "result": "Your son's older - 7 to your daughter's 4.", "raised": null, "after": {"others": [{"who": "son", "age": 7}, {"who": "daughter", "age": 4}], "user": {}}}
+{"fn": "_age_compare", "args": [null, "which one is older"], "kwargs": {}, "memory": [0, {"others": [{"who": "son", "age": 7}, {"who": "daughter", "age": 7}]}], "result": "Neither of them - your son and your daughter are both 7.", "raised": null, "after": {"others": [{"who": "son", "age": 7}, {"who": "daughter", "age": 7}], "user": {}}}
+{"fn": "_age_compare", "args": [null, "is my car older than my wife"], "kwargs": {}, "memory": [0, {"user": {"age": 34}, "others": [{"who": "wife", "age": 32}]}], "result": null, "raised": null, "after": {"user": {"age": 34}, "others": [{"who": "wife", "age": 32}]}}
+{"fn": "_age_compare", "args": [null, "how much older is he"], "kwargs": {}, "memory": [0, {"others": [{"who": "son", "age": 7}, {"who": "brother", "age": 9}]}], "result": "2 years: your son is 7 and your brother is 9.", "raised": null, "after": {"others": [{"who": "son", "age": 7}, {"who": "brother", "age": 9}], "user": {}}}
+{"fn": "_can_close", "args": ["i dont want to talk about it", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "my boiler broke", "bot": "That's a pain", "module": null}]}], "result": true, "raised": null, "after": {}}
+{"fn": "_can_close", "args": ["i dont want to talk about it", null], "kwargs": {}, "memory": [1, {"turns": []}], "result": false, "raised": null, "after": {}}
+{"fn": "_nobody_else_kept", "args": [null], "kwargs": {}, "memory": [0, {"others": []}], "result": true, "raised": null, "after": {"others": []}}
+{"fn": "_a_bare_limit_ask", "args": ["is she vegan", null], "kwargs": {}, "memory": [1, {}], "result": true, "raised": null, "after": {}}
+{"fn": "_a_bare_limit_ask", "args": ["is she vegan, shes coming for dinner", null], "kwargs": {}, "memory": [1, {}], "result": false, "raised": null, "after": {}}
+{"fn": "_name_fixed_this_turn", "args": ["no shes called dana", null], "kwargs": {}, "memory": [1, {"name_fixed": {"said": "no shes called dana", "name": "dana", "from": "dave"}}], "result": "Dana, not Dave — got it.", "raised": null, "after": {}}
+{"fn": "_name_fixed_this_turn", "args": ["no shes called dana", null], "kwargs": {}, "memory": [1, {"name_fixed": {"said": "no shes called dana", "name": "dana"}}], "result": "Dana — got it.", "raised": null, "after": {}}
+{"fn": "_correction_said", "args": [{"key": "budget", "value": "500 pounds"}, null], "kwargs": {}, "memory": [1, {}], "result": "500 pounds — got it, I'll work to that.", "raised": null, "after": {}}
+{"fn": "_correction_said", "args": [{"key": null, "value": "porto"}, null], "kwargs": {}, "memory": [1, {}], "result": "Porto — got it.", "raised": null, "after": {}}
+{"fn": "_correction_said", "args": [{"key": "allergies", "value": "nuts", "dropped": true}, null], "kwargs": {}, "memory": [1, {}], "result": "Got it — no nuts.", "raised": null, "after": {}}
+{"fn": "_correction_said", "args": [{"key": "plan", "value": "june", "wrong": "may"}, null], "kwargs": {}, "memory": [1, {}], "result": "June, not may — got it.", "raised": null, "after": {}}
+{"fn": "_correction_said", "args": [{"note": "I'll keep your mum off those."}, null], "kwargs": {}, "memory": [1, {}], "result": "I'll keep your mum off those.", "raised": null, "after": {}}
+{"fn": "_correction_said", "args": [{"key": "pet", "value": "max", "animal": "cat"}, null], "kwargs": {}, "memory": [1, {}], "result": "Max — got it, I'll call the cat Max.", "raised": null, "after": {}}
+{"fn": "_remember_asked", "args": [null, "name"], "kwargs": {}, "memory": [0, {"turns": [{"user": "a", "bot": "b", "module": null}]}], "result": null, "raised": null, "after": {"asked": {"slot": "name", "turn": 1}}}
+{"fn": "_slot_words", "args": ["pets", null], "kwargs": {}, "memory": [1, {"user": {"pets": [{"animal": "dog"}, {"animal": "cat"}]}}], "result": "what is my cat called", "raised": null, "after": {"user": {"pets": [{"animal": "dog"}, {"animal": "cat"}]}}}
+{"fn": "_slot_words", "args": ["pets", null], "kwargs": {}, "memory": [1, {"user": {"pets": [{"animal": "dog"}, {"animal": "dog"}]}}], "result": "what are my pets called", "raised": null, "after": {"user": {"pets": [{"animal": "dog"}, {"animal": "dog"}]}}}
+{"fn": "_a_rule_on_eating", "args": ["so do i eat meat", null], "kwargs": {}, "memory": [1, {"user": {"diet": "vegetarian"}}], "result": "No — you're vegetarian.", "raised": null, "after": {"user": {"diet": "vegetarian"}}}
+{"fn": "_a_rule_on_eating", "args": ["do i drink beer", null], "kwargs": {}, "memory": [1, {"user": {"diet": "no alcohol"}}], "result": "No — you don't drink alcohol.", "raised": null, "after": {"user": {"diet": "no alcohol"}}}
+{"fn": "_a_rule_on_eating", "args": ["do i eat bread", null], "kwargs": {}, "memory": [1, {"user": {"condition": ["coeliac"]}}], "result": "No — you've told me you're coeliac, so gluten is out.", "raised": null, "after": {"user": {"condition": ["coeliac"]}}}
+{"fn": "_a_rule_on_eating", "args": ["do i eat peanuts", null], "kwargs": {}, "memory": [1, {"user": {"allergies": ["peanuts"]}}], "result": "No — you're allergic to peanuts.", "raised": null, "after": {"user": {"allergies": ["peanuts"]}}}
+{"fn": "_a_rule_on_eating", "args": ["do i eat meat", null], "kwargs": {}, "memory": [1, {"user": {"no_meat": true}}], "result": "No — you don't eat meat.", "raised": null, "after": {"user": {"no_meat": true}}}
+{"fn": "_the_line_before_is_their_own_animal", "args": [null, 3], "kwargs": {}, "memory": [0, {"turns": [{"user": "we have two dogs, rufus and nell", "bot": "", "module": null}, {"user": "what do they eat", "bot": "", "module": null}]}], "result": true, "raised": null, "after": {}}
+{"fn": "_the_line_before_is_their_own_animal", "args": [null, 3], "kwargs": {}, "memory": [0, {"turns": [{"user": "my neighbour has two cats", "bot": "", "module": null}]}], "result": false, "raised": null, "after": {}}
+{"fn": "_still_holding", "args": [null, ["cat"]], "kwargs": {}, "memory": [0, {"user": {"pets": [{"animal": "Cat "}]}}], "result": true, "raised": null, "after": {"user": {"pets": [{"animal": "Cat "}]}}}
+{"fn": "_the_limits_on", "args": [{"allergies": ["nuts"], "diet": "", "condition": []}], "kwargs": {}, "memory": null, "result": {"allergies": ["nuts"]}, "raised": null, "after": null}
+{"fn": "_the_size_on_the_screen", "args": [[{"user": "is it 3 lbs", "bot": "", "module": null}, {"user": "how long", "bot": "so a 2.5 kg bird takes", "module": null}]], "kwargs": {}, "memory": null, "result": "3lb", "raised": null, "after": null}
+{"fn": "_old_values", "args": [null, "im going to lisbon in may"], "kwargs": {}, "memory": [0, {"facts_log": [{"text": "im going to lisbon in may", "key": "plan", "value": "Lisbon in may"}]}], "result": ["lisbon"], "raised": null, "after": {"facts_log": [{"text": "im going to lisbon in may", "key": "plan", "value": "Lisbon in may"}]}}
+{"fn": "_a_whole_answer_to_hand_back", "args": [null, "in full"], "kwargs": {}, "memory": [0, {"turns": [{"user": "how do i boil an egg", "bot": "Bring a pan of water to the boil and lower the egg in for six minutes for a soft yolk.", "module": "answers"}]}], "result": true, "raised": null, "after": {}}
+{"fn": "_hearing_again", "args": [[{"user": "how do i boil an egg", "bot": "Bring a pan of water to the boil and lower the egg in.", "module": "answers"}, {"user": "thanks", "bot": "Glad that helped.", "module": "chat"}], "say that again"], "kwargs": {}, "memory": null, "result": {"user": "how do i boil an egg", "bot": "Bring a pan of water to the boil and lower the egg in.", "module": "answers"}, "raised": null, "after": null}
+{"fn": "_take_the_fact_back", "args": [null, "wife", "allergies"], "kwargs": {}, "memory": [0, {"others": [{"who": "wife", "allergies": ["nuts"]}, {"who": "son", "age": 3}]}], "result": null, "raised": null, "after": {"others": [{"who": "son", "age": 3}]}}
+{"fn": "_take_the_fact_back", "args": [null, "wife", "allergies"], "kwargs": {}, "memory": [0, {"others": [{"who": "wife", "allergies": ["nuts"], "age": 30}]}], "result": null, "raised": null, "after": {"others": [{"who": "wife", "age": 30}]}}
+{"fn": "_take_the_fact_back", "args": [null, "wife", "diet"], "kwargs": {}, "memory": [0, {"others": [{"who": "wife", "diet": "vegan"}, {"who": "wife", "diet": "vegan"}]}], "result": null, "raised": null, "after": {"others": [{"who": "wife", "diet": "vegan"}]}}
+{"fn": "_ive_taken_it_back", "args": ["wife", "allergies", ["nuts", "eggs"]], "kwargs": {}, "memory": null, "result": "Your wife isn't allergic to nuts and eggs, then - I've taken that back off her.", "raised": null, "after": null}
+{"fn": "_this_too", "args": ["kids", "condition", ["coeliac"]], "kwargs": {}, "memory": null, "result": "Your kids are coeliac too, then - I'll keep it in mind for all of you.", "raised": null, "after": null}
+{"fn": "_isnt_this_too", "args": ["husband", "diet", "vegan"], "kwargs": {}, "memory": null, "result": "Your husband isn't vegan, then - good to know. It's just you I'll plan for.", "raised": null, "after": null}
+{"fn": "_the_fact_said_against", "args": ["diet", "vegan", " either"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_fact_said_against", "args": ["allergies", ["nuts"], " allergic to nuts"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_fact_said_against", "args": ["condition", ["coeliac"], " well today"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_is_a_question", "args": ["my dad is in hospital with pneumonia"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_is_a_question", "args": ["is it going to rain tomorrow"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_is_a_question", "args": ["what time is it?"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_feeling_about_what_they_said", "args": [null, "im scared for him"], "kwargs": {}, "memory": [0, {"turns": [{"user": "my dad is in hospital with pneumonia", "bot": "Oh no, I'm sorry to hear that.", "module": null}]}], "result": "It is all right to be frightened for your dad. You do not have to be the calm one all the time.", "raised": null, "after": {}}
+{"fn": "_a_feeling_about_what_they_said", "args": [null, "so scared"], "kwargs": {}, "memory": [0, {"turns": [{"user": "my brother is in hospital after the crash", "bot": "That sounds frightening.", "module": null}]}], "result": "That is a lot to be carrying, and being frightened for your brother does not make you any less help to him.", "raised": null, "after": {}}
+{"fn": "_a_feeling_about_what_they_said", "args": [null, "im worried"], "kwargs": {}, "memory": [0, {"turns": [{"user": "what should i cook tonight", "bot": "Pasta.", "module": null}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_with_the_name", "args": ["your mum is called an", "my mum is called ann"], "kwargs": {}, "memory": null, "result": "your mum is called an", "raised": null, "after": null}
+{"fn": "_with_the_name", "args": ["your dog is called max", "my dog is called Max, he is 4"], "kwargs": {}, "memory": null, "result": "your dog is called Max", "raised": null, "after": null}
+{"fn": "_as_repaired", "args": ["ann"], "kwargs": {}, "memory": null, "result": "ann", "raised": null, "after": null}
+{"fn": "_summary_words", "args": ["You're veggie and you've got 2 kids, I'm 41"], "kwargs": {}, "memory": null, "result": ["41", "got", "kid", "two", "vegetarian"], "raised": null, "after": null}
+{"fn": "_already_said", "args": [["vegetarian", "41"], "you're vegetarian; you're 41"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_already_said", "args": [["allergic", "nuts"], "you're allergic to nuts"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_a_fact_of_its_own", "args": ["i burned the roast again"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_fact_of_its_own", "args": ["honestly i know"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_naming_words", "args": ["what are the best things to see in lisbon"], "kwargs": {}, "memory": null, "result": ["best", "things", "see", "lisbon"], "raised": null, "after": null}
+{"fn": "_detail_they_left_out", "args": [null, "how much was it"], "kwargs": {}, "memory": [0, {"turns": [{"user": "i went to a gig last night", "bot": "Nice!", "module": "chat"}]}], "result": "You haven't said - how much was it?", "raised": null, "after": {}}
+{"fn": "_detail_they_left_out", "args": [null, "which area"], "kwargs": {}, "memory": [0, {"turns": [{"user": "we moved house last month", "bot": "Big change.", "module": "chat"}]}], "result": "You haven't said - which area?", "raised": null, "after": {}}
+{"fn": "_detail_they_left_out", "args": [null, "how much"], "kwargs": {}, "memory": [0, {"turns": [{"user": "i want to save for a house", "bot": "Good plan.", "module": "chat"}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_detail_they_left_out", "args": [null, "what's the pay"], "kwargs": {}, "memory": [0, {"turns": [{"user": "my sister got a new job", "bot": "Lovely.", "module": "chat"}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_the_answer_already_gives", "args": ["time", null], "kwargs": {}, "memory": [1, {"turns": []}], "result": false, "raised": null, "after": {}}
+{"fn": "_the_budget_on_the_answer", "args": ["i have 2 hours of meetings today", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "how do i cook a steak", "bot": "Fry it for 3 minutes a side.", "module": "answers"}]}], "result": null, "raised": null, "after": {}}
+{"fn": "_the_budget_on_the_answer", "args": ["what about 20 minutes?", null], "kwargs": {}, "memory": [1, {"turns": []}], "result": null, "raised": null, "after": {}}
+{"fn": "_quote", "args": ["short one.", 90], "kwargs": {}, "memory": null, "result": "\"short one\"", "raised": null, "after": null}
+{"fn": "_reads_as_the_invitation", "args": ["did you see it", null], "kwargs": {}, "memory": [1, {"turns": []}], "result": false, "raised": null, "after": {}}
+{"fn": "_says_more_than_the_ask", "args": ["is my son allergic to nuts? he had a rash"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_says_more_than_the_ask", "args": ["what is my mum allergic to?"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_ask_about_the_job", "args": ["what do i do for a living"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_ask_about_the_job", "args": ["what do i do about my back"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_ask_about_the_job", "args": ["what do i do again please"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_work_detail", "args": ["i teach year 4"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_work_detail", "args": ["i stole from the till"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_a_work_detail", "args": ["im tired after my shift"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_without_the_when", "args": ["my laptop fan is loud all the time now"], "kwargs": {}, "memory": null, "result": "my laptop fan is loud   now", "raised": null, "after": null}
+{"fn": "_again", "args": ["mum"], "kwargs": {}, "memory": null, "result": "her", "raised": null, "after": null}
+{"fn": "_again", "args": ["brother"], "kwargs": {}, "memory": null, "result": "him", "raised": null, "after": null}
+{"fn": "_again", "args": ["friend"], "kwargs": {}, "memory": null, "result": "them", "raised": null, "after": null}
+{"fn": "_said_back_already", "args": ["Noted: you have a scan at the hospital on friday", "You have a scan at the hospital on friday"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_same", "args": ["Leeds ", "leeds"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_their_allergy", "args": ["son", ["nuts", "eggs"]], "kwargs": {}, "memory": null, "result": "You haven't told me one — the allergy to nuts, eggs is your son's, not yours.", "raised": null, "after": null}
+{"fn": "_said_matches", "args": ["budget", "500", "£500"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_said_matches", "args": ["allergies", ["Nuts"], ["nuts", "eggs"]], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_said_matches", "args": ["diet", "on a diet", "vegan"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_said_matches", "args": ["age", 34, 34], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_said_matches", "args": ["job", "nurse", null], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_names", "args": ["name", "is my name sam"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_names", "args": ["pets", "x"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_rule_that_rules_it_out", "args": [{"diet": "vegan"}, "eggs"], "kwargs": {}, "memory": null, "result": "No — you're vegan.", "raised": null, "after": null}
+{"fn": "_the_rule_that_rules_it_out", "args": [{"condition": ["coeliac"]}, "gluten"], "kwargs": {}, "memory": null, "result": "No — you've told me you're coeliac, so gluten is out.", "raised": null, "after": null}
+{"fn": "_the_rule_that_rules_it_out", "args": [{"allergies": ["prawns"]}, "fish"], "kwargs": {}, "memory": null, "result": "No — you're allergic to prawns.", "raised": null, "after": null}
+{"fn": "_same_case", "args": ["rome", "as I was saying, Rome"], "kwargs": {}, "memory": null, "result": "Rome", "raised": null, "after": null}
+{"fn": "_same_case", "args": ["rome", "as i was saying, rome"], "kwargs": {}, "memory": null, "result": "rome", "raised": null, "after": null}
+{"fn": "_the_verb_from_the_line", "args": ["my nephew in june", "my niece turns 5 in may and my nephew in june"], "kwargs": {}, "memory": null, "result": "turns five", "raised": null, "after": null}
+{"fn": "_the_verb_from_the_line", "args": ["my nephew in june", "my niece is 5 in may and my nephew in june"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_the_day_is_the_whole_date", "args": ["your exam is on the 4th of june"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_day_is_the_whole_date", "args": ["the dentist on thursday"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_time_for_the_job_itself", "args": ["when is the best time to do it"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_thing_is_a_quality", "args": ["when is the best time to take a mortgage"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_thing_is_a_quality", "args": ["when is the best time to prep for it"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_names_something_of_its_own", "args": ["when is the next full moon", 11], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_says_the_end", "args": ["i finish my course in june"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_answers_the_end_asked", "args": ["i start my course in june", "when does my course start"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_answers_the_end_asked", "args": ["my holiday in june", "when does my holiday end"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_they", "args": ["mum"], "kwargs": {}, "memory": null, "result": "she", "raised": null, "after": null}
+{"fn": "_they", "args": ["boss"], "kwargs": {}, "memory": null, "result": "she", "raised": null, "after": null}
+{"fn": "_their_pronoun", "args": ["mate"], "kwargs": {}, "memory": null, "result": "them", "raised": null, "after": null}
+{"fn": "_their_pronoun", "args": ["son"], "kwargs": {}, "memory": null, "result": "him", "raised": null, "after": null}
+{"fn": "_a_condition_rules_out", "args": ["coeliac"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_condition_rules_out", "args": [["diabetic"]], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_one_half_of_the_dish", "args": ["fish", {"thing": "fish and chips"}], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_one_half_of_the_dish", "args": ["pasta", {"thing": "pasta or rice"}], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_about_people", "args": ["who is older"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_about_people", "args": ["is my laptop older than my phone"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_about_people", "args": ["am i older than him"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_day_a_plan_names", "args": ["my dads birthday is in april"], "kwargs": {}, "memory": null, "result": 135, "raised": null, "after": null}
+{"fn": "_the_day_a_plan_names", "args": ["the dentist is on tuesday"], "kwargs": {}, "memory": null, "result": 0, "raised": null, "after": null}
+{"fn": "_the_day_a_plan_names", "args": ["dinner on the 3rd of december"], "kwargs": {}, "memory": null, "result": 16, "raised": null, "after": null}
+{"fn": "_the_day_a_plan_names", "args": ["something in may 31st"], "kwargs": {}, "memory": null, "result": 195, "raised": null, "after": null}
+{"fn": "_pointed_at", "args": [[{"who": "wife", "age": 32}, {"who": "son", "age": 7}], "am i older than him"], "kwargs": {}, "memory": null, "result": {"who": "son", "age": 7}, "raised": null, "after": null}
+{"fn": "_pointed_at", "args": [[{"who": "wife", "age": 32}], "am i older than him"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_in_group", "args": ["sons", ["son", "daughter"]], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_in_group", "args": ["kids", ["kid"]], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_people", "args": [[{"who": "son"}, {"who": "son"}, {"who": "daughter"}]], "kwargs": {}, "memory": null, "result": "sons and daughter", "raised": null, "after": null}
+{"fn": "_lines_a_person_moved", "args": [null], "kwargs": {}, "memory": [0, {"facts_log": [{"text": "my sister is 12", "key": "other", "value": {"who": "sister", "age": 12}}, {"text": "sorry shes 14", "key": "other", "value": {"who": "sister", "age": 14}}]}], "result": ["my sister is 12"], "raised": null, "after": {"facts_log": [{"text": "my sister is 12", "key": "other", "value": {"who": "sister", "age": 12}}, {"text": "sorry shes 14", "key": "other", "value": {"who": "sister", "age": 14}}]}}
+{"fn": "_only_the_name", "args": ["my mums name is Ann", "ann", "mum"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_only_the_name", "args": ["my mum is called janet and shes 72", "janet", "mum"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_a_pronoun_word", "args": ["shes 4 months"], "kwargs": {}, "memory": null, "result": "she", "raised": null, "after": null}
+{"fn": "_a_pronoun_word", "args": ["theyre twins"], "kwargs": {}, "memory": null, "result": "they", "raised": null, "after": null}
+{"fn": "_a_food_word", "args": ["what about cheese", {"condition": "lactose intolerant"}], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_food_word", "args": ["what about cheese", {"diet": "vegan"}], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_put_together", "args": [["a dog", "", "a cat", "two fish"]], "kwargs": {}, "memory": null, "result": "a dog, a cat and two fish", "raised": null, "after": null}
+{"fn": "_turn_lines", "args": [null], "kwargs": {}, "memory": [0, {"turns": [{"user": "a", "bot": "b", "module": null}]}], "result": [["a", "b"]], "raised": null, "after": {}}
+{"fn": "_adds_something", "args": ["Got it - he's chewing all the furniture.", "hes chewing all the furniture"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_fact_is_kept", "args": ["pet", null], "kwargs": {}, "memory": [1, {"user": {"pets": [{"animal": "dog"}]}}], "result": false, "raised": null, "after": {"user": {"pets": [{"animal": "dog"}]}}}
+{"fn": "_tagged", "args": ["we are flying to rome next week"], "kwargs": {}, "memory": null, "result": ["holiday"], "raised": null, "after": null}
+{"fn": "_the_same_person", "args": ["mum"], "kwargs": {}, "memory": null, "result": ["mum", "mom", "mummy", "ma", "mam", "mother", "mumma"], "raised": null, "after": null}
+{"fn": "_the_same_person", "args": ["Neighbour "], "kwargs": {}, "memory": null, "result": ["neighbour"], "raised": null, "after": null}
+{"fn": "_about_kind", "args": ["trip", "Lisbon in may", null, false], "kwargs": {}, "memory": [2, null], "result": false, "raised": null, "after": null}
+{"fn": "_about_kind", "args": ["job", "i start at the hospital", null, false], "kwargs": {}, "memory": [2, null], "result": false, "raised": null, "after": null}
+{"fn": "_about_kind", "args": ["food", "im going to lisbon in june", null, false], "kwargs": {}, "memory": [2, null], "result": false, "raised": null, "after": null}
+{"fn": "_content_words", "args": ["The quick brown foxes jumped"], "kwargs": {}, "memory": null, "result": ["brown", "foxes", "jumped", "quick"], "raised": null, "after": null}
+{"fn": "_about_the_same", "args": ["he is allergic to nuts", ["making", "cake"]], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_activity_line", "args": [null], "kwargs": {}, "memory": [0, {"turns": [{"user": "im making a cake for my son", "bot": "Lovely", "module": null}, {"user": "he is allergic to nuts", "bot": "Noted", "module": null}]}], "result": "im making a cake for my son", "raised": null, "after": {}}
+{"fn": "_activity_line", "args": [null], "kwargs": {}, "memory": [0, {"turns": [{"user": "im making a cake", "bot": "Lovely", "module": null}, {"user": "my dishwasher broke", "bot": "Oh no", "module": null}]}], "result": "im making a cake", "raised": null, "after": {}}
+{"fn": "_the_making_line_they_said", "args": [null, 8], "kwargs": {}, "memory": [0, {"turns": [{"user": "im making a cake for my sons birthday", "bot": "x", "module": null}, {"user": "by the way my back is killing me", "bot": "y", "module": null}]}], "result": "im making a cake for my sons birthday", "raised": null, "after": {}}
+{"fn": "_a_thing", "args": ["the married"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_a_thing", "args": ["Edinburgh"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_thing", "args": ["and again"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_says_the_thing", "args": ["my boiler keeps losing pressure", "the pressure"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_description", "args": ["the pressure"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_a_description", "args": ["Edinburgh"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_safety_lines", "args": [null], "kwargs": {}, "memory": [0, {"turns": [{"user": "I want to END it", "bot": "Please call", "module": "safety"}]}], "result": ["i want to end it"], "raised": null, "after": {}}
+{"fn": "_kids_told", "args": [null], "kwargs": {}, "memory": [0, {"user": {"kids": "3"}}], "result": 3, "raised": null, "after": {"user": {"kids": "3"}}}
+{"fn": "_kids_told", "args": [null], "kwargs": {}, "memory": [0, {"user": {"kids": true}}], "result": 0, "raised": null, "after": {"user": {"kids": true}}}
+{"fn": "_a_child_is_described", "args": [null], "kwargs": {}, "memory": [0, {"others": [{"who": "sons", "ages": [3, 5]}]}], "result": true, "raised": null, "after": {"others": [{"who": "sons", "ages": [3, 5]}]}}
+{"fn": "_moves", "args": ["Roast it for 20 minutes; rest it for 15 minutes before carving. A 2kg bird takes roughly 1 hour 40 minutes."], "kwargs": {}, "memory": null, "result": [["rest it for 15 minutes before carving", 900, 0], ["A 2kg bird takes roughly 1 hour 40 minutes", 3600, 1]], "raised": null, "after": null}
+{"fn": "_the_move_that_fits", "args": [[["rest it for 15 minutes before carving", 900, 1], ["a 2kg bird takes 1 hour 40", 6000, 0]], 1200], "kwargs": {}, "memory": null, "result": ["rest it for 15 minutes before carving", 6000], "raised": null, "after": null}
+{"fn": "_left_out", "args": [[["x", 900, 0], ["y", null, 1]], 600], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_shares_a_word", "args": ["should i keep running", "Cut the distance for a week if your knee hurts when you run."], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_food_a_condition_rules_out", "args": ["Coeliac"], "kwargs": {}, "memory": null, "result": "gluten", "raised": null, "after": null}
+{"fn": "_all_of_them", "args": [2], "kwargs": {}, "memory": null, "result": "both", "raised": null, "after": null}
+{"fn": "_the_module_behind", "args": [null, "my chest hurts"], "kwargs": {}, "memory": [0, {"turns": [{"user": "My chest hurts!", "bot": "Call 999", "module": "safety"}]}], "result": "safety", "raised": null, "after": {}}
+{"fn": "_plan_was_corrected", "args": [null], "kwargs": {}, "memory": [0, {"correction": {"key": "time", "value": "5"}, "user": {"plan": "Leave for the airport at 5"}}], "result": true, "raised": null, "after": {"correction": {"key": "time", "value": "5"}, "user": {"plan": "Leave for the airport at 5"}}}
+{"fn": "_put_right_after_it", "args": ["the dinner is on friday", null], "kwargs": {}, "memory": [1, {"correction": {"said": "sorry, saturday", "sentence": "The dinner is on saturday."}, "turns": [{"user": "the dinner is on friday", "bot": "ok", "module": null}, {"user": "sorry, saturday", "bot": "ok", "module": null}]}], "result": "You said: \"the dinner is on friday\" — then you put it right: the dinner is on saturday.", "raised": null, "after": {"correction": {"said": "sorry, saturday", "sentence": "The dinner is on saturday."}}}
+{"fn": "_a_figure_put_right", "args": ["my rent is 1200 a month", null], "kwargs": {}, "memory": [1, {"turns": [{"user": "my rent is 1200 a month", "bot": "ok", "module": null}, {"user": "sorry 1150, i got it wrong", "bot": "ok", "module": null}]}], "result": "You said: \"my rent is 1200 a month\" — then you put it right: 1150.", "raised": null, "after": {}}
+{"fn": "_recall_quote", "args": ["what did i say about the cake", null, false], "kwargs": {}, "memory": [1, {"turns": [{"user": "what did i say", "bot": "x", "module": null}]}], "result": "Your own words were: \"what did i say about the cake\"", "raised": null, "after": {}}
+{"fn": "_recall_quote", "args": ["is it going to rain", null, true], "kwargs": {}, "memory": [1, {"turns": []}], "result": "You asked: \"is it going to rain\"", "raised": null, "after": {}}
+{"fn": "_alike", "args": ["allergy", ["allergic", "nuts"]], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_alike", "args": ["dog", ["puppy"]], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_job_note", "args": ["nurse", {"job_frame": "work"}], "kwargs": {}, "memory": null, "result": "Got it — your job is a nurse.", "raised": null, "after": null}
+{"fn": "_job_note", "args": ["hospital", {"job_frame": "in a"}], "kwargs": {}, "memory": null, "result": "Got it — you work in a hospital.", "raised": null, "after": null}
+{"fn": "_job_note", "args": ["hospital", {"job_frame": "in"}], "kwargs": {}, "memory": null, "result": "Got it — you work in hospital.", "raised": null, "after": null}
+{"fn": "_job_note", "args": ["tesco", {"job_frame": "at"}], "kwargs": {}, "memory": null, "result": "Got it — you work at Tesco.", "raised": null, "after": null}
+{"fn": "_job_note", "args": ["nights", {"job_frame": "nights"}], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_job_note", "args": ["nurse", null], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_with_an_in_law", "args": ["brother", "is my brother in law coming"], "kwargs": {}, "memory": null, "result": "brother in law", "raised": null, "after": null}
+{"fn": "_with_an_in_law", "args": ["brother-in-law", "x"], "kwargs": {}, "memory": null, "result": "brother in law", "raised": null, "after": null}
+{"fn": "_with_an_in_law", "args": ["sister", "is my sister coming"], "kwargs": {}, "memory": null, "result": "sister", "raised": null, "after": null}
+{"fn": "_with_an_in_law", "args": ["", "x"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_with_an_in_law", "args": ["mother", "my mothers-in-law age"], "kwargs": {}, "memory": null, "result": "mother in law", "raised": null, "after": null}
+{"fn": "_asks_the_line", "args": ["what is my sister allergic to", "what is my sister allergic to"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_asks_the_line", "args": ["can my son eat eggs", "can my son eat eggs"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_asks_the_line", "args": ["whats my diet", "whats my diet"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_asks_the_line", "args": ["my son eats anything", "my son eats anything"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_asks_the_line", "args": ["whats my budget", "whats my budget?"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_asks_the_line", "args": ["how old is my mum", "how old is my mum"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_job_words_seen", "args": ["nurse", "i am nursing at the minute"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_job_words_seen", "args": ["software engineer", "i do engineering"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_job_words_seen", "args": ["teacher", "my back hurts"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_place_said", "args": ["in a care home", "i work in a care home now"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_place_said", "args": ["at the co-op", "i work at the co-op"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_place_said", "args": ["at the", "i work there"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_place_said", "args": ["in a care home", "i work in a hospital"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_only_the_job", "args": ["i work at the hospital", "nurse", "the hospital"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_only_the_job", "args": ["im a nurse and my back is killing me", "nurse", ""], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_only_the_job", "args": ["i work at mcdonalds", "", "mcdonalds"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_only_the_job", "args": ["i started a new job as a nurse last week", "nurse", null], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_only_the_job", "args": ["im a nurse, actually no a midwife", "midwife", ""], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_an_attribute_they_gave", "args": ["what day did i say it was due"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_an_attribute_they_gave", "args": ["and what size did i say"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_an_attribute_they_gave", "args": ["what colour did i tell you the car was"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_an_attribute_they_gave", "args": ["hello"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_holds_nothing", "args": [{"job": "nurse"}], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_holds_nothing", "args": [{}], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_clause", "args": ["name", "Sam", null], "kwargs": {}, "memory": null, "result": "you're Sam", "raised": null, "after": null}
+{"fn": "_clause", "args": ["age", 34, null], "kwargs": {}, "memory": null, "result": "you're 34", "raised": null, "after": null}
+{"fn": "_clause", "args": ["job", "hospital", {"job": "hospital", "job_frame": "in a"}], "kwargs": {}, "memory": null, "result": "you work in a hospital", "raised": null, "after": null}
+{"fn": "_clause", "args": ["job", "nurse", {"job": "teacher", "job_frame": "work"}], "kwargs": {}, "memory": null, "result": "you're a nurse", "raised": null, "after": null}
+{"fn": "_clause", "args": ["job", "engineer", null], "kwargs": {}, "memory": null, "result": "you're an engineer", "raised": null, "after": null}
+{"fn": "_clause", "args": ["city", "Leeds", null], "kwargs": {}, "memory": null, "result": "you live in Leeds", "raised": null, "after": null}
+{"fn": "_clause", "args": ["car", "a red Golf", null], "kwargs": {}, "memory": null, "result": "you drive a red Golf", "raised": null, "after": null}
+{"fn": "_clause", "args": ["from", "Ireland", null], "kwargs": {}, "memory": null, "result": "you're from Ireland", "raised": null, "after": null}
+{"fn": "_clause", "args": ["allergies", ["nuts", "eggs"], null], "kwargs": {}, "memory": null, "result": "you're allergic to nuts, eggs", "raised": null, "after": null}
+{"fn": "_clause", "args": ["budget", "£500", null], "kwargs": {}, "memory": null, "result": "your budget is £500", "raised": null, "after": null}
+{"fn": "_clause", "args": ["diet", "vegan", null], "kwargs": {}, "memory": null, "result": "you're vegan", "raised": null, "after": null}
+{"fn": "_clause", "args": ["diet", "no dairy", null], "kwargs": {}, "memory": null, "result": "you don't eat dairy", "raised": null, "after": null}
+{"fn": "_clause", "args": ["diet", "no alcohol", null], "kwargs": {}, "memory": null, "result": "you don't drink alcohol", "raised": null, "after": null}
+{"fn": "_clause", "args": ["pets", [{"animal": "dog", "name": "rex"}, {"animal": "cat", "count": 2}], null], "kwargs": {}, "memory": null, "result": "you've got a dog called Rex and two cats", "raised": null, "after": null}
+{"fn": "_clause", "args": ["pets", {"animal": "dog"}, null], "kwargs": {}, "memory": null, "result": "you've got a dog", "raised": null, "after": null}
+{"fn": "_clause", "args": ["kids", 2, null], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_clause", "args": ["home", "a flat", null], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_clause", "args": ["other", "x", null], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_the_time_that_moved", "args": ["im going to lisbon in may", {"from": "may", "value": "june"}, "june"], "kwargs": {}, "memory": null, "result": "im going to lisbon in june", "raised": null, "after": null}
+{"fn": "_the_time_that_moved", "args": ["the dentist is on tuesday", {"from": "tuesday", "value": "wednesday"}, "wednesday"], "kwargs": {}, "memory": null, "result": "the dentist is on wednesday", "raised": null, "after": null}
+{"fn": "_the_time_that_moved", "args": ["the dentist is on tuesday", {"from": "tuesday", "value": "june"}, "june"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_the_time_that_moved", "args": ["the trip is next month", {"from": "next month", "value": "the 3rd of june"}, "june"], "kwargs": {}, "memory": null, "result": "the trip is on the 3rd of June", "raised": null, "after": null}
+{"fn": "_the_time_that_moved", "args": ["the trip is next month", {"from": "next month", "value": "june"}, "june"], "kwargs": {}, "memory": null, "result": "the trip is in June", "raised": null, "after": null}
+{"fn": "_the_time_that_moved", "args": ["the trip is in may", {"from": "", "value": "june"}, "june"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_points_at_something_else", "args": ["what should i call this song"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_points_at_something_else", "args": ["what should i call this puppy"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_points_at_something_else", "args": ["what should i call it"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_points_at_something_else", "args": ["name for my new business"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_count_of_a_kind", "args": [[{"animal": "cat", "name": "milly", "count": 3}, {"animal": "cat", "name": "fred"}]], "kwargs": {}, "memory": null, "result": 3, "raised": null, "after": null}
+{"fn": "_count_of_a_kind", "args": [[{"animal": "cat", "name": "milly"}, {"animal": "cat", "name": "fred"}]], "kwargs": {}, "memory": null, "result": 2, "raised": null, "after": null}
+{"fn": "_count_of_a_kind", "args": [[{"animal": "fish", "count": 2}, {"animal": "fish", "count": 4}, {"animal": "fish"}]], "kwargs": {}, "memory": null, "result": 4, "raised": null, "after": null}
+{"fn": "_their_place", "args": ["whats in my fridge"], "kwargs": {}, "memory": null, "result": "fridge", "raised": null, "after": null}
+{"fn": "_their_place", "args": ["what is in the freezer"], "kwargs": {}, "memory": null, "result": "freezer", "raised": null, "after": null}
+{"fn": "_their_place", "args": ["what can i make for dinner"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_their_place", "args": ["whats in the garden"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_the_one_asked", "args": [["im meeting sam at 6 tomorrow", "im meeting jo at 8 on friday"], "sam"], "kwargs": {}, "memory": null, "result": "im meeting sam at 6 tomorrow", "raised": null, "after": null}
+{"fn": "_the_one_asked", "args": [["im meeting sam at 6 tomorrow", "im meeting jo at 8 on friday"], ""], "kwargs": {}, "memory": null, "result": "im meeting jo at 8 on friday", "raised": null, "after": null}
+{"fn": "_the_one_asked", "args": [[], "x"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_the_one_asked", "args": [["im meeting sam at 6 tomorrow", "im meeting jo at 8 on friday"], "the dentist"], "kwargs": {}, "memory": null, "result": "im meeting jo at 8 on friday", "raised": null, "after": null}
+{"fn": "_ask_verb", "args": ["when does my job end"], "kwargs": {}, "memory": null, "result": "end", "raised": null, "after": null}
+{"fn": "_ask_verb", "args": ["when does my course start"], "kwargs": {}, "memory": null, "result": "start", "raised": null, "after": null}
+{"fn": "_ask_verb", "args": ["what time"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_asks_the_end", "args": ["when does my job end"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_asks_the_end", "args": ["when does my holiday finish"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_asks_the_end", "args": ["when does my course start"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_asks_the_start", "args": ["when does my course start"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_asks_the_start", "args": ["when does my course begin"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_asks_the_start", "args": ["when do i fly"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "hospital", "job_frame": "in a"}], "kwargs": {}, "memory": null, "result": "You work in a hospital", "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "nurse", "job_frame": "was"}], "kwargs": {}, "memory": null, "result": "You were a nurse", "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "nights", "job_frame": "was"}], "kwargs": {}, "memory": null, "result": "You did nights", "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "nights", "job_frame": "work"}], "kwargs": {}, "memory": null, "result": "You work nights", "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "nurse", "job_frame": "work"}], "kwargs": {}, "memory": null, "result": "You're a nurse", "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "nurse", "job_frame": "as a"}], "kwargs": {}, "memory": null, "result": "You work as a nurse", "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "tesco", "job_frame": "at"}], "kwargs": {}, "memory": null, "result": "You work at Tesco", "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "tesco", "job_frame": "at the"}], "kwargs": {}, "memory": null, "result": "You work at the tesco", "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "my own business"}], "kwargs": {}, "memory": null, "result": "You told me you're a your own business", "raised": null, "after": null}
+{"fn": "_job_said", "args": [{"job": "council", "job_frame": "for the"}], "kwargs": {}, "memory": null, "result": "You work for the council", "raised": null, "after": null}
+{"fn": "_job_phrase", "args": [{"job": "nurse"}], "kwargs": {}, "memory": null, "result": "you're a nurse", "raised": null, "after": null}
+{"fn": "_job_phrase", "args": [{"job": "nights", "job_frame": "work"}], "kwargs": {}, "memory": null, "result": "you work nights", "raised": null, "after": null}
+{"fn": "_is_are", "args": ["kids"], "kwargs": {}, "memory": null, "result": " are ", "raised": null, "after": null}
+{"fn": "_is_are", "args": ["mum"], "kwargs": {}, "memory": null, "result": " is ", "raised": null, "after": null}
+{"fn": "_eats", "args": ["parents"], "kwargs": {}, "memory": null, "result": " eat", "raised": null, "after": null}
+{"fn": "_eats", "args": [""], "kwargs": {}, "memory": null, "result": " eats", "raised": null, "after": null}
+{"fn": "_does_not", "args": ["twins"], "kwargs": {}, "memory": null, "result": " don't", "raised": null, "after": null}
+{"fn": "_does_not", "args": ["son"], "kwargs": {}, "memory": null, "result": " doesn't", "raised": null, "after": null}
+{"fn": "_a_diet_predicate", "args": ["son", "eats anything"], "kwargs": {}, "memory": null, "result": "eats anything", "raised": null, "after": null}
+{"fn": "_a_diet_predicate", "args": ["kids", "no dairy"], "kwargs": {}, "memory": null, "result": "don't eat dairy", "raised": null, "after": null}
+{"fn": "_a_diet_predicate", "args": ["mum", "vegetarian"], "kwargs": {}, "memory": null, "result": "is vegetarian", "raised": null, "after": null}
+{"fn": "_a_diet_predicate", "args": ["mum", "no alcohol"], "kwargs": {}, "memory": null, "result": "doesn't drink alcohol", "raised": null, "after": null}
+{"fn": "_no_diet", "args": ["baby"], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_no_diet", "args": ["son"], "kwargs": {}, "memory": null, "result": "You haven't told me what your son eats — tell me and I'll plan the meals round it.", "raised": null, "after": null}
+{"fn": "_no_diet", "args": [""], "kwargs": {}, "memory": null, "result": "You haven't told me what they eats — tell me and I'll plan the meals round it.", "raised": null, "after": null}
+{"fn": "_no_diet", "args": ["kids"], "kwargs": {}, "memory": null, "result": "You haven't told me what your kids eat — tell me and I'll plan the meals round it.", "raised": null, "after": null}
+{"fn": "_both_food_facts", "args": ["son", ["nuts"], "vegetarian"], "kwargs": {}, "memory": null, "result": "Your son is allergic to nuts, so nothing with nuts in it. He is vegetarian.", "raised": null, "after": null}
+{"fn": "_both_food_facts", "args": ["kids", ["nuts", "eggs"], "no dairy"], "kwargs": {}, "memory": null, "result": "Your kids are allergic to nuts, eggs, so nothing with any of nuts, eggs in it. They don't eat dairy.", "raised": null, "after": null}
+{"fn": "_both_food_facts", "args": ["", ["shellfish"], "vegan"], "kwargs": {}, "memory": null, "result": "They is allergic to shellfish, so nothing with shellfish in it. They're vegan.", "raised": null, "after": null}
+{"fn": "_allergy_is_their_food", "args": ["son", ["nuts"], true, ""], "kwargs": {}, "memory": null, "result": "Your son is allergic to nuts, so nothing with nuts in it — that's all I have on food for him.", "raised": null, "after": null}
+{"fn": "_allergy_is_their_food", "args": ["son", ["nuts", "eggs"], false, ""], "kwargs": {}, "memory": null, "result": "Your son is allergic to nuts, eggs, so nothing with any of nuts, eggs in it.", "raised": null, "after": null}
+{"fn": "_allergy_is_their_food", "args": ["daughter", ["nuts"], true, "can she have pesto"], "kwargs": {}, "memory": null, "result": "Pesto has nuts in it, so it's off the table for her.", "raised": null, "after": null}
+{"fn": "_allergy_is_their_food", "args": ["", ["eggs", ""], true, ""], "kwargs": {}, "memory": null, "result": "They is allergic to eggs, so nothing with eggs in it — that's all I have on food for them.", "raised": null, "after": null}
+{"fn": "_diet_is_their_food", "args": ["son", "no dairy", "", false], "kwargs": {}, "memory": null, "result": "Your son can't have dairy — that's all I have on food for him.", "raised": null, "after": null}
+{"fn": "_diet_is_their_food", "args": ["son", "no dairy", "", true], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_diet_is_their_food", "args": ["wife", "vegan", "", false], "kwargs": {}, "memory": null, "result": "Your wife is vegan, so nothing with meat, fish, dairy or eggs in it — that's all I have on food for her.", "raised": null, "after": null}
+{"fn": "_diet_is_their_food", "args": ["wife", "vegan", "can she have a pavlova", false], "kwargs": {}, "memory": null, "result": "Your wife is vegan, so nothing with meat, fish, dairy or eggs in it — that's all I have on food for her.", "raised": null, "after": null}
+{"fn": "_diet_is_their_food", "args": ["wife", "vegetarian", "", true], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_diet_is_their_food", "args": ["wife", "keto", "", false], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_diet_is_their_food", "args": ["", "pescatarian", "", false], "kwargs": {}, "memory": null, "result": "They is pescatarian, so nothing with meat in it (fish is fine) — that's all I have on food for them.", "raised": null, "after": null}
+{"fn": "_dislikes_here", "args": ["my son hates mushrooms and i dont like olives"], "kwargs": {}, "memory": null, "result": [["mushrooms", "other"], ["i dont like olives", "other"]], "raised": null, "after": null}
+{"fn": "_dislikes_here", "args": ["hello there"], "kwargs": {}, "memory": null, "result": [], "raised": null, "after": null}
+{"fn": "_says_the_fact", "args": ["i live in leeds", "city"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_says_the_fact", "args": ["should i move to leeds", "city"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_says_the_fact", "args": ["i told you about my job", "job"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_says_the_fact", "args": ["my back hurts", "job"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_their_own_diet", "args": ["im vegan"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_their_own_diet", "args": ["my sister is vegan"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_their_own_diet", "args": ["we eat a lot of fish"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_their_own_diet", "args": ["hello"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_object_pronoun", "args": ["mum", null], "kwargs": {}, "memory": null, "result": "her", "raised": null, "after": null}
+{"fn": "_object_pronoun", "args": ["dad", null], "kwargs": {}, "memory": null, "result": "him", "raised": null, "after": null}
+{"fn": "_object_pronoun", "args": ["kids", null], "kwargs": {}, "memory": null, "result": "them", "raised": null, "after": null}
+{"fn": "_object_pronoun", "args": ["partner", {"pronoun": "she"}], "kwargs": {}, "memory": null, "result": "them", "raised": null, "after": null}
+{"fn": "_object_pronoun", "args": ["boss", null], "kwargs": {}, "memory": null, "result": "them", "raised": null, "after": null}
+{"fn": "_the_group", "args": ["kids"], "kwargs": {}, "memory": null, "result": ["son", "daughter", "child", "kid", "baby", "twin", "boy", "girl", "stepson", "stepdaughter", "teenager", "lad", "lass"], "raised": null, "after": null}
+{"fn": "_the_group", "args": ["parents"], "kwargs": {}, "memory": null, "result": ["mum", "mother", "dad", "father", "stepmum", "stepdad", "parent"], "raised": null, "after": null}
+{"fn": "_the_group", "args": ["mum"], "kwargs": {}, "memory": null, "result": [], "raised": null, "after": null}
+{"fn": "_the_group", "args": ["grandparents"], "kwargs": {}, "memory": null, "result": ["nan", "nana", "gran", "granny", "grandma", "grandad", "grandpa"], "raised": null, "after": null}
+{"fn": "_named_back", "args": ["sister", "shes 12"], "kwargs": {}, "memory": null, "result": "your sister is 12", "raised": null, "after": null}
+{"fn": "_named_back", "args": ["kids", "theyre at school"], "kwargs": {}, "memory": null, "result": "your kids are at school", "raised": null, "after": null}
+{"fn": "_named_back", "args": ["mum", "her birthday is in may"], "kwargs": {}, "memory": null, "result": "your mum's birthday is in may", "raised": null, "after": null}
+{"fn": "_named_back", "args": ["mum", "your mum is 70"], "kwargs": {}, "memory": null, "result": "your mum is 70", "raised": null, "after": null}
+{"fn": "_named_back", "args": ["son", "he loves football"], "kwargs": {}, "memory": null, "result": "your son loves football", "raised": null, "after": null}
+{"fn": "_named_back", "args": ["parents", "their house is big"], "kwargs": {}, "memory": null, "result": "your parents' house is big", "raised": null, "after": null}
+{"fn": "_named_back", "args": ["mum", "She's 70"], "kwargs": {}, "memory": null, "result": "She's 70", "raised": null, "after": null}
+{"fn": "_person_clauses", "args": ["son", {"age": 7, "allergies": ["nuts", "eggs"], "condition": ["asthma"], "diet": "vegetarian", "dislikes": ["peas"]}], "kwargs": {}, "memory": null, "result": ["is 7", "is allergic to nuts and eggs", "is asthma", "is vegetarian", "doesn't like peas"], "raised": null, "after": null}
+{"fn": "_person_clauses", "args": ["kids", {"age": true, "condition": "", "diet": "no dairy"}], "kwargs": {}, "memory": null, "result": ["don't eat dairy"], "raised": null, "after": null}
+{"fn": "_covers", "args": ["your son is 7 and allergic to nuts", ["is 7", "is allergic to nuts"]], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_covers", "args": ["your son is 7", ["is 7", "is allergic to nuts"]], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_tokens", "args": ["my sons are 7 and 9"], "kwargs": {}, "memory": null, "result": ["7", "9", "son"], "raised": null, "after": null}
+{"fn": "_a_number", "args": ["12"], "kwargs": {}, "memory": null, "result": 12, "raised": null, "after": null}
+{"fn": "_a_number", "args": [" 7 "], "kwargs": {}, "memory": null, "result": 7, "raised": null, "after": null}
+{"fn": "_a_number", "args": ["seven"], "kwargs": {}, "memory": null, "result": "seven", "raised": null, "after": null}
+{"fn": "_a_number", "args": [null], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_both_of_you", "args": ["kids"], "kwargs": {}, "memory": null, "result": "all of you", "raised": null, "after": null}
+{"fn": "_both_of_you", "args": ["wife"], "kwargs": {}, "memory": null, "result": "both of you", "raised": null, "after": null}
+{"fn": "_condition_is_their_food", "args": ["son", "coeliac", ""], "kwargs": {}, "memory": null, "result": "Your son is coeliac, so nothing with gluten in it — that's all I have on food for him.", "raised": null, "after": null}
+{"fn": "_condition_is_their_food", "args": ["son", "coeliac", "can he have toast"], "kwargs": {}, "memory": null, "result": "Toast has gluten in it, and your son is coeliac.", "raised": null, "after": null}
+{"fn": "_condition_is_their_food", "args": ["dad", "diabetic", ""], "kwargs": {}, "memory": null, "result": "Your dad is diabetic, so keep the sugar and white carbs down — that's all I have on food for him.", "raised": null, "after": null}
+{"fn": "_condition_is_their_food", "args": ["dad", "type 2 diabetes", ""], "kwargs": {}, "memory": null, "result": "Your dad is type 2 diabetes — that's all I have on food for him.", "raised": null, "after": null}
+{"fn": "_condition_is_their_food", "args": ["dad", "asthma", ""], "kwargs": {}, "memory": null, "result": "Your dad is asthma — that's all I have on food for him.", "raised": null, "after": null}
+{"fn": "_condition_is_their_food", "args": ["dad", "", ""], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_condition_is_their_food", "args": ["", "high blood pressure", ""], "kwargs": {}, "memory": null, "result": "They is high blood pressure, so keep the salt down — that's all I have on food for them.", "raised": null, "after": null}
+{"fn": "_diet_sentence", "args": ["son", "eats anything"], "kwargs": {}, "memory": null, "result": "Your son eats anything.", "raised": null, "after": null}
+{"fn": "_diet_sentence", "args": ["", "eats anything"], "kwargs": {}, "memory": null, "result": "They eat anything.", "raised": null, "after": null}
+{"fn": "_diet_sentence", "args": ["", "no dairy"], "kwargs": {}, "memory": null, "result": "They don't eat dairy.", "raised": null, "after": null}
+{"fn": "_diet_sentence", "args": ["kids", "vegan"], "kwargs": {}, "memory": null, "result": "Your kids are vegan.", "raised": null, "after": null}
+{"fn": "_diet_sentence", "args": ["", "vegan"], "kwargs": {}, "memory": null, "result": "They're vegan.", "raised": null, "after": null}
+{"fn": "_diet_sentence", "args": ["mum", "no alcohol"], "kwargs": {}, "memory": null, "result": "Your mum doesn't drink alcohol.", "raised": null, "after": null}
+{"fn": "car_line", "args": ["red golf"], "kwargs": {}, "memory": null, "result": "You drive a red golf.", "raised": null, "after": null}
+{"fn": "car_line", "args": ["bmw x5"], "kwargs": {}, "memory": null, "result": "You drive a BMW X5.", "raised": null, "after": null}
+{"fn": "car_line", "args": ["electric car"], "kwargs": {}, "memory": null, "result": "You drive an Electric Car.", "raised": null, "after": null}
+{"fn": "car_line", "args": ["van"], "kwargs": {}, "memory": null, "result": "You drive a Van.", "raised": null, "after": null}
+{"fn": "car_line", "args": [""], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "car_line", "args": ["Ford Fiesta"], "kwargs": {}, "memory": null, "result": "You drive a Ford Fiesta.", "raised": null, "after": null}
+{"fn": "car_line", "args": ["vw polo"], "kwargs": {}, "memory": null, "result": "You drive a VW Polo.", "raised": null, "after": null}
+{"fn": "_was_called", "args": [[{"animal": "dog", "name": "rex"}]], "kwargs": {}, "memory": null, "result": "Your dog was called Rex.", "raised": null, "after": null}
+{"fn": "_was_called", "args": [[{"animal": "dog", "name": "rex"}, {"animal": "cat", "name": "tom"}, {"name": "x"}]], "kwargs": {}, "memory": null, "result": "You called them dog Rex, cat Tom and pet X.", "raised": null, "after": null}
+{"fn": "_a_pet_that_is_gone", "args": [[{"animal": "dog", "name": "rex", "gone": "died"}]], "kwargs": {}, "memory": null, "result": "I'm sorry — you told me your dog Rex died.", "raised": null, "after": null}
+{"fn": "_a_pet_that_is_gone", "args": [[{"animal": "dog", "gone": "rehomed"}, {"animal": "cat", "name": "tom", "gone": "died"}]], "kwargs": {}, "memory": null, "result": "I'm sorry — you told me your cat Tom died.", "raised": null, "after": null}
+{"fn": "_a_pet_that_is_gone", "args": [[{"animal": "dog", "gone": "rehomed"}, {"animal": "cat", "gone": "rehomed"}, {"animal": "fish", "gone": "rehomed"}]], "kwargs": {}, "memory": null, "result": "You told me you don't have any pets any more.", "raised": null, "after": null}
+{"fn": "_a_pet_that_is_gone", "args": [[{"animal": "dog", "gone": "died"}, {"animal": "cat", "gone": "died"}, {"animal": "fish", "gone": "x"}]], "kwargs": {}, "memory": null, "result": "I'm sorry — you told me your dog or your cat died.", "raised": null, "after": null}
+{"fn": "_pets_together", "args": [[{"animal": "cat", "name": "milly"}, {"animal": "cat", "name": "fred"}]], "kwargs": {}, "memory": null, "result": "two cats called Milly and Fred", "raised": null, "after": null}
+{"fn": "_pets_together", "args": [[{"animal": "cat", "name": "milly"}, {"animal": "cat"}]], "kwargs": {}, "memory": null, "result": "two cats — Milly and one you haven't named", "raised": null, "after": null}
+{"fn": "_pets_together", "args": [[{"animal": "fish", "name": "a"}, {"animal": "fish", "name": "b"}, {"animal": "fish", "name": "c"}]], "kwargs": {}, "memory": null, "result": "three fish called A, B and C", "raised": null, "after": null}
+{"fn": "_pets_together", "args": [[{"animal": "cat", "name": "milly"}, {"animal": "cat"}, {"animal": "cat"}]], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_pets_together", "args": [[{"animal": "cat", "name": "milly"}, {"animal": "dog"}]], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_pets_together", "args": [[{"animal": "cat", "name": "milly", "count": 2}, {"animal": "cat"}]], "kwargs": {}, "memory": null, "result": null, "raised": null, "after": null}
+{"fn": "_a_pet", "args": [{"animal": "dog", "name": "rex"}], "kwargs": {}, "memory": null, "result": "a dog called Rex", "raised": null, "after": null}
+{"fn": "_a_pet", "args": [{"animal": "cat", "name": "milly", "count": 3}], "kwargs": {}, "memory": null, "result": "three cats, one called Milly", "raised": null, "after": null}
+{"fn": "_a_pet", "args": [{"animal": "sheep", "name": "dolly", "count": "2"}], "kwargs": {}, "memory": null, "result": "two sheep, one called Dolly", "raised": null, "after": null}
+{"fn": "_a_pet", "args": [{"animal": "fish", "count": 5}], "kwargs": {}, "memory": null, "result": "five fish", "raised": null, "after": null}
+{"fn": "_a_pet", "args": [{"breed": "labrador", "animal": "dog"}], "kwargs": {}, "memory": null, "result": "a labrador", "raised": null, "after": null}
+{"fn": "_a_pet", "args": [{}], "kwargs": {}, "memory": null, "result": "a pet", "raised": null, "after": null}
+{"fn": "_a_pet", "args": [{"animal": "owl", "name": "hedwig", "count": "x"}], "kwargs": {}, "memory": null, "result": "an owl called Hedwig", "raised": null, "after": null}
+{"fn": "_carries_something", "args": [{"user": "what were we talking about", "bot": "We talked about lots of things and other things", "module": "memory_store"}], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_carries_something", "args": [{"user": "my back hurts", "bot": "Rest it.", "module": "health"}], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_carries_something", "args": [{"user": "my back hurts", "bot": "", "module": "health"}], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_carries_something", "args": [{"user": "hi", "bot": "Hello there, how are you doing today then friend", "module": "smalltalk"}], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_carries_something", "args": [{"user": "hi", "bot": "Hello there", "module": "smalltalk"}], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_worth_reporting", "args": ["hello"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_worth_reporting", "args": ["my boiler is broken"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_worth_reporting", "args": [""], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_worth_reporting", "args": ["ok"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_names_its_thing", "args": ["what did i say about the cake"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_names_its_thing", "args": ["what did i say about it again"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_names_its_thing", "args": ["what did i say"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_names_its_thing", "args": ["what did i say about that one earlier"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_says_where_they_live", "args": ["i live in a flat in leeds"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_says_where_they_live", "args": ["hello"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_says_where_they_live", "args": [""], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_says_where_they_live", "args": [5], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_seen", "args": ["im gonna bake a cake for my sons bday"], "kwargs": {}, "memory": null, "result": ["bake", "bday", "birthday", "cake", "going", "gonna", "son"], "raised": null, "after": null}
+{"fn": "_seen", "args": [""], "kwargs": {}, "memory": null, "result": [], "raised": null, "after": null}
+{"fn": "_recap", "args": ["im going to lisbon in june."], "kwargs": {}, "memory": null, "result": "You're going to Lisbon in June", "raised": null, "after": null}
+{"fn": "_recap", "args": ["i want to learn spanish"], "kwargs": {}, "memory": null, "result": "You want to learn spanish", "raised": null, "after": null}
+{"fn": "_recap", "args": ["the dog barked"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_recap", "args": ["we're moving my mums stuff next week"], "kwargs": {}, "memory": null, "result": "You're moving your mum's stuff next week", "raised": null, "after": null}
+{"fn": "_recap", "args": ["I need to fix my bike"], "kwargs": {}, "memory": null, "result": "You want to fix your bike", "raised": null, "after": null}
+{"fn": "_reads_as_a_correction", "args": ["no its not my sister its my cousin"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_reads_as_a_correction", "args": ["sorry i meant june"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_reads_as_a_correction", "args": ["thats wrong"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_reads_as_a_correction", "args": ["hello"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_reads_as_a_correction", "args": [""], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_reads_as_a_correction", "args": ["no, my brother not my sister"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_told_phrase", "args": ["my boiler broke this morning"], "kwargs": {}, "memory": null, "result": "your boiler broke this morning", "raised": null, "after": null}
+{"fn": "_told_phrase", "args": ["what time is it"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_told_phrase", "args": ["hello"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_told_phrase", "args": ["the food was great but the service was slow"], "kwargs": {}, "memory": null, "result": "the food was great but the service was slow", "raised": null, "after": null}
+{"fn": "_told_phrase", "args": ["im going to lisbon in june with my wife"], "kwargs": {}, "memory": null, "result": "you are going to lisbon in june with your wife", "raised": null, "after": null}
+{"fn": "_told_phrase", "args": [""], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_told_phrase", "args": ["i feel sad today"], "kwargs": {}, "memory": null, "result": "", "raised": null, "after": null}
+{"fn": "_closes_by_a_frame", "args": ["anyway lets change the subject"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_closes_by_a_frame", "args": ["lets talk about something else"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_closes_by_a_frame", "args": ["lets change the subject to cars"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_closes_by_a_frame", "args": ["hello"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_pronoun_is_one_of_the_two", "args": [{"a": {"who": "sister"}, "b": {"who": "brother"}}, "how old is she"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_pronoun_is_one_of_the_two", "args": [{"a": {"who": "son"}, "b": {"who": "brother"}}, "how old is she"], "kwargs": {}, "memory": null, "result": false, "raised": null, "after": null}
+{"fn": "_the_pronoun_is_one_of_the_two", "args": [{"a": {"who": "son"}}, "how old is he"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
+{"fn": "_the_pronoun_is_one_of_the_two", "args": [{"a": {"who": "son"}}, "how old"], "kwargs": {}, "memory": null, "result": true, "raised": null, "after": null}
