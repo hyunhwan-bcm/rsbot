@@ -302,3 +302,22 @@ pub fn valid_date(y: i64, m: i64, d: i64) -> bool {
     let len = [31, if leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][(m - 1) as usize];
     d <= len
 }
+
+static _ORDER_OF_STEPS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._ORDER_OF_STEPS"));
+
+/// DUP(bot.knowledge.lookup::the_ask_is_the_order_of_steps): the line asks which step comes
+/// first.
+pub fn the_ask_is_the_order_of_steps(understood: &Understood) -> bool {
+    let joined;
+    let mut said = crate::knowledge::d1_shared::text_or_clean(understood);
+    if said.is_empty() {
+        joined = understood.words.join(" ");
+        said = &joined;
+    }
+    !said.is_empty() && _ORDER_OF_STEPS.is_match(said)
+}
+
+/// DUP(bot.knowledge.lookup::not_the_ask_about_the_order).
+pub fn not_the_ask_about_the_order(understood: &Understood) -> bool {
+    !the_ask_is_the_order_of_steps(understood)
+}
