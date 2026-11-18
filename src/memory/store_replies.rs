@@ -2137,7 +2137,7 @@ pub fn _about_this_chat_m(text_: &str, mut memory: Option<&mut Memory>) -> bool 
             return false;
         }
     }
-    if crate::memory::history::asked(text_, memory.as_deref()).val().truthy() {
+    if crate::memory::history::asked(text_, None).val().truthy() {
         return true;
     }
     // A recall ask with nothing named in it is the whole picture asked for in other words.
