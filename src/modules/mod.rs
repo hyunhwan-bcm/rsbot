@@ -7,6 +7,8 @@
 use crate::runtime::ModuleDef;
 
 pub mod arbiter;
+pub mod intent;
+pub mod understand;
 
 /// Every module, highest PRIORITY first, then by name: the order `bot/runtime.py` runs them in.
 pub fn registry() -> &'static [ModuleDef] {
@@ -35,8 +37,12 @@ pub fn registry() -> &'static [ModuleDef] {
 pub mod hooks {
     use crate::state::Memory;
 
-    pub fn observe_understand(_text: &str, _memory: &mut Memory) {}
-    pub fn observe_intent(_text: &str, _memory: &mut Memory) {}
+    pub fn observe_understand(text: &str, memory: &mut Memory) {
+        crate::modules::understand::observe(text, memory)
+    }
+    pub fn observe_intent(text: &str, memory: &mut Memory) {
+        crate::modules::intent::observe(text, memory)
+    }
     pub fn respond_safety(_text: &str, _memory: &mut Memory) -> Option<String> {
         None
     }
