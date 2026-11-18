@@ -163,211 +163,6 @@ fn format_named(template: &str, fields: &[(&str, &str)]) -> String {
     out
 }
 
-/// Python: bot/compose/fallback.py:5683 `_the_person_already_said_it(memory)` (never called on the trace corpus)
-pub fn _the_person_already_said_it(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_the_person_already_said_it")
-}
-
-/// Python: bot/compose/fallback.py:5697 `_a_care_thread_to_leave_alone(memory)`
-pub fn _a_care_thread_to_leave_alone(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_a_care_thread_to_leave_alone")
-}
-
-/// Python: bot/compose/fallback.py:5711 `_the_last_few_lines(memory)`
-pub fn _the_last_few_lines(memory: &Memory) -> Vec<String> {
-    crate::unported!("bot.compose.fallback:_the_last_few_lines")
-}
-
-/// Python: bot/compose/fallback.py:5718 `baby_loss(clean)`
-pub fn baby_loss(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:baby_loss")
-}
-
-/// Python: bot/compose/fallback.py:5756 `_the_answer_above_was_a_joke(memory)` (never called on the trace corpus)
-pub fn _the_answer_above_was_a_joke(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_the_answer_above_was_a_joke")
-}
-
-/// Python: bot/compose/fallback.py:5767 `_a_verdict_line(text, memory=None)`
-pub fn _a_verdict_line(text: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback:_a_verdict_line")
-}
-
-/// Python: bot/compose/fallback.py:5807 `a_death_just_said(memory=None)` (never called on the trace corpus)
-pub fn a_death_just_said(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:a_death_just_said")
-}
-
-/// Python: bot/compose/fallback.py:5825 `a_verdict_on_the_person(memory=None)` (never called on the trace corpus)
-pub fn a_verdict_on_the_person(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:a_verdict_on_the_person")
-}
-
-/// Python: bot/compose/fallback.py:5848 `_the_last_two_lines(memory=None)` (never called on the trace corpus)
-pub fn _the_last_two_lines(memory: &Memory) -> Value {
-    crate::unported!("bot.compose.fallback:_the_last_two_lines")
-}
-
-/// Python: bot/compose/fallback.py:5858 `_a_loss_in_the_same_breath(memory=None, lines=())` (never called on the trace corpus)
-pub fn _a_loss_in_the_same_breath(memory: &Memory, lines: &[String]) -> bool {
-    crate::unported!("bot.compose.fallback:_a_loss_in_the_same_breath")
-}
-
-/// Python: bot/compose/fallback.py:5879 `a_wait_with_no_loss(memory=None)` (never called on the trace corpus)
-pub fn a_wait_with_no_loss(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:a_wait_with_no_loss")
-}
-
-/// Python: bot/compose/fallback.py:5887 `a_setback_with_no_loss(memory=None)` (never called on the trace corpus)
-pub fn a_setback_with_no_loss(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:a_setback_with_no_loss")
-}
-
-/// Python: bot/compose/fallback.py:5895 `_the_heavy_pool(memory=None)` (never called on the trace corpus)
-pub fn _the_heavy_pool(memory: &Memory) -> Value {
-    crate::unported!("bot.compose.fallback:_the_heavy_pool")
-}
-
-/// Python: bot/compose/fallback.py:5917 `a_heavy_verdict(memory=None)` (never called on the trace corpus)
-pub fn a_heavy_verdict(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:a_heavy_verdict")
-}
-
-/// Python: bot/compose/fallback.py:5940 `a_happening_now(memory=None)` (never called on the trace corpus)
-pub fn a_happening_now(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:a_happening_now")
-}
-
-/// Python: bot/compose/fallback.py:5959 `_a_verdict_on_something(text, memory)` (never called on the trace corpus)
-pub fn _a_verdict_on_something(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_a_verdict_on_something")
-}
-
-/// Python: bot/compose/fallback.py:5976 `_verdict_pool(clean, memory=None)`
-pub fn _verdict_pool(clean: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback:_verdict_pool")
-}
-
-/// Python: bot/compose/fallback.py:6001 `a_heavy_news(memory=None)` (never called on the trace corpus)
-pub fn a_heavy_news(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:a_heavy_news")
-}
-
-/// Python: bot/compose/fallback.py:6021 `a_loss_in_the_thread(memory=None)` (never called on the trace corpus)
-pub fn a_loss_in_the_thread(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:a_loss_in_the_thread")
-}
-
-/// Python: bot/compose/fallback.py:6052 `a_verdict_stands_down(memory=None)`
-pub fn a_verdict_stands_down(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:a_verdict_stands_down")
-}
-
-/// Python: bot/compose/fallback.py:6093 `reads_as_a_verdict(text, memory=None)`
-pub fn reads_as_a_verdict(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:reads_as_a_verdict")
-}
-
-/// Python: bot/compose/fallback.py:6122 `_reaction_pool(clean, memory=None)`
-pub fn _reaction_pool(clean: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback:_reaction_pool")
-}
-
-/// Python: bot/compose/fallback.py:6148 `reaction_line(text, memory=None)` (never called on the trace corpus)
-pub fn reaction_line(text: &str, memory: &Memory) -> Value {
-    crate::unported!("bot.compose.fallback:reaction_line")
-}
-
-/// Python: bot/compose/fallback.py:6247 `_a_thing_done(clean)` (never called on the trace corpus)
-pub fn _a_thing_done(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_thing_done")
-}
-
-/// Python: bot/compose/fallback.py:6252 `_thing_done_shape(clean)` (never called on the trace corpus)
-pub fn _thing_done_shape(clean: &str) -> Value {
-    crate::unported!("bot.compose.fallback:_thing_done_shape")
-}
-
-/// Python: bot/compose/fallback.py:6257 `_thing_done_pool(clean)`
-pub fn _thing_done_pool(clean: &str) -> Option<Vec<String>> {
-    crate::unported!("bot.compose.fallback:_thing_done_pool")
-}
-
-/// Python: bot/compose/fallback.py:6305 `_tail_complains(clean)`
-pub fn _tail_complains(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_tail_complains")
-}
-
-/// Python: bot/compose/fallback.py:6319 `_thing_done_scan(clean)`
-pub fn _thing_done_scan(clean: &str) -> Value {
-    crate::unported!("bot.compose.fallback:_thing_done_scan")
-}
-
-/// Python: bot/compose/fallback.py:6477 `_a_thing_after(rest)`
-pub fn _a_thing_after(rest: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_thing_after")
-}
-
-/// Python: bot/compose/fallback.py:6494 `_done_ing()` (never called on the trace corpus)
-pub fn _done_ing() -> Value {
-    crate::unported!("bot.compose.fallback:_done_ing")
-}
-
-/// Python: bot/compose/fallback.py:6568 `_a_knock_on_oneself(clean)`
-pub fn _a_knock_on_oneself(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_knock_on_oneself")
-}
-
-/// Python: bot/compose/fallback.py:6591 `_a_knock_into_a_thing(clean)`
-pub fn _a_knock_into_a_thing(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_knock_into_a_thing")
-}
-
-/// Python: bot/compose/fallback.py:6691 `_a_mishap_to_ask_about(text)`
-pub fn _a_mishap_to_ask_about(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_mishap_to_ask_about")
-}
-
-/// Python: bot/compose/fallback.py:6707 `_a_mishap(clean, words)`
-pub fn _a_mishap(clean: &str, words: &[String]) -> bool {
-    crate::unported!("bot.compose.fallback:_a_mishap")
-}
-
-/// Python: bot/compose/fallback.py:6831 `the_dislike_ask(clean, memory)`
-pub fn the_dislike_ask(clean: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback:the_dislike_ask")
-}
-
-/// Python: bot/compose/fallback.py:6862 `_own_feeling(clean)`
-pub fn _own_feeling(clean: &str) {
-    crate::unported!("bot.compose.fallback:_own_feeling")
-}
-
-/// Python: bot/compose/fallback.py:6882 `_summons_pool(summons, line='')` (never called on the trace corpus)
-pub fn _summons_pool(summons: &Value, line: &str) -> Value {
-    crate::unported!("bot.compose.fallback:_summons_pool")
-}
-
-/// Python: bot/compose/fallback.py:7011 `_a_promise_that_keeps_moving(clean)`
-pub fn _a_promise_that_keeps_moving(clean: &str) {
-    crate::unported!("bot.compose.fallback:_a_promise_that_keeps_moving")
-}
-
-/// Python: bot/compose/fallback.py:7087 `_reads_as_a_judgement(text)`
-pub fn _reads_as_a_judgement(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_reads_as_a_judgement")
-}
-
-/// Python: bot/compose/fallback.py:7111 `_a_doable(clean, memory)`
-pub fn _a_doable(clean: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback:_a_doable")
-}
-
-/// Python: bot/compose/fallback.py:7121 `a_doable(text, memory)`
-pub fn a_doable(text: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback:a_doable")
-}
-
 /// Python: bot/compose/fallback.py:7133 `reads_as_a_judgement(text)`
 pub fn reads_as_a_judgement(text: &str) -> bool {
     crate::unported!("bot.compose.fallback:reads_as_a_judgement")
@@ -4066,4 +3861,841 @@ pub fn answer_to_cut<'m>(memory: &'m Memory, axis: &str) -> Option<&'m Turn> {
         return None;
     }
     Some(last)
+}
+
+// ---- fallback.py:5683-6127: reactions and verdicts on the thing before ----
+
+/// `" ".join(str(turn.get("user") or "").lower().split())` for the person's last `n` lines.
+fn last_lines(memory: &Memory, n: i64) -> Vec<String> {
+    last_n(&memory.turns, n).iter().map(|t| text::squash(&lower(&t.user))).collect()
+}
+
+/// Python: bot/compose/fallback.py:5683 `_the_person_already_said_it(memory)` (never called on the trace corpus)
+pub fn _the_person_already_said_it(memory: &Memory) -> bool {
+    let last = crate::memory::last_user(memory, 1);
+    let said = text::strip(last.as_str().unwrap_or(""));
+    if said.is_empty() || text::rstrip(said).ends_with('?') {
+        return false;
+    }
+    text::split_ref(said).len() >= 4
+}
+
+/// Python: bot/compose/fallback.py:5697 `_a_care_thread_to_leave_alone(memory)`
+pub fn _a_care_thread_to_leave_alone(memory: &Memory) -> bool {
+    if _in_a_care_thread(memory) || _in_sudden_loss_thread(memory) || _in_a_loss_thread(memory) {
+        return true;
+    }
+    _the_last_few_lines(memory).iter().any(|said| baby_loss(said))
+}
+
+/// Python: bot/compose/fallback.py:5711 `_the_last_few_lines(memory)`
+/// The person's own last few lines, as the thread left them.
+pub fn _the_last_few_lines(memory: &Memory) -> Vec<String> {
+    last_n(&memory.turns, 4).iter().filter(|t| !text::strip(&t.user).is_empty()).map(|t| text::squash(&lower(&t.user))).collect()
+}
+
+/// Python: bot/compose/fallback.py:5718 `baby_loss(clean)`
+pub fn baby_loss(clean: &str) -> bool {
+    BABY_LOSS.is_match(clean)
+}
+
+regexes!(VERDICT_SAID, VERDICT_BARE, JOKE_WANTED, JOKE_UNWANTED);
+pools!(REACTION_OUCH);
+
+/// Python: bot/compose/fallback.py:5756 `_the_answer_above_was_a_joke(memory)` (never called on the trace corpus)
+pub fn _the_answer_above_was_a_joke(memory: &Memory) -> bool {
+    let Some(last) = memory.turns.last() else { return false };
+    let asked = text::squash(&lower(&last.user));
+    if JOKE_UNWANTED.is_match(&asked) {
+        return false;
+    }
+    JOKE_WANTED.is_match(&asked)
+}
+
+/// Python: bot/compose/fallback.py:5767 `_a_verdict_line(text, memory=None)`
+/// The pool for a line that is only a verdict on the thing before it, or None. (The skeleton's
+/// `()` return could not carry the pool.)
+pub fn _a_verdict_line(text_: &str, memory: &Memory) -> Option<Vec<String>> {
+    let t = text::squash(&lower(text_));
+    let found = VERDICT_SAID.match_(&t);
+    if found.is_none() && VERDICT_BARE.match_(&t).is_none() {
+        return None;
+    }
+    if let Some(found) = &found {
+        if found.name("noun") == Some("joke") && _the_answer_above_was_a_joke(memory) {
+            return None;
+        }
+    }
+    Some(REACTION_OUCH.clone())
+}
+
+regexes!(VERDICT_LINE, STATE_ABOVE, WAITING_NEWS, JOB_GONE_NEWS, GRIEF_ABOVE, VERDICT_POINTS_BACK, HEAVY_NEWS, HARD_WEEK);
+
+/// Python: bot/compose/fallback.py:5807 `a_death_just_said(memory=None)` (never called on the trace corpus)
+pub fn a_death_just_said(memory: &Memory) -> bool {
+    for line in last_lines(memory, 2) {
+        if line.is_empty() {
+            continue;
+        }
+        if py_try(|| crate::compose::loss::reads_as_loss(&line, None, false)) == Some(true) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:5825 `a_verdict_on_the_person(memory=None)` (never called on the trace corpus)
+pub fn a_verdict_on_the_person(memory: &Memory) -> bool {
+    last_lines(memory, 2).iter().any(|l| !l.is_empty() && STATE_ABOVE.is_match(l))
+}
+
+/// Python: bot/compose/fallback.py:5848 `_the_last_two_lines(memory=None)` (never called on the trace corpus)
+/// The person's own lines for this turn and the one before - never the bot's wording.
+pub fn _the_last_two_lines(memory: &Memory) -> Vec<String> {
+    last_lines(memory, 2).into_iter().filter(|l| !l.is_empty()).collect()
+}
+
+/// Python: bot/compose/fallback.py:5858 `_a_loss_in_the_same_breath(memory=None, lines=())` (never called on the trace corpus)
+pub fn _a_loss_in_the_same_breath(memory: &Memory, lines: &[String]) -> bool {
+    if a_death_just_said(memory) || a_heavy_verdict(memory) {
+        return true;
+    }
+    for line in lines {
+        if HEAVY_ABOVE.is_match(line) {
+            return true;
+        }
+        let heavy = py_try(|| {
+            crate::compose::badnews::reads_as_sudden_loss(line)
+                || crate::compose::badnews::reads_as_the_leaving(line)
+                || crate::compose::loss::reads_as_loss(line, None, false)
+        });
+        if heavy == Some(true) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:5879 `a_wait_with_no_loss(memory=None)` (never called on the trace corpus)
+pub fn a_wait_with_no_loss(memory: &Memory) -> bool {
+    let lines = _the_last_two_lines(memory);
+    if !lines.iter().any(|l| WAITING_NEWS.is_match(l)) {
+        return false;
+    }
+    !_a_loss_in_the_same_breath(memory, &lines)
+}
+
+/// Python: bot/compose/fallback.py:5887 `a_setback_with_no_loss(memory=None)` (never called on the trace corpus)
+pub fn a_setback_with_no_loss(memory: &Memory) -> bool {
+    let lines = _the_last_two_lines(memory);
+    if !lines.iter().any(|l| JOB_GONE_NEWS.is_match(l)) {
+        return false;
+    }
+    !_a_loss_in_the_same_breath(memory, &lines)
+}
+
+pools!(VERDICT_NUMB, VERDICT_QUEUE, VERDICT_SETBACK, VERDICT_HEAVY);
+
+/// Python: bot/compose/fallback.py:5895 `_the_heavy_pool(memory=None)` (never called on the trace corpus)
+/// The pool for a verdict on news with no repair in it, as a tuple value.
+pub fn _the_heavy_pool(memory: &Memory) -> Value {
+    Value::from(the_heavy_pool(memory))
+}
+
+/// `_the_heavy_pool` as lines.
+pub fn the_heavy_pool(memory: &Memory) -> Vec<String> {
+    if a_death_just_said(memory) {
+        return VERDICT_NUMB.clone();
+    }
+    if a_wait_with_no_loss(memory) {
+        return VERDICT_QUEUE.clone();
+    }
+    if a_setback_with_no_loss(memory) {
+        return VERDICT_SETBACK.clone();
+    }
+    VERDICT_HEAVY.clone()
+}
+
+/// Python: bot/compose/fallback.py:5917 `a_heavy_verdict(memory=None)` (never called on the trace corpus)
+pub fn a_heavy_verdict(memory: &Memory) -> bool {
+    last_lines(memory, 2).iter().any(|l| !l.is_empty() && GRIEF_ABOVE.is_match(l))
+}
+
+/// Python: bot/compose/fallback.py:5940 `a_happening_now(memory=None)` (never called on the trace corpus)
+pub fn a_happening_now(memory: &Memory) -> bool {
+    last_lines(memory, 2).iter().any(|l| !l.is_empty() && HAPPENING_NOW.is_match(l))
+}
+
+/// Python: bot/compose/fallback.py:5959 `_a_verdict_on_something(text, memory)` (never called on the trace corpus)
+pub fn _a_verdict_on_something(text_: &str, memory: &Memory) -> bool {
+    if VERDICT_POINTS_BACK.match_(text_).is_some() {
+        return true;
+    }
+    !memory.turns.is_empty()
+}
+
+pools!(VERDICT_SHAME, VERDICT_LUCK, VERDICT_ROUGH, VERDICT_ANNOY);
+
+/// Python: bot/compose/fallback.py:5976 `_verdict_pool(clean, memory=None)`
+/// The pool for a verdict on the news, or None when the line is anything more. (The skeleton's
+/// `()` return could not carry the pool.)
+pub fn _verdict_pool(clean: &str, memory: &Memory) -> Option<Vec<String>> {
+    let t = text::squash(&lower(clean));
+    if t.is_empty() || VERDICT_LINE.match_(&t).is_none() || t.contains('?') {
+        return None;
+    }
+    if !_a_verdict_on_something(&t, memory) {
+        return None;
+    }
+    if memory.turns.is_empty() {
+        return None;
+    }
+    if rx(r"\b(?:shame|letdown)\b").is_match(&t) {
+        return Some(VERDICT_SHAME.clone());
+    }
+    if rx(r"\b(?:typical|figures|luck|law|of course)\b").is_match(&t) {
+        return Some(VERDICT_LUCK.clone());
+    }
+    if a_verdict_on_the_person(memory) {
+        return Some(VERDICT_ROUGH.clone());
+    }
+    Some(VERDICT_ANNOY.clone())
+}
+
+/// Python: bot/compose/fallback.py:6001 `a_heavy_news(memory=None)` (never called on the trace corpus)
+pub fn a_heavy_news(memory: &Memory) -> bool {
+    for line in last_lines(memory, 2) {
+        if line.is_empty() {
+            continue;
+        }
+        if HEAVY_NEWS.is_match(&line) {
+            return true;
+        }
+        if py_try(|| crate::compose::badnews::reads_as_the_leaving(&line)) == Some(true) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:6021 `a_loss_in_the_thread(memory=None)` (never called on the trace corpus)
+pub fn a_loss_in_the_thread(memory: &Memory) -> bool {
+    if a_heavy_verdict(memory) || a_heavy_news(memory) {
+        return true;
+    }
+    match py_try(|| _in_a_loss_thread(memory) || _grief_thread(memory)) {
+        Some(true) => return true,
+        Some(false) => {}
+        None => return false,
+    }
+    for line in last_lines(memory, 2) {
+        if line.is_empty() {
+            continue;
+        }
+        if HEAVY_ABOVE.is_match(&line) {
+            return true;
+        }
+        if py_try(|| crate::compose::badnews::reads_as_sudden_loss(&line)) == Some(true) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:6052 `a_verdict_stands_down(memory=None)`
+/// (Python's `if not memory` is never true of a turn's memory, which always holds its turns.)
+pub fn a_verdict_stands_down(memory: &Memory) -> bool {
+    match py_try(|| in_a_safety_thread(memory) || _in_a_loss_thread(memory) || _grief_thread(memory)) {
+        Some(true) => return true,
+        Some(false) => {}
+        None => return false,
+    }
+    for line in last_lines(memory, 2) {
+        if line.is_empty() {
+            continue;
+        }
+        if HARD_WEEK.is_match(&line) || HEAVY_ABOVE.is_match(&line) {
+            return true;
+        }
+        if py_try(|| crate::compose::badnews::reads_as_sudden_loss(&line)) == Some(true) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:6093 `reads_as_a_verdict(text, memory=None)`
+pub fn reads_as_a_verdict(text_: &str, memory: &Memory) -> bool {
+    py_try(|| _verdict_pool(text_, memory).is_some()).unwrap_or(false)
+}
+
+regexes!(FIRST_TURN_VERDICT, REACTION_LINE);
+pools!(VERDICT_FIRST, REACTION_REPEAT, REACTION_REPEAT_FIRST, REACTIONS_CARE);
+static REACTION_SIGNS: LazyLock<Vec<(Vec<String>, &'static Re)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.REACTION_SIGNS").items().iter().map(|p| (p.items()[0].strs(), p.items()[1].as_re().unwrap())).collect()
+});
+static REACTIONS_SAID: LazyLock<Vec<(Vec<String>, Vec<String>)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.REACTIONS_SAID").pairs().iter().map(|(k, v)| (k.strs(), v.strs())).collect()
+});
+
+/// Python: bot/compose/fallback.py:6122 `_reaction_pool(clean, memory=None)`
+/// The pool for a bare reaction, or None when the line is anything more than one. (The
+/// skeleton's `()` return could not carry the pool.)
+pub fn _reaction_pool(clean: &str, memory: &Memory) -> Option<Vec<String>> {
+    let t = text::squash(&lower(clean));
+    if let Some(verdict) = _a_verdict_line(&t, memory) {
+        if !verdict.is_empty() {
+            return Some(verdict);
+        }
+    }
+    if FIRST_TURN_VERDICT.match_(&t).is_some() && memory.turns.is_empty() {
+        return Some(VERDICT_FIRST.clone());
+    }
+    if t.is_empty() || REACTION_LINE.match_(&t).is_none() {
+        return None;
+    }
+    for (pool, sign) in REACTION_SIGNS.iter() {
+        if sign.is_match(&t) {
+            return Some(pool.clone());
+        }
+    }
+    if rx(r"[\w']*\s*(?:what|pardon)\W*").fullmatch(&t).is_some() {
+        if crate::memory::last_bot(memory).is_empty() {
+            return Some(REACTION_REPEAT_FIRST.clone());
+        }
+        return Some(REACTION_REPEAT.clone());
+    }
+    None
+}
+
+/// Python: bot/compose/fallback.py:6148 `reaction_line(text, memory=None)` (never called on the trace corpus)
+/// The composer's own line for a verdict on the thing before it, or None.
+pub fn reaction_line(text_: &str, memory: &Memory) -> Option<String> {
+    let clean = text::squash(&lower(text_));
+    let mut pool = _a_verdict_line(&clean, memory)?;
+    if pool.is_empty() {
+        return None;
+    }
+    if _a_care_thread_to_leave_alone(memory) {
+        pool = REACTIONS_CARE.clone();
+    } else if _the_person_already_said_it(memory) {
+        if let Some((_, said)) = REACTIONS_SAID.iter().find(|(k, _)| *k == pool) {
+            pool = said.clone();
+        }
+    }
+    choose(&pool, memory, &clean)
+}
+
+// ---- fallback.py:6250-6505: a thing done ----
+
+/// Python truthiness of what another module's function returns, whatever type its port gives
+/// it (a reader whose skeleton says `()` is still a stub, and never returns).
+pub trait Truthy {
+    fn truthy(&self) -> bool;
+}
+impl Truthy for () {
+    fn truthy(&self) -> bool {
+        false
+    }
+}
+impl Truthy for bool {
+    fn truthy(&self) -> bool {
+        *self
+    }
+}
+impl Truthy for String {
+    fn truthy(&self) -> bool {
+        !self.is_empty()
+    }
+}
+impl Truthy for &str {
+    fn truthy(&self) -> bool {
+        !self.is_empty()
+    }
+}
+impl<T> Truthy for Vec<T> {
+    fn truthy(&self) -> bool {
+        !self.is_empty()
+    }
+}
+impl<T: Truthy> Truthy for Option<T> {
+    fn truthy(&self) -> bool {
+        self.as_ref().is_some_and(Truthy::truthy)
+    }
+}
+impl Truthy for Value {
+    fn truthy(&self) -> bool {
+        Value::truthy(self)
+    }
+}
+
+pools!(A_THING_ON, A_THING_AHEAD, A_THING_GONE, A_THING_SEEN_TO, A_THING_BOUGHT, A_THING_DONE);
+word_sets!(GONE_VERB, BOUGHT_VERB, ALIVE, NOT_CHOSEN, SEEN_TO_VERB);
+
+/// Python: bot/compose/fallback.py:6247 `_a_thing_done(clean)` (never called on the trace corpus)
+pub fn _a_thing_done(clean: &str) -> bool {
+    _thing_done_shape(clean).is_some()
+}
+
+/// Python: bot/compose/fallback.py:6252 `_thing_done_shape(clean)` (never called on the trace corpus)
+/// Just the shape: see `_thing_done_scan`.
+pub fn _thing_done_shape(clean: &str) -> Option<String> {
+    thing_done_scan(clean).0
+}
+
+/// Python: bot/compose/fallback.py:6257 `_thing_done_pool(clean)`
+/// The pool for a thing done, or None when the line is not one.
+pub fn _thing_done_pool(clean: &str) -> Option<Vec<String>> {
+    if crate::compose::fallback_chain::_a_thing_they_regret(clean) {
+        return None;
+    }
+    let (shape, done_verb) = thing_done_scan(clean);
+    let shape = shape?;
+    if shape.is_empty() {
+        return None;
+    }
+    if shape == "going" {
+        return Some(A_THING_ON.clone());
+    }
+    if shape == "soon" || shape == "at" {
+        return Some(A_THING_AHEAD.clone());
+    }
+    if GONE_VERB.contains(&done_verb) {
+        return Some(A_THING_GONE.clone());
+    }
+    if BOUGHT_VERB.contains(&done_verb) {
+        let split = text::split_ref(clean);
+        if split.iter().any(|w| ALIVE.contains(*w)) {
+            return None;
+        }
+        if split.iter().any(|w| NOT_CHOSEN.contains(*w)) {
+            return Some(A_THING_SEEN_TO.clone());
+        }
+        return Some(A_THING_BOUGHT.clone());
+    }
+    if SEEN_TO_VERB.contains(&done_verb) {
+        return Some(A_THING_SEEN_TO.clone());
+    }
+    Some(A_THING_DONE.clone())
+}
+
+regexes!(
+    HARM_AFTER,
+    TAIL_JOIN,
+    TAIL_COMPLAINT,
+    TAIL_ASK,
+    TAIL_GRUMBLE,
+    TAIL_TROUBLE,
+    NEGATIVE_LINE,
+    HARM_NAMED,
+    HARM_ON_ME,
+    FEELING_OFF,
+    A_TROUBLE_IN_THE_TAIL,
+    HARM_ANYWHERE,
+    WENT_AT_IT,
+    DID_AT_IT,
+    SPENT_TIME,
+    BEEN_AT_IT,
+    TIME_SPAN,
+    AT_IT,
+    HABIT_TIME,
+    FUTURE_TIME,
+);
+word_sets!(
+    QUESTION_OPENERS,
+    DONE_VERB,
+    DONE_NOT_THIS,
+    DONE_ONLY_A_THING,
+    DONE_NOT_A_PERSON,
+    DONE_ING,
+    AT_IT_EXTRA,
+    BECOMING,
+    BECOMING_STATE,
+    AT_IT_NOT,
+    THING_AFTER,
+);
+
+/// Python: bot/compose/fallback.py:6305 `_tail_complains(clean)`
+pub fn _tail_complains(clean: &str) -> bool {
+    match TAIL_JOIN.search(clean) {
+        Some(first) => TAIL_COMPLAINT.is_match(&clean[first.end()..]),
+        None => false,
+    }
+}
+
+/// Python: bot/compose/fallback.py:6319 `_thing_done_scan(clean)`
+/// `(shape, verb)` for this line, or `(None, "")` when it is not a thing done, as a tuple value.
+pub fn _thing_done_scan(clean: &str) -> Value {
+    let (shape, verb) = thing_done_scan(clean);
+    Value::Tuple(std::sync::Arc::new(vec![shape.map(Value::from).unwrap_or(Value::None), Value::from(verb)]))
+}
+
+/// `_thing_done_scan` as a pair.
+pub fn thing_done_scan(clean: &str) -> (Option<String>, String) {
+    let none = (None, String::new());
+    if clean.contains('?')
+        || clean.contains(" but ")
+        || TAIL_ASK.is_match(clean)
+        || TAIL_GRUMBLE.is_match(clean)
+        || TAIL_TROUBLE.is_match(clean)
+        || _tail_complains(clean)
+    {
+        return none;
+    }
+    if QUESTION_OPENERS.contains(text::split_ref(clean).first().copied().unwrap_or("")) {
+        return none;
+    }
+    if NEGATIVE_LINE.is_match(clean) {
+        return none;
+    }
+    let tokens = az_words(clean);
+    if crate::compose::trouble::reads_as_trouble(clean, Some(&tokens[..]), clean).truthy() {
+        return none;
+    }
+    if HARM_AFTER.is_match(clean) {
+        return none;
+    }
+    if HARM_NAMED.is_match(clean) || HARM_ON_ME.is_match(clean) {
+        return none;
+    }
+    if FEELING_OFF.is_match(clean) || A_TROUBLE_IN_THE_TAIL.is_match(clean) {
+        return none;
+    }
+    let t = rx(r"\b(?:ive|i've)\b").sub("i have", clean);
+    let t = rx(r"\b(?:weve|we've)\b").sub("we have", &t);
+    let t = rx(r"\b(i|we)'d\b").sub(r"\1 had", &t);
+    let words = az_words(&t);
+    for i in 0..words.len().saturating_sub(1) {
+        if words[i] != "i" && words[i] != "we" {
+            continue;
+        }
+        let mut j = i + 1;
+        while j < words.len() && ["just", "also", "finally", "only", "actually", "have", "had", "been"].contains(&words[j].as_str()) {
+            j += 1;
+        }
+        if j >= words.len() || !DONE_VERB.contains(&words[j]) {
+            continue;
+        }
+        let rest = &words[j + 1..(j + 3).min(words.len())];
+        if rest.iter().any(|w| DONE_NOT_THIS.contains(w)) {
+            return none;
+        }
+        if DONE_ONLY_A_THING.contains(&words[j]) && words[(j + 1).min(words.len())..(j + 4).min(words.len())].iter().any(|w| DONE_NOT_A_PERSON.contains(w)) {
+            return none;
+        }
+        return (Some("done".into()), words[j].clone());
+    }
+    if !words.is_empty() && DONE_VERB.contains(&words[0]) && !HARM_ANYWHERE.is_match(clean) {
+        let rest = &words[1..3.min(words.len())];
+        if !rest.iter().any(|w| DONE_NOT_THIS.contains(w)) {
+            return (Some("done".into()), words[0].clone());
+        }
+    }
+    if WENT_AT_IT.is_match(&t) {
+        return (Some("gone".into()), "went".into());
+    }
+    if DID_AT_IT.is_match(&t) {
+        return (Some("gone".into()), "did".into());
+    }
+    if let Some(spent) = SPENT_TIME.search(&t) {
+        if DONE_ING.contains(spent.str(1)) {
+            return (Some("going".into()), spent.str(1).to_string());
+        }
+    }
+    if let Some(been) = BEEN_AT_IT.search(&t) {
+        if DONE_ING.contains(been.str(1)) && TIME_SPAN.is_match(&t) {
+            return (Some("going".into()), been.str(1).to_string());
+        }
+    }
+    if let Some(at_it) = AT_IT.search(&t) {
+        let verb = at_it.str(1);
+        if DONE_ING.contains(verb) || AT_IT_EXTRA.contains(verb) {
+            let rest = &t[at_it.end()..];
+            if BECOMING.contains(verb) && BECOMING_STATE.contains(text::split_ref(rest).first().copied().unwrap_or("")) {
+                return none;
+            }
+            if _a_thing_after(rest) && !HABIT_TIME.is_match(rest) && !az_words(rest).iter().any(|w| AT_IT_NOT.contains(w)) {
+                let shape = if FUTURE_TIME.is_match(rest) { "soon" } else { "at" };
+                return (Some(shape.into()), verb.to_string());
+            }
+        }
+    }
+    none
+}
+
+/// Python: bot/compose/fallback.py:6477 `_a_thing_after(rest)`
+/// True when the words after the verb name the thing the person is working on.
+pub fn _a_thing_after(rest: &str) -> bool {
+    az_words(rest).iter().any(|w| !THING_AFTER.contains(w) && w.chars().count() > 2)
+}
+
+/// Python: bot/compose/fallback.py:6494 `_done_ing()` (never called on the trace corpus)
+/// The "-ing" forms of DONE_VERB (the module keeps the result as `DONE_ING`).
+pub fn _done_ing() -> HashSet<String> {
+    let mut out = HashSet::new();
+    for verb in DONE_VERB.iter() {
+        let stem: &str = if verb.ends_with("ed") { &verb[..verb.len() - 2] } else { verb };
+        out.insert(format!("{stem}ing"));
+        out.insert(format!("{verb}ing"));
+        if stem.chars().count() > 2 {
+            let last = stem.chars().last().unwrap();
+            out.insert(format!("{stem}{last}ing"));
+        }
+    }
+    for w in [
+        "running", "swimming", "making", "writing", "cutting", "digging", "hanging", "building", "sweeping", "freezing", "sitting", "getting",
+        "decorating", "repainting", "reorganising", "reorganizing",
+    ] {
+        out.insert(w.to_string());
+    }
+    out
+}
+
+// ---- fallback.py:6568-7130: knocks and mishaps, dislikes, own feeling, summons, promises, doable ----
+
+/// What another module's reader returns, as Python's `str | None`, whatever type its port gives
+/// it (a reader whose skeleton says `()` is still a stub, and never returns).
+pub trait PyOptStr {
+    fn py_opt_str(self) -> Option<String>;
+}
+impl PyOptStr for () {
+    fn py_opt_str(self) -> Option<String> {
+        None
+    }
+}
+impl PyOptStr for String {
+    fn py_opt_str(self) -> Option<String> {
+        Some(self)
+    }
+}
+impl PyOptStr for Option<String> {
+    fn py_opt_str(self) -> Option<String> {
+        self
+    }
+}
+impl PyOptStr for Value {
+    fn py_opt_str(self) -> Option<String> {
+        self.as_str().map(str::to_string)
+    }
+}
+
+regexes!(KNOCK_ON_ME, A_SPAN_OF_TIME, WALKED_INTO, MISHAP_FELL, MISHAP_UNDERFOOT, SENSE_GONE, MISHAP_ANYWHERE, MISHAP_OVER);
+
+/// Python: bot/compose/fallback.py:6568 `_a_knock_on_oneself(clean)`
+pub fn _a_knock_on_oneself(clean: &str) -> bool {
+    if clean.is_empty() || clean.contains('?') || clean.contains(" but ") {
+        return false;
+    }
+    if !KNOCK_ON_ME.is_match(clean) {
+        return false;
+    }
+    !A_SPAN_OF_TIME.is_match(clean)
+}
+
+/// Python: bot/compose/fallback.py:6591 `_a_knock_into_a_thing(clean)`
+pub fn _a_knock_into_a_thing(clean: &str) -> bool {
+    if clean.is_empty() || clean.contains('?') || clean.contains(" but ") {
+        return false;
+    }
+    WALKED_INTO.is_match(clean)
+}
+
+/// Python: bot/compose/fallback.py:6691 `_a_mishap_to_ask_about(text)`
+pub fn _a_mishap_to_ask_about(text_: &str) -> bool {
+    if SENSE_GONE.is_match(text_) {
+        return true;
+    }
+    if !MISHAP_ANYWHERE.is_match(text_) {
+        return false;
+    }
+    !MISHAP_OVER.is_match(text_)
+}
+
+/// Python: bot/compose/fallback.py:6707 `_a_mishap(clean, words)`
+pub fn _a_mishap(clean: &str, words: &[String]) -> bool {
+    if clean.is_empty() || clean.contains('?') || words.len() > 24 {
+        return false;
+    }
+    if MISHAP_OVER.is_match(clean) {
+        return false;
+    }
+    MISHAP_FELL.is_match(clean) || MISHAP_UNDERFOOT.is_match(clean)
+}
+
+regexes!(NOT_ENOUGH, NO_DIRECTION, NOT_SELF, DISLIKE_HAS_TWO_HALVES, DISLIKE_TAIL, DISLIKE_WITHOUT_AN_I);
+pools!(DISLIKE_ASKS, NOT_ENOUGH_REPLY, NO_DIRECTION_REPLY);
+word_sets!(NOT_A_THING_ASKED);
+static DISLIKE_TOO_LONG: LazyLock<usize> = LazyLock::new(|| data::get("bot.compose.fallback.DISLIKE_TOO_LONG").as_int().unwrap() as usize);
+
+/// `[frame.format(thing=thing, Thing=thing[:1].upper() + thing[1:]) for frame in DISLIKE_ASKS]`.
+fn dislike_asks(thing: &str) -> Vec<String> {
+    let cap = format!("{}{}", text::upper(&text::slice(thing, 0, Some(1))), text::slice(thing, 1, None));
+    DISLIKE_ASKS.iter().map(|f| format_named(f, &[("thing", thing), ("Thing", &cap)])).collect()
+}
+
+/// Python: bot/compose/fallback.py:6831 `the_dislike_ask(clean, memory)`
+/// A question about the thing the person has just said they do not like, or None. (The
+/// skeleton's `()` return could not carry the question.)
+pub fn the_dislike_ask(clean: &str, memory: &Memory) -> Option<String> {
+    let mut thing = crate::memory::obstacle::the_thing(clean).py_opt_str().unwrap_or_default();
+    let strip_ends = |s: &str| s.trim_matches([' ', ',', '.', ';', ':', '-']).to_string();
+    if thing.is_empty() {
+        if let Some(found) = DISLIKE_WITHOUT_AN_I.match_(&text::squash(clean)) {
+            let mut t = strip_ends(found.name_str("thing"));
+            if t.is_empty() || NOT_A_THING_ASKED.contains(&lower(&t)) {
+                return None;
+            }
+            t = strip_ends(&DISLIKE_TAIL.sub("", &t));
+            if t.is_empty() || text::split_ref(&t).len() > *DISLIKE_TOO_LONG {
+                return None;
+            }
+            if DISLIKE_HAS_TWO_HALVES.is_match(&t) {
+                return None;
+            }
+            let t = _yours(&t);
+            return choose(&dislike_asks(&t), memory, clean);
+        }
+    }
+    if !thing.is_empty() {
+        thing = _yours(&strip_ends(&DISLIKE_TAIL.sub("", &thing)));
+    }
+    if thing.is_empty() || text::split_ref(&thing).len() > *DISLIKE_TOO_LONG {
+        return None;
+    }
+    if DISLIKE_HAS_TWO_HALVES.is_match(&thing) {
+        return None;
+    }
+    choose(&dislike_asks(&thing), memory, clean)
+}
+
+/// Python: bot/compose/fallback.py:6862 `_own_feeling(clean)`
+/// The pool for a statement about the speaker's own worth or direction, or None. (The
+/// skeleton's `()` return could not carry the pool.)
+pub fn _own_feeling(clean: &str) -> Option<Vec<String>> {
+    if text::rstrip(clean).ends_with('?') || NOT_SELF.is_match(clean) {
+        return None;
+    }
+    if NOT_ENOUGH.is_match(clean) {
+        return Some(NOT_ENOUGH_REPLY.clone());
+    }
+    if NO_DIRECTION.is_match(clean) {
+        return Some(NO_DIRECTION_REPLY.clone());
+    }
+    None
+}
+
+regexes!(SUMMONS_ASKS_A_CALL);
+pools!(SUMMONS_RANG, SUMMONS_WRITTEN, SUMMONS_SEEN);
+
+/// Python: bot/compose/fallback.py:6882 `_summons_pool(summons, line='')` (never called on the trace corpus)
+/// The lines for a summons, by shape: a meeting, a letter, or a phone call (as a tuple value).
+/// `summons` is the reading's `summons` dict.
+pub fn _summons_pool(summons: &Value, line: &str) -> Value {
+    let shape = if summons.is_dict() { summons.get("shape").and_then(Value::as_str) } else { None };
+    Value::from(summons_pool(shape, line))
+}
+
+/// `_summons_pool` by the summons' shape.
+pub fn summons_pool(shape: Option<&str>, line: &str) -> Vec<String> {
+    match shape {
+        Some("written") => {
+            if SUMMONS_ASKS_A_CALL.is_match(line) {
+                SUMMONS_RANG.clone()
+            } else {
+                SUMMONS_WRITTEN.clone()
+            }
+        }
+        Some("rang") => SUMMONS_RANG.clone(),
+        _ => SUMMONS_SEEN.clone(),
+    }
+}
+
+regexes!(
+    PROMISE_OFFICE,
+    PROMISE_A_PERSON_NAMED,
+    PROMISE_REPORTED,
+    PROMISE_FUTURE,
+    PROMISE_BUT_NEVER,
+    PROMISE_NEVER_WHAT,
+    PROMISE_RISK,
+    PROMISE_RECUR,
+    PROMISE_NOT_A_PERSON,
+    PROMISE_MONEY,
+    PROMISE_A_HE_OR_SHE,
+);
+pools!(PROMISE_A_PERSON, PROMISE_AN_OFFICE);
+word_sets!(GRIEVANCE_HEALTH, GRIEVANCE_HARM);
+
+/// Python: bot/compose/fallback.py:7011 `_a_promise_that_keeps_moving(clean)`
+/// The reply pool for a promise that keeps not happening, or None. (The skeleton's `()` return
+/// could not carry the pool.)
+pub fn _a_promise_that_keeps_moving(clean: &str) -> Option<Vec<String>> {
+    let reported = PROMISE_REPORTED.search(clean);
+    if let Some(device) = PROMISE_NOT_A_PERSON.search(clean) {
+        if reported.as_ref().is_none_or(|r| device.start() < r.start()) {
+            return None;
+        }
+    }
+    if PROMISE_MONEY.is_match(clean) || PROMISE_RISK.is_match(clean) {
+        return None;
+    }
+    let said = az_set(&clean.replace('\u{2019}', "'"));
+    let office_subject = PROMISE_OFFICE.is_match(clean) && !PROMISE_A_HE_OR_SHE.is_match(clean) && !PROMISE_A_PERSON_NAMED.is_match(clean);
+    if !office_subject && said.iter().any(|w| GRIEVANCE_HEALTH.contains(w) || GRIEVANCE_HARM.contains(w)) {
+        return None;
+    }
+    let broken = PROMISE_BUT_NEVER.search(clean);
+    let promised = PROMISE_NEVER_WHAT.is_match(clean)
+        || reported.as_ref().is_some_and(|r| {
+            (PROMISE_RECUR.is_match(clean) && PROMISE_FUTURE.is_match(clean)) || broken.as_ref().is_some_and(|b| b.start() > r.end())
+        });
+    if !promised {
+        return None;
+    }
+    Some(if office_subject { PROMISE_AN_OFFICE.clone() } else { PROMISE_A_PERSON.clone() })
+}
+
+regexes!(DOABLE, DOABLE_NOT, DOABLE_FOLD);
+word_sets!(DOABLE_WORDS, DOABLE_BREATHERS);
+pools!(DOABLE_REPLIES);
+
+/// Python: bot/compose/fallback.py:7087 `_reads_as_a_judgement(text)`
+/// True when the line is nothing but a judgement that what was said is doable.
+pub fn _reads_as_a_judgement(text_: &str) -> bool {
+    let mut clean = text::squash(&lower(text_));
+    while DOABLE_FOLD.match_(&clean).is_some() {
+        clean = text::strip(&DOABLE_FOLD.subn("", &clean, 1)).to_string();
+    }
+    if clean.is_empty() || clean.contains('?') {
+        return false;
+    }
+    let words = text::split_ref(&clean);
+    if words.len() > 8 {
+        return false;
+    }
+    if !DOABLE.is_match(&clean) || DOABLE_NOT.is_match(&clean) {
+        return false;
+    }
+    words.iter().map(|w| w.trim_matches(['.', ',', '!', '?', ';', ':', '\'', '\u{2019}'])).all(|w| DOABLE_WORDS.contains(w) || DOABLE_BREATHERS.contains(w))
+}
+
+/// Python: bot/compose/fallback.py:7111 `_a_doable(clean, memory)`
+/// The reply for a short "that's doable" about the advice just given, or None. (The skeleton's
+/// `()` return could not carry the reply.)
+pub fn _a_doable(clean: &str, memory: &Memory) -> Option<String> {
+    if !_reads_as_a_judgement(clean) {
+        return None;
+    }
+    if the_advice(memory).is_empty() {
+        return None;
+    }
+    choose(&DOABLE_REPLIES, memory, clean)
+}
+
+/// Python: bot/compose/fallback.py:7121 `a_doable(text, memory)`
+/// Read by greeting: the reply when this line is a judgement of the answer just given, or None.
+/// (The skeleton's `()` return could not carry the reply.)
+pub fn a_doable(text_: &str, memory: &Memory) -> Option<String> {
+    let clean = text::squash(&lower(text_));
+    _a_doable(&clean, memory)
 }
