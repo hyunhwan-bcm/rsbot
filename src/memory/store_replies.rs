@@ -5655,94 +5655,490 @@ pub fn _the_verb_they_asked(plan: &str, low: &str, line: &str) -> String {
     subject + " " + &words.join(" ") + " " + &date
 }
 
+/// A function reference in a value, for a contract that takes a Python callable as `&Value`.
+fn fn_ref(id: &str) -> Value {
+    Value::Fn(std::sync::Arc::new(data::FnRef { id: id.to_string(), cells: Vec::new(), defaults: Vec::new() }))
+}
+
+rx!(SAYS_A_TRIP);
+
 /// Python: bot/memory/store_replies.py:5702 `_plans_reply(memory, low)`
+///
+/// What is coming up, in the words they said it in: the one plan, or the newest of several.
+/// (Contract change: the generated stub returned `()`.)
 pub fn _plans_reply(memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_plans_reply")
+    use crate::memory::{plan_line, plan_sentence};
+    let known = user(memory);
+    let plans = _plans_with_the_latest(&known);
+    if let Some(worked) = _the_date_behind_that(memory, low, &plans) {
+        return Some(worked);
+    }
+    if WHERE_PLAN.is_match(low) || WHEN_PLAN.is_match(low) {
+        // "where are we going again" and "which month are we going" are the trip said back; an
+        // ask that names one part gets that part.
+        if let Some(last) = plans.last() {
+            let said = plan_line(memory, last);
+            let part = crate::memory::when::the_part_asked(last, low, &said, &fn_ref("bot.memory.places:_a_place"));
+            if !part.is_empty() && crate::memory::topics::content(&part) != crate::memory::topics::content(&last_turn_bot(memory)) {
+                return Some(part);
+            }
+            return Some(plan_sentence(last, &said) + ".");
+        }
+        return None;
+    }
+    if let Some(clock) = TIME_ASKS.search(low) {
+        // "what time am I meeting sam?" is the plan that names that verb, answered with its hour.
+        let matching: Vec<String> = plans.iter().filter(|p| _says_the_verb(p, clock.str(1))).cloned().collect();
+        let plan = _the_one_asked(&matching, &low[clock.end()..]);
+        if !plan.is_empty() {
+            let at = _at_the_clock(&plan);
+            if !at.is_empty() {
+                return Some(at);
+            }
+            let line = plan_line(memory, &plan);
+            return Some(plan_sentence(&plan, &line) + ".");
+        }
+        return None;
+    }
+    if let Some(hour) = TIME_THING.search(low) {
+        let matching: Vec<String> = plans.iter().filter(|p| _names_the_thing_m(p, hour.str(1), None)).cloned().collect();
+        let plan = _the_one_asked(&matching, &low[hour.end()..]);
+        if !plan.is_empty() {
+            let at = _at_the_clock(&plan);
+            if !at.is_empty() {
+                return Some(at);
+            }
+            return Some(plan_sentence(&plan, "") + ".");
+        }
+        return None;
+    }
+    if TIME_IT.is_match(low) {
+        // "what time was that again" points at the plan on the table, and the hour it names is the answer.
+        if let Some(last) = plans.last() {
+            return Some(_at_the_clock(last));
+        }
+        return None;
+    }
+    if let Some(day_asked) = DAY_ASKS.search(low) {
+        // "what day do i start": the day is the whole answer ("On Tuesday.").
+        let matching: Vec<String> = plans.iter().filter(|p| _says_the_verb(p, day_asked.str(1))).cloned().collect();
+        let plan = _the_one_asked(&matching, &low[day_asked.end()..]);
+        if !plan.is_empty() {
+            let day = _the_day_of(&plan);
+            if !day.is_empty() {
+                return Some(day);
+            }
+            let line = plan_line(memory, &plan);
+            return Some(plan_sentence(&plan, &line) + ".");
+        }
+        return None;
+    }
+    if let Some(day) = DAY_THING.search(low) {
+        let matching: Vec<String> = plans.iter().filter(|p| _names_the_thing_m(p, day.str(1), None)).cloned().collect();
+        let plan = _the_one_asked(&matching, &low[day.end()..]);
+        if !plan.is_empty() {
+            let said = _the_day_of(&plan);
+            if !said.is_empty() {
+                return Some(said);
+            }
+            let line = plan_line(memory, &plan);
+            return Some(plan_sentence(&plan, &line) + ".");
+        }
+        return None;
+    }
+    if DAY_IT.is_match(low) {
+        // "what day is it on" is the plan's day and not today's.
+        if let Some(last) = plans.last() {
+            return Some(_the_day_of(last));
+        }
+        return None;
+    }
+    // The plan said back with the verb the ask named put into it.
+    let said_with_the_verb = |memory: &mut Memory, plan: &str| -> String {
+        let line = plan_line(memory, plan);
+        let source = if line.is_empty() { _the_line_that_said(memory, plan).unwrap_or_default() } else { line };
+        let line2 = plan_line(memory, plan);
+        plan_sentence(&_the_verb_they_asked(plan, low, &source), &line2) + "."
+    };
+    if let Some(when) = WHEN_ASKS.search(low) {
+        // The plan that names the verb they asked about answers "when do I start?".
+        let matching: Vec<String> = plans.iter().filter(|p| _says_the_verb(p, when.str(1))).cloned().collect();
+        let plan = _the_one_asked(&matching, &low[when.end()..]);
+        if !plan.is_empty() {
+            let day = _the_day_of(&plan);
+            if !day.is_empty() && _the_day_is_the_whole_date(&plan) && _the_plan_was_just_said_back(memory, &plan) {
+                // The plan read back is that same sentence twice, a line apart: the day is the answer.
+                return Some(day);
+            }
+            return Some(said_with_the_verb(memory, &plan));
+        }
+        // A half of a line with two things in it keeps no verb, and the ask names the verb it left out.
+        let halves: Vec<String> = plans.iter().filter(|p| _the_verb_they_asked(p, low, "") != **p).cloned().collect();
+        let plan = if halves.is_empty() { String::new() } else { _the_one_asked(&halves, "") };
+        if !plan.is_empty() {
+            return Some(said_with_the_verb(memory, &plan));
+        }
+        // "when do i go on holiday?": a plan that is a trip answers it.
+        if SAYS_A_TRIP.is_match(low) {
+            for plan in plans.iter().rev() {
+                if _about_kind("trip", plan, Some(&mut *memory), true) {
+                    let line = plan_line(memory, plan);
+                    return Some(plan_sentence(plan, &line) + ".");
+                }
+            }
+        }
+        return None;
+    }
+    let thing = _when_thing(low, plans.is_empty());
+    if !thing.is_empty() {
+        // The plan that names the thing they asked about answers "when is the wedding?".
+        let mut asking: Vec<String> = Vec::new();
+        for p in &plans {
+            if _names_the_thing_m(p, &thing, Some(&mut *memory)) {
+                asking.push(p.clone());
+            }
+        }
+        if _asks_the_end(low) || _asks_the_start(low) {
+            // "when does my job end" is not answered by the day it starts.
+            asking.retain(|p| _answers_the_end_asked(p, low));
+        }
+        let plan = _the_one_asked(&asking, "");
+        if !plan.is_empty() {
+            let day = _the_day_of(&plan);
+            if !day.is_empty() && _the_day_is_the_whole_date(&plan) && _the_plan_was_just_said_back(memory, &plan) {
+                return Some(day);
+            }
+            return Some(said_with_the_verb(memory, &plan));
+        }
+        // The thing is named but nothing they told us is about it: not a plans answer at all.
+        return None;
+    }
+    if WHEN_THING.is_match(low) && BANK_HOLIDAY.is_match(low) {
+        // A when ask about a bank holiday is a question about the calendar.
+        return None;
+    }
+    if _thing_is_a_quality(low) {
+        return None;
+    }
+    if plans.is_empty() {
+        if _a_time_for_the_job_itself(low) {
+            // "when is the best time to do it" is about the job in front of them.
+            return None;
+        }
+        return Some(pick(&NO_PLANS_REPLY, memory, ""));
+    }
+    if _the_answer_about_it_is_on_the_screen(memory, plans.last().unwrap(), low) {
+        // The answer this plan's own line was given is what the person is asking for again.
+        return None;
+    }
+    let mut said: Vec<String> = Vec::new();
+    for plan in &plans[plans.len().saturating_sub(2)..] {
+        let line = plan_line(memory, plan);
+        said.push(plan_sentence(plan, &line));
+    }
+    said.reverse();
+    if said.len() == 1 {
+        return ret_opt(crate::compose::recall::with_a_tail(&(said[0].clone() + "."), memory));
+    }
+    Some(said[0].clone() + ". And " + &lower_first(&said[1]) + ".")
 }
 
-/// Python: bot/memory/store_replies.py:5871 `_their_place(low)`
+static BANK_HOLIDAY: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:bank|public)\s+holiday", 0));
+strset!(THEIR_PLACES);
+rx!(IN_A_PLACE, IN_MY_PLACE, FOR_A_MEAL);
+
+/// Python: bot/memory/store_replies.py:5870 `_their_place(low)`
+///
+/// The place they asked about, when the line asks what is in one of their own food places.
 pub fn _their_place(low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_their_place")
+    for pattern in [&*IN_A_PLACE, &*IN_MY_PLACE] {
+        if let Some(found) = pattern.search(low) {
+            if THEIR_PLACES.contains(found.str(1)) {
+                return Some(found.str(1).to_string());
+            }
+        }
+    }
+    if FOR_A_MEAL.is_match(low) {
+        return Some("fridge".into()); // what to have for dinner is answered from what is in it
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:5881 `_naming_words(text)` (never called on the trace corpus)
-pub fn _naming_words(text: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_naming_words")
+static TOPICS_STOPWORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.topics.STOPWORDS"));
+static SHORT_TURN: LazyLock<usize> = LazyLock::new(|| data::get("bot.memory.topics.SHORT_TURN").as_int().unwrap() as usize);
+static FACTS_MONTHS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.memory.facts.MONTHS"));
+
+/// Python: bot/memory/store_replies.py:5881 `_naming_words(text)`
+///
+/// The words of a line that name something, in one spelling both sides compare them in.
+pub fn _naming_words(text_: &str) -> Vec<String> {
+    crate::memory::topics::words(text_).into_iter().filter(|w| !TOPICS_STOPWORDS.contains(w) && text::len(w) > 2).collect()
 }
 
-/// Python: bot/memory/store_replies.py:5886 `_the_day_is_the_whole_date(plan)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:5886 `_the_day_is_the_whole_date(plan)`
+///
+/// True when the day is all the plan says about when, so the day is the whole answer.
 pub fn _the_day_is_the_whole_date(plan: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_the_day_is_the_whole_date")
+    let low = plan.to_lowercase();
+    if !_at_the_clock(plan).is_empty() {
+        return false;
+    }
+    !FACTS_MONTHS.iter().any(|name| Re::new(&format!(r"\b{name}\b"), 0).is_match(&low))
 }
 
-/// Python: bot/memory/store_replies.py:5898 `_the_plan_was_just_said_back(memory, plan)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:5898 `_the_plan_was_just_said_back(memory, plan)`
+///
+/// True when the reply above is this plan in the store's own words.
 pub fn _the_plan_was_just_said_back(memory: &Memory, plan: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_the_plan_was_just_said_back")
+    let mine: HashSet<String> = LETTER_WORDS.findall_str(&plan.to_lowercase()).into_iter().collect();
+    if mine.len() < 3 {
+        return false;
+    }
+    let said: HashSet<String> = LETTER_WORDS.findall_str(&last_turn_bot(memory).to_lowercase()).into_iter().collect();
+    let shared = mine.iter().filter(|w| said.contains(*w)).count();
+    shared >= 3.max((mine.len() * 7 + 9) / 10)
 }
 
-/// Python: bot/memory/store_replies.py:5912 `_the_answer_about_it_is_on_the_screen(memory, plan, text)` (never called on the trace corpus)
-pub fn _the_answer_about_it_is_on_the_screen(memory: &Memory, plan: &str, text: &str) -> Option<bool> {
-    crate::unported!("bot.memory.store_replies:_the_answer_about_it_is_on_the_screen")
+static HEDGE: LazyLock<&'static Re> = LazyLock::new(|| g("_HEDGE").as_re().unwrap());
+
+/// Python: bot/memory/store_replies.py:5912 `_the_answer_about_it_is_on_the_screen(memory, plan, text)`
+///
+/// True when the last line on the screen is the answer the plan's own line was given.
+pub fn _the_answer_about_it_is_on_the_screen(memory: &Memory, plan: &str, text_: &str) -> bool {
+    use crate::memory::topics::{keywords, only_acknowledges};
+    let mine: HashSet<String> = text::split(&plan.to_lowercase())
+        .into_iter()
+        .filter(|w| crate::understanding::pyuni::is_alpha(w) && text::len(w) > 2 && !TOPICS_STOPWORDS.contains(w))
+        .collect();
+    let turns = &memory.turns;
+    if mine.is_empty() || turns.is_empty() {
+        return false;
+    }
+    let asked: HashSet<String> = _naming_words(text_).into_iter().collect();
+    if asked.is_empty() {
+        return false; // a bare "what am i up to" asks for the plan itself
+    }
+    let mut screen: HashSet<String> = HashSet::new();
+    for turn in turns.iter().rev() {
+        let on_screen = text::strip(&turn.bot);
+        if on_screen.is_empty() {
+            continue;
+        }
+        if only_acknowledges(on_screen) {
+            continue; // a courtesy between the two asks is not the answer leaving the screen
+        }
+        screen = _naming_words(on_screen).into_iter().collect();
+        break;
+    }
+    if screen.is_empty() {
+        return false;
+    }
+    for turn in turns.iter().rev() {
+        let kw: HashSet<String> = keywords(&turn.user).into_iter().collect();
+        let named = mine.iter().filter(|w| kw.contains(*w)).count();
+        if !(named >= 2 && named * 2 >= mine.len()) {
+            continue;
+        }
+        let answer = text::strip(&turn.bot).to_string();
+        if answer.is_empty() {
+            continue; // the turn in hand, before anything has been said back
+        }
+        if HEDGE.is_match(&answer) || answer.ends_with('?') || text::split(&answer).len() <= *SHORT_TURN {
+            return false;
+        }
+        let in_answer: HashSet<String> = _naming_words(&answer).into_iter().collect();
+        if !asked.iter().any(|w| in_answer.contains(w)) {
+            return false; // the answer says nothing about what this ask names
+        }
+        return !screen.is_empty() && screen.iter().any(|w| in_answer.contains(w));
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:5966 `_a_time_for_the_job_itself(low)` (never called on the trace corpus)
+strset!(WHEN_QUALITY, WHEN_VERB, POINTS_BACK, WHEN_VAGUE, WHEN_END_ASK, WHEN_START_ASK, WHEN_END_WORD);
+static A_WORD_WITH_DASHES: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z][a-z'-]*", 0));
+
+/// Python: bot/memory/store_replies.py:5966 `_a_time_for_the_job_itself(low)`
+///
+/// Whether the when ask is about the best time for a job rather than about their calendar.
 pub fn _a_time_for_the_job_itself(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_time_for_the_job_itself")
+    for pattern in [&*WHEN_THING, &*TIME_THING] {
+        let Some(found) = pattern.search(low) else { continue };
+        let said = A_WORD_WITH_DASHES.findall_str(found.str(1));
+        if !said.is_empty() && said.iter().all(|w| WHEN_QUALITY.contains(w)) {
+            return true;
+        }
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:5977 `_thing_is_a_quality(low)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:5977 `_thing_is_a_quality(low)`
+///
+/// True when a when ask names a quality of the world and nothing of its own.
 pub fn _thing_is_a_quality(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_thing_is_a_quality")
+    let Some(found) = WHEN_THING.search(low) else { return false };
+    let said = A_WORD_WITH_DASHES.findall_str(found.str(1));
+    if said.is_empty() || said.iter().any(|w| !WHEN_QUALITY.contains(w)) {
+        return false;
+    }
+    _names_something_of_its_own(low, text::char_index(low, found.end()) as i64)
 }
 
-/// Python: bot/memory/store_replies.py:5992 `_names_something_of_its_own(low, start)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:5991 `_names_something_of_its_own(low, start)`
+///
+/// Whether the rest of the line (from character `start`) names a thing, rather than a verb and
+/// a word pointing back.
 pub fn _names_something_of_its_own(low: &str, start: i64) -> bool {
-    crate::unported!("bot.memory.store_replies:_names_something_of_its_own")
+    let rest = text::slice(low, start as isize, None);
+    for word in A_WORD_WITH_DASHES.findall_str(&rest) {
+        if STOPWORDS.contains(&word)
+            || WHEN_VERB.contains(&word)
+            || POINTS_BACK.contains(&word)
+            || WHEN_QUALITY.contains(&word)
+            || WHEN_VAGUE.contains(&word)
+            || text::len(&word) < 3
+        {
+            continue;
+        }
+        return true;
+    }
+    false
 }
 
 /// Python: bot/memory/store_replies.py:6001 `_when_thing(low, wide=False)`
+///
+/// The thing a when ask names, as a content word: "when is the wedding" -> "wedding".
 pub fn _when_thing(low: &str, wide: bool) -> String {
-    crate::unported!("bot.memory.store_replies:_when_thing")
+    use crate::memory::topics::keywords;
+    let found = WHEN_THING.search(low).or_else(|| WHEN_THING_VERB.search(low));
+    let Some(found) = found else { return String::new() };
+    let mut said = keywords(found.str(1));
+    if wide && !said.is_empty() && said.iter().all(|w| WHEN_VAGUE.contains(w)) {
+        for word in A_WORD_WITH_DASHES.findall_str(&low[found.end()..]).into_iter().take(4) {
+            let words = keywords(&word);
+            if words.is_empty() {
+                continue;
+            }
+            if WHEN_VAGUE.contains(&words[0]) {
+                return String::new(); // "the next time we meet" is still their own diary
+            }
+            said = words;
+            break;
+        }
+    }
+    said.into_iter().find(|w| !WHEN_VAGUE.contains(w)).unwrap_or_default()
 }
 
 /// Python: bot/memory/store_replies.py:6034 `_the_one_asked(matching, rest)`
+///
+/// Which of the plans that fit the ask is the one they mean, or "" when none fits.
 pub fn _the_one_asked(matching: &[String], rest: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_the_one_asked")
+    let asked = if rest.is_empty() { Vec::new() } else { crate::memory::topics::content(rest) };
+    if !asked.is_empty() {
+        for plan in matching.iter().rev() {
+            if asked.iter().any(|w| _names_the_thing_m(plan, w, None)) {
+                return plan.clone();
+            }
+        }
+    }
+    matching.last().cloned().unwrap_or_default()
 }
 
 /// Python: bot/memory/store_replies.py:6050 `_ask_verb(low)`
+///
+/// The verb the ask puts after the thing: "when does my job end" -> "end".
 pub fn _ask_verb(low: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_ask_verb")
+    WHEN_THING_VERB.search(low).map(|m| m.str(2).to_string()).unwrap_or_default()
 }
 
 /// Python: bot/memory/store_replies.py:6055 `_asks_the_end(low)`
 pub fn _asks_the_end(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_asks_the_end")
+    let verb = _ask_verb(low);
+    !verb.is_empty() && WHEN_END_ASK.contains(&crate::memory::topics::stem(&verb))
 }
 
 /// Python: bot/memory/store_replies.py:6060 `_asks_the_start(low)`
 pub fn _asks_the_start(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_asks_the_start")
+    let verb = _ask_verb(low);
+    !verb.is_empty() && WHEN_START_ASK.contains(&crate::memory::topics::stem(&verb))
 }
 
-/// Python: bot/memory/store_replies.py:6065 `_says_the_end(plan)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6065 `_says_the_end(plan)`
+///
+/// Whether the plan's own words name its end: "i finish my course in june" does.
 pub fn _says_the_end(plan: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_says_the_end")
+    text::split(plan).iter().any(|w| {
+        let word = text::strip_chars(w, ".,!?;:");
+        WHEN_END_WORD.contains(&word.to_lowercase()) || WHEN_END_WORD.contains(&crate::memory::topics::stem(word))
+    })
 }
 
-/// Python: bot/memory/store_replies.py:6070 `_answers_the_end_asked(plan, low)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6070 `_answers_the_end_asked(plan, low)`
 pub fn _answers_the_end_asked(plan: &str, low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_answers_the_end_asked")
+    let verb = _ask_verb(low);
+    if !verb.is_empty() && _says_the_verb(plan, &verb) {
+        return true;
+    }
+    if _asks_the_end(low) {
+        return _says_the_end(plan);
+    }
+    !_says_the_end(plan)
 }
 
-/// Python: bot/memory/store_replies.py:6082 `_names_the_thing(plan, thing, memory=None)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:6082 `_names_the_thing(plan, thing, memory=None)`
+///
+/// True when the plan is about that thing: "wedding" is in "my sister's wedding is next june".
 pub fn _names_the_thing(plan: &str, thing: &str, memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_names_the_thing")
+    _names_the_thing_m(plan, thing, Some(memory))
 }
 
-/// Python: bot/memory/store_replies.py:6099 `_says_the_verb(plan, verb)` (never called on the trace corpus)
+/// `_names_the_thing` with Python's `memory=None` expressible.
+pub fn _names_the_thing_m(plan: &str, thing: &str, memory: Option<&mut Memory>) -> bool {
+    use crate::memory::topics::{content, forms};
+    let mut keys = vec![thing.to_string()];
+    keys.extend(content(thing));
+    for word in content(plan) {
+        let word_forms = forms(&word);
+        for key in &keys {
+            if *key == word || word_forms.contains(key) || forms(key).contains(&word) {
+                return true;
+            }
+        }
+    }
+    _about_kind(thing, plan, memory, true)
+}
+
+static VERB_ALSO: LazyLock<HashMap<String, Vec<String>>> = LazyLock::new(|| g("VERB_ALSO").str_list_map());
+
+/// Python: bot/memory/store_replies.py:6099 `_says_the_verb(plan, verb)`
+///
+/// True when the plan names that verb: "start" is in "i start my new job on monday".
 pub fn _says_the_verb(plan: &str, verb: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_says_the_verb")
+    let verb = verb.to_lowercase();
+    let mut forms: HashSet<String> = [verb.clone(), verb.clone() + "s", verb.clone() + "ing", verb.clone() + "ed"].into_iter().collect();
+    let stem_of = |v: &str| -> String {
+        let mut c = v.chars();
+        c.next_back();
+        c.as_str().to_string()
+    };
+    if verb.ends_with('e') {
+        forms.insert(stem_of(&verb) + "ing");
+        forms.insert(verb.clone() + "d");
+    }
+    if verb.ends_with('y') {
+        forms.insert(stem_of(&verb) + "ied");
+    }
+    if text::ends_with_any(&verb, &["s", "x", "z", "ch", "sh"]) {
+        forms.insert(verb.clone() + "es");
+    }
+    for other in VERB_ALSO.get(&verb).cloned().unwrap_or_default() {
+        forms.extend([other.clone(), other.clone() + "s", other.clone() + "ing", other.clone() + "ed"]);
+        if other.ends_with('e') {
+            forms.insert(stem_of(&other) + "ing");
+            forms.insert(other.clone() + "d");
+        }
+    }
+    text::split(plan).iter().any(|w| forms.contains(&text::strip_chars(w, ".,!?;:").to_lowercase()))
 }
 
 /// Python: bot/memory/store_replies.py:6125 `_job_reply(memory, where=False)` (never called on the trace corpus)
@@ -6536,7 +6932,7 @@ pub fn _a_place_they_go(text: &str) -> Value {
 }
 
 /// Python: bot/memory/store_replies.py:10634 `_about_kind(thing, text, memory=None, phrase=False)` (never called on the trace corpus)
-pub fn _about_kind(thing: &str, text: &str, memory: &mut Memory, phrase: &str) -> bool {
+pub fn _about_kind(thing: &str, text: &str, memory: Option<&mut Memory>, phrase: bool) -> bool {
     crate::unported!("bot.memory.store_replies:_about_kind")
 }
 
