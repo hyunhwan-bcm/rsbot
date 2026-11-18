@@ -4234,14 +4234,12 @@ mod lanes {
         crate::compose::fallback::reads_as_a_return(text).text()
     }
 
-    /// `fallback.asks_about_a_care_answer(care_about, last, memory, own)`.
-    /// CONTRACT: Python passes `own` as the set of topic labels the line names; the Rust signature
-    /// takes `&str`, so the labels are handed over joined by a space (empty when there are none).
+    /// `fallback.asks_about_a_care_answer(care_about, last, memory, own)`: `own` is the set of
+    /// topic labels the line names (the reading only counts how many there are).
     pub fn asks_about_a_care_answer(care_about: &str, last: &str, mem: &Mem, own: &Set) -> bool {
-        let mut labels: Vec<&String> = own.iter().collect();
+        let mut labels: Vec<String> = own.iter().cloned().collect();
         labels.sort();
-        let own: Vec<&str> = labels.iter().map(|label| label.as_str()).collect();
-        crate::compose::fallback::asks_about_a_care_answer(care_about, last, &m(mem), &own.join(" "))
+        crate::compose::fallback::asks_about_a_care_answer(care_about, last, &m(mem), &labels)
     }
 
     /// `_there_is_a_chat(memory)` (`bot/memory/__init__.py`).
@@ -4255,15 +4253,15 @@ mod lanes {
     }
 
     /// `_repeat.asked_back(text, memory)` read as a truth value.
-    /// CONTRACT: `memory::repeat::asked_back` returns `()`.
+    /// (`asked_back` is typed `()`; its value is `asked_back_text`.)
     pub fn repeat_asked_back(text: &str, mem: &Mem) -> bool {
-        crate::memory::repeat::asked_back(text, &m(mem)).is_truthy()
+        crate::memory::repeat::asked_back_text(text, &m(mem)).is_truthy()
     }
 
     /// `_repeat.the_figure_they_gave(text, memory)`.
-    /// CONTRACT: `memory::repeat::the_figure_they_gave` returns `()`.
+    /// (`the_figure_they_gave` is typed `()`; its value is `the_figure_they_gave_text`.)
     pub fn repeat_the_figure_they_gave(text: &str, mem: &Mem) -> Value {
-        crate::memory::repeat::the_figure_they_gave(text, &m(mem)).read()
+        crate::memory::repeat::the_figure_they_gave_text(text, &m(mem)).read()
     }
 
     /// `_repeat.MOVE_ASK`.
