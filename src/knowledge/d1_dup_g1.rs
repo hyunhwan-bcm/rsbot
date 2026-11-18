@@ -103,10 +103,8 @@ fn _earlier_turns<'m>(memory: &'m Memory, text: &str) -> Vec<&'m crate::state::T
         .collect()
 }
 
-/// DUP(bot.memory.history::an_earlier_turn): whether the conversation has a turn before this one.
-pub fn an_earlier_turn(memory: &Memory, text: &str) -> bool {
-    !_earlier_turns(memory, text).is_empty()
-}
+// was DUP(bot.memory.history::an_earlier_turn): now the real port
+pub use crate::memory::history::an_earlier_turn;
 
 /// DUP(bot.memory.history::a_past_that_is_not_there), as `pick` calls it (no `said`): a reply
 /// that points back at a conversation that has not happened yet.

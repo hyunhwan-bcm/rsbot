@@ -87,68 +87,14 @@ pub fn the_pot_and_the_rest(line: &str) -> (i64, i64) {
     (pot, rest)
 }
 
-// DUP(bot.memory.saving::the_pot_said_alone)
-/// The money the line says is already saved, when the line is only that, else 0.
-pub fn the_pot_said_alone(line: &str) -> i64 {
-    if text::strip(line).is_empty() || FURTHER_SAID.is_match(line) {
-        return 0;
-    }
-    if AIM_AT_A_SUM.is_match(line) || BY_A_DATE.is_match(line) {
-        return 0;
-    }
-    if let Some(held) = HELD_SAID.search(line) {
-        if !POT_REPORTED.is_match(line) {
-            if INTENT.is_match(line) && !HAVE_WORD.is_match(line) {
-                return 0;
-            }
-            return pounds(held.get(1), held.get(2));
-        }
-    }
-    for pattern in [&*ALREADY_HELD, &*ALREADY_AFTER] {
-        let Some(found) = pattern.search(line) else { continue };
-        let pot = pounds(found.get(1), found.get(2));
-        if pot >= 50 {
-            return pot;
-        }
-    }
-    0
-}
+// was DUP(bot.memory.saving::the_pot_said_alone): now the real port
+pub use crate::memory::saving::the_pot_said_alone;
 
-// DUP(bot.memory.saving::the_pot_they_are_on)
-/// The money the line says the person is on their way to, when that is what the line says.
-pub fn the_pot_they_are_on(line: &str) -> i64 {
-    if text::strip(line).is_empty() || NOT_A_PRICE.is_match(line) || A_RATE.is_match(line) {
-        return 0;
-    }
-    let Some(found) = AT_A_FIGURE.search(line) else { return 0 };
-    if NOT_A_POT.match_(&line[found.end()..]).is_some() {
-        return 0;
-    }
-    pounds(found.get(1), found.get(2))
-}
+// was DUP(bot.memory.saving::the_pot_they_are_on): now the real port
+pub use crate::memory::saving::the_pot_they_are_on;
 
-// DUP(bot.memory.saving::the_money_already_held)
-/// The money the person said is already in the pot, from the last few lines, or 0.
-pub fn the_money_already_held(memory: &Memory) -> i64 {
-    let turns = &memory.turns;
-    let start = turns.len().saturating_sub(6);
-    for turn in turns[start..].iter().rev() {
-        let line = turn.user.as_str();
-        let (pot, _) = the_pot_and_the_rest(line);
-        if pot != 0 {
-            return pot;
-        }
-        let pot = the_pot_said_alone(line);
-        if pot != 0 {
-            return pot;
-        }
-        let pot = the_pot_they_are_on(line);
-        if pot != 0 {
-            return pot;
-        }
-    }
-    0
-}
+// was DUP(bot.memory.saving::the_money_already_held): now the real port
+pub use crate::memory::saving::the_money_already_held;
 
 /// `line[:found.start()]` split at clause edges: the last clause before the figure.
 fn is_an_income(line: &str, found: &Match) -> bool {
@@ -176,39 +122,5 @@ fn a_sum_named(figure: &str) -> i64 {
     }
 }
 
-// DUP(bot.memory.saving::a_rate_put_right)
-/// The monthly rate a line puts right, or 0.
-pub fn a_rate_put_right(line: &str, before: &str) -> i64 {
-    if !before.is_empty()
-        && A_MORE_LIKE.is_match(line)
-        && A_RATE_PUT_RIGHT.is_match(line)
-        && is_a_rate_line(before)
-        && !OTHER_FIGURE_WORDS.is_match(line)
-    {
-        let figures = A_LONE_SUM.findall_str(line);
-        if figures.len() == 1 {
-            return a_sum_named(&figures[0]);
-        }
-    }
-    if let Some(after_a_no) = A_NO_THEN_A_RATE.search(line) {
-        if !A_SPENT_ON.is_match(&line[after_a_no.end()..]) {
-            return a_sum_named(after_a_no.str(1));
-        }
-    }
-    if !A_RATE_PUT_RIGHT.is_match(line) || OTHER_FIGURE_WORDS.is_match(line) {
-        return 0;
-    }
-    if let Some(with_the_month) = A_SUM_A_MONTH.search(line) {
-        return a_sum_named(with_the_month.str(1));
-    }
-    let figures = A_LONE_SUM.findall_str(line);
-    if figures.len() != 1 {
-        return 0;
-    }
-    if !A_CAN_CARRY_IT.is_match(line)
-        && (A_CORRECTION_AND_A_FIGURE.match_(text::strip(line)).is_none() || NOT_THE_RATE.is_match(line))
-    {
-        return 0;
-    }
-    a_sum_named(&figures[0])
-}
+// was DUP(bot.memory.saving::a_rate_put_right): now the real port
+pub use crate::memory::saving::a_rate_put_right;

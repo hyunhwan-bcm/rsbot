@@ -261,21 +261,11 @@ pub fn said_again(text: &str) -> String {
     PERSON_WORD.sub("@", &text::squash(text).to_lowercase())
 }
 
-// DUP(bot.memory.history::brings_nothing_of_its_own)
-pub fn brings_nothing_of_its_own(text: &str) -> bool {
-    let words = LETTERS_DIGITS.findall_str(&text.to_lowercase());
-    words.is_empty() || words.iter().all(|w| NO_CONTENT_WORDS.contains(w))
-}
+// was DUP(bot.memory.history::brings_nothing_of_its_own): now the real port
+pub use crate::memory::history::brings_nothing_of_its_own;
 
-// DUP(bot.memory.history::an_earlier_turn)
-/// Whether the conversation has a turn of theirs before this line (`text`).
-pub fn an_earlier_turn(memory: &Memory, text: &str) -> bool {
-    let mine = text::squash(text).to_lowercase();
-    memory.turns.iter().any(|row| {
-        let line = text::squash(&row.user);
-        !line.is_empty() && line.to_lowercase() != mine
-    })
-}
+// was DUP(bot.memory.history::an_earlier_turn): now the real port
+pub use crate::memory::history::an_earlier_turn;
 
 // DUP(bot.memory.history::a_past_that_is_not_there)
 /// Whether a reply leans on a conversation that has not happened yet.

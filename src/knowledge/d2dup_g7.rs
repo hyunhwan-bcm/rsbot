@@ -155,11 +155,8 @@ pub fn recent(memory: &Memory, n: usize) -> &[Turn] {
     &t[t.len().saturating_sub(n)..]
 }
 
-// DUP(bot.memory::last_bot)
-/// The bot's last reply.
-pub fn last_bot(memory: &Memory) -> String {
-    recent(memory, 1).last().map(|t| t.bot.clone()).unwrap_or_default()
-}
+// was DUP(bot.memory::last_bot): now the real port
+pub use crate::memory::last_bot;
 
 // DUP(bot.memory::others)
 /// Facts about other people the user mentioned (`memory["others"]`, made a list when missing).
@@ -409,62 +406,11 @@ static A_BIRTH_WEIGHT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.me
 static NOT_THE_BABY: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.NOT_THE_BABY"));
 static LETTER_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new("[a-z']+", 0));
 
-// DUP(bot.memory.newborn::_the_lines)
-/// The last few turns' topic records as words, newest first.
-pub fn _the_lines(memory: &Memory) -> Vec<String> {
-    const HOW_MANY_TURNS: usize = 3;
-    let mut lines: Vec<&Value> = Vec::new();
-    if let Some(current @ Value::Dict(_)) = memory.extra.get("topic") {
-        lines.push(current);
-    }
-    if let Some(topics) = memory.extra.get("topics") {
-        let items = topics.items();
-        for record in items[items.len().saturating_sub(HOW_MANY_TURNS)..].iter().rev() {
-            if matches!(record, Value::Dict(_)) {
-                lines.push(record);
-            }
-        }
-    }
-    let mut said = Vec::new();
-    for record in lines {
-        let words = record.get("words");
-        let text = value_str(record.get("text"));
-        match words {
-            Some(Value::List(ws)) if !ws.is_empty() => {
-                let mut parts = vec![text];
-                parts.extend(ws.iter().map(|w| w.str().to_string()));
-                said.push(parts.join(" "));
-            }
-            _ => said.push(text),
-        }
-    }
-    said
-}
+// was DUP(bot.memory.newborn::_the_lines): now the real port
+pub use crate::memory::newborn::_the_lines;
 
-// DUP(bot.memory.newborn::the_thread_has_a_new_baby)
-/// True when the last few turns are about a baby arriving.
-pub fn the_thread_has_a_new_baby(memory: &Memory, understood: Option<&Understood>) -> bool {
-    let line = reading_line(understood);
-    if !line.is_empty() && NOT_THE_BABY.is_match(&line) {
-        return false;
-    }
-    let said = _the_lines(memory);
-    if said.is_empty() {
-        return false;
-    }
-    let together = said.join(" ");
-    if NOT_THE_BABY.is_match(&together) {
-        return false;
-    }
-    let words: HashSet<String> = LETTER_WORDS.findall_str(&together.to_lowercase()).into_iter().collect();
-    if JUST_BORN.is_match(&together) && !A_YEAR.is_match(&together) {
-        return true;
-    }
-    if words.iter().any(|w| BABY_WORDS.contains(w)) && (A_BIRTH.is_match(&together) || A_BIRTH_WEIGHT.is_match(&together)) {
-        return true;
-    }
-    A_BIRTH_WEIGHT.is_match(&together) && A_BIRTH.is_match(&together)
-}
+// was DUP(bot.memory.newborn::the_thread_has_a_new_baby): now the real port
+pub use crate::memory::newborn::the_thread_has_a_new_baby;
 
 // ---------------------------------------------------------------------------------------------
 // bot/understanding/topics.py

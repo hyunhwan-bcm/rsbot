@@ -27,21 +27,8 @@ pub fn char_window(s: &str, byte: usize, n: usize) -> &str {
 // ---------------------------------------------------------------------------------------------
 // bot/memory/when.py
 
-// DUP(bot.memory.when::the_plan)
-/// The newest plan the store keeps, in the person's own words, or None.
-pub fn the_plan(memory: &Memory) -> Option<String> {
-    let known = user_dict(memory)?;
-    if let Some(Value::Str(plan)) = known.get("plan") {
-        if !text::strip(plan).is_empty() {
-            return Some(text::squash(plan));
-        }
-    }
-    let plans: Vec<&str> = known
-        .get("plans")
-        .map(|p| p.items().iter().filter_map(|x| x.as_str()).filter(|s| !text::strip(s).is_empty()).collect())
-        .unwrap_or_default();
-    plans.last().map(|p| text::squash(p))
-}
+// was DUP(bot.memory.when::the_plan): now the real port
+pub use crate::memory::when::the_plan;
 
 // ---------------------------------------------------------------------------------------------
 // bot/memory/topics.py

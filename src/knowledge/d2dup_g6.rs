@@ -60,11 +60,8 @@ pub use crate::understanding::line_as_read;
 // ---------------------------------------------------------------------------------------------
 // bot/memory
 
-// DUP(bot.memory::last_bot)
-/// The bot's last reply ("" when there is no earlier turn).
-pub fn last_bot(memory: &Memory) -> String {
-    memory.turns.last().map(|t| t.bot.clone()).unwrap_or_default()
-}
+// was DUP(bot.memory::last_bot): now the real port
+pub use crate::memory::last_bot;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/units.py

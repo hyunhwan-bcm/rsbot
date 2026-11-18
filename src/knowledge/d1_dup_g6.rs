@@ -41,10 +41,8 @@ pub fn pct_d(x: f64) -> String {
 
 use crate::state::Memory;
 
-/// DUP(bot.memory::last_bot): the bot's last reply; "" when there is no earlier turn.
-pub fn last_bot(memory: &Memory) -> String {
-    memory.turns.last().map(|t| t.bot.clone()).unwrap_or_default()
-}
+// was DUP(bot.memory::last_bot): now the real port
+pub use crate::memory::last_bot;
 
 /// DUP(bot.knowledge.lookup::asks_how_often), for a line already flattened by `the_line`: true
 /// when it asks the interval rather than the method.
