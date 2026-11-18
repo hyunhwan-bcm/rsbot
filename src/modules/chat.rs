@@ -1344,18 +1344,19 @@ pub fn _a_trip(flat: &str, memory: &Memory) -> bool {
 /// `answers._offer(lambda reject: answers._in_context(text, memory, reject=reject), memory,
 /// understood)`: (item is not None, reply). The contract types `_offer`'s reader as a `Value`,
 /// which cannot carry the closure; this is the one place that call is made.
-fn answers_offer_in_context(text_: &str, memory: &Memory, understood: &Understood) -> (bool, Value) {
+fn answers_offer_in_context(text_: &str, memory: &mut Memory, understood: &Understood) -> (bool, Value) {
     let _ = (text_, memory, understood);
     // Counted as a call into an unported function, which is what it is until the contract
     // can carry the reader.
     panic!("UNPORTED bot.modules.answers:_offer (its reader parameter is typed &Value; chat passes a closure over _in_context)")
 }
 
-/// Python: bot/modules/chat.py:4791 `_answers_it(text, understood, memory)`
-pub fn _answers_it(text_: &str, understood: &Understood, memory: &Memory) -> bool {
+/// Python: bot/modules/chat.py:4791 `_answers_it(text, understood, memory)`: the entry's reply
+/// is worked out on this module's own memory, which an entry's reply function may write to.
+pub fn _answers_it(text_: &str, understood: &Understood, memory: &mut Memory) -> bool {
     let read = attempt(|| {
         if let Some(found) = crate::knowledge::lookup::find(understood, None, None, false) {
-            let reply = crate::modules::answers::_payload(found, memory, understood);
+            let reply = crate::modules::answers::_payload(found, &*memory, understood);
             if !text::strip(&reply).is_empty() {
                 return Some(true);
             }
@@ -1370,7 +1371,7 @@ pub fn _answers_it(text_: &str, understood: &Understood, memory: &Memory) -> boo
 }
 
 /// Python: bot/modules/chat.py:4818 `_intent(clean, tokens, memory)`
-pub fn _intent(clean: &str, tokens: &[String], memory: &Memory) -> Option<String> {
+pub fn _intent(clean: &str, tokens: &[String], memory: &mut Memory) -> Option<String> {
     if tokens.is_empty() || tokens.len() > 22 || clean.contains('?') || tokens.len() < 3 {
         return None;
     }
@@ -1419,7 +1420,8 @@ pub fn _intent(clean: &str, tokens: &[String], memory: &Memory) -> Option<String
     if INTENT_CONDITION.search(&flat).is_some() {
         return None;
     }
-    if let Some(u) = memory.understood.as_ref() {
+    if let Some(u) = memory.understood.clone() {
+        let u = &u;
         if _answers_it(clean, u, memory) {
             return None;
         }
