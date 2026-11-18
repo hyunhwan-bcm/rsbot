@@ -377,6 +377,19 @@ pub static CITY_DAYS: LazyLock<Vec<String>> = LazyLock::new(|| {
     data::get("bot.knowledge.travel.CITY_DAYS").pairs().iter().filter_map(|(k, _)| k.as_str().map(str::to_string)).collect()
 });
 
+/// `_find_in(text, CITY_DAYS)` with the keys sorted and their patterns compiled once.
+pub fn find_city(text: &str) -> Option<String> {
+    static SORTED: LazyLock<Vec<(String, Re)>> = LazyLock::new(|| {
+        let mut names: Vec<&String> = CITY_DAYS.iter().collect();
+        names.sort_by(|a, b| b.chars().count().cmp(&a.chars().count()));
+        names
+            .into_iter()
+            .map(|n| (n.clone(), Re::new(&format!(r"(?<![a-z]){}(?![a-z])", sh::escape(n)), 0)))
+            .collect()
+    });
+    SORTED.iter().find(|(name, re)| re.is_match(text) && _names_place(text, name)).map(|(name, _)| name.clone())
+}
+
 // ---------------------------------------------------------------------------------------------
 // bot.memory.topics
 

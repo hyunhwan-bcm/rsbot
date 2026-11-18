@@ -62,8 +62,16 @@ pub fn _not_the_food_in_the_fridge(understood: &Understood) -> bool {
 }
 
 static STOPPED_ALTOGETHER: LazyLock<Vec<String>> = LazyLock::new(|| strs("STOPPED_ALTOGETHER"));
-static FIXTURE_FIRST_CHECKS: LazyLock<Vec<(Vec<String>, String)>> = LazyLock::new(|| {
-    g("FIXTURE_FIRST_CHECKS").items().iter().map(|r| (r.items()[0].strs(), r.items()[1].str().to_string())).collect()
+/// FIXTURE_FIRST_CHECKS with each name's `\b<name>s?\b` compiled once.
+static FIXTURE_FIRST_CHECKS: LazyLock<Vec<(Vec<Re>, String)>> = LazyLock::new(|| {
+    g("FIXTURE_FIRST_CHECKS")
+        .items()
+        .iter()
+        .map(|r| {
+            let names = r.items()[0].strs().iter().map(|n| Re::new(&format!(r"\b{}s?\b", sh::escape(n)), 0)).collect();
+            (names, r.items()[1].str().to_string())
+        })
+        .collect()
 });
 
 /// The first check for the fixture a line says has stopped, or None.
@@ -73,7 +81,7 @@ pub fn _the_fixture_that_stopped(understood: &Understood) -> Option<String> {
         return None;
     }
     for (names, check) in FIXTURE_FIRST_CHECKS.iter() {
-        if names.iter().any(|name| sh::re_cached(&format!(r"\b{}s?\b", sh::escape(name)), 0).is_match(&said)) {
+        if names.iter().any(|name| name.is_match(&said)) {
             return Some(check.clone());
         }
     }

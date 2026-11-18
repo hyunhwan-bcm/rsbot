@@ -84,6 +84,12 @@ static _CHEMICAL_CHILD: LazyLock<Vec<String>> = LazyLock::new(|| strs("_CHEMICAL
 static _CHEMICAL_PET: LazyLock<Vec<String>> = LazyLock::new(|| strs("_CHEMICAL_PET"));
 static _CHEMICAL_EXPECTING: LazyLock<Vec<String>> = LazyLock::new(|| strs("_CHEMICAL_EXPECTING"));
 
+/// `named(names)` inside `_chemical_safety`: one of the names said as a whole word.
+#[allow(non_snake_case)]
+pub fn _chemical_safety__named(said: &str, names: &[String]) -> bool {
+    names.iter().any(|name| word_re(name, r"\b").is_match(said))
+}
+
 /// A poison, a powder or a cleaner, answered by who is in the house (None when nobody at risk
 /// is named).
 pub fn _chemical_safety(_memory: &Memory, understood: &Understood) -> Option<String> {
@@ -92,7 +98,7 @@ pub fn _chemical_safety(_memory: &Memory, understood: &Understood) -> Option<Str
         return None;
     }
     let said = words.join(" ");
-    let named = |names: &[String]| names.iter().any(|name| word_re(name, r"\b").is_match(&said));
+    let named = |names: &[String]| _chemical_safety__named(&said, names);
     let mut hazard: Option<&str> = None;
     let mut best = 0;
     for (names, answer) in _CHEMICAL_CLASSES.iter() {
@@ -673,6 +679,12 @@ pub fn _spans(text: &str, names: &[String]) -> Option<(usize, usize)> {
     best.map(|(s, e, _)| (s, e))
 }
 
+/// `key=lambda item: item[0][0]` inside `running_costs`: where in the line the name starts.
+#[allow(non_snake_case)]
+pub fn running_costs__lambda_1083(item: &((usize, usize), usize)) -> usize {
+    item.0 .0
+}
+
 /// The RUNNING rows the line names, in the order it names them (indices into RUNNING).
 pub fn running_costs(text: &str) -> Vec<usize> {
     let mut found: Vec<((usize, usize), usize)> = Vec::new();
@@ -688,7 +700,7 @@ pub fn running_costs(text: &str) -> Vec<usize> {
         })
         .cloned()
         .collect();
-    kept.sort_by_key(|item| item.0 .0);
+    kept.sort_by_key(running_costs__lambda_1083);
     kept.into_iter().map(|(_, i)| i).collect()
 }
 
@@ -1003,41 +1015,55 @@ pub fn _kettle_will_not_stop(_memory: &Memory, _understood: &Understood) -> Stri
 // ---------------------------------------------------------------------------------------------
 // Mould and pipes.
 
-static MOULD_DEVICE: LazyLock<Vec<String>> = LazyLock::new(|| strs("MOULD_DEVICE"));
-static MOULD_BODY: LazyLock<Vec<String>> = LazyLock::new(|| strs("MOULD_BODY"));
-static MOULD_SURFACE: LazyLock<Vec<String>> = LazyLock::new(|| strs("MOULD_SURFACE"));
-static MOULD_SAID: LazyLock<Vec<String>> = LazyLock::new(|| strs("MOULD_SAID"));
-static MOULD_IN_THE_BATHROOM: LazyLock<Vec<String>> = LazyLock::new(|| strs("MOULD_IN_THE_BATHROOM"));
+/// A word list matched the way `_says` matches one word (`\b` + escaped word + `\b`), with the
+/// patterns compiled once, for the lists a guard reads on every line.
+pub struct SaidWords(Vec<Re>);
+
+impl SaidWords {
+    fn of(name: &str) -> SaidWords {
+        SaidWords(strs(name).iter().map(|w| Re::new(&format!(r"\b{}\b", sh::escape(w)), 0)).collect())
+    }
+    /// `any(_says(said, word) for word in words)`.
+    pub fn any(&self, said: &str) -> bool {
+        self.0.iter().any(|re| re.is_match(said))
+    }
+}
+
+static MOULD_DEVICE: LazyLock<SaidWords> = LazyLock::new(|| SaidWords::of("MOULD_DEVICE"));
+static MOULD_BODY: LazyLock<SaidWords> = LazyLock::new(|| SaidWords::of("MOULD_BODY"));
+static MOULD_SURFACE: LazyLock<SaidWords> = LazyLock::new(|| SaidWords::of("MOULD_SURFACE"));
+static MOULD_SAID: LazyLock<SaidWords> = LazyLock::new(|| SaidWords::of("MOULD_SAID"));
+static MOULD_IN_THE_BATHROOM: LazyLock<SaidWords> = LazyLock::new(|| SaidWords::of("MOULD_IN_THE_BATHROOM"));
 
 /// A colour a body has changed to is the body's question, not a wall's.
 pub fn _the_black_is_not_a_body(understood: &Understood) -> bool {
     let said = sh::or(sh::clean_or_text(understood), &understood.norm_text).to_lowercase();
-    if !says_any(&said, &MOULD_BODY) {
+    if !MOULD_BODY.any(&said) {
         return true;
     }
-    if says_any(&said, &MOULD_SAID) {
+    if MOULD_SAID.any(&said) {
         return true;
     }
-    says_any(&said, &MOULD_SURFACE)
+    MOULD_SURFACE.any(&said)
 }
 
 /// The bathroom cure where the steam is made, the room cure everywhere else ("" for a dead
 /// screen or a body's colour).
 pub fn _mould(memory: &Memory, understood: &Understood) -> String {
     let said = sh::or(&understood.norm_text, &understood.text);
-    let device = says_any(said, &MOULD_DEVICE);
-    let surface = says_any(said, &MOULD_SURFACE);
-    let mould = says_any(said, &MOULD_SAID);
+    let device = MOULD_DEVICE.any(said);
+    let surface = MOULD_SURFACE.any(said);
+    let mould = MOULD_SAID.any(said);
     if device && !surface && !mould {
         return String::new();
     }
     if device && !surface {
         return string("_MOULD_DEVICE_REPLY");
     }
-    if !mould && !surface && says_any(&_recent_said(memory), &MOULD_BODY) {
+    if !mould && !surface && MOULD_BODY.any(&_recent_said(memory)) {
         return String::new();
     }
-    if says_any(said, &MOULD_IN_THE_BATHROOM) {
+    if MOULD_IN_THE_BATHROOM.any(said) {
         return "Wipe the mould off with a mould spray, or a dilute bleach solution wearing gloves, \
                 then stop it coming back: run the extractor fan during and for 20 minutes after a \
                 shower, and wipe the condensation off the walls. If it returns, the cause is damp, \
@@ -1931,6 +1957,19 @@ static RADIATOR_WARM: LazyLock<Vec<String>> = LazyLock::new(|| strs("RADIATOR_WA
 static RADIATOR_TOO_HOT: LazyLock<Vec<String>> = LazyLock::new(|| strs("RADIATOR_TOO_HOT"));
 static RADIATOR_SAYS_COLD: LazyLock<Vec<String>> = LazyLock::new(|| strs("RADIATOR_SAYS_COLD"));
 
+/// `nearest(index, marks)` inside `_radiator_floor`: the distance to the nearest state word,
+/// counting only the words after the floor when there are any (`(distance, 0)` after, `(distance,
+/// 1)` before).
+#[allow(non_snake_case)]
+pub fn _radiator_floor__nearest(words: &[&str], index: usize, marks: &[String]) -> Option<(usize, u8)> {
+    let is_mark = |w: &str| marks.iter().any(|m| m == w);
+    let after = words.iter().enumerate().filter(|(i, w)| is_mark(w) && *i > index).map(|(i, _)| (i - index, 0u8)).min();
+    if after.is_some() {
+        return after;
+    }
+    words.iter().enumerate().filter(|(i, w)| is_mark(w) && *i < index).map(|(i, _)| (index - i, 1u8)).min()
+}
+
 /// Which floor is the cold one: "up", "down", "both" or None.
 pub fn _radiator_floor(said: &str) -> Option<&'static str> {
     let flat = said.replace(',', " ").replace('.', " ");
@@ -1938,14 +1977,7 @@ pub fn _radiator_floor(said: &str) -> Option<&'static str> {
     if words.is_empty() {
         return None;
     }
-    let nearest = |index: usize, marks: &[String]| -> Option<(usize, u8)> {
-        let is_mark = |w: &str| marks.iter().any(|m| m == w);
-        let after = words.iter().enumerate().filter(|(i, w)| is_mark(w) && *i > index).map(|(i, _)| (i - index, 0u8)).min();
-        if after.is_some() {
-            return after;
-        }
-        words.iter().enumerate().filter(|(i, w)| is_mark(w) && *i < index).map(|(i, _)| (index - i, 1u8)).min()
-    };
+    let nearest = |index: usize, marks: &[String]| _radiator_floor__nearest(&words, index, marks);
     let (mut cold_up, mut cold_down) = (0, 0);
     for (i, word) in words.iter().enumerate() {
         let up = RADIATOR_UP.iter().any(|w| w == word);
@@ -2252,11 +2284,17 @@ pub fn not_a_sound(understood: &Understood) -> bool {
     !a_sound_is_named(understood)
 }
 
+/// `said(*names)` inside `_boiler_noise`: one of the names is in the line.
+#[allow(non_snake_case)]
+pub fn _boiler_noise__lambda_3850(line: &str, names: &[&str]) -> bool {
+    names.iter().any(|n| line.contains(n))
+}
+
 /// A noise in a boiler, with the cause that noise actually has.
 pub fn _boiler_noise(_memory: &Memory, understood: &Understood) -> String {
     let line = sh::squash_lower(sh::or(sh::or(&understood.plain, &understood.text), &understood.clean));
     let words: HashSet<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
-    let said = |names: &[&str]| names.iter().any(|n| line.contains(n));
+    let said = |names: &[&str]| _boiler_noise__lambda_3850(&line, names);
     let has = |set: &[&str]| set.iter().any(|w| words.contains(*w));
     if said(&["humming", "hummed", "buzzing", "buzzed", "vibrating", "droning"])
         || has(&[
@@ -2496,7 +2534,7 @@ pub fn _not_a_length_of_stay(understood: &Understood) -> bool {
     if !_A_LENGTH_OF_STAY_ASK.is_match(&line) {
         return true;
     }
-    dup::_find_in(&line, &dup::CITY_DAYS).is_none()
+    dup::find_city(&line).is_none()
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -4505,3 +4543,280 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.home:the_filter_of.<locals>.reply:3744", r_filter_of_reply),
     ("bot.knowledge.home:the_trade_to_call:3113", r_the_trade_to_call),
 ];
+
+// ---------------------------------------------------------------------------------------------
+// Differential check against PyBot: `G1_DIFF=<file.jsonl> cargo test --release --lib
+// knowledge::home::diff_tests -- --nocapture`, where the file holds PyBot's results for these
+// functions on many readings (written by the group's harness script). Skipped without the file.
+
+#[cfg(test)]
+mod diff_tests {
+    use super::*;
+    use crate::knowledge::{fitweek, home_craft as craft};
+    use crate::state::Turn;
+    use serde_json::{Value as J, json};
+    use std::io::BufRead;
+
+    type Check = fn(&mut Memory, &Understood) -> J;
+
+    fn s(x: String) -> J {
+        json!(x)
+    }
+    fn o(x: Option<String>) -> J {
+        x.map(J::from).unwrap_or(J::Null)
+    }
+    fn f(x: Option<f64>) -> J {
+        x.map(J::from).unwrap_or(J::Null)
+    }
+
+    fn checks() -> Vec<(&'static str, Check)> {
+        vec![
+            ("home._the_space_in_the_house", |_, u| json!(_the_space_in_the_house(u))),
+            ("home._going_to_the_loo", |_, u| json!(_going_to_the_loo(u))),
+            ("home._a_dryer_is_not_a_washer", |_, u| json!(_a_dryer_is_not_a_washer(u))),
+            ("home._the_black_is_not_a_body", |_, u| json!(_the_black_is_not_a_body(u))),
+            ("home._a_mark_that_is_live", |_, u| json!(_a_mark_that_is_live(u))),
+            ("home._a_person_not_a_hob", |_, u| json!(_a_person_not_a_hob(u))),
+            ("home._a_visit_not_a_purchase", |_, u| json!(_a_visit_not_a_purchase(u))),
+            ("home._the_boiler_is_not_the_fault", |_, u| json!(_the_boiler_is_not_the_fault(u))),
+            ("home._a_room_being_heated", |_, u| json!(_a_room_being_heated(u))),
+            ("home._not_a_size_of_a_home", |_, u| json!(_not_a_size_of_a_home(u))),
+            ("home._a_fence_is_named", |_, u| json!(_a_fence_is_named(u))),
+            ("home._not_a_cook_ask", |_, u| json!(_not_a_cook_ask(u))),
+            ("home._asks_the_ceiling_colour", |_, u| json!(_asks_the_ceiling_colour(u))),
+            ("home._the_paper_is_in_the_line", |_, u| json!(_the_paper_is_in_the_line(u))),
+            ("home.a_sound_is_named", |_, u| json!(a_sound_is_named(u))),
+            ("home.not_a_sound", |_, u| json!(not_a_sound(u))),
+            ("home._a_safety_ask", |_, u| json!(_a_safety_ask(u))),
+            ("home._a_blocked_drain_of_your_own", |_, u| json!(_a_blocked_drain_of_your_own(u))),
+            ("home._storm_damage", |_, u| json!(_storm_damage(u))),
+            ("home._a_machine_consumable", |_, u| json!(_a_machine_consumable(u))),
+            ("home._not_a_length_of_stay", |_, u| json!(_not_a_length_of_stay(u))),
+            ("home._not_a_machine_that_has_gone", |_, u| json!(_not_a_machine_that_has_gone(u))),
+            ("home._the_washers_drain_has_its_own_answer", |_, u| json!(_the_washers_drain_has_its_own_answer(u))),
+            ("home._start_craft_applies", |_, u| json!(_start_craft_applies(u))),
+            ("home._not_only_a_white_mark", |_, u| json!(_not_only_a_white_mark(u))),
+            ("home._not_the_buying_question", |_, u| json!(_not_the_buying_question(u))),
+            ("home._not_a_pair_of_glasses", |_, u| json!(_not_a_pair_of_glasses(u))),
+            ("home._not_a_boundary", |_, u| json!(_not_a_boundary(u))),
+            ("home._the_material_is_the_subject", |_, u| json!(_the_material_is_the_subject(u))),
+            ("home._a_washer_is_the_fixing", |_, u| json!(_a_washer_is_the_fixing(u))),
+            ("home._a_repair_job_is_not_a_fixing", |_, u| json!(_a_repair_job_is_not_a_fixing(u))),
+            ("home._a_washer_names_its_joint", |_, u| json!(_a_washer_names_its_joint(u))),
+            ("home._a_fixing_is_the_question", |_, u| json!(_a_fixing_is_the_question(u))),
+            ("home.lambda_4069", |_, u| json!(lambda_4069(u))),
+            ("home._property_word", |_, u| o(_property_word(u))),
+            ("home._service_machine", |_, u| s(_service_machine(u))),
+            ("home._wall_area", |_, u| {
+                let (a, b, c) = _wall_area(u, None);
+                json!([f(a), f(b), c])
+            }),
+            ("home._wall_width_and_height", |_, u| {
+                let (a, b) = _wall_width_and_height(u, None);
+                json!([f(a), f(b)])
+            }),
+            ("home._measurements", |_, u| {
+                let (a, b) = _measurements(&_the_line(u));
+                json!([f(a), f(b)])
+            }),
+            ("home._the_ceiling", |_, u| f(_the_ceiling(&_the_line(u)))),
+            ("home._a_lay_size", |_, u| match _a_lay_size(&_the_line(u)) {
+                Some((a, b)) => json!([a, b]),
+                None => J::Null,
+            }),
+            ("home.machine_named", |_, u| s(machine_named(&u.clean))),
+            ("home._age_in", |_, u| _age_in(&u.clean).map(J::from).unwrap_or(J::Null)),
+            ("home.running_costs", |_, u| json!(running_costs(&u.clean).iter().map(|i| RUNNING[*i].label.clone()).collect::<Vec<_>>())),
+            ("home._how_long_a_machine_takes", |_, u| s(_how_long_a_machine_takes(&u.clean))),
+            ("home._radiator_floor", |_, u| _radiator_floor(&u.clean.to_lowercase()).map(J::from).unwrap_or(J::Null)),
+            ("home._colours_in", |_, u| json!(_colours_in(&u.clean))),
+            ("home._names_a_cupboard", |_, u| json!(_names_a_cupboard(&u.clean))),
+            ("home._asks_the_price", |_, u| json!(_asks_the_price(&u.clean))),
+            ("home._diy_decision", |_, u| s(_diy_decision(&u.clean, None))),
+            ("home._trade_for", |_, u| s(_trade_for(&u.clean.to_lowercase()))),
+            ("home._worn_out_avoid", |_, _| json!(_worn_out_avoid())),
+            ("craft._a_deposit_coming_back", |_, u| json!(craft::_a_deposit_coming_back(u))),
+            ("craft._not_the_food_in_the_fridge", |_, u| json!(craft::_not_the_food_in_the_fridge(u))),
+            ("craft._the_fixture_that_stopped", |_, u| o(craft::_the_fixture_that_stopped(u))),
+            ("craft._a_fixture_that_stopped_was_the_question", |_, u| json!(craft::_a_fixture_that_stopped_was_the_question(u))),
+            ("craft._an_ask_about_servicing_my_own", |_, u| json!(craft::_an_ask_about_servicing_my_own(u))),
+            ("craft._the_fly_is_not_a_verb", |_, u| json!(craft::_the_fly_is_not_a_verb(u))),
+            ("craft._a_gauge_reading", |_, u| json!(craft::_a_gauge_reading(u))),
+            ("craft._a_wash_is_named", |_, u| json!(craft::_a_wash_is_named(u))),
+            ("craft._it_is_water_leaving", |_, u| json!(craft::_it_is_water_leaving(u))),
+            ("craft._not_a_washer_of_another_kind", |_, u| json!(craft::_not_a_washer_of_another_kind(u))),
+            ("craft._a_washer_with_no_other_subject", |_, u| json!(craft::_a_washer_with_no_other_subject(u))),
+            ("craft._the_leak_is_a_machines", |_, u| json!(craft::_the_leak_is_a_machines(u))),
+            ("craft._a_machine_that_will_not_empty", |_, u| json!(craft::_a_machine_that_will_not_empty(u))),
+            ("craft._a_chair_and_not_a_body", |_, u| json!(craft::_a_chair_and_not_a_body(u))),
+            ("craft._the_kitchen_stuff_is_a_take_up", |_, u| json!(craft::_the_kitchen_stuff_is_a_take_up(u))),
+            ("craft._the_explainer_keeps_the_explainer", |_, u| json!(craft::_the_explainer_keeps_the_explainer(u))),
+            ("craft._a_child_or_a_telling", |_, u| json!(craft::_a_child_or_a_telling(u))),
+            ("craft._not_a_drying_inside_question", |_, u| json!(craft::_not_a_drying_inside_question(u))),
+            ("fitweek._the_hurt_already_happened", |_, u| json!(fitweek::_the_hurt_already_happened(u))),
+            ("craft.lambda_4841", |_, u| json!(craft::entries__lambda_4841(u))),
+            ("craft.lambda_4889", |_, u| json!(craft::entries__lambda_4889(u))),
+            ("craft.lambda_6500", |_, u| json!(craft::entries__lambda_6500(u))),
+            ("craft.lambda_6518", |_, u| json!(craft::entries__lambda_6518(u))),
+            ("craft.lambda_6932", |_, u| json!(craft::entries__lambda_6932(u))),
+            ("craft.lambda_7175", |_, u| json!(craft::entries__lambda_7175(u))),
+            ("craft.lambda_8289", |_, u| json!(craft::entries__lambda_8289(u))),
+            ("craft.lambda_10042", |_, u| json!(craft::entries__lambda_10042(u))),
+            // replies
+            ("home._chemical_safety", |m, u| o(_chemical_safety(m, u))),
+            ("home._place_smell", |m, u| s(_place_smell(m, u))),
+            ("home._soft_smell", |m, u| s(_soft_smell(m, u))),
+            ("home._repair_judgement", |m, u| s(_repair_judgement(m, u))),
+            ("home._lifespan", |m, u| s(_lifespan(m, u))),
+            ("home._running", |m, u| o(_running(m, u))),
+            ("home._washer_sound_fault", |m, u| s(_washer_sound_fault(m, u))),
+            ("home._appliance_noise", |m, u| o(_appliance_noise(m, u))),
+            ("home._lost_keys", |m, u| s(_lost_keys(m, u))),
+            ("home._door_lock_stiff", |m, u| s(_door_lock_stiff(m, u))),
+            ("home._machine_fault", |m, u| s(_machine_fault(m, u))),
+            ("home._appliance_cutting_out", |m, u| s(_appliance_cutting_out(m, u))),
+            ("home._kettle_will_not_stop", |m, u| s(_kettle_will_not_stop(m, u))),
+            ("home._mould", |m, u| s(_mould(m, u))),
+            ("home._pipes", |m, u| s(_pipes(m, u))),
+            ("home._consumer_unit", |m, u| s(_consumer_unit(m, u))),
+            ("home._water_off", |m, u| s(_water_off(m, u))),
+            ("home._colour_advice", |m, u| s(_colour_advice(m, u))),
+            ("home._roof_leak", |m, u| s(_roof_leak(m, u))),
+            ("home._pressure_weak", |m, u| s(_pressure_weak(m, u))),
+            ("home._smoking_appliance", |m, u| s(_smoking_appliance(m, u))),
+            ("home._alarm_nuisance", |m, u| s(_alarm_nuisance(m, u))),
+            ("home._hob_heat", |m, u| s(_hob_heat(m, u))),
+            ("home._iron_fault", |m, u| s(_iron_fault(m, u))),
+            ("home._small_appliance_not_heating", |m, u| s(_small_appliance_not_heating(m, u))),
+            ("home._dryer_heat", |m, u| s(_dryer_heat(m, u))),
+            ("home._diy", |m, u| o(_diy(m, u))),
+            ("home._machine_takes", |m, u| s(_machine_takes(m, u))),
+            ("home._appliance_life", |m, u| s(_appliance_life(m, u))),
+            ("home._fitting_repair", |m, u| o(_fitting_repair(m, u))),
+            ("home._bath_length", |m, u| s(_bath_length(m, u))),
+            ("home._broken_window", |m, u| o(_broken_window(m, u))),
+            ("home.the_trade_to_call", |m, u| s(the_trade_to_call(m, u))),
+            ("home._washer_price", |m, u| s(_washer_price(m, u))),
+            ("home._radiator_not_hot", |m, u| o(_radiator_not_hot(m, u))),
+            ("home._furniture_upstairs", |m, u| s(_furniture_upstairs(m, u))),
+            ("home._paint_brush_care", |m, u| s(_paint_brush_care(m, u))),
+            ("home._boiler_noise", |m, u| s(_boiler_noise(m, u))),
+            ("home._heating_goes_cold", |m, u| s(_heating_goes_cold(m, u))),
+            ("home._heat_pump_answer", |m, u| s(_heat_pump_answer(m, u))),
+            ("home._where_the_consumable_goes", |m, u| s(_where_the_consumable_goes(m, u))),
+            ("home._water_use", |m, u| s(_water_use(m, u))),
+            ("home._a_wear", |m, u| s(_a_wear(m, u))),
+            ("home._run_out_basics", |m, u| o(_run_out_basics(m, u))),
+            ("home._machine_broke", |m, u| s(_machine_broke(m, u))),
+            ("home._machine_part", |m, u| o(_machine_part(m, u))),
+            ("home._mower", |m, u| s(_mower(m, u))),
+            ("home._read_pattern", |m, u| s(_read_pattern(m, u))),
+            ("home._start_craft", |m, u| s(_start_craft(m, u))),
+            ("home._read_tape", |m, u| s(_read_tape(m, u))),
+            ("home._read_level", |m, u| s(_read_level(m, u))),
+            ("home._a_chip_in_it", |m, u| s(_a_chip_in_it(m, u))),
+            ("home._hot_water_fault", |m, u| s(_hot_water_fault(m, u))),
+            ("home._a_service_worth", |m, u| o(_a_service_worth(m, u))),
+            ("home._keeping_paper", |m, u| s(_keeping_paper(m, u))),
+            ("home._home_word_2", |m, u| o(_home_word_2(m, u))),
+            ("home._how_many_tiles", |m, u| s(_sized_by_the_chat_before__answered(_how_many_tiles, m, u))),
+            ("home._how_many_decking", |m, u| s(_sized_by_the_chat_before__answered(_how_many_decking, m, u))),
+            ("home._how_many_fence", |m, u| s(_sized_by_the_chat_before__answered(_how_many_fence, m, u))),
+            ("home._how_many_bricks", |m, u| s(_sized_by_the_chat_before__answered(_how_many_bricks, m, u))),
+            ("home._how_many_floorboards", |m, u| s(_sized_by_the_chat_before__answered(_how_many_floorboards, m, u))),
+            ("home._how_many_skirting", |m, u| s(_sized_by_the_chat_before__answered(_how_many_skirting, m, u))),
+            ("home._how_many_plasterboard", |m, u| s(_sized_by_the_chat_before__answered(_how_many_plasterboard, m, u))),
+            ("home._a_fixing", |m, u| s(_a_fixing(m, u))),
+            ("home._a_bed_size", |m, u| s(_a_bed_size(m, u))),
+            ("home.filter_reply", |m, u| {
+                let pats: Vec<Re> = ["extractor", "cooker hood", "hood"]
+                    .iter()
+                    .map(|w| Re::new(&format!("(?<![a-z0-9]){}(?![a-z0-9])", sh::escape(w)), 0))
+                    .collect();
+                let refs: Vec<&Re> = pats.iter().collect();
+                s(the_filter_of__reply(&refs, "FILTER TEXT", m, u))
+            }),
+            ("home.machine_before", |m, _| s(machine_before(m))),
+            ("home.the_machine_decision", |m, u| {
+                let before = machine_before(m);
+                s(the_machine_decision(m, &before, &u.text))
+            }),
+            ("home._diy_decision_m", |m, u| s(_diy_decision(&u.clean, Some(m)))),
+            ("home._recent_said", |m, _| s(_recent_said(m))),
+            ("craft._a_dripping_tap", |m, u| s(craft::_a_dripping_tap(m, u))),
+            ("craft._a_washer_two_things", |m, u| s(craft::_a_washer_two_things(m, u))),
+            ("craft._the_bed_for_paving_or_blocks", |m, u| s(craft::_the_bed_for_paving_or_blocks(m, u))),
+            ("craft._the_fan_stopped", |m, u| s(craft::_the_fan_stopped(m, u))),
+            ("craft._hair_dryer", |m, u| s(craft::_hair_dryer(m, u))),
+            ("craft._paint_for_the_room", |m, u| s(craft::_paint_for_the_room(m, u))),
+            ("craft._wallpaper_for_the_room", |m, u| s(craft::_wallpaper_for_the_room(m, u))),
+            ("craft._a_nail_in_the_wall", |m, u| s(craft::_a_nail_in_the_wall(m, u))),
+            ("craft._the_wood_and_the_nail", |m, u| s(craft::_the_wood_and_the_nail(m, u))),
+            ("craft.lambda_171", |m, u| o(craft::_the_stopped_fixture_entries__lambda_171(m, u))),
+        ]
+    }
+
+    /// Python's None and "" both decline a reply; a raised call is compared as raised.
+    fn same(want: &J, got: &J) -> bool {
+        if want == got {
+            return true;
+        }
+        match (want, got) {
+            (J::Number(a), J::Number(b)) => a.as_f64() == b.as_f64(),
+            (J::Array(a), J::Array(b)) => a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same(x, y)),
+            _ => false,
+        }
+    }
+
+    #[test]
+    fn against_pybot() {
+        let Ok(path) = std::env::var("G1_DIFF") else { return };
+        crate::runtime::quiet_panics();
+        crate::data::load();
+        let checks = checks();
+        let (mut ok, mut bad, mut missing) = (0usize, 0usize, std::collections::BTreeSet::new());
+        let mut shown: std::collections::BTreeMap<&str, usize> = Default::default();
+        for line in std::io::BufReader::new(std::fs::File::open(path).unwrap()).lines() {
+            let rec: J = serde_json::from_str(&line.unwrap()).unwrap();
+            let Ok(u) = serde_json::from_value::<Understood>(rec["understood"].clone()) else { continue };
+            let mut base = Memory::new();
+            base.understood = Some(u.clone());
+            base.intent_wants = rec["intent_wants"].as_str().map(str::to_string);
+            for t in rec["turns"].as_array().unwrap() {
+                base.turns.push(Turn {
+                    user: t["user"].as_str().unwrap_or("").into(),
+                    bot: t["bot"].as_str().unwrap_or("").into(),
+                    module: None,
+                });
+            }
+            if let Some(extra) = rec["extra"].as_object() {
+                for (k, v) in extra {
+                    base.extra.insert(k.clone(), crate::data::Value::from_plain(v));
+                }
+            }
+            let results = rec["results"].as_object().unwrap();
+            for (name, want) in results {
+                let Some((_, check)) = checks.iter().find(|(n, _)| n == name) else {
+                    missing.insert(name.clone());
+                    continue;
+                };
+                let mut m = base.clone();
+                let got = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| check(&mut m, &u)))
+                    .unwrap_or_else(|_| json!({"raised": "panic"}));
+                let raised_both = want.get("raised").is_some() && got.get("raised").is_some();
+                if raised_both || same(want, &got) {
+                    ok += 1;
+                } else {
+                    bad += 1;
+                    let n = shown.entry(checks.iter().find(|(x, _)| x == name).unwrap().0).or_default();
+                    *n += 1;
+                    if *n <= 3 {
+                        println!("DIFF {name} text {:?} turns {}\n   py   {}\n   rust {}", rec["text"], rec["turns"], want, got);
+                    }
+                }
+            }
+        }
+        println!("diff: {ok} ok, {bad} differ; by function: {shown:?}; not checked: {missing:?}");
+        assert_eq!(bad, 0);
+    }
+}
