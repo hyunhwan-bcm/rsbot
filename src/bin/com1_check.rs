@@ -38,7 +38,15 @@ impl J for String { fn j(&self) -> Json { Json::String(self.clone()) } }
 impl J for i64 { fn j(&self) -> Json { Json::from(*self) } }
 impl J for usize { fn j(&self) -> Json { Json::from(*self as u64) } }
 impl J for () { fn j(&self) -> Json { Json::Null } }
-impl J for Value { fn j(&self) -> Json { self.to_plain() } }
+// a set is marked, so `same` compares it in any order
+impl J for Value {
+    fn j(&self) -> Json {
+        match self {
+            Value::Set(_) => serde_json::json!({"__set__": self.to_plain()}),
+            _ => self.to_plain(),
+        }
+    }
+}
 impl<T: J> J for Option<T> { fn j(&self) -> Json { match self { Some(v) => v.j(), None => Json::Null } } }
 impl<T: J> J for Vec<T> { fn j(&self) -> Json { Json::Array(self.iter().map(J::j).collect()) } }
 impl J for HashSet<String> {
@@ -623,6 +631,14 @@ fn same(py: &Json, rs: &Json) -> bool {
     match (py, rs) {
         (_, Json::Bool(b)) if !py.is_boolean() => truthy(py) == *b,
         (Json::Null, Json::String(s)) => s.is_empty(),
+        (Json::Array(x), Json::Object(r)) if r.contains_key("__set__") => {
+            let key = |v: &Json| serde_json::to_string(v).unwrap();
+            let mut a: Vec<String> = x.iter().map(key).collect();
+            let mut b: Vec<String> = r["__set__"].as_array().map(|v| v.iter().map(key).collect()).unwrap_or_default();
+            a.sort();
+            b.sort();
+            a == b
+        }
         // Python's `{}` for "no turn"
         (Json::Object(o), Json::Null) => o.is_empty(),
         (Json::Object(o), Json::Object(r)) if r.contains_key("__turn__") => {
