@@ -346,3 +346,34 @@ fn diff_memory_readers_against_pybot() {
     }
     assert!(bad.is_empty(), "differences against PyBot");
 }
+
+/// The fixture kept with the crate: a few cases per reader, each with PyBot's own output, picked
+/// from the lines above (the ones that reach a reader's branches as well as ones that miss them).
+#[test]
+fn readers_match_pybot_on_the_kept_cases() {
+    crate::runtime::quiet_panics();
+    let mut bad: Vec<String> = Vec::new();
+    let mut n = 0;
+    for line in include_str!("chat_difftest_cases.jsonl").lines() {
+        let rec: J = serde_json::from_str(line).unwrap();
+        let name = rec["fn"].as_str().unwrap();
+        let t = rec["text"].as_str().unwrap();
+        let c = rec["clean"].as_str().unwrap();
+        let k: Vec<String> = rec["tokens"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_string()).collect();
+        let ours = match rec.get("mem") {
+            Some(mem) => {
+                let mut m = Memory::from_plain(mem.as_object().unwrap());
+                let r = rec["reply"].as_str().unwrap_or("");
+                rust_memory_outputs(t, c, &k, &mut m, r)
+            }
+            None => rust_outputs(t, c, &k),
+        };
+        let Some(rs) = ours.get(name) else { continue };
+        n += 1;
+        if !same(&rec["out"], rs) {
+            bad.push(format!("{name} on {t:?}: py {} rs {rs}", rec["out"]));
+        }
+    }
+    assert!(n > 900, "only {n} cases ran");
+    assert!(bad.is_empty(), "{} differences:\n{}", bad.len(), bad.join("\n"));
+}
