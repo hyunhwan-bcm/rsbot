@@ -3390,4 +3390,52 @@ mod tests {
         // Python 3.12's re.escape leaves "," and ":" alone.
         assert_eq!(_own_pattern("Still, {Step}: first."), "Still,\\ .+?:\\ first\\.");
     }
+    #[test]
+    fn inline_patterns_compile() {
+        SENTENCES.check().unwrap();
+        SENTENCES_WS.check().unwrap();
+        SENTENCES_SPACES.check().unwrap();
+        CLAUSE_BREAKS.check().unwrap();
+        HEAD_BREAK.check().unwrap();
+        A_PAREN.check().unwrap();
+        LETTERS.check().unwrap();
+        LETTERS_4.check().unwrap();
+        WS.check().unwrap();
+        BODY_LETTERS.check().unwrap();
+        MONEY_LETTERS.check().unwrap();
+        EXPLANATION_HEAD.check().unwrap();
+        A_GAP.check().unwrap();
+        WORDS_09.check().unwrap();
+        I_OPEN.check().unwrap();
+        RELATIVE_MARKER.check().unwrap();
+        A_FENCE_WORD.check().unwrap();
+        A_SENTENCE_END.check().unwrap();
+        AGO.check().unwrap();
+        STEP_PIECES.check().unwrap();
+        HOW_MUCH.check().unwrap();
+        AND_OR_THEN.check().unwrap();
+        IF_OPENS.check().unwrap();
+        AFTER_IF_OPENS.check().unwrap();
+        AFTER_IF_INSIDE.check().unwrap();
+        A_JUDGEMENT_LIST.check().unwrap();
+        HANGING_JOIN.check().unwrap();
+        OR_AND_IF.check().unwrap();
+        AN_ASIDE.check().unwrap();
+        IF_UNLESS.check().unwrap();
+        CLAUSE_SPLIT.check().unwrap();
+        CLAUSE_SPLIT_COLON.check().unwrap();
+        A_LINK_OR_ASIDE.check().unwrap();
+        A_RANGE_AND.check().unwrap();
+        THEN_CUT.check().unwrap();
+        ACTION_SPLIT.check().unwrap();
+        LIST_ITEMS.check().unwrap();
+        ENGLISH_WORDS.check().unwrap();
+        LOWER_WORDS.check().unwrap();
+        A_WORD_OF_LETTERS.check().unwrap();
+        A_BREAK.check().unwrap();
+        FENCE_IN_FRONT.check().unwrap();
+        A_STOP_IN_FRONT.check().unwrap();
+        _ACK_PATTERN.check().unwrap();
+    }
+
 }

@@ -3659,4 +3659,19 @@ mod tests {
         assert_eq!(said[0], "Your mum turns 73 next month \u{2014} that's one to look forward to. Are you doing anything for it?");
         assert_eq!(said[2], "Lovely \u{2014} your mum at 73 next month. Will you mark it somehow?");
     }
+    #[test]
+    fn inline_patterns_compile() {
+        NOT_A_WORD_CHAR.check().unwrap();
+        SENTENCE_BREAK.check().unwrap();
+        A_WORD.check().unwrap();
+        MY_OR_OUR.check().unwrap();
+        A_POSSESSIVE_PERSON.check().unwrap();
+        AIMED_ELSEWHERE.check().unwrap();
+        NOT_ALNUM_SPACE.check().unwrap();
+        TWO_LETTERS.check().unwrap();
+        NAME_JOIN.check().unwrap();
+        A_CURRENCY_MARK.check().unwrap();
+        NOT_AN_APOSTROPHE_WORD.check().unwrap();
+    }
+
 }

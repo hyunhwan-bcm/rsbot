@@ -395,4 +395,10 @@ mod tests {
         assert_eq!(parts.len(), 3);
         assert!(parts[1].starts_with("Twenty-eight") && parts[2].starts_with("Thirty-nine"));
     }
+    #[test]
+    fn inline_patterns_compile() {
+        SENTENCE_SPLIT.check().unwrap();
+        QUOTED_PART.check().unwrap();
+    }
+
 }
