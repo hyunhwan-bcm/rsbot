@@ -961,11 +961,10 @@ pub fn _only_what_the_line_gives(pool: &[String], clean: &str) -> Vec<String> {
     if kept.is_empty() { pool.to_vec() } else { kept }
 }
 
-/// Python: bot/compose/fallback_chain.py:2133 `_choose(options, memory, clean, seed_text=None)`,
-/// as the contract has it: `seed_text` "" stands for None, and the None Python gives back when the
-/// conversation has used the pool up is "".
-pub fn _choose(options: &[String], memory: &Memory, clean: &str, seed_text: &str) -> String {
-    _choose_opt(options, memory, clean, if seed_text.is_empty() { None } else { Some(seed_text) }).unwrap_or_default()
+/// Python: bot/compose/fallback_chain.py:2133 `_choose(options, memory, clean, seed_text=None)`:
+/// `seed_text` None or a text, and None back when the conversation has used the pool up.
+pub fn _choose(options: &[String], memory: &Memory, clean: &str, seed_text: Option<&str>) -> Option<String> {
+    _choose_opt(options, memory, clean, seed_text)
 }
 
 /// `_choose` exactly: `seed_text` None or a text, and None back when nothing is fresh.
