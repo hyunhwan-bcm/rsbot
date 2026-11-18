@@ -248,6 +248,7 @@ pub(crate) fn py_repr(value: &Value) -> String {
 
 /// The memory as the Python dict a function that takes `memory` as a value reads
 /// (`compose.pick` and its kind take the memory as a `Value` in the contract).
+#[allow(dead_code)]
 pub(crate) fn memory_value(memory: &crate::state::Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
 }
