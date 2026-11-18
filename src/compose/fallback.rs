@@ -163,141 +163,6 @@ fn format_named(template: &str, fields: &[(&str, &str)]) -> String {
     out
 }
 
-/// Python: bot/compose/fallback.py:12691 `_a_grown_up_asks(clean, words, said)`
-pub fn _a_grown_up_asks(clean: &str, words: &[String], said: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_a_grown_up_asks")
-}
-
-/// Python: bot/compose/fallback.py:12712 `_who_for(clean, said, words, topic=None)`
-pub fn _who_for(clean: &str, said: &str, words: &[String], topic: Option<&str>) -> Option<String> {
-    crate::unported!("bot.compose.fallback:_who_for")
-}
-
-/// Python: bot/compose/fallback.py:12799 `who_settles(text, memory)` (never called on the trace corpus)
-pub fn who_settles(text: &str, memory: &Memory) -> Value {
-    crate::unported!("bot.compose.fallback:who_settles")
-}
-
-/// Python: bot/compose/fallback.py:12821 `_advisor(memory, clean, said, words)`
-pub fn _advisor(memory: &Memory, clean: &str, said: &str, words: &[String]) -> Option<String> {
-    crate::unported!("bot.compose.fallback:_advisor")
-}
-
-/// Python: bot/compose/fallback.py:12859 `_a_bad_stretch_above(memory, look_back=3)` (never called on the trace corpus)
-pub fn _a_bad_stretch_above(memory: &Memory, look_back: &Value) -> bool {
-    crate::unported!("bot.compose.fallback:_a_bad_stretch_above")
-}
-
-/// Python: bot/compose/fallback.py:12877 `_thread_has_a_health_visit(memory, look_back=3)` (never called on the trace corpus)
-pub fn _thread_has_a_health_visit(memory: &Memory, look_back: &Value) -> bool {
-    crate::unported!("bot.compose.fallback:_thread_has_a_health_visit")
-}
-
-/// Python: bot/compose/fallback.py:12887 `_in_a_crisis_thread(memory)`
-pub fn _in_a_crisis_thread(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_in_a_crisis_thread")
-}
-
-/// Python: bot/compose/fallback.py:12900 `_who_for_the_thread(memory, clean, understood=None)`
-pub fn _who_for_the_thread(memory: &Memory, clean: &str, understood: &Understood) {
-    crate::unported!("bot.compose.fallback:_who_for_the_thread")
-}
-
-/// Python: bot/compose/fallback.py:12961 `_trouble(memory, clean, words)`
-pub fn _trouble(memory: &Memory, clean: &str, words: &[String]) {
-    crate::unported!("bot.compose.fallback:_trouble")
-}
-
-/// Python: bot/compose/fallback.py:13016 `_reads_as_question(text, words)`
-pub fn _reads_as_question(text: &str, words: &[String]) -> bool {
-    crate::unported!("bot.compose.fallback:_reads_as_question")
-}
-
-/// Python: bot/compose/fallback.py:13037 `_reads_as_a_question_when_repaired(text)`
-pub fn _reads_as_a_question_when_repaired(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_reads_as_a_question_when_repaired")
-}
-
-/// Python: bot/compose/fallback.py:13052 `_help_topic(clean, understood)`
-pub fn _help_topic(clean: &str, understood: &Understood) {
-    crate::unported!("bot.compose.fallback:_help_topic")
-}
-
-/// Python: bot/compose/fallback.py:13069 `reads_as_about_itself(text, memory=None)`
-pub fn reads_as_about_itself(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:reads_as_about_itself")
-}
-
-/// Python: bot/compose/fallback.py:13113 `reads_as_a_tight_week(text, memory=None)`
-pub fn reads_as_a_tight_week(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:reads_as_a_tight_week")
-}
-
-/// Python: bot/compose/fallback.py:13169 `a_continuation_of_the_tight_week(memory, text)`
-pub fn a_continuation_of_the_tight_week(memory: &Memory, text: &str) -> bool {
-    crate::unported!("bot.compose.fallback:a_continuation_of_the_tight_week")
-}
-
-/// Python: bot/compose/fallback.py:13186 `reads_as_small_talk(text, memory=None)`
-pub fn reads_as_small_talk(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:reads_as_small_talk")
-}
-
-/// Python: bot/compose/fallback.py:13257 `_a_low_turn_above(memory)`
-pub fn _a_low_turn_above(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_a_low_turn_above")
-}
-
-/// Python: bot/compose/fallback.py:13307 `_a_repair_already_spoken_of(memory)` (never called on the trace corpus)
-pub fn _a_repair_already_spoken_of(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_a_repair_already_spoken_of")
-}
-
-/// Python: bot/compose/fallback.py:13343 `_self_line(text)`
-pub fn _self_line(text: &str) -> String {
-    crate::unported!("bot.compose.fallback:_self_line")
-}
-
-/// Python: bot/compose/fallback.py:13349 `_a_tally_of_its_own_day(understood)`
-pub fn _a_tally_of_its_own_day(understood: &Understood) -> bool {
-    crate::unported!("bot.compose.fallback:_a_tally_of_its_own_day")
-}
-
-/// Python: bot/compose/fallback.py:13375 `_spelled_out(clean)`
-pub fn _spelled_out(clean: &str) -> String {
-    crate::unported!("bot.compose.fallback:_spelled_out")
-}
-
-/// Python: bot/compose/fallback.py:13383 `_about(clean, understood=None)`
-pub fn _about(clean: &str, understood: Option<&Understood>) {
-    crate::unported!("bot.compose.fallback:_about")
-}
-
-/// Python: bot/compose/fallback.py:13520 `_names_the_make(clean)`
-pub fn _names_the_make(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback:_names_the_make")
-}
-
-/// Python: bot/compose/fallback.py:13526 `about_the_bot(clean)`
-pub fn about_the_bot(clean: &str) {
-    crate::unported!("bot.compose.fallback:about_the_bot")
-}
-
-/// Python: bot/compose/fallback.py:13561 `_a_doubt_about_the_bot(clean)`
-pub fn _a_doubt_about_the_bot(clean: &str) {
-    crate::unported!("bot.compose.fallback:_a_doubt_about_the_bot")
-}
-
-/// Python: bot/compose/fallback.py:13583 `_the_bot_itself(clean)`
-pub fn _the_bot_itself(clean: &str) {
-    crate::unported!("bot.compose.fallback:_the_bot_itself")
-}
-
-/// Python: bot/compose/fallback.py:13603 `_about_itself(clean)`
-pub fn _about_itself(clean: &str) {
-    crate::unported!("bot.compose.fallback:_about_itself")
-}
-
 /// Python: bot/compose/fallback.py:13674 `_burn_line(clean, thread='')`
 pub fn _burn_line(clean: &str, thread: &str) -> bool {
     crate::unported!("bot.compose.fallback:_burn_line")
@@ -681,11 +546,6 @@ pub fn _the_answer_above_already_says_what_to_do(turns: &[Turn], memory: &Memory
 /// Python: bot/compose/fallback.py:16176 `_a_thread_about_how_somebody_treats_them(turns)` (never called on the trace corpus)
 pub fn _a_thread_about_how_somebody_treats_them(turns: &[Turn]) -> bool {
     crate::unported!("bot.compose.fallback:_a_thread_about_how_somebody_treats_them")
-}
-
-/// Python: bot/compose/fallback.py:16191 `_an_answer_above(turns)` (never called on the trace corpus)
-pub fn _an_answer_above(turns: &[Turn]) -> bool {
-    crate::unported!("bot.compose.fallback:_an_answer_above")
 }
 
 /// Python: bot/compose/fallback.py:16201 `_a_refusal_to_answer(clean, memory, words=None)`
@@ -7089,4 +6949,716 @@ pub fn _a_price_wants_a_verdict(clean: &str, memory: &Memory) -> Option<Vec<Stri
         return None;
     }
     Some(PRICE_VERDICT_LINES.iter().map(|l| l.replace("{figure}", &figure)).collect())
+}
+
+// ---- fallback.py:12691-12981: who settles a line, the bad stretch, who to ring about it ----
+
+word_sets!(GROWN_UP_WORDS, BABY_FOOD_NAMES, SELF_EATING_WORDS, CHILD_AT_HOME, GIFT_WORDS, MEDS_WORDS, BUYING_WORDS, NETWORK_WORDS);
+word_sets!(SCHOOL_WORDS, SCHOOL_TROUBLE, PASSWORD_TROUBLE, COMPLAINT_WORDS, TRADER_WORDS, FILLING_WORDS, MOUTH_WORDS, FOOD_TOPICS, FILLING_FOODS);
+word_sets!(WHERE_SOMETHING_WRONG, SICKNESS, JOINT_WORDS, WORK_ABOUT, HEALTH_VISIT_WORDS);
+strings!(SCHOOL_WHO, DEVICE_WHO, COMPLAIN_WHO, DENTIST_WHO, BABY_WHO, PEST_WHO, VET_WHO, TRADES_WHO, TENANT_WHO, WORK_WHO);
+regexes!(_ASKS_DEFINITION, _ASKS_WHERE, _SCHEDULING, _ASKS_ARITHMETIC, _ASKS_DIY, _CHOOSING_BETWEEN_TWO, _ASKS_ABOUT_THE_JOINT);
+static WHO_TO_ASK: LazyLock<Vec<(HashSet<String>, String)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.WHO_TO_ASK").items().iter().map(|p| (p.items()[0].str_set(), p.items()[1].str().to_string())).collect()
+});
+
+/// Python: bot/compose/fallback.py:12691 `_a_grown_up_asks(clean, words, said)`
+/// True when the baby in the line is a food's name or the line is about a grown-up.
+pub fn _a_grown_up_asks(clean: &str, words: &[String], said: &str) -> bool {
+    if _names(words, said, GROWN_UP_WORDS.iter()) {
+        return true;
+    }
+    let mut left = format!(" {clean} ");
+    let mut dropped = false;
+    for name in BABY_FOOD_NAMES.iter() {
+        let spaced = format!(" {name} ");
+        if left.contains(&spaced) {
+            left = left.replace(&spaced, " ");
+            dropped = true;
+        }
+    }
+    if !dropped || !_names(words, said, SELF_EATING_WORDS.iter()) {
+        return false;
+    }
+    let left_words: Vec<String> = text::split(&left).into_iter().collect::<HashSet<String>>().into_iter().collect();
+    !_names(&left_words, &left, CHILD_AT_HOME.iter())
+}
+
+/// Python: bot/compose/fallback.py:12712 `_who_for(clean, said, words, topic=None)`
+/// Which person settles this line, or None.
+pub fn _who_for(clean: &str, said: &str, words: &[String], topic: Option<&str>) -> Option<String> {
+    if _ASKS_DEFINITION.is_match(clean) || _ASKS_ARITHMETIC.is_match(clean) {
+        return None;
+    }
+    let diy = _ASKS_DIY.is_match(clean);
+    let gift = _names(words, said, GIFT_WORDS.iter());
+    let meds = _names(words, said, MEDS_WORDS.iter());
+    let buying = _names(words, said, BUYING_WORDS.iter());
+    if _names(words, said, SCHOOL_WORDS.iter()) && _names(words, said, SCHOOL_TROUBLE.iter()) {
+        return Some(SCHOOL_WHO.clone());
+    }
+    if _names(words, said, [String::from("password")].iter()) && _names(words, said, PASSWORD_TROUBLE.iter()) {
+        return Some(DEVICE_WHO.clone());
+    }
+    if _names(words, said, COMPLAINT_WORDS.iter()) && _names(words, said, TRADER_WORDS.iter()) {
+        return Some(COMPLAIN_WHO.clone());
+    }
+    let mut animal = words.iter().any(|w| ANIMALS.contains(w) || ANIMALS.contains(w.trim_end_matches('s')));
+    if animal && _names(words, said, WILD_BIRDS.iter()) && _names(words, said, MESS_PLACES.iter()) {
+        animal = false;
+    }
+    let machine_mouse = crate::understanding::topics::is_a_machine_word(clean);
+    if !animal && meds {
+        return Some(HEALTH_WHO.clone());
+    }
+    if !animal
+        && _names(words, said, FILLING_WORDS.iter())
+        && (_names(words, said, MOUTH_WORDS.iter()) || !(topic.is_some_and(|t| FOOD_TOPICS.contains(t)) || _names(words, said, FILLING_FOODS.iter())))
+    {
+        return Some(DENTIST_WHO.clone());
+    }
+    let where_is_a_thing = _ASKS_WHERE.is_match(clean) && !_names(words, said, WHERE_SOMETHING_WRONG.iter());
+    for (evidence, who) in WHO_TO_ASK.iter() {
+        let who = who.as_str();
+        if where_is_a_thing && (who == *BABY_WHO || who == *HEALTH_WHO) {
+            continue;
+        }
+        if machine_mouse && who == *PEST_WHO {
+            continue;
+        }
+        if animal && who != *VET_WHO && evidence.iter().any(|w| SICKNESS.contains(w)) {
+            continue;
+        }
+        if animal && who == *DENTIST_WHO {
+            continue;
+        }
+        if who == *HEALTH_WHO && _SCHEDULING.is_match(clean) {
+            continue;
+        }
+        if who == *HEALTH_WHO && _CHOOSING_BETWEEN_TWO.is_match(clean) {
+            continue;
+        }
+        if who == *HEALTH_WHO
+            && _names(words, said, JOINT_WORDS.iter())
+            && !(_names(words, said, evidence.iter().filter(|w| !JOINT_WORDS.contains(*w))) || _ASKS_ABOUT_THE_JOINT.is_match(clean))
+        {
+            continue;
+        }
+        if diy && (who == *TRADES_WHO || who == *DEVICE_WHO) {
+            continue;
+        }
+        if who == *BABY_WHO && _a_grown_up_asks(clean, words, said) {
+            continue;
+        }
+        if who == *BABY_WHO && !_names(words, said, CHILD_AT_HOME.iter()) {
+            continue;
+        }
+        if gift && (who == *BABY_WHO || who == *HEALTH_WHO) {
+            continue;
+        }
+        if meds && who == *DEVICE_WHO {
+            continue;
+        }
+        if who == *DEVICE_WHO && _names(words, said, NETWORK_WORDS.iter()) {
+            continue;
+        }
+        if buying && who == *TENANT_WHO {
+            continue;
+        }
+        if who == *WORK_WHO && !_names(words, said, WORK_ABOUT.iter()) {
+            continue;
+        }
+        if _names(words, said, evidence.iter()) {
+            return Some(who.to_string());
+        }
+    }
+    if animal && (meds || _names(words, said, SICKNESS.iter())) {
+        return Some(VET_WHO.clone());
+    }
+    None
+}
+
+/// Python: bot/compose/fallback.py:12799 `who_settles(text, memory)` (never called on the trace corpus)
+/// Which person settles this line - "the school office", "a vet" - or None (a str value).
+pub fn who_settles(text_: &str, memory: &Memory) -> Value {
+    match who_settles_line(text_, memory) {
+        Some(who) => Value::from(who),
+        None => Value::None,
+    }
+}
+
+/// `who_settles` as an optional string.
+pub fn who_settles_line(text_: &str, memory: &Memory) -> Option<String> {
+    let read;
+    let understood = match &memory.understood {
+        Some(u) if u.text == text_ => u,
+        _ => {
+            let mut borrowed = memory.clone();
+            borrowed.understood = None;
+            read = crate::understanding::understand(text_, Some(&borrowed));
+            &read
+        }
+    };
+    let clean = if understood.clean.is_empty() { text::squash(&lower(text_)) } else { understood.clean.clone() };
+    let words = understood.words.clone();
+    let said = format!(" {} ", rx(r"[^a-z0-9']").sub(" ", &clean));
+    _who_for(&clean, &said, &words, understood.topic.as_deref())
+}
+
+/// Python: bot/compose/fallback.py:12821 `_advisor(memory, clean, said, words)`
+/// Name the person whose job settles this line, when the line names that world, or None.
+pub fn _advisor(memory: &Memory, clean: &str, said: &str, words: &[String]) -> Option<String> {
+    let topic = memory.understood.as_ref().and_then(|u| u.topic.as_deref());
+    let who = _who_for(clean, said, words, topic)?;
+    if who.is_empty() {
+        return None;
+    }
+    let lines: Vec<String> = UNKNOWN_WHO.iter().map(|l| format_named(l, &[("who", &who)])).collect();
+    choose(&lines, memory, clean)
+}
+
+regexes!(A_ROUGH_STRETCH, A_HARD_THING_HAPPENED, WHO_FOR_IT, WHO_TO_TALK_ASK);
+
+/// Python: bot/compose/fallback.py:12859 `_a_bad_stretch_above(memory, look_back=3)` (never called on the trace corpus)
+/// True when the last few things the person said were about a bad stretch of their own.
+pub fn _a_bad_stretch_above(memory: &Memory, look_back: i64) -> bool {
+    last_n(&memory.turns, look_back).iter().any(|t| {
+        let said = lower(&t.user);
+        !said.is_empty() && (A_ROUGH_STRETCH.is_match(&said) || A_HARD_THING_HAPPENED.is_match(&said))
+    })
+}
+
+/// Python: bot/compose/fallback.py:12877 `_thread_has_a_health_visit(memory, look_back=3)` (never called on the trace corpus)
+/// True when the last few things the person said were about a visit or a result coming.
+pub fn _thread_has_a_health_visit(memory: &Memory, look_back: i64) -> bool {
+    last_n(&memory.turns, look_back).iter().any(|t| rx("[a-z'-]+").findall_str(&lower(&t.user)).iter().any(|w| HEALTH_VISIT_WORDS.contains(w)))
+}
+
+/// Python: bot/compose/fallback.py:12887 `_in_a_crisis_thread(memory)`
+/// True when the bot's own last word in this stretch named a crisis line.
+pub fn _in_a_crisis_thread(memory: &Memory) -> bool {
+    let answer = _thread_answer(memory);
+    !answer.is_empty() && CRISIS_WORDS.iter().any(|w| answer.contains(w.as_str()))
+}
+
+static NAMED_BODIES: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.NAMED_BODIES").items().iter().map(|p| (p.items()[0].str().to_string(), p.items()[1].str().to_string())).collect()
+});
+pools!(WHO_FOR_IT_SAID_VOICE, WHO_NAMED_BEFORE, WHO_FOR_IT_SAID, WHO_FOR_IT_BODY, WHO_FOR_IT_ROUTES, WHO_TO_TALK_TO_A_BAD_STRETCH, WHO_TO_TALK_TO);
+
+/// Python: bot/compose/fallback.py:12900 `_who_for_the_thread(memory, clean, understood=None)`
+/// The person to take a bare "who do i call about it" to, or a reply asking what it is (lines),
+/// or None. (The skeleton's `()` return could not carry the pool.)
+pub fn _who_for_the_thread(memory: &Memory, clean: &str, understood: &Understood) -> Option<Vec<String>> {
+    let typed = understood.text.as_str();
+    let line = if typed.is_empty() { clean } else { typed };
+    let a_voice = WHO_TO_TALK_ASK.is_match(line)
+        && !rx(r"\babout\s+(?!it\b|that\b|this\b|them\b)\w|\b(?:talk|speak|chat)\s+(?:to|with)\s+(?:the|a|an|my|your|his|her|their)\b").is_match(line);
+    let a_call = if !a_voice { WHO_FOR_IT.match_(line).is_some() } else { false };
+    if !(a_call || a_voice) {
+        return None;
+    }
+    let answer = lower(&crate::memory::last_bot(memory));
+    if !answer.is_empty() {
+        for (word, name) in NAMED_BODIES.iter() {
+            if rx(&format!(r"\b{}\b", crate::py::re::escape(word))).is_match(&answer) {
+                let shapes: &[String] = if a_voice { &WHO_FOR_IT_SAID_VOICE } else { &WHO_NAMED_BEFORE };
+                return Some(with_who(shapes, name));
+            }
+        }
+    }
+    for turn in last_n(&memory.turns, 3).iter().rev() {
+        let said = &turn.user;
+        if said.is_empty() {
+            continue;
+        }
+        let who = py_try(|| who_settles_line(said, memory)).flatten();
+        if let Some(who) = who.filter(|w| !w.is_empty()) {
+            let shapes: &[String] = if a_voice { &WHO_FOR_IT_SAID_VOICE } else { &WHO_FOR_IT_SAID };
+            return Some(with_who(shapes, &who));
+        }
+    }
+    if a_call && (_thread_is_about_the_body(memory, 4) || _thread_has_a_health_visit(memory, 3)) {
+        return Some(WHO_FOR_IT_BODY.clone());
+    }
+    if a_call {
+        return Some(WHO_FOR_IT_ROUTES.clone());
+    }
+    Some(if _a_bad_stretch_above(memory, 3) { WHO_TO_TALK_TO_A_BAD_STRETCH.clone() } else { WHO_TO_TALK_TO.clone() })
+}
+
+pools!(TROUBLE_CUES);
+
+/// Python: bot/compose/fallback.py:12961 `_trouble(memory, clean, words)`
+/// A statement of trouble still deserves the person who can settle it: the reply, or None. (The
+/// skeleton's `()` return could not carry the reply.)
+pub fn _trouble(memory: &Memory, clean: &str, words: &[String]) -> Option<String> {
+    let said = format!(" {} ", words.join(" "));
+    if !words.iter().any(|w| TROUBLE_CUES.iter().any(|cue| w.starts_with(cue.as_str()))) {
+        return None;
+    }
+    if !_reads_as_question(clean, words) {
+        let topic = memory.understood.as_ref().and_then(|u| u.topic.as_deref());
+        if _who_for(clean, &said, words, topic).as_deref() == Some(HEALTH_WHO.as_str()) {
+            return None;
+        }
+    }
+    _advisor(memory, clean, &said, words)
+}
+
+// ---- fallback.py:13016-13654 (and 16191): questions, the bot itself, small talk, a tight week ----
+
+static WORD_FIXES: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.WORD_FIXES").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str().to_string())).collect()
+});
+word_sets!(_OPENING_QUESTIONS);
+regexes!(INDIRECT, LATER_QUESTION, ASK_SHAPES);
+
+/// `WORD_FIXES.get(word, word)`.
+fn word_fixed(word: &str) -> String {
+    WORD_FIXES.iter().find(|(k, _)| k == word).map(|(_, v)| v.clone()).unwrap_or_else(|| word.to_string())
+}
+
+/// Python: bot/compose/fallback.py:13016 `_reads_as_question(text, words)`
+/// True when the line asks something, even if the understanding engine called it a statement.
+pub fn _reads_as_question(text_: &str, words: &[String]) -> bool {
+    if text_.contains('?') {
+        return true;
+    }
+    let plain: Vec<String> = words.iter().map(|w| w.replace('\'', "")).collect();
+    if let Some(first) = plain.first() {
+        if QUESTION_WORDS.contains(&word_fixed(first)) {
+            return true;
+        }
+    }
+    let joined = INDIRECT.sub(" ", &format!(" {} ", plain.join(" ")));
+    let later = INDIRECT.sub(" ", &lower(text_));
+    LATER_QUESTION.is_match(&later) || ASK_SHAPES.is_match(&joined)
+}
+
+/// Python: bot/compose/fallback.py:13037 `_reads_as_a_question_when_repaired(text)`
+/// The opening shape of the repaired line: a question word first, or an inversion.
+pub fn _reads_as_a_question_when_repaired(text_: &str) -> bool {
+    let plain: Vec<String> = text::split_ref(text_).iter().map(|w| w.replace('\'', "")).collect();
+    if let Some(first) = plain.first() {
+        if _OPENING_QUESTIONS.contains(&word_fixed(first)) {
+            return true;
+        }
+    }
+    ASK_SHAPES.is_match(&format!(" {} ", plain.join(" ")))
+}
+
+regexes!(HELP_TOPIC_ASK);
+static HELP_TOPIC: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.HELP_TOPIC").pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect()
+});
+pools!(HELP_TOPIC_ANY);
+
+/// Python: bot/compose/fallback.py:13052 `_help_topic(clean, understood)`
+/// A capability ask with a topic gets a line inside that topic (a pool), or None. (The
+/// skeleton's `()` return could not carry the pool.)
+pub fn _help_topic(clean: &str, understood: &Understood) -> Option<Vec<String>> {
+    if !HELP_TOPIC_ASK.is_match(clean) {
+        return None;
+    }
+    let topic = understood.topic_own.as_deref().unwrap_or("");
+    if topic.is_empty() || ["about-the-bot", "small-talk", "opinions"].contains(&topic) {
+        return None;
+    }
+    Some(pool_of(&HELP_TOPIC, topic).filter(|p| !p.is_empty()).unwrap_or_else(|| HELP_TOPIC_ANY.clone()))
+}
+
+pools!(ABOUT_ITSELF_KINDS);
+
+/// Python: bot/compose/fallback.py:13069 `reads_as_about_itself(text, memory=None)`
+/// True when the line is a question about the bot itself, for the arbiter's use.
+pub fn reads_as_about_itself(text_: &str, memory: &Memory) -> bool {
+    let clean = _self_line(text_);
+    _about(&clean, None).is_some_and(|k| ABOUT_ITSELF_KINDS.contains(&k)) || FORGETTING_ASK.is_match(&clean)
+}
+
+regexes!(QUESTION_CLAUSE, A_THING_THAT_IS_SHORT, BARE_AND, _NOT_MANAGING, YOUR_OWN_TIME, HAND_BACK);
+pools!(TIGHT_MONEY, TIGHT_MONEY_MORE);
+
+/// Python: bot/compose/fallback.py:13113 `reads_as_a_tight_week(text, memory=None)`
+/// True when the line only says the money has run out, for the arbiter's use.
+pub fn reads_as_a_tight_week(text_: &str, memory: &Memory) -> bool {
+    let mut context = memory.clone();
+    context.understood = None;
+    let Some(understood) = py_try(|| crate::understanding::understand(text_, Some(&context))) else { return false };
+    if !understood.tight_on_money {
+        return false;
+    }
+    let kind = if understood.kind.is_empty() { None } else { Some(understood.kind.as_str()) };
+    match py_try(|| crate::understanding::topics::tight_on_money(&understood.norm, kind, "")) {
+        Some(true) => {}
+        _ => return false,
+    }
+    if QUESTION_CLAUSE.is_match(&_self_line(text_)) {
+        return false;
+    }
+    if A_THING_THAT_IS_SHORT.is_match(&_self_line(text_)) {
+        return false;
+    }
+    if py_try(|| crate::memory::more::asks_for_more(text_)) == Some(true) {
+        return false;
+    }
+    true
+}
+
+/// Python: bot/compose/fallback.py:13169 `a_continuation_of_the_tight_week(memory, text)`
+/// True when a bare "go on" follows the composer's own tight-week line.
+pub fn a_continuation_of_the_tight_week(memory: &Memory, text_: &str) -> bool {
+    if BARE_AND.match_(text_).is_none() {
+        match py_try(|| crate::memory::more::asks_for_more(text_)) {
+            Some(true) => {}
+            _ => return false,
+        }
+    }
+    let Some(last) = memory.turns.last() else { return false };
+    let said = text::strip(&last.bot);
+    TIGHT_MONEY.iter().chain(TIGHT_MONEY_MORE.iter()).any(|l| l == said)
+}
+
+/// Python: bot/compose/fallback.py:13186 `reads_as_small_talk(text, memory=None)`
+/// True when the line is the manners question about the bot's own day, for the arbiter's use.
+pub fn reads_as_small_talk(text_: &str, memory: &Memory) -> bool {
+    let clean = _self_line(text_);
+    if _about(&clean, None).is_some() {
+        return false;
+    }
+    if _a_low_turn_above(memory) {
+        return false;
+    }
+    if HAND_BACK.match_(&clean).is_some() {
+        return !memory.turns.is_empty();
+    }
+    if !_asks_how_are_you(&clean, "") {
+        return false;
+    }
+    if YOUR_DAY_ASK.is_match(&clean) && !(YOUR_OWN_TIME.is_match(&clean) || YOUR_TIME_ASK.is_match(&clean)) {
+        // Python calls `_an_answer_above(memory)` here, and the name is bound to the later
+        // definition, `_an_answer_above(turns)`: with a memory dict for `turns`, `turns[-1]` is a
+        // KeyError for any memory that holds anything (and False for an empty one).
+        if memory_is_empty(memory) {
+            return false;
+        }
+        panic!("KeyError: -1");
+    }
+    YOUR_OWN_TIME.is_match(&clean) || YOUR_TIME_ASK.is_match(&clean)
+}
+
+/// Python: bot/compose/fallback.py:13257 `_a_low_turn_above(memory)`
+/// True when the last turn or two were heavy, so the cheerful pool must not take the turn.
+pub fn _a_low_turn_above(memory: &Memory) -> bool {
+    if _hard_week_in_the_thread(memory) || _in_a_loss_thread(memory) || _grief_thread(memory) || _news_above(memory, false) {
+        return true;
+    }
+    for earlier in last_n(&memory.turns, 2) {
+        let line = text::squash(&lower(&earlier.user));
+        if line.is_empty() {
+            continue;
+        }
+        let read = crate::understanding::understand(&line, Some(&Memory::new()));
+        if read.polarity < 0 {
+            return true;
+        }
+        if _mood(&_words(&line), &line) == "negative" || _NOT_MANAGING.is_match(&line) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:16191 `_an_answer_above(turns)` (never called on the trace corpus)
+/// Did the bot answer above this line, so that the no is how that answer went? (The second of
+/// the two definitions in the Python file, the one the module keeps.)
+pub fn _an_answer_above(turns: &[Turn]) -> bool {
+    let bot = turns.last().map(|t| t.bot.as_str()).unwrap_or("");
+    text::split_ref(bot).len() >= 8
+}
+
+/// Python: bot/compose/fallback.py:13307 `_a_repair_already_spoken_of(memory)` (never called on the trace corpus)
+/// True when the bot's last line already said what a repair would involve.
+pub fn _a_repair_already_spoken_of(memory: &Memory) -> bool {
+    let Some(last) = memory.turns.last() else { return false };
+    if last.module.as_deref() != Some("answers") {
+        return false;
+    }
+    rx(r"\b(?:repair|repairs|repaired|repairing|mend\w*|fix\w*|replace\w*|replacement|part|parts|quote|quoted|engineer|optician|servic\w+)\b").is_match(&lower(&last.bot))
+}
+
+regexes!(LEAD_IN);
+
+/// Python: bot/compose/fallback.py:13343 `_self_line(text)`
+/// The line as these readings see it: lowercase, no apostrophes, single spaces, no lead-in.
+pub fn _self_line(text_: &str) -> String {
+    let clean = text::squash(&lower(text_).replace('\u{2019}', "'").replace('\'', ""));
+    let out = LEAD_IN.sub("", &clean);
+    if out.is_empty() { clean } else { out }
+}
+
+/// Python: bot/compose/fallback.py:13349 `_a_tally_of_its_own_day(understood)`
+pub fn _a_tally_of_its_own_day(understood: &Understood) -> bool {
+    understood.counts_the_bots_own_day
+}
+
+static _SPELLED_SHORT: LazyLock<Vec<(&'static Re, String)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback._SPELLED_SHORT").items().iter().map(|p| (p.items()[0].as_re().unwrap(), p.items()[1].str().to_string())).collect()
+});
+
+/// Python: bot/compose/fallback.py:13375 `_spelled_out(clean)`
+/// The line with chat-speak spelled out, for the phrase tables in this file.
+pub fn _spelled_out(clean: &str) -> String {
+    let mut out = clean.to_string();
+    for (pattern, word) in _SPELLED_SHORT.iter() {
+        out = pattern.sub(word, &out);
+    }
+    out
+}
+
+regexes!(PRIVACY_ASK, PRIVACY_SHAPES, BETWEEN_US_ASK, NOT_WHAT_I_SAID, TRUST_ASK, SECRET_ASK, PROMISE_ASK, JUDGING_ASK, PRIVACY_NOT_THIS);
+regexes!(LIMITS_ASK, ONLINE_ASK, OWN_DEVICE, A_BARE_ONLINE, WHAT_ARE_YOU, WHAT_ARE_YOU_NOUN, GOOD_AT_ASK, CLOTHES_ASK, LIKE_ASK, WORKINGS_ASK, ASKING_ASK);
+regexes!(FORGETTING_ASK, RECALL_TAIL, HUMAN_ASK, HELP_ELSE, MODEL_NAMED);
+pools!(IDENTITY, MEMORY);
+/// The keys of a dict global (for `key in DICT`).
+fn dict_keys(name: &str) -> HashSet<String> {
+    data::get(name).pairs().iter().map(|(k, _)| k.str().to_string()).collect()
+}
+static ABOUT: LazyLock<HashSet<String>> = LazyLock::new(|| dict_keys("bot.compose.fallback.ABOUT"));
+static ABOUT_SELF: LazyLock<HashSet<String>> = LazyLock::new(|| dict_keys("bot.compose.fallback.ABOUT_SELF"));
+static MODEL_NAMED_WORDS: LazyLock<usize> = LazyLock::new(|| data::get("bot.compose.fallback.MODEL_NAMED_WORDS").as_int().unwrap() as usize);
+
+/// Python's `string.punctuation`.
+const PUNCTUATION: &[char] = &[
+    '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~',
+];
+
+/// Python: bot/compose/fallback.py:13383 `_about(clean, understood=None)`
+/// Which about-the-bot question this is, or None. (The skeleton's `()` return could not carry
+/// the kind.)
+pub fn _about(clean: &str, understood: Option<&Understood>) -> Option<String> {
+    let clean = _self_line(clean);
+    let self_ = _self_line(&clean);
+    if (PRIVACY_ASK.is_match(&self_) || PRIVACY_SHAPES.is_match(&self_) || BETWEEN_US_ASK.is_match(&self_)) && !NOT_WHAT_I_SAID.is_match(&self_) {
+        return Some("privacy".into());
+    }
+    if TRUST_ASK.is_match(&self_) {
+        return Some("trust".into());
+    }
+    if SECRET_ASK.is_match(&self_) || PROMISE_ASK.is_match(&self_) {
+        return Some("secret".into());
+    }
+    if JUDGING_ASK.is_match(&self_) {
+        return Some("judging".into());
+    }
+    if PRIVACY_ASK.is_match(&clean) && !PRIVACY_NOT_THIS.is_match(&clean) && !NOT_WHAT_I_SAID.is_match(&clean) {
+        return Some("privacy".into());
+    }
+    if TRUST_ASK.is_match(&clean) && !PRIVACY_NOT_THIS.is_match(&clean) {
+        return Some("trust".into());
+    }
+    let selfed = _self_line(&clean);
+    if LIMITS_ASK.is_match(&selfed) {
+        return Some("limits".into());
+    }
+    if ONLINE_ASK.is_match(&selfed) && !OWN_DEVICE.is_match(&selfed) && !A_BARE_ONLINE.is_match(&clean) {
+        return Some("online".into());
+    }
+    let manners: Vec<String> = text::split_ref(&selfed).iter().map(|w| w.trim_matches(PUNCTUATION).to_string()).collect();
+    if crate::understanding::kinds::the_manners_question(&manners) {
+        if let Some(u) = understood {
+            if u.intent != "smalltalk" {
+                return Some("help".into());
+            }
+        }
+        return None;
+    }
+    let spelled = _spelled_out(&clean);
+    if WHAT_ARE_YOU.is_match(&clean) || WHAT_ARE_YOU.is_match(&spelled) {
+        return Some("identity".into());
+    }
+    if rx(r"\bwhat are you\b").is_match(&spelled) && _the_answers_take_it(&clean) != Some(true) {
+        if WHAT_ARE_YOU_NOUN.is_match(&clean) {
+            return Some("identity".into());
+        }
+        if GOOD_AT_ASK.is_match(&clean) {
+            return Some("help".into());
+        }
+        if CLOTHES_ASK.is_match(&clean) {
+            return Some("clothes".into());
+        }
+        if LIKE_ASK.is_match(&clean) {
+            return Some("identity".into());
+        }
+        return Some("self_doing".into());
+    }
+    if WORKINGS_ASK.is_match(&clean) {
+        return Some("workings".into());
+    }
+    if ASKING_ASK.is_match(&self_) {
+        return Some("asking".into());
+    }
+    for phrase in IDENTITY.iter() {
+        if clean.contains(phrase.as_str()) || spelled.contains(phrase.as_str()) {
+            return Some("identity".into());
+        }
+    }
+    if FORGETTING_ASK.is_match(&clean) {
+        return Some("memory".into());
+    }
+    for phrase in MEMORY.iter() {
+        if clean.contains(phrase.as_str()) || spelled.contains(phrase.as_str()) {
+            if RECALL_TAIL.is_match(&clean) && _the_store_takes_it(&clean) {
+                return None;
+            }
+            return Some("memory".into());
+        }
+    }
+    if let Some(u) = understood {
+        if let Some(kind) = u.about_bot_kind.as_deref() {
+            if ABOUT.contains(kind) || ABOUT_SELF.contains(kind) {
+                return Some(kind.to_string());
+            }
+        }
+    }
+    if let Some(asked) = HUMAN_ASK.search(&clean) {
+        if _opens_the_line(&clean[..asked.start()]) && !_asks_elsewhere(&clean[asked.end()..]) {
+            return Some("identity".into());
+        }
+    }
+    if _asks_for_a_person_to_talk_to(&clean) {
+        return Some("identity".into());
+    }
+    if let Some(matched) = HELP_ELSE.search(&clean) {
+        let tail = matched.get(1).filter(|s| !s.is_empty()).or_else(|| matched.get(2)).unwrap_or("");
+        if _free_tail(tail) {
+            return Some("help".into());
+        }
+    }
+    if _asks_for_help(&clean, understood) {
+        return Some("hand".into());
+    }
+    _the_bot_itself(&clean)
+}
+
+/// Python: bot/compose/fallback.py:13520 `_names_the_make(clean)`
+/// Whether the line names what the bot is made of, in a line short enough to be only that.
+pub fn _names_the_make(clean: &str) -> bool {
+    let said = az09_words(&lower(clean));
+    said.len() <= *MODEL_NAMED_WORDS && MODEL_NAMED.is_match(&said.join(" "))
+}
+
+/// Python: bot/compose/fallback.py:13526 `about_the_bot(clean)`
+/// The composer's reading of the line as a question about the bot itself, or None. (The
+/// skeleton's `()` return could not carry the kind.)
+pub fn about_the_bot(clean: &str) -> Option<String> {
+    _the_bot_itself(clean)
+}
+
+regexes!(DOUBT_OPENER, DOUBT_TAIL, DOUBT_NOT, DOUBT_NOT_BE);
+
+/// Python: bot/compose/fallback.py:13561 `_a_doubt_about_the_bot(clean)`
+/// Which question about the bot this doubt is asking, or None. (The skeleton's `()` return
+/// could not carry the kind.)
+pub fn _a_doubt_about_the_bot(clean: &str) -> Option<String> {
+    let mut line = clean.to_string();
+    for _ in 0..3 {
+        let stripped = DOUBT_OPENER.sub("", &line);
+        if stripped == line {
+            break;
+        }
+        line = stripped;
+    }
+    line = DOUBT_TAIL.sub("", &line);
+    let asked = if let Some(notted) = DOUBT_NOT.search(&line) {
+        Some(format!("can you {}", text::strip(&line[notted.end()..])))
+    } else {
+        DOUBT_NOT_BE.search(&line).map(|n| format!("are you {}", text::strip(&line[n.end()..])))
+    };
+    let asked = asked?;
+    if asked.is_empty() || asked.ends_with("you") || asked.ends_with("you can") || asked.ends_with("you are") {
+        return None;
+    }
+    _about(&asked, None)
+}
+
+/// Python: bot/compose/fallback.py:13583 `_the_bot_itself(clean)`
+/// The bots-own-kind reading, with the doubt shape read as the question it is asking. (The
+/// skeleton's `()` return could not carry the kind.)
+pub fn _the_bot_itself(clean: &str) -> Option<String> {
+    let clean = _self_line(clean);
+    _about_itself(&clean).or_else(|| _a_doubt_about_the_bot(&clean))
+}
+
+regexes!(ABOUT_THE_PERSON, REFERS_BACK, NAMES_THE_BOT, SELF_ASK, A_VIEW_ASKED_FOR, SELF_OPENER, REGRET_ASK, SELF_PURPOSE, MADE_ASK, MODEL_ASK);
+word_sets!(SELF_FILLER, PICKS_A_MECHANISM, SELF_WORDS);
+static SELF_GROUP: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
+    data::get("bot.compose.fallback.SELF_GROUP").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str().to_string())).collect()
+});
+
+/// Python: bot/compose/fallback.py:13603 `_about_itself(clean)`
+/// Which question about the bot's own nature this is, or None. (The skeleton's `()` return
+/// could not carry the kind.)
+pub fn _about_itself(clean: &str) -> Option<String> {
+    if REFERS_BACK.is_match(clean) && !NAMES_THE_BOT.is_match(clean) {
+        return None;
+    }
+    let said: Vec<String> = text::split_ref(clean).iter().map(|w| w.trim_matches(['?', '!', '.', ',', ';', ':', '"', '\'', '(', ')']).to_string()).collect();
+    if REGRET_ASK.is_match(clean) {
+        return Some("regret".into());
+    }
+    if SELF_PURPOSE.is_match(clean) {
+        return Some("purpose".into());
+    }
+    if MADE_ASK.is_match(clean) {
+        return Some("agency".into());
+    }
+    if MODEL_ASK.is_match(clean) || _names_the_make(clean) || WORKINGS_ASK.is_match(clean) {
+        return Some("model".into());
+    }
+    let selfed = _self_line(clean);
+    if LIMITS_ASK.is_match(&selfed) {
+        return Some("limits".into());
+    }
+    if ONLINE_ASK.is_match(&selfed) && !OWN_DEVICE.is_match(&selfed) && !A_BARE_ONLINE.is_match(clean) {
+        return Some("online".into());
+    }
+    if !SELF_ASK.is_match(clean) {
+        return None;
+    }
+    if let Some(view) = A_VIEW_ASKED_FOR.match_(clean) {
+        let you = rx(r"\s*(?:you|u|youre|you're|ur|yourself|for\s+yourself|about\s+yourself|by\s+yourself|on\s+your\s+own)\b");
+        if you.match_(view.str(1)).is_none() {
+            return None;
+        }
+    }
+    if ABOUT_THE_PERSON.is_match(clean) {
+        return None;
+    }
+    let rest: Vec<&String> = said.iter().filter(|w| !SELF_FILLER.contains(*w) && !["you", "u", "youre", "you're", "ur"].contains(&w.as_str())).collect();
+    if rest.is_empty() {
+        if rx(r"\bwhy\b").is_match(clean) {
+            return Some("purpose".into());
+        }
+        return if SELF_OPENER.is_match(clean) { Some("where".into()) } else { None };
+    }
+    if rest.iter().any(|w| !SELF_WORDS.contains(*w)) {
+        return None;
+    }
+    for word in rest {
+        if PICKS_A_MECHANISM.contains(word) && !rx(r"\bhow\b").is_match(clean) {
+            continue;
+        }
+        let group = SELF_GROUP.iter().find(|(k, _)| k == word).map(|(_, v)| v.as_str());
+        if group == Some("where") && (word == "here" || word == "there") && rx(r"\bwhy\b").is_match(clean) {
+            return Some("purpose".into());
+        }
+        if let Some(group) = group {
+            if !group.is_empty() {
+                return Some(group.to_string());
+            }
+        }
+    }
+    None
 }
