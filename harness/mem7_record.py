@@ -45,7 +45,9 @@ def dep_key(name, args, kwargs):
     if name == "bot.compose:pick":
         options = [enc(option) for option in args[0]]
         seed = args[2] if len(args) > 2 else kwargs.get("seed_text", "")
-        key = [options, seed]
+        memory = args[1] if len(args) > 1 else kwargs.get("memory")
+        turns = len((memory or {}).get("turns") or []) if isinstance(memory, dict) else 0
+        key = [options, seed, turns]
     elif name == "bot.memory.quotes:sentences":
         key = [args[0], args[1].pattern, int(args[1].flags)]
     elif name == "bot.memory.detail:_a_step":

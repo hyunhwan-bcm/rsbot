@@ -50,9 +50,10 @@ pub fn value(name: &str, key: J) -> Value {
 
 /// `compose.pick(options, memory, seed)`, keyed on the options and the seed. The NUL-led options
 /// rates.rs passes for PyBot's `pick([0, 1], memory)` are the ints they stand for.
-pub fn pick(options: &[String], seed: &str) -> String {
+pub fn pick(options: &[String], memory: &Value, seed: &str) -> String {
+    let turns = memory.get("turns").map_or(0, |t| t.len());
     let ints = options.len() == 2 && options[0] == "\u{0}0" && options[1] == "\u{0}1";
-    let key = if ints { json!([[0, 1], seed]) } else { json!([options, seed]) };
+    let key = if ints { json!([[0, 1], seed, turns]) } else { json!([options, seed, turns]) };
     let got = get("bot.compose:pick", key);
     match got {
         J::Number(n) => options[n.as_u64().unwrap() as usize].clone(),
@@ -97,7 +98,7 @@ patch("src/memory/detail.rs",
 patch("src/compose/mod.rs",
       '    pub fn pick(options: &[String], memory: &Value, seed_text: &str) -> String {\n        crate::unported!("bot.compose:pick")',
       '    pub fn pick(options: &[String], memory: &Value, seed_text: &str) -> String {\n'
-      '        return crate::mem7_mock::pick(options, seed_text);')
+      '        return crate::mem7_mock::pick(options, memory, seed_text);')
 # The readers of memory that only read it, written out from bot/memory/history.py and __init__.py.
 patch("src/memory/history.rs",
       'pub fn an_earlier_turn(memory: &Memory, text: &str) -> bool {\n    crate::unported!("bot.memory.history:an_earlier_turn")',
