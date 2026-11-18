@@ -1148,11 +1148,14 @@ pub fn _defines(understood: &Understood, forms: &FormLine, _typed: &[String], en
     let purpose = _asks_what_it_is_for(said);
     let mut best: Option<&'static Entry> = None;
     let mut best_rank: Option<i64> = None;
+    let first_forms = _forms(&thing[0]);
     for &item in entries {
         if rejected(reject, item) {
             continue;
         }
-        if !_the_key_names_the_thing(item, &thing) {
+        // A key that names the thing has a word sharing a form with the thing's first word, so
+        // a key with none cannot (a quick test before `_the_key_names_the_thing`).
+        if !meets(&first_forms, &_key_forms(item)) || !_the_key_names_the_thing(item, &thing) {
             continue;
         }
         if !guard_passes(item, understood) {
