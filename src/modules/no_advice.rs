@@ -22,8 +22,8 @@ pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
 }
 
 /// `no_advice.pool_name(text)`: the name of the pool the line is answered from, or None.
-/// CONTRACT: `compose::no_advice::pool_name` returns `()` (the traced calls only returned None),
-/// so no pool name can come back yet; the call is still made so a raise is a raise.
+/// `compose::no_advice::pool_name` now returns `Option<String>` (COM5 gave it Python's type);
+/// the `Reading` adapter carries it unchanged.
 fn pool_name(text: &str) -> Option<String> {
     use crate::modules::arbiter::Reading;
     crate::compose::no_advice::pool_name(text).text()
