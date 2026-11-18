@@ -13348,78 +13348,313 @@ pub fn _trim(text_: &str, limit: i64) -> String {
     text::rstrip(&text::slice(&said, 0, Some((limit - 1) as isize))).to_string() + "\u{2026}"
 }
 
-/// Python: bot/memory/store_replies.py:12943 `_reads_as_the_invitation(text, memory)`
-pub fn _reads_as_the_invitation(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_reads_as_the_invitation")
+rx!(CLOSE_SUBJECT, CHANGE_SUBJECT, CARRIES_ON_AFTER, ASKS_WHETHER_TO, ASKS_FOR_HELP, HOLDS_FOR_NOW, CHECK_FOLLOWED, BARE_ACKNOWLEDGEMENT, SAID_TO_THE_BOT, A_MOOD_LINE, DECLINE_A_SUBJECT);
+strset!(CLOSE_FILLER, CLOSE_FILLER_ALWAYS, SAFETY_MODULES, NOT_A_SUBJECT);
+strs!(HELD_THREAD, GRIEF_WORDS, CHECK_PLAIN, CHECK_A_FEELING, CHECK_A_QUESTION, CHECK_NOTHING_SAID, CLOSE_PLAIN, CLOSE_HEAVY, CHANGE_PLAIN, CHANGE_HEAVY);
+sval!(INTENSIFIER);
+
+/// Python: bot/memory/store_replies.py:12965 `_reads_as_the_invitation(text, memory)`
+///
+/// True where the composer reads the line as asking whether the bot saw the thing named.
+pub fn _reads_as_the_invitation(text_: &str, memory: &Memory) -> bool {
+    // A reading that fails leaves the check in service.
+    or_on_raise(|| crate::compose::fallback::reads_as_if_i_saw(text_, memory), false)
 }
 
-/// Python: bot/memory/store_replies.py:12958 `_the_module_behind(memory, said)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:12980 `_the_module_behind(memory, said)`
+///
+/// The module that answered this line, or "" when the turns do not say.
 pub fn _the_module_behind(memory: &Memory, said: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_the_module_behind")
+    let low = _plain_line(said);
+    for turn in memory.turns.iter().rev() {
+        if _plain_line(&turn.user) == low {
+            return turn.module.clone().unwrap_or_default();
+        }
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:12966 `_the_line_before_the_check(memory, line)` (never called on the trace corpus)
-pub fn _the_line_before_the_check(memory: &Memory, line: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_line_before_the_check")
+/// Python: bot/memory/store_replies.py:12988 `_the_line_before_the_check(memory, line)`
+///
+/// The last line they said that was not itself a check, or "".
+pub fn _the_line_before_the_check(memory: &Memory, line: &str) -> String {
+    for turn in recent_turns(memory, 6).iter().rev() {
+        let said = text::strip(&turn.user).to_string();
+        if said.is_empty() {
+            continue;
+        }
+        if CHECK_FOLLOWED.match_(&_plain_line(&said)).is_some() {
+            continue;
+        }
+        if !line.is_empty() && _plain_line(&said) == line {
+            continue;
+        }
+        return said;
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:12980 `_a_check_choice(options, memory, salt)` (never called on the trace corpus)
-pub fn _a_check_choice(options: &Value, memory: &Memory, salt: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_a_check_choice")
+/// Python: bot/memory/store_replies.py:13002 `_a_check_choice(options, memory, salt)`
+///
+/// Pick from a pool without saying the same line twice in a row.
+pub fn _a_check_choice(options: &[String], memory: &Memory, salt: usize) -> String {
+    let turns = &memory.turns;
+    let recent = recent_bot_lines(memory, 4);
+    let fresh: Vec<&String> = options.iter().filter(|o| !recent.contains(&text::slice(o, 0, Some(30)))).collect();
+    let fresh: Vec<&String> = if fresh.is_empty() { options.iter().collect() } else { fresh };
+    fresh[(turns.len() + salt) % fresh.len()].clone()
 }
 
-/// Python: bot/memory/store_replies.py:12987 `_a_check_came_before(memory, line)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:13009 `_a_check_came_before(memory, line)`
+///
+/// True when the last thing they said was itself a check ("did you get that" twice).
 pub fn _a_check_came_before(memory: &Memory, line: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_check_came_before")
+    let turns = recent_turns(memory, 6);
+    let mut said_before: Vec<String> = turns.iter().map(|t| _plain_line(&t.user)).collect();
+    if !said_before.is_empty() && !line.is_empty() && said_before.last().map(String::as_str) == Some(line) && text::strip(&turns[turns.len() - 1].bot).is_empty() {
+        // The turn being answered is already recorded, with no reply yet.
+        said_before.pop();
+    }
+    for said in said_before.iter().rev() {
+        if said.is_empty() {
+            continue;
+        }
+        return CHECK_FOLLOWED.match_(said).is_some();
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:13007 `_the_followed_check(text, memory)`
-pub fn _the_followed_check(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_the_followed_check")
+/// Python: bot/memory/store_replies.py:13028 `_the_followed_check(text, memory)`
+///
+/// The answer to "did you get that?": the thing they said, said back, or an honest no.
+pub fn _the_followed_check(text_: &str, memory: &mut Memory) -> Option<String> {
+    let as_said = crate::memory::relations::_folded(text_, memory);
+    let low = _plain_line(&as_said);
+    if _reads_as_the_invitation(&low, memory) {
+        // "did you see it" after they named the match is a conversation about the match.
+        return None;
+    }
+    if CHECK_FOLLOWED.match_(&low).is_none() {
+        return None;
+    }
+    if BARE_ACKNOWLEDGEMENT.match_(&low).is_some() && !text_.contains('?') {
+        // "got it" is a nod: answering it by reading their own line back turns it into a receipt.
+        return None;
+    }
+    let previous = _the_line_before_the_check(memory, &low);
+    if !previous.is_empty() && SAFETY_MODULES.contains(&_the_module_behind(memory, &previous)) {
+        // An emergency is not read back.
+        return None;
+    }
+    // The seed carries the turn count as well as the line.
+    let salt = text::len(&low) + 3 * memory.turns.len();
+    if !previous.is_empty() {
+        let lowered = previous.to_lowercase();
+        if FEELING_ALONE.match_(text::rstrip_chars(&lowered, "!.,")).is_some()
+            || A_MOOD_LINE.is_match(&lowered)
+            || A_PERSON_IN_TROUBLE.is_match(&previous)
+            || TREATMENT.is_match(&previous)
+            || GRIEF_WORDS.iter().any(|w| lowered.contains(w.as_str()))
+        {
+            return Some(_a_check_choice(&CHECK_A_FEELING, memory, salt));
+        }
+        if _is_a_question(&previous) {
+            return Some(_a_check_choice(&CHECK_A_QUESTION, memory, salt));
+        }
+        if SAID_TO_THE_BOT.is_match(&_plain_line(&previous)) {
+            // The line they want read back was addressed to the bot.
+            return Some(_a_check_choice(&CHECK_A_FEELING, memory, salt));
+        }
+        let said = crate::memory::thread::restate(&previous);
+        if !said.is_empty() && text::split(&said).len() >= 3 {
+            // A check is answered with the thing they said, unless this is the second check in a row.
+            if !_a_check_came_before(memory, &low) {
+                return Some(fmt_named(&_a_check_choice(&CHECK_PLAIN, memory, salt), &[("said", &said)]));
+            }
+            return Some(_a_check_choice(&CHECK_A_FEELING, memory, salt));
+        }
+        // They did say something, it is just not a thing to say back.
+        return Some(_a_check_choice(&CHECK_A_FEELING, memory, salt));
+    }
+    let record = crate::memory::topics::current(memory).cloned().unwrap_or(Value::None);
+    let kept = if record.is_dict() { sget(&record, "text") } else { String::new() };
+    if !kept.is_empty() && !_is_a_question(&kept) {
+        // With nothing to read back, the subject the chat is on is still true.
+        let said = crate::memory::thread::restate(&kept);
+        if !said.is_empty() && text::split(&said).len() >= 2 {
+            return Some(fmt_named(&_a_check_choice(&CHECK_PLAIN, memory, salt), &[("said", &said)]));
+        }
+    }
+    Some(_a_check_choice(&CHECK_NOTHING_SAID, memory, salt))
 }
 
-/// Python: bot/memory/store_replies.py:13085 `_plain_line(text)`
-pub fn _plain_line(text: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_plain_line")
+static NOT_PLAIN: LazyLock<Re> = LazyLock::new(|| Re::new(r"[^a-z0-9' ]+", 0));
+
+/// Python: bot/memory/store_replies.py:13084 `_plain_line(text)`
+///
+/// The line in plain lower-case words, with the punctuation taken off.
+pub fn _plain_line(text_: &str) -> String {
+    let low = fold(text_);
+    text::squash(&NOT_PLAIN.sub(" ", &low))
 }
 
-/// Python: bot/memory/store_replies.py:13115 `_a_subject_to_leave_alone(low)`
+/// Python: bot/memory/store_replies.py:13114 `_a_subject_to_leave_alone(low)`
+///
+/// True when the line is a closing that names its subject rather than saying "it".
 pub fn _a_subject_to_leave_alone(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_subject_to_leave_alone")
+    for found in DECLINE_A_SUBJECT.finditer(low) {
+        let subject = [found.name("subject"), found.name("rather"), found.name("let")].into_iter().flatten().find(|s| !s.is_empty()).unwrap_or("");
+        let words = text::split(text::strip(subject));
+        if words.is_empty() || words.len() > 4 {
+            continue;
+        }
+        if words.len() > 1 && ["it", "that", "this"].contains(&words[0].as_str()) {
+            // The pronoun frame with a word after it is the frames' own to decide.
+            continue;
+        }
+        if words.iter().any(|w| NOT_A_SUBJECT.contains(w)) {
+            continue;
+        }
+        // What is left in front of the frame is filler or nothing.
+        if !text::split(&low[..found.start()]).iter().all(|w| CLOSE_FILLER.contains(w)) {
+            continue;
+        }
+        return true;
+    }
+    false
 }
+
+static ASKS_A_WH: LazyLock<Re> = LazyLock::new(|| Re::new(r"(?:what|how|why|when|where|who|which)\b", 0));
 
 /// Python: bot/memory/store_replies.py:13140 `_closes_the_subject(text)`
-pub fn _closes_the_subject(text: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_closes_the_subject")
+///
+/// True when the whole line asks to leave the thing in the air alone.
+pub fn _closes_the_subject(text_: &str) -> bool {
+    let low = _plain_line(text_);
+    if low.is_empty() || text::split(&low).len() > 12 {
+        return false;
+    }
+    if ASKS_A_WH.match_(&low).is_some() {
+        // "how do i forget it" is an ask about the thing, not a request to leave it.
+        return false;
+    }
+    if ASKS_WHETHER_TO.is_match(&low) || ASKS_FOR_HELP.is_match(&low) {
+        return false;
+    }
+    if CARRIES_ON_AFTER.is_match(&HOLDS_FOR_NOW.sub(" ", &low)) {
+        // "drop it in the pan" is about the thing, not about leaving it alone.
+        return false;
+    }
+    if _closes_by_a_frame(&low) {
+        return true;
+    }
+    _a_subject_to_leave_alone(&low)
 }
 
 /// Python: bot/memory/store_replies.py:13161 `_closes_by_a_frame(low)`
+///
+/// True when one of the frames above covers the line and nothing else in it carries on.
 pub fn _closes_by_a_frame(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_closes_by_a_frame")
+    for pattern in [&*CLOSE_SUBJECT, &*CHANGE_SUBJECT] {
+        for found in pattern.finditer(low) {
+            let rest = low[..found.start()].to_string() + " " + &low[found.end()..];
+            if text::split(&rest).iter().all(|w| CLOSE_FILLER.contains(w)) {
+                return true;
+            }
+        }
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:13170 `_a_plain_frame_closes(low)` (never called on the trace corpus)
+static INTENSIFIER_RE: LazyLock<Re> = LazyLock::new(|| Re::new(&INTENSIFIER, 0));
+
+/// Python: bot/memory/store_replies.py:13170 `_a_plain_frame_closes(low)`
+///
+/// True when the frames read the line with no help from this reader's newer allowances.
 pub fn _a_plain_frame_closes(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_plain_frame_closes")
+    for pattern in [&*CLOSE_SUBJECT, &*CHANGE_SUBJECT] {
+        for found in pattern.finditer(low) {
+            if INTENSIFIER_RE.is_match(found.as_str()) {
+                continue;
+            }
+            let rest = low[..found.start()].to_string() + " " + &low[found.end()..];
+            if text::split(&rest).iter().all(|w| CLOSE_FILLER_ALWAYS.contains(w)) {
+                return true;
+            }
+        }
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:13182 `_held_thread(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:13182 `_held_thread(memory)`
+///
+/// True when a safety answer, rather than a topic, is the thing the chat is carrying.
 pub fn _held_thread(memory: &Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_held_thread")
+    for turn in recent_turns(memory, 3) {
+        if turn.module.as_deref() == Some("safety") {
+            return true;
+        }
+        let said = turn.bot.to_lowercase();
+        if HELD_THREAD.iter().any(|w| said.contains(w.as_str())) {
+            return true;
+        }
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:13193 `_gentle_subject(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:13193 `_gentle_subject(memory)`
+///
+/// True when what was closed is heavy: a loss, an illness, a stay in hospital.
 pub fn _gentle_subject(memory: &Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_gentle_subject")
+    for turn in recent_turns(memory, 4) {
+        if matches!(turn.module.as_deref(), Some("loss") | Some("grief")) {
+            return true;
+        }
+        let bot = turn.bot.to_lowercase();
+        if GRIEF_WORDS.iter().any(|w| bot.contains(w.as_str())) {
+            return true;
+        }
+        let user_line = turn.user.to_lowercase();
+        if GRIEF_WORDS.iter().any(|w| user_line.contains(w.as_str())) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Python: bot/memory/store_replies.py:13205 `_can_close(text, memory)`
-pub fn _can_close(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_can_close")
+///
+/// Whether the store is the one to answer this closing line.
+pub fn _can_close(text_: &str, memory: &Memory) -> bool {
+    if !_closes_the_subject(text_) {
+        return false;
+    }
+    let current = crate::memory::topics::current(memory).map(Value::truthy).unwrap_or(false);
+    if !current && recent_turns(memory, 2).is_empty() {
+        return false;
+    }
+    if _held_thread(memory) {
+        return false;
+    }
+    if _gentle_subject(memory) && !_a_plain_frame_closes(&_plain_line(text_)) {
+        // A loss or a stay in hospital is answered better by the grief reader.
+        return false;
+    }
+    true
 }
 
 /// Python: bot/memory/store_replies.py:13226 `_the_close(text, memory)`
-pub fn _the_close(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_the_close")
+///
+/// The answer to a person who has asked to leave the subject: a short yes, and no advice.
+pub fn _the_close(text_: &str, memory: &mut Memory) -> Option<String> {
+    if !_can_close(text_, memory) {
+        return None;
+    }
+    let low = _plain_line(text_);
+    let gentle = _gentle_subject(memory);
+    if CHANGE_SUBJECT.is_match(&low) {
+        return Some(pick(if gentle { &CHANGE_HEAVY } else { &CHANGE_PLAIN }, memory, &low));
+    }
+    Some(pick(if gentle { &CLOSE_HEAVY } else { &CLOSE_PLAIN }, memory, &low))
 }
 
