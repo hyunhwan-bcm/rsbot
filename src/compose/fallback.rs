@@ -8358,7 +8358,7 @@ pub fn brings_nothing_of_its_own(text_: &str) -> bool {
 /// Python: bot/compose/fallback.py:15707 `assumes_an_earlier_turn(reply)`
 /// Whether the reply answers something the person has said earlier in this chat.
 pub fn assumes_an_earlier_turn(reply: &str) -> bool {
-    crate::memory::history::a_past_that_is_not_there(reply, &Value::dict(), Some(""))
+    crate::memory::history::a_past_that_is_not_there(reply, None, Some(""))
 }
 
 /// Python: bot/compose/fallback.py:15723 `reads_as_a_return(clean)`

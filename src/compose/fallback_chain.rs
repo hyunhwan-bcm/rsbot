@@ -3482,7 +3482,7 @@ pub fn _reply_for(text_: &str, memory: &mut Memory, understood: Option<&Understo
     if _a_wear_ask_about_a_day(&clean, &repaired, text_) {
         return choose!(_the_wear_pool_for_the_line(&clean, &repaired, text_), memory, clean);
     }
-    if mood == "neutral" && _A_CORRECTION.match_(&clean).is_none() && truthy(crate::memory::swap::rewritten(&clean, &memory_value(memory))) {
+    if mood == "neutral" && _A_CORRECTION.match_(&clean).is_none() && crate::memory::swap::rewritten(&clean, memory).is_some() {
         return choose!(UNKNOWN, memory, clean);
     }
     if crate::understanding::kinds::verdicts_a_thing(&clean) {

@@ -236,6 +236,42 @@ pub mod pyv {
         crate::compose::pick(options, &memory_value(memory), seed_text)
     }
 
+    /// What another file's function gave back, read for its truth whatever its contract type
+    /// is today (a stub that returns `()` is Python's None).
+    pub trait Truthy {
+        fn truthy(&self) -> bool;
+    }
+    impl Truthy for () {
+        fn truthy(&self) -> bool {
+            false
+        }
+    }
+    impl Truthy for bool {
+        fn truthy(&self) -> bool {
+            *self
+        }
+    }
+    impl Truthy for String {
+        fn truthy(&self) -> bool {
+            !self.is_empty()
+        }
+    }
+    impl Truthy for Value {
+        fn truthy(&self) -> bool {
+            Value::truthy(self)
+        }
+    }
+    impl<T: Truthy> Truthy for Option<T> {
+        fn truthy(&self) -> bool {
+            self.as_ref().is_some_and(Truthy::truthy)
+        }
+    }
+
+    /// `try: f() except Exception: None`: a panic (Python's exception) is caught.
+    pub fn attempt<T>(f: impl FnOnce() -> T) -> Option<T> {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).ok()
+    }
+
     /// `isinstance(v, int)` (a bool is an int in Python).
     pub fn is_int(v: &Value) -> bool {
         matches!(v, Value::Int(_) | Value::Bool(_))
