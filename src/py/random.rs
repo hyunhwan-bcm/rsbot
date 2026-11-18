@@ -25,6 +25,23 @@ impl Random {
         r
     }
 
+    /// A generator in the state CPython's `getstate()[1]` describes: 624 words, then the position.
+    pub fn from_python_state(state: &[u64]) -> Random {
+        let mut r = Random { mt: [0; N], index: N };
+        for (i, w) in state.iter().take(N).enumerate() {
+            r.mt[i] = *w as u32;
+        }
+        r.index = state.get(N).copied().unwrap_or(N as u64) as usize;
+        r
+    }
+
+    /// `getstate()[1]`, the inverse of [`Random::from_python_state`].
+    pub fn python_state(&self) -> Vec<u64> {
+        let mut v: Vec<u64> = self.mt.iter().map(|w| *w as u64).collect();
+        v.push(self.index as u64);
+        v
+    }
+
     /// `rng.seed(n)`.
     pub fn seed(&mut self, seed: i128) {
         let mut a = seed.unsigned_abs();

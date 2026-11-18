@@ -281,3 +281,52 @@ pub struct Understood {
     #[serde(flatten)]
     pub extra: IndexMap<String, serde_json::Value>,
 }
+
+/// Python's `repr(str)`: single quotes unless the text holds a single quote and no double one.
+pub fn py_str_repr(s: &str) -> String {
+    let quote = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push(quote);
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if c == quote => {
+                out.push('\\');
+                out.push(c);
+            }
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => out.push_str(&format!("\\x{:02x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push(quote);
+    out
+}
+
+fn py_opt_repr(s: &Option<String>) -> String {
+    s.as_deref().map(py_str_repr).unwrap_or_else(|| "None".to_string())
+}
+
+impl LeansOn {
+    /// `str(leans_on)`: Python's repr of the dict.
+    pub fn py_repr(&self) -> String {
+        let words: Vec<String> = self.words.iter().map(|w| py_str_repr(w)).collect();
+        format!(
+            "{{'text': {}, 'words': [{}], 'subject': {}, 'subject_type': {}, 'topic': {}}}",
+            py_str_repr(&self.text),
+            words.join(", "),
+            py_opt_repr(&self.subject),
+            py_opt_repr(&self.subject_type),
+            py_opt_repr(&self.topic)
+        )
+    }
+}
+
+impl StandIn {
+    /// `str(stand_in)`: Python's repr of the dict.
+    pub fn py_repr(&self) -> String {
+        format!("{{'word': {}, 'noun': {}}}", py_str_repr(&self.word), py_opt_repr(&self.noun))
+    }
+}

@@ -878,18 +878,18 @@ fn _two_letters_the_wrong_way_round(word: &str) -> HashSet<String> {
 /// `_words_the_bot_writes()`: every word in the knowledge base's keys, replies and asks.
 fn _words_the_bot_writes() -> &'static HashSet<String> {
     static WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| {
-        use crate::data::Value;
+        use crate::knowledge::entry::Reply;
         use crate::knowledge::lookup::{self, KeyPart};
         let mut words: HashSet<String> = HashSet::new();
         for entry in lookup::all_entries() {
             let mut texts: Vec<&str> = Vec::new();
             match &entry.reply {
-                Value::Str(s) => texts.push(s),
-                Value::List(_) | Value::Tuple(_) | Value::Set(_) => texts.extend(entry.reply.items().iter().filter_map(Value::as_str)),
-                _ => {}
+                Reply::Text(s) => texts.push(s),
+                Reply::Choices(v) => texts.extend(v.iter().map(String::as_str)),
+                Reply::Fn(_) => {}
             }
             for part in entry.ask.iter().chain(entry.key.iter()) {
-                if let KeyPart::One(s) = part {
+                if let KeyPart::Word(s) = part {
                     texts.push(s);
                 }
             }

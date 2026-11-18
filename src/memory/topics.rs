@@ -250,7 +250,7 @@ fn _key_subject(text_: &str) -> Option<Vec<String>> {
     let item = _entry(text_)?;
     let mut out: Vec<String> = Vec::new();
     for part in &item.key {
-        for alternative in part.alternatives() {
+        for alternative in lookup::alternatives(part) {
             if !_said(alternative, &found) {
                 continue;
             }
@@ -464,7 +464,7 @@ fn _the_entry_answers_the_ask(entry: &Entry, line: &str) -> bool {
 /// a phrase, or one of a tuple's alternatives).
 fn _the_entry_is_about_the_thing(entry: &Entry, word: &str) -> bool {
     entry.key.iter().any(|part| match part {
-        KeyPart::One(s) => s.contains(word),
+        KeyPart::Word(s) => s.contains(word),
         KeyPart::Any(v) => v.iter().any(|a| a == word),
     })
 }

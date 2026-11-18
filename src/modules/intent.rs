@@ -12,6 +12,7 @@ pub fn observe(_text: &str, memory: &mut Memory) {
     let want = crate::compose::clause::shape(read, want);
     let want = crate::compose::what_it_asks::the_shape_it_asks(read, want);
     memory.intent_wants = want.clone();
+    memory.extra_had_intent = true;
     let read = memory.understood.as_mut().unwrap();
     read.wants = want.filter(|w| !w.is_empty());
 }

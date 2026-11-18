@@ -10,21 +10,26 @@ pub mod arbiter;
 pub mod intent;
 pub mod understand;
 
+/// The arbiter's `choose`.
+pub fn choose(text: &str, memory: &crate::state::Memory, candidates: &[crate::runtime::Candidate]) -> usize {
+    arbiter::choose(text, memory, candidates)
+}
+
 /// Every module, highest PRIORITY first, then by name: the order `bot/runtime.py` runs them in.
 pub fn registry() -> &'static [ModuleDef] {
     static REGISTRY: std::sync::LazyLock<Vec<ModuleDef>> = std::sync::LazyLock::new(|| {
         let mut v = vec![
-            ModuleDef { name: "understand", priority: 10000.0, observe: Some(crate::modules::hooks::observe_understand), respond: None },
-            ModuleDef { name: "intent", priority: 9500.0, observe: Some(crate::modules::hooks::observe_intent), respond: None },
-            ModuleDef { name: "safety", priority: 9000.0, observe: None, respond: Some(crate::modules::hooks::respond_safety) },
-            ModuleDef { name: "memory_store", priority: 7000.0, observe: None, respond: Some(crate::modules::hooks::respond_memory_store) },
-            ModuleDef { name: "dreams", priority: 3000.0, observe: None, respond: Some(crate::modules::hooks::respond_dreams) },
-            ModuleDef { name: "chat", priority: 300.0, observe: None, respond: Some(crate::modules::hooks::respond_chat) },
-            ModuleDef { name: "answers", priority: 0.0, observe: None, respond: Some(crate::modules::hooks::respond_answers) },
-            ModuleDef { name: "where_it_answers", priority: -999.0, observe: None, respond: Some(crate::modules::hooks::respond_where_it_answers) },
-            ModuleDef { name: "first_line_open", priority: -999.5, observe: None, respond: Some(crate::modules::hooks::respond_first_line_open) },
-            ModuleDef { name: "the_shape_of_the_answer", priority: -999.5, observe: None, respond: Some(crate::modules::hooks::respond_the_shape_of_the_answer) },
-            ModuleDef { name: "greeting", priority: -1000.0, observe: None, respond: Some(crate::modules::hooks::respond_greeting) },
+            ModuleDef { name: "understand", priority: 10000.0, observe: Some(crate::modules::hooks::observe_understand), respond: None, after: None },
+            ModuleDef { name: "intent", priority: 9500.0, observe: Some(crate::modules::hooks::observe_intent), respond: None, after: None },
+            ModuleDef { name: "safety", priority: 9000.0, observe: None, respond: Some(crate::modules::hooks::respond_safety), after: None },
+            ModuleDef { name: "memory_store", priority: 7000.0, observe: None, respond: Some(crate::modules::hooks::respond_memory_store), after: None },
+            ModuleDef { name: "dreams", priority: 3000.0, observe: None, respond: Some(crate::modules::hooks::respond_dreams), after: None },
+            ModuleDef { name: "chat", priority: 300.0, observe: None, respond: Some(crate::modules::hooks::respond_chat), after: None },
+            ModuleDef { name: "answers", priority: 0.0, observe: None, respond: Some(crate::modules::hooks::respond_answers), after: None },
+            ModuleDef { name: "where_it_answers", priority: -999.0, observe: None, respond: Some(crate::modules::hooks::respond_where_it_answers), after: None },
+            ModuleDef { name: "first_line_open", priority: -999.5, observe: None, respond: Some(crate::modules::hooks::respond_first_line_open), after: None },
+            ModuleDef { name: "the_shape_of_the_answer", priority: -999.5, observe: None, respond: Some(crate::modules::hooks::respond_the_shape_of_the_answer), after: None },
+            ModuleDef { name: "greeting", priority: -1000.0, observe: None, respond: Some(crate::modules::hooks::respond_greeting), after: None },
         ];
         v.sort_by(|a, b| b.priority.partial_cmp(&a.priority).unwrap().then(a.name.cmp(b.name)));
         v
