@@ -4860,127 +4860,441 @@ pub fn _the_part_a_longer_variant_adds(fresh: &str, said: &str) -> Option<String
     Some(added)
 }
 
-// ==== ported code ends; the stubs below are the functions not yet ported ====
+re_static!(STAND_IN_TARGET, PRICE_LIMIT, PRICE_NOT_OVER, PRICE_BARE, PRICE_OVER, CHEAPER, LIMIT_SHAPE, GIFT_WORD, HOW_TO);
+set_static!(STAND_IN_WORDS, LIMIT_ONLY, PRICE_FILLER, PRICE_VERBS, LEAD_PREPOSITION, DETERMINER, NOT_A_THING, CLAUSE_START,
+    ROOMS, NAMED_PLACES);
+strs_static!(STAND_IN_PHRASES);
+static PRICE_WORDS: LazyLock<Vec<(String, i64)>> = LazyLock::new(|| {
+    g("PRICE_WORDS").items().iter().map(|p| (p.items()[0].str().to_string(), p.items()[1].as_int().unwrap_or(0))).collect()
+});
+static INTEREST_ALIASES: LazyLock<Vec<(String, String)>> =
+    LazyLock::new(|| g("INTEREST_ALIASES").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str().to_string())).collect());
+static SAME_WHERE: LazyLock<String> = LazyLock::new(|| g("SAME_WHERE").str().to_string());
+static SAME_PLAIN: LazyLock<String> = LazyLock::new(|| g("SAME_PLAIN").str().to_string());
+static MOST_SAME: LazyLock<usize> = LazyLock::new(|| g("MOST_SAME").as_int().unwrap_or(220) as usize);
+static SWAP_PREPOSITION: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.swap.PREPOSITION"));
+static SWAP_STOP: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.swap.STOP"));
+static INTEREST_GIFTS: LazyLock<HashSet<String>> =
+    LazyLock::new(|| data::get("bot.knowledge.shopping.INTEREST_GIFTS").pairs().iter().map(|(k, _)| k.str().to_string()).collect());
 
 /// Python: bot/modules/answers.py:6329 `_the_sentence_owed(text, reply, memory)`
-pub fn _the_sentence_owed(text: &str, reply: &str, memory: &Memory) {
-    crate::unported!("bot.modules.answers:_the_sentence_owed")
+/// The sentence (the row's declared `lead`) the entry behind this reply owes the line, or None.
+pub fn _the_sentence_owed(text_: &str, reply: &str, memory: &mut Memory) -> Option<Value> {
+    let _ = text_;
+    let understood = memory.understood.clone()?;
+    let item = py_try(|| find_plain(&understood)).flatten()?;
+    let lead = item.raw.attr("lead").cloned().unwrap_or(Value::None);
+    if !lead.truthy() {
+        return None;
+    }
+    let said = match &item.reply {
+        crate::knowledge::entry::Reply::Text(s) => s.clone(),
+        _ => py_try(|| _payload_mut(item, memory, &understood))?,
+    };
+    let plain = text::squash(&said);
+    let here = text::squash(reply);
+    if plain.is_empty() || here.is_empty() {
+        return None;
+    }
+    if !here.starts_with(&text::slice(&plain, 0, Some(50))) {
+        return None;
+    }
+    Some(lead)
 }
 
 /// Python: bot/modules/answers.py:6402 `_wants_a_stand_in(reading)`
+/// True when the line asks what to use in place of the thing it says it has none of.
 pub fn _wants_a_stand_in(reading: &Understood) -> bool {
-    crate::unported!("bot.modules.answers:_wants_a_stand_in")
+    let clean = text::squash(&reading.clean).to_lowercase();
+    if clean.is_empty() || STAND_IN_TARGET.is_match(&clean) {
+        return false;
+    }
+    let mut asked = STAND_IN_PHRASES.iter().any(|p| clean.contains(p.as_str()));
+    if !asked {
+        // `reading.get("words")`: the reading always carries its words as a list
+        asked = reading.words.iter().any(|w| STAND_IN_WORDS.contains(&w.to_lowercase()));
+    }
+    if !asked {
+        return false;
+    }
+    (REFUSE_OPEN.match_(&clean).is_some() || REFUSE_WISH.match_(&clean).is_some()) && REFUSE_CHOICE.match_(&clean).is_none()
 }
 
-/// Python: bot/modules/answers.py:6428 `_a_swap_row(item)` (never called on the trace corpus)
-pub fn _a_swap_row(item: &'static Entry) -> bool {
-    crate::unported!("bot.modules.answers:_a_swap_row")
+/// Python: bot/modules/answers.py:6428 `_a_swap_row(item)`
+/// True for the table's stand-in rows, whose answer is the swapped ingredient by design.
+pub fn _a_swap_row(item: &Entry) -> bool {
+    item.id.starts_with("swap-")
 }
 
 /// Python: bot/modules/answers.py:6484 `_price_limit(text)`
-pub fn _price_limit(text: &str) -> Value {
-    crate::unported!("bot.modules.answers:_price_limit")
+/// (the amount in pounds or None, whether the line asked for something cheaper).
+pub fn _price_limit(text_: &str) -> (Option<i64>, bool) {
+    if text::strip(text_).is_empty() {
+        return (None, false);
+    }
+    let flat = text::squash(&text_.to_lowercase());
+    let cheaper = CHEAPER.is_match(&flat);
+    if PRICE_OVER.is_match(&flat) && !PRICE_NOT_OVER.is_match(&flat) && !PRICE_LIMIT.is_match(&flat) {
+        return (None, cheaper);
+    }
+    let found = PRICE_NOT_OVER.search(&flat).or_else(|| PRICE_LIMIT.search(&flat)).or_else(|| PRICE_BARE.search(&flat));
+    if let Some(m) = found {
+        return match m.str(1).parse::<f64>() {
+            Ok(v) => (Some(v.trunc() as i64), cheaper),
+            Err(_) => (py_int(m.str(1)), cheaper),
+        };
+    }
+    for (phrase, amount) in PRICE_WORDS.iter() {
+        if flat.contains(phrase.as_str()) {
+            return (Some(*amount), cheaper);
+        }
+    }
+    (None, cheaper)
 }
 
 /// Python: bot/modules/answers.py:6512 `_only_a_limit(text)`
-pub fn _only_a_limit(text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_only_a_limit")
+/// True when the line is the limit and nothing else: "what about under 40 quid".
+pub fn _only_a_limit(text_: &str) -> bool {
+    let words: Vec<String> = words_in(&text::squash(&text_.to_lowercase()))
+        .into_iter()
+        .filter(|w| !crate::understanding::pyuni::is_digit(w))
+        .collect();
+    !words.is_empty() && words.iter().all(|w| LIMIT_ONLY.contains(w))
 }
 
 /// Python: bot/modules/answers.py:6519 `_a_gift_entry(reading)`
-pub fn _a_gift_entry(reading: &Understood) {
-    crate::unported!("bot.modules.answers:_a_gift_entry")
+/// The present entry this line is about, if it is about one.
+pub fn _a_gift_entry(reading: &Understood) -> Option<&'static Entry> {
+    find_plain(reading).filter(|item| item.id.starts_with("gift-"))
 }
 
-/// Python: bot/modules/answers.py:6525 `_a_gift_just_answered(memory)` (never called on the trace corpus)
-pub fn _a_gift_just_answered(memory: &Memory) -> Value {
-    crate::unported!("bot.modules.answers:_a_gift_just_answered")
+/// Python: bot/modules/answers.py:6525 `_a_gift_just_answered(memory)`
+/// The present entry one of the last few lines reached, while the chat is still on it.
+pub fn _a_gift_just_answered(memory: &Memory) -> Option<&'static Entry> {
+    for turn in last_turns(memory, 3).iter().rev() {
+        if turn.user.is_empty() {
+            continue;
+        }
+        if let Some(item) = _a_gift_entry(&understanding::understand(&turn.user, Some(memory))) {
+            return Some(item);
+        }
+    }
+    None
 }
 
-/// Python: bot/modules/answers.py:6540 `_asks_what_to_give(reading)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:6540 `_asks_what_to_give(reading)`
+/// True when the line is asking what to give somebody, with a person to give it to.
 pub fn _asks_what_to_give(reading: &Understood) -> bool {
-    crate::unported!("bot.modules.answers:_asks_what_to_give")
+    crate::understanding::topics::gift_ask(reading)
 }
 
 /// Python: bot/modules/answers.py:6551 `_the_interests(text, memory, item)`
-pub fn _the_interests(text: &str, memory: &Memory, item: &'static Entry) -> Vec<String> {
-    crate::unported!("bot.modules.answers:_the_interests")
+/// The hobbies this present is for, as the table names them: said in the chat, or in the key.
+pub fn _the_interests(text_: &str, memory: &Memory, item: Option<&Entry>) -> Vec<String> {
+    let mut said: Vec<String> = Vec::new();
+    let mut lines: Vec<String> = last_turns(memory, 3).iter().map(|t| t.user.clone()).collect();
+    lines.push(text_.to_string());
+    for line in &lines {
+        for word in words_in(&line.to_lowercase()) {
+            let name = lookup(&INTEREST_ALIASES, &word).map(str::to_string).unwrap_or(word);
+            if INTEREST_GIFTS.contains(&name) && !said.contains(&name) {
+                said.push(name);
+            }
+        }
+    }
+    if !said.is_empty() {
+        return said;
+    }
+    if let Some(item) = item {
+        for part in &item.key {
+            for word in part.words() {
+                let low = word.to_lowercase();
+                let name = lookup(&INTEREST_ALIASES, &low).map(str::to_string).unwrap_or(low);
+                if INTEREST_GIFTS.contains(&name) && !said.contains(&name) {
+                    said.push(name);
+                }
+            }
+        }
+    }
+    said
 }
 
-/// Python: bot/modules/answers.py:6580 `_the_entry_reply(item, memory, reading)` (never called on the trace corpus)
-pub fn _the_entry_reply(item: &'static Entry, memory: &Memory, reading: &Understood) -> Value {
-    crate::unported!("bot.modules.answers:_the_entry_reply")
+/// Python: bot/modules/answers.py:6580 `_the_entry_reply(item, memory, reading)`
+/// What the entry says, without being said: the price it already names, or an empty string.
+pub fn _the_entry_reply(item: &Entry, memory: &Memory, reading: &Understood) -> String {
+    use crate::knowledge::entry::Reply;
+    match &item.reply {
+        Reply::Text(s) => s.clone(),
+        // a pool is not a str, so it says nothing here
+        Reply::Choices(_) => String::new(),
+        Reply::Fn(f) => {
+            if !knowledge::registry::has_reply(&f.id) {
+                panic!("UNPORTED {}", f.id);
+            }
+            let mut scratch = memory.clone();
+            match knowledge::registry::try_reply(f, &mut scratch, reading) {
+                Ok(v) => v.unwrap_or_default(),
+                Err(()) => {
+                    reraise_unported();
+                    String::new()
+                }
+            }
+        }
+    }
 }
 
 /// Python: bot/modules/answers.py:6590 `_the_present_with_a_price(text, reading, memory)`
-pub fn _the_present_with_a_price(text: &str, reading: &Understood, memory: &Memory) {
-    crate::unported!("bot.modules.answers:_the_present_with_a_price")
+/// A present at the price the line gives, or the limit on the present just suggested.
+pub fn _the_present_with_a_price(text_: &str, reading: &Understood, memory: &Memory) -> Option<String> {
+    let (money, cheaper) = _price_limit(text_);
+    if money.is_none() && !cheaper {
+        return None;
+    }
+    let mut item = _a_gift_entry(reading);
+    if let Some(found) = item {
+        if _the_entry_reply(found, memory, reading).contains('\u{a3}') {
+            return None;
+        }
+    }
+    let only_a_limit = _only_a_limit(text_);
+    let interests = _the_interests(text_, memory, item);
+    if item.is_none() {
+        if only_a_limit {
+            item = Some(_a_gift_just_answered(memory)?);
+        } else if !GIFT_WORD.is_match(&text_.to_lowercase()) && !(!interests.is_empty() && _asks_what_to_give(reading)) {
+            return None;
+        }
+    }
+    if let Some(found) = item {
+        if !only_a_limit && interests.is_empty() && found.id != "gift-generic" {
+            return None;
+        }
+    }
+    Some(match money {
+        None => knowledge::shopping::present_less(&interests),
+        Some(m) => knowledge::shopping::present_within(m as f64, &interests),
+    })
 }
 
 /// Python: bot/modules/answers.py:6666 `_asks_a_price(text)`
-pub fn _asks_a_price(text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_asks_a_price")
+/// Whether the line asks what something costs, rather than how much of a thing there is.
+pub fn _asks_a_price(text_: &str) -> bool {
+    let low = memory::narrow::flat(text_);
+    let priced = inline_re!(
+        r"\bhow much (?:does|do|is|are|will|would|should|can|could)\b.*\b(?:cost|pay|price|spend|budget)\b|\bwhat(?:'s| is) the price\b|\bhow much for\b"
+    );
+    if priced.is_match(&low) {
+        return true;
+    }
+    let Some(found) = inline_re!(r"\bhow much\b(.*)$").search(&low) else { return false };
+    for word in az_words(found.str(1)) {
+        if PRICE_FILLER.contains(&word) {
+            continue;
+        }
+        return PRICE_VERBS.contains(&word);
+    }
+    true
 }
 
 /// Python: bot/modules/answers.py:6687 `_names_what_it_wants_priced(text)`
-pub fn _names_what_it_wants_priced(text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_names_what_it_wants_priced")
+/// Whether the price question says what it is for, rather than leaving it to the chat.
+pub fn _names_what_it_wants_priced(text_: &str) -> bool {
+    let low = memory::narrow::flat(text_);
+    let Some(found) = inline_re!(r"\bhow much\b(.*)$").search(&low) else { return false };
+    for word in az_words(found.str(1)) {
+        if PRICE_FILLER.contains(&word) || PRICE_VERBS.contains(&word) {
+            continue;
+        }
+        return true;
+    }
+    false
 }
 
-/// Python: bot/modules/answers.py:6759 `_same_where_they_asked(text, said)` (never called on the trace corpus)
-pub fn _same_where_they_asked(text: &str, said: &str) -> String {
-    crate::unported!("bot.modules.answers:_same_where_they_asked")
+/// Python: bot/modules/answers.py:6759 `_same_where_they_asked(text, said)`
+/// The part of that answer the new thing has not been given yet, or "" for none left.
+pub fn _same_where_they_asked(text_: &str, said: &str) -> String {
+    let Some(thing) = memory::swap::thing(text_).py().filter(|t| !t.is_empty()) else { return String::new() };
+    let thing_words = az_words(&thing.to_lowercase());
+    if thing_words.iter().all(|w| NOT_A_THING.contains(w)) {
+        return String::new();
+    }
+    if compose::fallback::reads_as_a_judgement(text_) {
+        return String::new();
+    }
+    let clause = thing_words.first().is_some_and(|w| CLAUSE_START.contains(w));
+    let mut words: Vec<String> = text::split(&thing);
+    if words.len() > 1 && LEAD_PREPOSITION.contains(&words[0].to_lowercase()) {
+        words.remove(0);
+    }
+    if !clause && !DETERMINER.contains(&words[0].to_lowercase()) && !(words.len() == 1 && words[0].ends_with("ing")) {
+        words.insert(0, "the".into());
+    }
+    let thing = words.join(" ");
+    let room = az_words(&thing.to_lowercase()).into_iter().find(|w| ROOMS.contains(text::rstrip_chars(w, "s"))).unwrap_or_default();
+    let parts: Vec<String> = inline_re!(r"(?<=[.!?])\s+").split(said).iter().map(|p| text::strip(p).to_string()).filter(|p| !p.is_empty()).collect();
+    let asked: HashSet<String> = az_words(&thing.to_lowercase()).iter().map(|w| bare_s(w).to_string()).collect();
+    for part in &parts {
+        for piece in _the_method_in(part) {
+            if text::split_ref(&piece).len() < 5 || text::len(&piece) < 30 || text::len(&piece) > *MOST_SAME {
+                continue;
+            }
+            if !_holds_where_they_asked(&piece, &asked) {
+                continue;
+            }
+            let line = _mid_sentence(text::rstrip_chars(&piece, " ."));
+            let mut line = _room_they_asked_about(&line, &asked, &room);
+            if !line.ends_with(['.', '!', '?']) {
+                line.push('.');
+            }
+            if clause {
+                return py_format(&SAME_PLAIN, &[("said", &_small_letter(&line))]);
+            }
+            return py_format(&SAME_WHERE, &[("thing", &thing), ("said", &_small_letter(&line))]);
+        }
+    }
+    String::new()
 }
 
-/// Python: bot/modules/answers.py:6816 `_mid_sentence(part)` (never called on the trace corpus)
-pub fn _mid_sentence(part: &str) -> Value {
-    crate::unported!("bot.modules.answers:_mid_sentence")
+/// Python: bot/modules/answers.py:6816 `_mid_sentence(part)`
+/// The line with its opening capital taken off, when it is only a capital because it began.
+pub fn _mid_sentence(part: &str) -> String {
+    let tokens = inline_re!(r"[A-Za-z']+").findall_str(part);
+    if tokens.len() < 2 || !part.chars().next().is_some_and(crate::understanding::pyuni::ch_upper) {
+        return part.to_string();
+    }
+    let first = tokens[0].to_lowercase();
+    if tokens[1..].iter().any(|w| w.to_lowercase() == first) {
+        return low1(part);
+    }
+    part.to_string()
 }
 
-/// Python: bot/modules/answers.py:6847 `_holds_where_they_asked(part, asked)` (never called on the trace corpus)
-pub fn _holds_where_they_asked(part: &str, asked: &str) -> bool {
-    crate::unported!("bot.modules.answers:_holds_where_they_asked")
+/// Python: bot/modules/answers.py:6847 `_holds_where_they_asked(part, asked)`
+/// Whether a sentence of the earlier answer is about the place asked about, or about none.
+pub fn _holds_where_they_asked(part: &str, asked: &HashSet<String>) -> bool {
+    let named: HashSet<String> =
+        az_words(&part.to_lowercase()).iter().map(|w| bare_s(w).to_string()).filter(|w| NAMED_PLACES.contains(w)).collect();
+    if named.is_empty() || !named.is_disjoint(asked) {
+        return true;
+    }
+    named.iter().any(|w| ROOMS.contains(w)) && asked.iter().any(|w| ROOMS.contains(w))
 }
 
-/// Python: bot/modules/answers.py:6862 `_the_method_in(part)` (never called on the trace corpus)
-pub fn _the_method_in(part: &str) -> Value {
-    crate::unported!("bot.modules.answers:_the_method_in")
+/// Python: bot/modules/answers.py:6862 `_the_method_in(part)`
+/// The sentence, and the part of it after a colon when it has one.
+pub fn _the_method_in(part: &str) -> Vec<String> {
+    let mut pieces = vec![part.to_string()];
+    if let Some((_, after)) = part.split_once(": ") {
+        pieces.push(after.to_string());
+    }
+    pieces
 }
 
-/// Python: bot/modules/answers.py:6876 `_room_they_asked_about(line, asked, room)` (never called on the trace corpus)
-pub fn _room_they_asked_about(line: &str, asked: &str, room: &Value) -> Value {
-    crate::unported!("bot.modules.answers:_room_they_asked_about")
+/// Python: bot/modules/answers.py:6876 `_room_they_asked_about(line, asked, room)`
+/// The line with another room in it read as the one they asked about.
+pub fn _room_they_asked_about(line: &str, asked: &HashSet<String>, room: &str) -> String {
+    if room.is_empty() || asked.is_empty() {
+        return line.to_string();
+    }
+    let found: HashSet<String> = az_words(&line.to_lowercase()).iter().map(|w| bare_s(w).to_string()).filter(|w| ROOMS.contains(w)).collect();
+    let others: Vec<&String> = found.iter().filter(|w| !asked.contains(*w)).collect();
+    if others.len() != 1 {
+        return line.to_string();
+    }
+    let other = others[0];
+    let name = bare_s(room).to_string();
+    Re::new(&format!(r"\b{}(s?)\b", crate::py::re::escape(other)), RE_I).sub_fn(line, |m| format!("{name}{}", m.str(1)))
 }
 
-/// Python: bot/modules/answers.py:6898 `_a_place_of_the_same_kind(earlier, text)` (never called on the trace corpus)
-pub fn _a_place_of_the_same_kind(earlier: &Value, text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_a_place_of_the_same_kind")
+/// Python: bot/modules/answers.py:6898 `_a_place_of_the_same_kind(earlier, text)`
+/// True when the place they now ask about is another of the kind the answer was about.
+pub fn _a_place_of_the_same_kind(earlier: Option<&Value>, text_: &str) -> bool {
+    let Some(earlier) = earlier.filter(|e| e.is_dict()) else { return false };
+    let thing = memory::swap::thing(text_).py().unwrap_or_default();
+    let asked: HashSet<String> = az_words(&thing.to_lowercase()).iter().map(|w| bare_s(w).to_string()).collect();
+    let keys: HashSet<String> = earlier.get("keys").map(|k| k.items().iter().map(|w| py_str(w).to_lowercase()).collect()).unwrap_or_default();
+    asked.iter().any(|w| ROOMS.contains(w)) && keys.iter().any(|w| ROOMS.contains(w))
 }
 
 /// Python: bot/modules/answers.py:6914 `_a_place_they_asked(text)`
-pub fn _a_place_they_asked(text: &str) -> bool {
-    crate::unported!("bot.modules.answers:_a_place_they_asked")
+/// True when the follow-up names a place with a place's own preposition.
+pub fn _a_place_they_asked(text_: &str) -> bool {
+    let thing = memory::swap::thing(text_).py().unwrap_or_default();
+    text::split_ref(&thing).first().is_some_and(|w| SWAP_PREPOSITION.contains(&text::strip_chars(w, "?.!,;:").to_lowercase()))
 }
 
-/// Python: bot/modules/answers.py:6925 `_key_terms(item)` (never called on the trace corpus)
-pub fn _key_terms(item: &'static Entry) -> Value {
-    crate::unported!("bot.modules.answers:_key_terms")
+/// Python: bot/modules/answers.py:6925 `_key_terms(item)`
+/// Every phrase the entry is keyed on, however deeply its key is nested.
+pub fn _key_terms(item: &Entry) -> Vec<String> {
+    fn walk(node: &Value, out: &mut Vec<String>) {
+        match node {
+            Value::Str(s) => out.push(s.to_string()),
+            Value::List(v) | Value::Tuple(v) | Value::Set(v) => v.iter().for_each(|c| walk(c, out)),
+            Value::Dict(d) => d.iter().for_each(|(k, _)| walk(k, out)),
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    if let Some(key) = item.raw.attr("key").filter(|k| k.truthy()) {
+        walk(key, &mut out);
+    }
+    out
 }
 
-/// Python: bot/modules/answers.py:6947 `_written_for(item, thing)` (never called on the trace corpus)
-pub fn _written_for(item: &'static Entry, thing: &str) -> bool {
-    crate::unported!("bot.modules.answers:_written_for")
+/// Python: bot/modules/answers.py:6947 `_written_for(item, thing)`
+/// True when one of the entry's own key words is the thing, or covers it.
+pub fn _written_for(item: Option<&Entry>, thing: &str) -> bool {
+    let Some(item) = item else { return false };
+    let words: HashSet<String> = az_words(&thing.to_lowercase()).into_iter().collect();
+    if words.is_empty() {
+        return false;
+    }
+    _key_terms(item).iter().any(|term| {
+        let own: HashSet<String> = az_words(&term.to_lowercase()).into_iter().collect();
+        !own.is_empty() && (words.is_subset(&own) || own.is_subset(&words))
+    })
 }
 
-/// Python: bot/modules/answers.py:6967 `_more_than_the_thing(item, rest)` (never called on the trace corpus)
-pub fn _more_than_the_thing(item: &'static Entry, rest: &str) -> bool {
-    crate::unported!("bot.modules.answers:_more_than_the_thing")
+/// Python: bot/modules/answers.py:6967 `_more_than_the_thing(item, rest)`
+/// True when a key of the entry also names something in the rest of the question.
+pub fn _more_than_the_thing(item: Option<&Entry>, rest: &str) -> bool {
+    let Some(item) = item else { return false };
+    let rest_words: HashSet<String> = az_words(&rest.to_lowercase()).into_iter().collect();
+    if rest_words.is_empty() {
+        return false;
+    }
+    _key_terms(item).iter().any(|term| {
+        let own: HashSet<String> = az_words(&term.to_lowercase()).into_iter().collect();
+        !own.is_empty() && own.is_subset(&rest_words) && !own.is_subset(&SWAP_STOP)
+    })
 }
 
-/// Python: bot/modules/answers.py:6989 `_about_the_rest_of_the_question(item, question, new)` (never called on the trace corpus)
-pub fn _about_the_rest_of_the_question(item: &'static Entry, question: &str, new: &Value) -> bool {
-    crate::unported!("bot.modules.answers:_about_the_rest_of_the_question")
+/// Python: bot/modules/answers.py:6989 `_about_the_rest_of_the_question(item, question, new)`
+/// True when the entry's own subject words are in the question besides the new thing.
+pub fn _about_the_rest_of_the_question(item: &Entry, question: &str, new: &str) -> bool {
+    let key = item.raw.attr("key").cloned().unwrap_or(Value::None);
+    let subject = key.items().first().cloned().unwrap_or(Value::None);
+    if !subject.truthy() {
+        return false;
+    }
+    let new_words = az_words(&new.to_lowercase());
+    if new_words.first().is_none_or(|w| !SWAP_PREPOSITION.contains(w)) {
+        return false;
+    }
+    let asked: HashSet<String> = az_words(&question.to_lowercase()).into_iter().collect();
+    let left: HashSet<&String> = asked.iter().filter(|w| !new_words.contains(*w)).collect();
+    // `for term in subject`: a tuple's phrases, or a str's characters
+    let terms: Vec<String> = match &subject {
+        Value::Str(s) => s.chars().map(|c| c.to_string()).collect(),
+        other => other.items().iter().map(py_str).collect(),
+    };
+    terms.iter().any(|term| {
+        let words = az_words(&term.to_lowercase());
+        !words.is_empty() && words.iter().all(|w| left.contains(w))
+    })
 }
+
+// ==== ported code ends; the stubs below are the functions not yet ported ====
 
 /// Python: bot/modules/answers.py:7124 `_keeping_in_the_answer_before(memory)` (never called on the trace corpus)
 pub fn _keeping_in_the_answer_before(memory: &Memory) -> String {
