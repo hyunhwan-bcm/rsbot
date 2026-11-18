@@ -11475,54 +11475,321 @@ pub fn _the_making_line_they_said(memory: &Memory, back: usize) -> String {
     String::new()
 }
 
-/// Python: bot/memory/store_replies.py:10924 `_recap(line)` (never called on the trace corpus)
+static RECAP_PLANNED: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(?:im|i'm|i am|ive|i've|were|we're|we are)\s+(\S.*)$", crate::py::re::I));
+static RECAP_WANTED: LazyLock<Re> = LazyLock::new(|| Re::new(r"^i\s+(?:want|need|plan)\s+to\s+(\S.*)$", crate::py::re::I));
+
+/// Python: bot/memory/store_replies.py:10924 `_recap(line)`
+///
+/// Their own line said back as a sentence about them: "im making a cake" -> "You're making a
+/// cake for your son."
 pub fn _recap(line: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_recap")
+    let flat = text::strip_chars(&text::squash(line), " .").to_string();
+    let body = if let Some(planned) = RECAP_PLANNED.match_(&flat) {
+        "you're ".to_string() + planned.str(1)
+    } else {
+        match RECAP_WANTED.match_(&flat) {
+            Some(wanted) => "you want to ".to_string() + wanted.str(1),
+            None => return String::new(),
+        }
+    };
+    let body = _tidy_words(&crate::memory::you(&body));
+    text::upper_first(&body)
 }
 
-/// Python: bot/memory/store_replies.py:10940 `_tidy_words(text)` (never called on the trace corpus)
-pub fn _tidy_words(text: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_tidy_words")
+static LOWER_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z]+", 0));
+
+/// Python: bot/memory/store_replies.py:10941 `_tidy_words(text)`
+///
+/// A country or a month keeps its capital: "going to portugal in june" -> "Portugal in June".
+pub fn _tidy_words(text_: &str) -> String {
+    const ORDINARY: [&str; 11] = ["a", "an", "the", "my", "your", "our", "his", "her", "their", "this", "that"];
+    // A name that is also an everyday word needs the sentence to say it is a place.
+    const BOTH: [&str; 6] = ["turkey", "china", "bath", "hull", "york", "goa"];
+    const TRAVEL: [&str; 8] = ["to", "in", "from", "at", "near", "visit", "visiting", "into"];
+    LOWER_WORDS.sub_fn(text_, |m| {
+        let word = m.as_str();
+        if !FACTS_COUNTRIES.contains(word) && !FACTS_MONTHS.iter().any(|w| w == word) && !PLACES.contains(word) {
+            return word.to_string();
+        }
+        let before = text::split(&text_[..m.start()]);
+        let last = before.last().map(|w| w.to_lowercase());
+        if let Some(l) = &last {
+            if ORDINARY.contains(&l.as_str()) {
+                return word.to_string();
+            }
+        }
+        if BOTH.contains(&word) && !last.as_deref().map(|l| TRAVEL.contains(&l)).unwrap_or(false) {
+            return word.to_string();
+        }
+        text::upper_first(word)
+    })
 }
 
-/// Python: bot/memory/store_replies.py:10961 `_a_thing(name)` (never called on the trace corpus)
+static THREAD_QUALITY: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.thread.QUALITY"));
+static THREAD_NON_NOUN: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.thread.NON_NOUN"));
+
+/// Python: bot/memory/store_replies.py:10967 `_a_thing(name)`
+///
+/// Whether the thing we were on is a phrase a person would say, and not a verb.
 pub fn _a_thing(name: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_thing")
+    let words = text::split(name);
+    let Some(last) = words.last() else { return false };
+    let head = text::strip_chars(&last.to_lowercase(), ".,;:!?").to_string();
+    if head.is_empty() {
+        return false;
+    }
+    if text::ends_with_any(&head, &["ing", "ed", "ish"]) {
+        return false;
+    }
+    // "and again" left a subject of "again": a filler word is not a thing to be on either.
+    !THREAD_QUALITY.contains(&head) && !THREAD_NON_NOUN.contains(&head)
 }
 
-/// Python: bot/memory/store_replies.py:10983 `_says_the_thing(said, thing)` (never called on the trace corpus)
+strset!(THING_POINTER);
+
+/// Python: bot/memory/store_replies.py:10990 `_says_the_thing(said, thing)`
+///
+/// Whether the line about to be quoted already names the thing the recap would name.
 pub fn _says_the_thing(said: &str, thing: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_says_the_thing")
+    let named: HashSet<String> = LETTER_WORDS.findall_str(&thing.to_lowercase()).into_iter().filter(|w| !THING_POINTER.contains(w)).collect();
+    let words: HashSet<String> = LETTER_WORDS.findall_str(&said.to_lowercase()).into_iter().collect();
+    !named.is_empty() && named.iter().any(|w| words.contains(w))
 }
 
-/// Python: bot/memory/store_replies.py:10993 `_a_description(thing)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:11001 `_a_description(thing)`
+///
+/// Whether the thing is a description the store gave an article to, not a name.
 pub fn _a_description(thing: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_description")
+    let words = text::split(text::strip(thing));
+    if words.len() < 2 {
+        return false;
+    }
+    ["the", "a", "an"].contains(&words[0].to_lowercase().as_str())
 }
 
-/// Python: bot/memory/store_replies.py:11005 `_the_fixed_fact(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:11014 `_the_fixed_fact(memory)`
+///
+/// The fact a correction just fixed, as the store keeps it, or None.
 pub fn _the_fixed_fact(memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_the_fixed_fact")
+    let fixed = mget(memory, "correction").clone();
+    if !fixed.is_dict() {
+        return None;
+    }
+    let key = text::strip(&sget(&fixed, "key")).to_string();
+    let value = text::strip(&sget(&fixed, "value")).to_string();
+    let said = text::strip(&sget(&fixed, "said")).to_string();
+    if key.is_empty() || value.is_empty() {
+        return None;
+    }
+    if !said.is_empty() && text::strip(&last_turn_user(memory)).to_lowercase() != said.to_lowercase() {
+        return None; // an older correction: the line after it is the one we were on
+    }
+    let ask = text::squash(&_slot_words(&key, memory));
+    let sentence = _fact_reply(memory, &ask, Some(&key)).unwrap_or_default();
+    let sentence = text::strip(&sentence).to_string();
+    if !(sentence.starts_with("Your ") || sentence.starts_with("You ")) {
+        return None;
+    }
+    Some(lower_first(text::rstrip_chars(&sentence, ".")))
 }
 
-/// Python: bot/memory/store_replies.py:11028 `_the_line_named(memory, low)` (never called on the trace corpus)
-pub fn _the_line_named(memory: &Memory, low: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_line_named")
+static ABOUT_THE_THING: LazyLock<Re> = LazyLock::new(|| Re::new(r"\babout\s+(.*)$", 0));
+
+/// Python: bot/memory/store_replies.py:11034 `_the_line_named(memory, low)`
+///
+/// The earlier line of theirs that the thing asked about is in, or "" when none is.
+pub fn _the_line_named(memory: &Memory, low: &str) -> String {
+    use crate::memory::topics::content;
+    let Some(about) = ABOUT_THE_THING.search(low) else { return String::new() };
+    let words = content(about.str(1));
+    if words.is_empty() {
+        return String::new();
+    }
+    for seen in recent_turns(memory, 8).iter().rev() {
+        let line = &seen.user;
+        if line.is_empty() || _about_this_chat_m(line, None) {
+            continue;
+        }
+        let have: HashSet<String> = content(line).into_iter().collect();
+        if !have.is_empty() && words.iter().all(|w| _alike(w, &have)) {
+            return line.clone();
+        }
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:11051 `_topic_reply(memory, low, again=False)` (never called on the trace corpus)
+/// The `skip` reader the thread functions take (Python passes `_about_this_chat` itself): a
+/// function reference to `_about_this_chat`, called with the line alone, which is
+/// `store_replies::_about_this_chat_m(line, None)` in Rust.
+pub fn skip_about_this_chat() -> Value {
+    fn_ref("bot.memory.store_replies:_about_this_chat")
+}
+
+/// Python: bot/memory/store_replies.py:11051 `_topic_reply(memory, low, again=False)`
+///
+/// Where we were, said back in a sentence: the thing, and what was asked about it.
 pub fn _topic_reply(memory: &mut Memory, low: &str, again: bool) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_topic_reply")
+    use crate::memory::thread;
+    let skip = skip_about_this_chat();
+    let mut record_text: Option<String> = crate::memory::topics::current(memory).cloned().and_then(|r| if r.truthy() { Some(s_or(r.get("text"))) } else { None });
+    let record_truthy = crate::memory::topics::current(memory).map(Value::truthy).unwrap_or(false);
+    let real = _last_real(memory);
+    if !real.is_empty() {
+        record_text = Some(real.clone());
+    }
+    let has_record = !real.is_empty() || record_truthy;
+    // The thing the line names decides which line is said back.
+    let on_that_line = _the_line_named(memory, low);
+    let mut said_again: Option<String> = _the_fixed_fact(memory).filter(|s| !s.is_empty());
+    if said_again.is_none() && !on_that_line.is_empty() {
+        said_again = nz(thread::restate(&on_that_line));
+    }
+    if said_again.is_none() {
+        said_again = ret_opt(thread::last_said(memory, &skip)).filter(|s| !s.is_empty());
+    }
+    if let Some(s) = &said_again {
+        if text::split(s).len() < 2 {
+            said_again = None; // "and again" is not a thing the chat was on
+        }
+    }
+    if low.contains("yesterday") {
+        let said = match &said_again {
+            Some(s) => " In this one, you last said ".to_string() + s + ".",
+            None => String::new(),
+        };
+        return Some("I don't keep yesterday's chat, sorry \u{2014} each conversation starts fresh for me.".to_string() + &said);
+    }
+    if _names_its_thing(low) {
+        // The thing is named, so the line that names the thing is the answer.
+        if let Some(by_name) = _recall_reply(memory, low, "", true).filter(|b| !b.is_empty()) {
+            if !_a_denial(&by_name) {
+                return Some(by_name);
+            }
+        }
+        // A miss is never a denial: it falls through to the answers this line got before.
+    }
+    let named = NAMED_ACTIVITY.is_match(low);
+    let mut carried = if ACTIVITY_ASK.is_match(low) { _activity_line_str(memory) } else { String::new() };
+    if carried.is_empty() && named && again {
+        carried = _the_making_line_they_said(memory, 8);
+    }
+    if carried.is_empty() && named {
+        // "what was i cooking?" after a chat about a dishwasher asks for the cooking line.
+        return None;
+    }
+    if !carried.is_empty() {
+        let recap = _recap(&carried);
+        let said_plan = if recap.is_empty() { "You said: \"".to_string() + &_trim(&carried, 90) + "\"" } else { recap };
+        let said_plan = text::rstrip_chars(&said_plan, ".").to_string() + ".";
+        return Some(_vary(
+            &[said_plan.clone() + " Want to carry on with it?", said_plan.clone() + " Where did you get to with it?", said_plan.clone()],
+            memory,
+        ));
+    }
+    let mut thing = ret_opt(thread::about(memory, &skip));
+    if !_a_thing(thing.as_deref().unwrap_or("")) {
+        thing = None;
+    }
+    let ask = if !on_that_line.is_empty() {
+        String::new()
+    } else {
+        let not_before = thread::topic_index(memory, &skip).val();
+        ret_str(thread::last_ask(memory, &skip, &not_before))
+    };
+    let said_text = said_again.clone().unwrap_or_default();
+    if let Some(thing) = thing.as_deref().filter(|t| !t.is_empty()) {
+        if !ask.is_empty() && !(_a_description(thing) && (_says_the_thing(&said_text, thing) || _says_the_thing(&ask, thing))) {
+            return Some(_vary(
+                &[
+                    "We were on ".to_string() + thing + " \u{2014} you asked " + &ask + ". Want to carry on?",
+                    "Still on ".to_string() + thing + ": you asked " + &ask + ".",
+                    "The last thing we got into was ".to_string() + thing + ", and you asked " + &ask + ".",
+                ],
+                memory,
+            ));
+        }
+    }
+    if !ask.is_empty() {
+        if let Some(s) = &said_again {
+            return Some(_vary(
+                &[
+                    "You said ".to_string() + s + ". You asked " + &ask + ". Want to carry on?",
+                    text::upper_first(s) + " - and you asked " + &ask + ". Want to carry on?",
+                ],
+                memory,
+            ));
+        }
+        return Some(_vary(&["You asked ".to_string() + &ask + ". Want to carry on?", "You were asking ".to_string() + &ask + "."], memory));
+    }
+    if let Some(s) = &said_again {
+        return Some(_vary(
+            &["You said ".to_string() + s + ". Want to carry on?", "You last said ".to_string() + s + ".", "You'd told me ".to_string() + s + "."],
+            memory,
+        ));
+    }
+    if let Some(thing) = thing.as_deref().filter(|t| !t.is_empty()) {
+        return Some(_vary(&["We were on ".to_string() + thing + ".", "Still ".to_string() + thing + "."], memory));
+    }
+    if has_record {
+        let record_text = record_text.unwrap_or_default();
+        if !thread::thin(&record_text) && thread::carries_subject(&record_text) {
+            let plain = thread::restate(&record_text);
+            if !plain.is_empty() && _a_thing(&plain) {
+                return Some("We were on ".to_string() + &plain + ".");
+            }
+        }
+    }
+    if let Some(asked_of_me) = _the_last_ask_about_the_bot(memory) {
+        return Some(_vary(
+            &[
+                "You asked ".to_string() + &asked_of_me + " - that is all we have been into so far. What else is on your mind?",
+                "So far you have asked ".to_string() + &asked_of_me + ". Tell me something of your own and I will keep it.",
+                "You asked ".to_string() + &asked_of_me + ". That is about all so far - what else are you wondering about?",
+            ],
+            memory,
+        ));
+    }
+    // Nothing but "hi", "ok", "lol" so far: there is no subject yet.
+    Some(_vary(&NOTHING_STARTED, memory))
 }
 
-/// Python: bot/memory/store_replies.py:11157 `_the_last_ask_about_the_bot(memory)` (never called on the trace corpus)
-pub fn _the_last_ask_about_the_bot(memory: &Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_last_ask_about_the_bot")
+/// Python: bot/memory/store_replies.py:11156 `_the_last_ask_about_the_bot(memory)`
+///
+/// The last thing they asked about the bot, as a sentence, when that is all they have said.
+pub fn _the_last_ask_about_the_bot(memory: &Memory) -> Option<String> {
+    let lines = crate::memory::thread::user_lines(memory).val();
+    for pair in lines.items().iter().rev() {
+        let parts = pair.items();
+        let (said, reading) = (parts.first().cloned().unwrap_or(Value::None), parts.get(1).cloned().unwrap_or(Value::None));
+        if !(reading.is_dict() && reading.get("about_bot").map(Value::truthy).unwrap_or(false)) {
+            return None;
+        }
+        let asked = crate::memory::thread::restate(&py_str(&said));
+        if !asked.is_empty() {
+            return Some(asked);
+        }
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:11173 `_asked_reply(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:11173 `_asked_reply(memory)`
+///
+/// 'What did I just ask you?' — their last question, said again in their words.
 pub fn _asked_reply(memory: &mut Memory) -> String {
-    crate::unported!("bot.memory.store_replies:_asked_reply")
+    let skip = skip_about_this_chat();
+    let ask = ret_str(crate::memory::thread::last_ask(memory, &skip, &Value::None));
+    if !ask.is_empty() {
+        return "You asked ".to_string() + &ask + ".";
+    }
+    let said = ret_str(crate::memory::thread::last_said(memory, &skip));
+    if !said.is_empty() {
+        return "You didn't ask me anything \u{2014} you said ".to_string() + &said + ".";
+    }
+    // A chat whose only line so far is a question about the bot has no subject of theirs.
+    if let Some(asked_of_me) = _the_last_ask_about_the_bot(memory) {
+        return "You asked ".to_string() + &asked_of_me + ".";
+    }
+    "You haven't asked me anything yet.".to_string()
 }
 
 /// Python: bot/memory/store_replies.py:11198 `_last_told(memory)` (never called on the trace corpus)
