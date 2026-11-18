@@ -38,6 +38,18 @@ pub fn call(name: &str, a: &Args) -> Option<Res> {
         "household" => household(fname, a),
         "matters" => matters(fname, a),
         "rates" => rates(fname, a),
+        "lineback" => lineback(fname, a),
+        "meant" => meant(fname, a),
+        "obstacle" => obstacle(fname, a),
+        "plan" => plan(fname, a),
+        "plans" => plans(fname, a),
+        "portions" => portions(fname, a),
+        "reject" => reject(fname, a),
+        "resize" => resize(fname, a),
+        "stands" => stands(fname, a),
+        "surname" => surname(fname, a),
+        "taking" => taking(fname, a),
+        "years_in" => years_in(fname, a),
         _ => None,
     }
 }
@@ -333,6 +345,10 @@ fn amounts(fname: &str, a: &Args) -> Option<Res> {
             None => Err(Skip::Shape),
         },
         "_counts" => r(x::_counts(a.s(0, "text"))),
+        "_the_period_at" => {
+            let text = a.s(0, "text");
+            a.pos_in(text, 1, "at").and_then(|at| r(x::_the_period_at(text, at)))
+        }
         "a_count_they_report" => r(x::a_count_they_report(a.s(0, "text"))),
         "_the_figure_named" => r(x::_the_figure_named(a.s(0, "answer"), a.s(1, "thing"), a.get(2, "mine").and_then(J::as_f64))),
         "_the_periods_disagree" => r(x::_the_periods_disagree(a.opt_s(0, "mine"), a.opt_s(1, "theirs"))),
@@ -443,6 +459,10 @@ fn earlier(fname: &str, a: &Args) -> Option<Res> {
     let mem = || a.memory(0, "memory");
     Some(match fname {
         "_a_word" => r(x::_a_word(a.s(0, "word"))),
+        "_the_line_the_ask_names" => {
+            let (kind, named, found) = x::_the_line_the_ask_names(a.s(0, "text"), &a.memory(1, "memory"));
+            r(json!([kind, named, said_j(found)]))
+        }
         "said_lines" => r(x::said_lines(&mem()).into_iter().map(|(n, l)| json!([n, l])).collect::<Vec<J>>()),
         "kind_of" => r(x::kind_of(a.s(0, "text"))),
         "carries" => r(x::carries(a.s(0, "kind"), a.s(1, "line"))),
@@ -539,6 +559,13 @@ fn matters(fname: &str, a: &Args) -> Option<Res> {
         "_the_person" => r(x::_the_person(&a.memory(0, "memory")).map(|(w, r, s)| json!([w, r.to_plain(), s]))),
         "about_them" => r(x::about_them(a.s(0, "text"), &a.memory(1, "memory"))),
         "_a_worry_in_the_chat" => r(x::_a_worry_in_the_chat(&a.memory(0, "memory"))),
+        "_the_group_ages" => r(match x::_the_group_ages(&a.memory(0, "memory")) {
+            Some((index, ages)) => {
+                let entry = a.memory(0, "memory").get("others").map(|o| o.items()[index].to_plain()).unwrap_or(J::Null);
+                json!([entry, ages])
+            }
+            None => json!([null, []]),
+        }),
         "what_they_say" => with_mem!(a, 1, "memory", |mm| x::what_they_say(a.s(0, "text"), &mut mm)),
         "_say_the_ages" => r(x::_say_the_ages(&a.vals(0, "ages").iter().filter_map(Value::as_int).collect::<Vec<_>>())),
         "a_corrected_age" => with_mem!(a, 1, "memory", |mm| x::a_corrected_age(a.s(0, "text"), &mut mm)),
@@ -556,6 +583,273 @@ fn rates(fname: &str, a: &Args) -> Option<Res> {
         "keep" => with_mem!(a, 1, "memory", |mm| x::keep(a.s(0, "text"), &mut mm)),
         "is_a_rate_ask" => r(x::is_a_rate_ask(a.s(0, "text"), &a.memory(1, "memory"))),
         "answer" => r(x::answer(a.s(0, "text"), &a.memory(1, "memory"))),
+        _ => return None,
+    })
+}
+
+fn set_of(a: &Args, i: usize, name: &str) -> std::collections::HashSet<String> {
+    a.strs(i, name).into_iter().collect()
+}
+
+fn lineback(fname: &str, a: &Args) -> Option<Res> {
+    use m::lineback as x;
+    Some(match fname {
+        "flat" => r(x::flat(a.s(0, "text"))),
+        "_words" => r(x::_words(a.s(0, "text"))),
+        "_stem" => r(x::_stem(a.s(0, "word"))),
+        "about" => r(sorted_set(x::about(a.s(0, "text")))),
+        "about_any" => r(sorted_set(x::about_any(a.s(0, "text")))),
+        "_a_kind_named" => r(x::_a_kind_named(a.s(0, "text"))),
+        "is_a_recall_ask" => r(x::is_a_recall_ask(a.s(0, "text"))),
+        "_the_last_reply" => r(x::_the_last_reply(&a.memory(0, "memory"))),
+        "the_lines" => r(x::the_lines(&a.memory(0, "memory"))),
+        "_the_best_line" => r(x::_the_best_line(&set_of(a, 0, "wanted"), &a.strs(1, "lines"), a.b(2, "questions", false))),
+        "_the_kind_asked" => r(x::_the_kind_asked(a.s(0, "said"))),
+        "_a_value_of_the_kind" => r(x::_a_value_of_the_kind(a.s(0, "kind"), &a.strs(1, "lines"))),
+        "_the_value" => r(x::_the_value(a.s(0, "line"))),
+        "_carried" => r(x::_carried(a.s(0, "line"), &set_of(a, 1, "wanted"))),
+        "_the_value_of_the_kind" => r(x::_the_value_of_the_kind(a.s(0, "said"), &a.strs(1, "lines"), &a.memory(2, "memory"))),
+        "_the_figure_for_a_thing" => r(x::_the_figure_for_a_thing(a.s(0, "said"), &a.strs(1, "lines"), &a.memory(2, "memory"))),
+        "_the_line_itself" => r(x::_the_line_itself(a.s(0, "said"), &a.strs(1, "lines"), &a.memory(2, "memory"))),
+        "_the_kind_they_gave" => r(x::_the_kind_they_gave(a.s(0, "said"), &a.strs(1, "lines"), &a.memory(2, "memory"))),
+        "the_kind_they_gave" => r(x::the_kind_they_gave(a.s(0, "text"), &a.memory(1, "memory"))),
+        "an_earlier_turn" => r(x::an_earlier_turn(a.s(0, "text"), &a.memory(1, "memory"))),
+        "reply_for" => r(x::reply_for(a.s(0, "text"), &a.memory(1, "memory"))),
+        _ => return None,
+    })
+}
+
+fn meant(fname: &str, a: &Args) -> Option<Res> {
+    use m::meant as x;
+    Some(match fname {
+        "_asked_plainly" => r(x::_asked_plainly(a.s(0, "clean"))),
+        "_personal" => r(x::_personal(a.s(0, "said"))),
+        "_their_subject" => r(x::_their_subject(a.s(0, "said"))),
+        "_on_the_table" => r(x::_on_the_table(a.s(0, "noun"), &a.memory(1, "memory"))),
+        "_under_the_lead" => r(x::_under_the_lead(a.s(0, "said"))),
+        "_sentences" => r(x::_sentences(a.s(0, "said"))),
+        "_gist" => r(x::_gist(a.s(0, "sentence"))),
+        "_answers" => r(x::_answers(&a.memory(0, "memory"), a.n_or(1, "back", 3) as usize)),
+        "_thick_enough" => r(x::_thick_enough(a.s(0, "said"), a.s(1, "asked"))),
+        "_framed" => r(x::_framed(a.s(0, "said"))),
+        "_a_figure" => r(x::_a_figure(a.s(0, "said"))),
+        "_a_question" => r(x::_a_question(a.s(0, "sentence"))),
+        "_worth_handing_over" => r(x::_worth_handing_over(a.s(0, "said"), a.s(1, "sentence"), a.s(2, "asked"))),
+        "_cite" => r(x::_cite(a.s(0, "said"), a.s(1, "sentence"), a.s(2, "asked"), a.opt_memory(3, "memory").as_ref())),
+        "_meant" => r(x::_meant(a.s(0, "said"), a.b(1, "asked_what_it_meant", false))),
+        "_after_the_condolence" => r(x::_after_the_condolence(a.s(0, "said"))),
+        "_same_bit" => r(x::_same_bit(a.s(0, "one"), a.s(1, "other"))),
+        "_already" => r(x::_already(a.s(0, "cited"), &a.strs(1, "said_since"))),
+        "_carried" => r(x::_carried(a.s(0, "said"))),
+        "_applied_to_the_person" => with_mem!(a, 3, "memory", |mm| x::_applied_to_the_person(a.s(0, "clean"), a.s(1, "said"), a.s(2, "asked"), &mut mm, a.b(4, "what_it_meant", false))),
+        "answer_for" => {
+            let mut mm = a.memory(1, "memory");
+            // The reading is the memory's own (`memory["understood"]`).
+            let out = x::answer_for(a.s(0, "text"), &mut mm);
+            rm(out, 1, &mm)
+        }
+        "reads_it" => r(x::reads_it(a.s(0, "text"))),
+        _ => return None,
+    })
+}
+
+fn obstacle(fname: &str, a: &Args) -> Option<Res> {
+    use m::obstacle as x;
+    Some(match fname {
+        "_flat" => r(x::_flat(a.s(0, "text"))),
+        "_words" => r(x::_words(a.s(0, "text"))),
+        "the_thing" => r(x::the_thing(a.s(0, "text"))),
+        "the_thing_they_cannot_use" => r(x::the_thing_they_cannot_use(a.s(0, "text"))),
+        "the_move" => r(x::the_move(a.s(0, "text"))),
+        "_the_family" => r(x::_the_family(a.s(0, "move"))),
+        "_opens_on_a_verb" => r(x::_opens_on_a_verb(a.s(0, "move"))),
+        "_the_noun" => r(x::_the_noun(a.s(0, "move"))),
+        "_a_list_under_a_frame" => r(x::_a_list_under_a_frame(a.s(0, "one"))),
+        "_a_doing" => r(x::_a_doing(a.s(0, "one"))),
+        "_a_whole_step" => r(x::_a_whole_step(a.s(0, "sentence"))),
+        "a_move_refused" => with_mem!(a, 1, "memory", |mm| x::a_move_refused(a.s(0, "text"), &mut mm)),
+        "_under_its_frame" => r(x::_under_its_frame(a.s(0, "one"))),
+        "_the_frame" => r(x::_the_frame(a.s(0, "one"))),
+        "_steps" => r(x::_steps(a.s(0, "said")).into_iter().map(|(s, p, u)| json!([s, p, u])).collect::<Vec<J>>()),
+        "_needs_it" => r(x::_needs_it(a.s(0, "step"), a.s(1, "thing"))),
+        "_leans_on_it" => r(x::_leans_on_it(a.s(0, "said"), a.s(1, "thing"), a.s(2, "asked"))),
+        "answer_for" => with_mem!(a, 1, "memory", |mm| x::answer_for(a.s(0, "text"), &mut mm)),
+        "answer_for_a_thing_they_cannot_use" => with_mem!(a, 1, "memory", |mm| x::answer_for_a_thing_they_cannot_use(a.s(0, "text"), &mut mm)),
+        _ => return None,
+    })
+}
+
+fn plan(fname: &str, a: &Args) -> Option<Res> {
+    use m::plan as x;
+    Some(match fname {
+        "_the_thing_named" => r(sorted_set(x::_the_thing_named(a.s(0, "text")))),
+        "_tried" => r(x::_tried(a.s(0, "step"), &a.memory(1, "memory"))),
+        "the_last_answer" => r(x::the_last_answer(&a.memory(0, "memory"))),
+        "the_answer_in_hand" => r(x::the_answer_in_hand(&a.memory(0, "memory"))),
+        "_a_cut_at_a_colon" => r(x::_a_cut_at_a_colon(a.s(0, "step"))),
+        "steps_of" => r(x::steps_of(a.s(0, "answer"))),
+        "_words" => r(sorted_set(x::_words(a.s(0, "text")))),
+        "_stems" => r(sorted_set(x::_stems(a.s(0, "text")))),
+        "carry_on" => with_mem!(a, 1, "memory", |mm| x::carry_on(a.s(0, "text"), &mut mm)),
+        _ => return None,
+    })
+}
+
+fn plans(fname: &str, a: &Args) -> Option<Res> {
+    use m::plans as x;
+    Some(match fname {
+        "_a_first_day" => r(x::_a_first_day(a.s(0, "text"))),
+        "as_question" => r(x::as_question(a.s(0, "text"))),
+        "_implied" => r(x::_implied(a.s(0, "text"))),
+        "answer" => with_mem!(a, 1, "memory", |mm| x::answer(a.s(0, "text"), &mut mm)),
+        "_the_clauses" => r(x::_the_clauses(a.s(0, "detail"))),
+        "_the_first_step" => r(x::_the_first_step(a.s(0, "sentence"))),
+        "_part_words" => r(sorted_set(x::_part_words(a.s(0, "text")))),
+        "_was_a_plan" => r(x::_was_a_plan(a.s(0, "line"))),
+        "follow_up" => r(x::follow_up(a.s(0, "text"), &a.memory(1, "memory"))),
+        _ => return None,
+    })
+}
+
+fn portions(fname: &str, a: &Args) -> Option<Res> {
+    use m::portions as x;
+    Some(match fname {
+        "_the_number" => r(x::_the_number(a.s(0, "word"))),
+        "_as_a_count" => r(x::_as_a_count(a.s(0, "word"))),
+        "_the_per_head_figure" => r(x::_the_per_head_figure(a.s(0, "said"))),
+        "the_portion_answer" => r(x::the_portion_answer(&a.memory(0, "memory"))),
+        "an_ask" => r(x::an_ask(a.s(0, "text"), &a.memory(1, "memory"))),
+        "reply_for" => with_mem!(a, 1, "memory", |mm| x::reply_for(a.s(0, "text"), &mut mm)),
+        "_the_new_count" => {
+            // Python returns the Match (encoded opaque); compare whether there is one.
+            return Some(Err(Skip::Shape));
+        }
+        "_the_count_they_gave" => r(x::_the_count_they_gave(a.s(0, "text"))),
+        "_a_total_for_a_bare_count" => r(x::_a_total_for_a_bare_count(a.s(0, "text"), &a.memory(1, "memory"))),
+        "a_bare_count_to_fill" => r(x::a_bare_count_to_fill(a.s(0, "text"), &a.memory(1, "memory"))),
+        "a_count_to_fill" => r(x::a_count_to_fill(a.s(0, "text"), &a.memory(1, "memory"))),
+        "the_total_for" => with_mem!(a, 1, "memory", |mm| x::the_total_for(a.s(0, "text"), &mut mm)),
+        _ => return None,
+    })
+}
+
+fn reject(fname: &str, a: &Args) -> Option<Res> {
+    use m::reject as x;
+    Some(match fname {
+        "_words" => r(x::_words(a.s(0, "text"))),
+        "refusal" => r(x::refusal(a.s(0, "text"), a.s(1, "offer"))),
+        "_the_whole_name" => r(x::_the_whole_name(a.s(0, "option"), a.s(1, "reply"))),
+        "_tidy" => r(x::_tidy(a.s(0, "option"))),
+        "_by_title" => r(x::_by_title(&a.strs(0, "titles"), &a.strs(1, "options"))),
+        "_a_choice_of_things" => r(x::_a_choice_of_things(a.s(0, "reply"))),
+        "_the_offer_reply" => r(x::_the_offer_reply(&a.memory(0, "memory"))),
+        "_options" => r(x::_options(a.s(0, "reply"))),
+        "_a_list_of_causes" => r(x::_a_list_of_causes(a.s(0, "reply"), &a.strs(1, "options"))),
+        "_a_noun_phrase" => r(x::_a_noun_phrase(a.s(0, "option"))),
+        "_said_by_them" => r(x::_said_by_them(a.s(0, "option"), a.s(1, "text"))),
+        "_offered" => r(x::_offered(&a.memory(0, "memory"))),
+        "_the_fence" => r(x::_the_fence(&a.memory(0, "memory"))),
+        "_the_whole_lot" => r(x::_the_whole_lot(&a.strs(0, "options"))),
+        "offers_a_choice" => r(x::offers_a_choice(&a.memory(0, "memory"))),
+        "_the_names" => r(x::_the_names(&a.strs(0, "options"))),
+        "_the_lot_and_the_verb" => r(x::_the_lot_and_the_verb(&a.strs(0, "lines"))),
+        "reply_for" => r(x::reply_for(a.s(0, "text"), &a.memory(1, "memory"))),
+        _ => return None,
+    })
+}
+
+fn figure_j(found: Option<(f64, String, (usize, usize), String)>, text: &str) -> J {
+    match found {
+        Some((v, u, (s, e), f)) => json!([v, u, [chars(text, s), chars(text, e)], f]),
+        None => J::Null,
+    }
+}
+
+fn resize(fname: &str, a: &Args) -> Option<Res> {
+    use m::resize as x;
+    let squashed = |t: &str| pt::lower(&pt::squash(t));
+    Some(match fname {
+        "quantity" => r(figure_j(x::quantity(a.s(0, "text")), &squashed(a.s(0, "text")))),
+        "rate" => r(figure_j(x::rate(a.s(0, "text")), &squashed(a.s(0, "text")))),
+        "_earlier_lines" => r(x::_earlier_lines(&a.v(0, "memory"), a.n_or(1, "n", 4) as usize)),
+        "_a_bare_rate" => r(x::_a_bare_rate(a.s(0, "text"))),
+        "_with_a_new_rate" => match a.get(1, "value").and_then(J::as_f64) {
+            Some(v) => r(x::_with_a_new_rate(a.s(0, "said"), v, a.opt_s(2, "unit"), &a.v(3, "memory"))),
+            None => Err(Skip::Shape),
+        },
+        "_value" => r(x::_value(a.s(0, "raw"))),
+        "headcount" => {
+            let said = squashed(a.s(0, "text"));
+            r(x::headcount(a.s(0, "text")).map(|(v, s, e)| json!([v, chars(&said, s), chars(&said, e)])))
+        }
+        "_a_question" => r(x::_a_question(a.s(0, "earlier"))),
+        "rewritten" => r(x::rewritten(a.s(0, "text"), &a.v(1, "memory"))),
+        _ => return None,
+    })
+}
+
+fn stands(fname: &str, a: &Args) -> Option<Res> {
+    use m::stands as x;
+    Some(match fname {
+        "_number" => r(x::_number(a.s(0, "word"))),
+        "_figures" => {
+            let text = a.s(0, "text");
+            r(x::_figures(text).into_iter().map(|(v, u, s, e)| json!([v, u, chars(text, s), chars(text, e)])).collect::<Vec<J>>())
+        }
+        "_the_line_asks_about_a_figure_and_elsewhere_nothing" => r(x::_the_line_asks_about_a_figure_and_elsewhere_nothing(a.s(0, "text")).map(|(v, u, p)| json!([v, u, p]))),
+        "the_figure_asked_about" => r(x::the_figure_asked_about(a.s(0, "text"), &a.memory(1, "memory")).map(|(v, u, p, q)| json!([v, u, p, q]))),
+        "_a_change_was_made" => r(x::_a_change_was_made(&a.memory(0, "memory"))),
+        "_a_change_of_size" => r(x::_a_change_of_size(&a.memory(0, "memory"))),
+        "the_change_asked_about" => r(x::the_change_asked_about(a.s(0, "text"), &a.memory(1, "memory"))),
+        "change_reply" => r(x::change_reply(a.s(0, "text"), &a.memory(1, "memory"))),
+        "reply_for" => r(x::reply_for(a.s(0, "text"), &a.memory(1, "memory"))),
+        _ => return None,
+    })
+}
+
+fn surname(fname: &str, a: &Args) -> Option<Res> {
+    use m::surname as x;
+    Some(match fname {
+        "_the_name_they_said" => r(x::_the_name_they_said(a.s(0, "word"))),
+        "the_surname" => r(x::the_surname(&a.memory(0, "memory"))),
+        "_given_one" => r(x::_given_one(a.s(0, "text"))),
+        "observe" => with_mem!(a, 1, "memory", |mm| x::observe(a.s(0, "text"), &mut mm)),
+        "_asks_for_it" => r(x::_asks_for_it(a.s(0, "text"))),
+        "a_note" => r(x::a_note(a.s(0, "text"), &a.memory(1, "memory"))),
+        "a_follow_up" => r(x::a_follow_up(a.s(0, "text"), &a.memory(1, "memory"))),
+        "there_is_a_chat" => r(x::there_is_a_chat(&a.memory(0, "memory"))),
+        "reply_for" => with_mem!(a, 1, "memory", |mm| x::reply_for(a.s(0, "text"), &mut mm)),
+        "_plain" => r(x::_plain(a.s(0, "text"))),
+        _ => return None,
+    })
+}
+
+fn taking(fname: &str, a: &Args) -> Option<Res> {
+    use m::taking as x;
+    Some(match fname {
+        "_flat" => r(x::_flat(a.s(0, "text"))),
+        "_asks_what_to_take" => r(x::_asks_what_to_take(a.s(0, "text"))),
+        "_a_complaint" => r(x::_a_complaint(a.s(0, "subject"))),
+        "_subjects" => r(x::_subjects(&a.memory(0, "memory"))),
+        "_the_things_to_take_for" => r(x::_the_things_to_take_for(a.s(0, "subject"))),
+        "_a_trip_above" => r(x::_a_trip_above(&a.memory(0, "memory"), a.s(1, "text"))),
+        "the_ask_and_the_subject" => r(x::the_ask_and_the_subject(a.s(0, "text"), &a.memory(1, "memory")).unwrap_or(false)),
+        "reply_for" => r(x::reply_for(a.s(0, "text"), &a.memory(1, "memory"))),
+        _ => return None,
+    })
+}
+
+fn years_in(fname: &str, a: &Args) -> Option<Res> {
+    use m::years_in as x;
+    Some(match fname {
+        "_a_job_word" => r(x::_a_job_word(a.s(0, "doing"))),
+        "_alike" => r(x::_alike(a.s(0, "doing"), a.s(1, "job"))),
+        "_the_filed_job" => r(x::_the_filed_job(&a.memory(0, "memory"))),
+        "_the_doing_and_the_length" => r(x::_the_doing_and_the_length(a.s(0, "text"), &a.memory(1, "memory"))),
+        "_the_count" => r(x::_the_count(a.s(0, "word"))),
+        "_the_figure_in_words" => a.n(0, "count").and_then(|c| r(x::_the_figure_in_words(c))),
+        "the_years_in_the_doing" => r(x::the_years_in_the_doing(a.s(0, "text"), &a.memory(1, "memory"))),
+        "the_years_in_their_doing" => r(x::the_years_in_their_doing(a.s(0, "text"), &a.memory(1, "memory"))),
         _ => return None,
     })
 }
