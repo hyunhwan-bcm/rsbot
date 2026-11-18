@@ -148,3 +148,62 @@ pub fn example_subject(understood: &Understood) -> String {
     }
     "Invoice 2144 - payment due".to_string()
 }
+
+// ---------------------------------------------------------------------------------------------
+// bot/knowledge/quantity.py: a figure with a unit on it is an amount, not a code.
+
+static UNITS: LazyLock<std::collections::HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.quantity.UNITS"));
+static AFTER_A_FIGURE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.quantity.AFTER_A_FIGURE"));
+
+/// DUP(bot.knowledge.quantity::a_figure_with_a_unit): the line counts something in a unit
+/// ("2.2 kilos"), so a figure in it is an amount, not a code or a degree class. `text` is the
+/// optional second argument ("" for none).
+pub fn a_figure_with_a_unit(understood: &Understood, text: &str) -> bool {
+    for number in &understood.numbers {
+        let unit = text::strip(number.unit.as_deref().unwrap_or("")).to_lowercase();
+        if UNITS.contains(&unit) {
+            return true;
+        }
+    }
+    let body = if text.is_empty() { crate::knowledge::d1_shared::clean_or_text(understood) } else { text };
+    AFTER_A_FIGURE.is_match(body)
+}
+
+// ---------------------------------------------------------------------------------------------
+// Python's `repr` of a string and of a list of strings (what `str(a_list)` prints).
+
+/// `repr(s)` for a str: single quotes unless the text has a single quote and no double one.
+pub fn py_repr_str(s: &str) -> String {
+    let quote = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push(quote);
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if c == quote => {
+                out.push('\\');
+                out.push(c);
+            }
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => out.push_str(&format!("\\x{:02x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push(quote);
+    out
+}
+
+/// `str(list_of_strings)`: "['a', 'b']".
+pub fn py_repr_str_list<S: AsRef<str>>(items: &[S]) -> String {
+    let parts: Vec<String> = items.iter().map(|s| py_repr_str(s.as_ref())).collect();
+    format!("[{}]", parts.join(", "))
+}
+
+/// Python's `sorted(keys, key=len, reverse=True)`: longest first, ties in their given order.
+pub fn longest_first(keys: &[String]) -> Vec<String> {
+    let mut v: Vec<String> = keys.to_vec();
+    v.sort_by(|a, b| text::len(b).cmp(&text::len(a)));
+    v
+}
