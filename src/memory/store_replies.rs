@@ -12156,94 +12156,377 @@ pub fn _a_figure_the_store_could_not_keep(line: &str, memory: &Memory) -> bool {
     !value.is_empty() && ANY_NUMBER.fullmatch(&value).is_some()
 }
 
-/// Python: bot/memory/store_replies.py:11597 `_the_thing_the_chat_is_on(memory)` (never called on the trace corpus)
+static THEIRS_IN_THE_LINE: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:i|im|i'm|my|we|our|me|us|mine)\b", 0));
+static TO_THE_BOT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:you|your|youre|you're|u)\b", 0));
+
+/// Python: bot/memory/store_replies.py:11597 `_the_thing_the_chat_is_on(memory)`
+///
+/// The phrase to name in place of facts, or "" when the chat holds nothing of the person's.
 pub fn _the_thing_the_chat_is_on(memory: &Memory) -> String {
-    crate::unported!("bot.memory.store_replies:_the_thing_the_chat_is_on")
+    if _all_about_the_bot(memory) {
+        return String::new();
+    }
+    let record = crate::memory::topics::current(memory).cloned().unwrap_or(Value::None);
+    let text_ = text::squash(&sget(&record, "text")).to_lowercase();
+    if text_.is_empty() {
+        return String::new();
+    }
+    let theirs = THEIRS_IN_THE_LINE.is_match(&text_);
+    // A question put to the bot is not a subject of theirs either.
+    let to_the_bot = TO_THE_BOT.is_match(&text_);
+    if !(theirs || (crate::memory::corrected::_asks(&text_) && !to_the_bot)) {
+        return String::new();
+    }
+    text::squash(&ret_str(crate::memory::thread::about(memory, &Value::None)))
 }
 
-/// Python: bot/memory/store_replies.py:11618 `_a_fact_of_its_own(clause)` (never called on the trace corpus)
+/// `{word.strip(chars) for word in text.lower().split()} - SUMMARY_FILLER`.
+fn clause_words(clause: &str) -> HashSet<String> {
+    text::split(&clause.to_lowercase()).iter().map(|w| text::strip_chars(w, ".,!?;:'\"").to_string()).filter(|w| !SUMMARY_FILLER.contains(w)).collect()
+}
+
+/// Python: bot/memory/store_replies.py:11618 `_a_fact_of_its_own(clause)`
+///
+/// Whether a clause beside a judgement says something, rather than agreeing with the verdict.
 pub fn _a_fact_of_its_own(clause: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_fact_of_its_own")
+    let words = clause_words(clause);
+    !words.is_empty() && !words.iter().all(|w| AGREEMENT_ONLY.contains(w))
 }
 
-/// Python: bot/memory/store_replies.py:11623 `_told_phrase(text)` (never called on the trace corpus)
-pub fn _told_phrase(text: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_told_phrase")
+static JUDGEMENT_SPLIT: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s*(?:[,;.]|\bbut\b|\band\b)\s*", 0));
+
+/// Python: bot/memory/store_replies.py:11623 `_told_phrase(text)`
+///
+/// One line said back inside a sentence, or "" when it is not something they told you.
+pub fn _told_phrase(text_: &str) -> String {
+    if text_.is_empty() {
+        return String::new();
+    }
+    let reading = crate::understanding::understand(text_, Some(&Memory::new()));
+    // A question or an ask is not something they told you; a feeling is how they are.
+    if ["question", "greeting", "thanks"].contains(&reading.kind.as_str())
+        || ["question", "request", "greeting", "thanks"].contains(&reading.intent.as_str())
+        || reading.intent == "feeling"
+        || !reading.asks.is_empty()
+    {
+        return String::new();
+    }
+    if reading.about_bot {
+        return String::new();
+    }
+    let mut text_ = text_.to_string();
+    if crate::memory::facts::is_a_judgement(&text_) {
+        // A judgement about themselves is how they feel; the clause beside it that is not one is said back.
+        let rest: Vec<String> = JUDGEMENT_SPLIT.split(&text_).into_iter().filter(|p| !text::strip(p).is_empty()).map(|p| text::strip(&p).to_string()).collect();
+        text_ = rest.into_iter().find(|p| !crate::memory::facts::is_a_judgement(p) && _a_fact_of_its_own(p)).unwrap_or_default();
+        if text_.is_empty() {
+            return String::new();
+        }
+    }
+    let said = _with_the_name(&crate::memory::thread::restate(&crate::memory::filler::without_filler(&text_)), &text_);
+    let words: Vec<String> = text::split(&said).into_iter().filter(|w| !text::strip_chars(w, ".,!?;:").is_empty()).collect();
+    let body: HashSet<String> =
+        words.iter().map(|w| text::strip_chars(w, ".,!?;:").to_lowercase()).filter(|w| !SUMMARY_FILLER.contains(w)).collect();
+    if body.is_empty() || body.iter().all(|w| SMALL_TALK_ONLY.contains(w)) || words.len() > 14 {
+        return String::new();
+    }
+    words.join(" ")
 }
 
-/// Python: bot/memory/store_replies.py:11661 `_expanded(text)` (never called on the trace corpus)
-pub fn _expanded(text: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_expanded")
+static EXPANSIONS: LazyLock<Vec<(Re, &'static str)>> = LazyLock::new(|| {
+    [
+        (r"n't\b", " not"),
+        (r"'re\b", " are"),
+        (r"'ve\b", " have"),
+        (r"'ll\b", " will"),
+        (r"'d\b", " would"),
+        (r"\bi'm\b", "i am"),
+        (r"\bim\b", "i am"),
+        (r"\bive\b", "i have"),
+        (r"\byoure\b", "you are"),
+        (r"\bdont\b", "do not"),
+        (r"\bdoesnt\b", "does not"),
+        (r"\bim\b", "i am"),
+    ]
+    .into_iter()
+    .map(|(p, w)| (Re::new(p, 0), w))
+    .collect()
+});
+
+/// Python: bot/memory/store_replies.py:11660 `_expanded(text)`
+///
+/// A line with its contractions written out: "you're veg" and "you are veg" are the same line.
+pub fn _expanded(text_: &str) -> String {
+    let mut out = text_.to_lowercase().replace('\u{2019}', "'");
+    for (pattern, word) in EXPANSIONS.iter() {
+        out = pattern.sub(word, &out);
+    }
+    out
 }
 
-/// Python: bot/memory/store_replies.py:11678 `_a_judgement_was_said(memory)` (never called on the trace corpus)
+static NUMBER_AS_A_WORD: LazyLock<HashMap<String, String>> = LazyLock::new(|| g("NUMBER_AS_A_WORD").str_map());
+
+/// Python: bot/memory/store_replies.py:11677 `_a_judgement_was_said(memory)`
+///
+/// Whether a line they said in this chat judged themselves rather than stating a fact.
 pub fn _a_judgement_was_said(memory: &Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_judgement_was_said")
+    memory.turns.iter().any(|t| crate::memory::facts::is_a_judgement(&t.user))
 }
 
-/// Python: bot/memory/store_replies.py:11696 `_plain_words(text)` (never called on the trace corpus)
-pub fn _plain_words(text: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_plain_words")
+strset!(FACT_FRAME_WORDS);
+
+/// Python: bot/memory/store_replies.py:11695 `_plain_words(text)`
+///
+/// The words of a line as they are, without the length rule the summary meaning applies.
+pub fn _plain_words(text_: &str) -> HashSet<String> {
+    WORDS_AND_DIGITS.findall_str(&text_.to_lowercase().replace('-', " ")).into_iter().collect()
 }
 
-/// Python: bot/memory/store_replies.py:11700 `_says_nothing_new(phrase, told_words, body_words)` (never called on the trace corpus)
-pub fn _says_nothing_new(phrase: &str, told_words: &[String], body_words: &[String]) -> bool {
-    crate::unported!("bot.memory.store_replies:_says_nothing_new")
+/// Python: bot/memory/store_replies.py:11699 `_says_nothing_new(phrase, told_words, body_words)`
+///
+/// Whether the line is the fact above, in the person's own words, and nothing more.
+pub fn _says_nothing_new(phrase: &str, told_words: &HashSet<String>, body_words: &str) -> bool {
+    let body = _summary_words(body_words);
+    if told_words.is_subset(&body) {
+        return true;
+    }
+    // The short words a summary drops are sometimes the whole of the thing shared.
+    let rest: HashSet<String> = _plain_words(phrase).into_iter().filter(|w| !FACT_FRAME_WORDS.contains(w)).collect();
+    if rest.is_empty() {
+        return false;
+    }
+    rest.is_subset(&_plain_words(body_words))
 }
 
-/// Python: bot/memory/store_replies.py:11713 `_summary_words(text)` (never called on the trace corpus)
-pub fn _summary_words(text: &str) -> HashSet<String> {
-    crate::unported!("bot.memory.store_replies:_summary_words")
+static DIET_NAMES: LazyLock<HashMap<String, String>> = LazyLock::new(|| data::str_map("bot.memory.facts.DIET_NAMES"));
+
+/// Python: bot/memory/store_replies.py:11713 `_summary_words(text)`
+///
+/// The words that carry the meaning of a line, for telling a repeat from a new thing.
+pub fn _summary_words(text_: &str) -> HashSet<String> {
+    use crate::memory::topics::stem;
+    let mut words = HashSet::new();
+    for word in text::split(&_expanded(text_).replace(';', " ").replace(',', " ")) {
+        let mut word = stem(text::strip_chars(&word, ".,!?;:'"));
+        if let Some(w) = NUMBER_AS_A_WORD.get(&word) {
+            word = w.clone();
+        }
+        // A figure is a fact in its own right, so it is kept whatever its length.
+        let digit = crate::understanding::pyuni::is_digit(&word);
+        if !digit {
+            // The slang has to fold the same way the store keeps it.
+            let plain = DIET_NAMES.get(&word).cloned().unwrap_or_else(|| word.clone());
+            word = stem(&plain);
+        }
+        let digit = crate::understanding::pyuni::is_digit(&word);
+        if !word.is_empty() && (digit || text::len(&word) > 2) && !SUMMARY_FILLER.contains(&word) && !SMALL_TALK_ONLY.contains(&word) {
+            words.insert(word);
+        }
+    }
+    words
 }
 
-/// Python: bot/memory/store_replies.py:11730 `_already_said(words, said)` (never called on the trace corpus)
-pub fn _already_said(words: &[String], said: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_already_said")
+/// Python: bot/memory/store_replies.py:11730 `_already_said(words, said)`
+///
+/// Whether the facts above already say this: "allergy" and "allergic" are the same word here.
+pub fn _already_said(words: &HashSet<String>, said: &str) -> bool {
+    let mut said = _summary_words(said);
+    if said.is_empty() {
+        return false; // nothing above says anything, so this is new
+    }
+    if words.is_empty() {
+        return true;
+    }
+    for word in words {
+        let same: Vec<String> = said
+            .iter()
+            .filter(|other| *other == word || (text::len(word) >= 4 && text::len(other) >= 4 && text::slice(other, 0, Some(4)) == text::slice(word, 0, Some(4))))
+            .cloned()
+            .collect();
+        for s in same {
+            said.remove(&s);
+        }
+    }
+    said.len() < 1.max(words.len() / 2)
 }
 
-/// Python: bot/memory/store_replies.py:11748 `_taste_reply(memory, low)` (never called on the trace corpus)
+static _TASTE_LEFT: LazyLock<&'static Re> = LazyLock::new(|| g("_TASTE_LEFT").as_re().unwrap());
+static STILL_AGAIN: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:again|still|actually|really|now|any ?more)\b", 0));
+
+/// Python: bot/memory/store_replies.py:11748 `_taste_reply(memory, low)`
+///
+/// The taste they have already said, said back as the answer to "do i like fish?".
 pub fn _taste_reply(memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_taste_reply")
+    use crate::memory::topics::{content, stem};
+    // `_TASTE_LEFT.split(low, maxsplit=1)[-1]`: the words after the ask.
+    let asked = match _TASTE_LEFT.search(low) {
+        Some(m) => low[m.end()..].to_string(),
+        None => String::new(),
+    };
+    let asked = text::strip_chars(&STILL_AGAIN.sub("", &asked), " ?!.,").to_string();
+    if asked.is_empty() {
+        return None;
+    }
+    let wanted: Vec<String> = content(&asked).iter().map(|w| stem(w)).collect();
+    if wanted.is_empty() {
+        return None;
+    }
+    let tastes = user(memory).get("tastes").filter(|v| v.truthy()).map(py_list).unwrap_or_default();
+    for taste in tastes.iter().rev() {
+        let thing = sget(taste, "thing").to_lowercase();
+        let bare = if thing.starts_with("your ") { text::slice(&thing, 5, None) } else { thing.clone() };
+        let said: Vec<String> = content(&bare).iter().map(|w| stem(w)).collect();
+        if said.is_empty() {
+            continue;
+        }
+        if wanted.iter().filter(|w| said.contains(w)).count() < 1.max(wanted.len().saturating_sub(1)) {
+            continue;
+        }
+        let how = taste.get("how").filter(|h| h.truthy()).map(py_str).unwrap_or_else(|| "yes".to_string());
+        // Said back with the possessive it was kept in.
+        let named = if text::strip(&text::slice(&thing, 5, None)).is_empty() || !thing.to_lowercase().starts_with("your ") { bare.clone() } else { thing.clone() };
+        if how == "no" {
+            return Some("You don't, you told me you're not keen on ".to_string() + &named + ".");
+        }
+        if how == "unsure" {
+            return Some("You weren't sure about ".to_string() + &named + ", that's all you've said.");
+        }
+        return Some("You do, you told me you like ".to_string() + &named + ".");
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:11781 `_tastes_said(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:11781 `_tastes_said(memory)`
+///
+/// "what do i like?" as the short list of tastes, not the whole summary of what is known.
 pub fn _tastes_said(memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_tastes_said")
+    let (mut liked, mut other): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
+    for taste in user(memory).get("tastes").filter(|v| v.truthy()).map(py_list).unwrap_or_default() {
+        let thing = text::strip(&sget(&taste, "thing")).to_string();
+        if thing.is_empty() {
+            continue;
+        }
+        let how = taste.get("how").filter(|h| h.truthy()).map(py_str).unwrap_or_else(|| "yes".to_string());
+        if how == "no" {
+            other.push("You're not keen on ".to_string() + &thing + ".");
+        } else if how == "unsure" {
+            other.push("You're not sure about ".to_string() + &thing + ".");
+        } else {
+            liked.push(thing);
+        }
+    }
+    let mut said: Vec<String> = Vec::new();
+    if !liked.is_empty() {
+        let joined = if liked.len() == 1 { liked[0].clone() } else { liked[..liked.len() - 1].join(", ") + " and " + &liked[liked.len() - 1] };
+        said.push("You like ".to_string() + &joined + ".");
+    }
+    said.extend(other);
+    if said.is_empty() {
+        None
+    } else {
+        Some(said.join(" "))
+    }
 }
 
-/// Python: bot/memory/store_replies.py:11813 `_without_the_age(line)` (never called on the trace corpus)
+rx!(AGE_SAID_IN_WORDS);
+static AND_ALSO_PLUS: LazyLock<Re> = LazyLock::new(|| Re::new(r"^(?:and|also|plus)\s+", crate::py::re::I));
+
+/// Python: bot/memory/store_replies.py:11813 `_without_the_age(line)`
+///
+/// The line with the age taken out of it: "you're 41 and you're training" -> "you're training".
 pub fn _without_the_age(line: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_without_the_age")
+    let without = text::strip_chars(&AGE_SAID_IN_WORDS.subn("", line, 1), " .,;:!?-").to_string();
+    text::strip(&AND_ALSO_PLUS.sub("", &without)).to_string()
 }
 
-/// Python: bot/memory/store_replies.py:11818 `_the_words_of_a_fact(value)` (never called on the trace corpus)
-pub fn _the_words_of_a_fact(value: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_words_of_a_fact")
+/// Python: bot/memory/store_replies.py:11818 `_the_words_of_a_fact(value)`
+///
+/// The words a stored fact is made of, whatever shape the store keeps it in.
+pub fn _the_words_of_a_fact(value: &Value) -> String {
+    match value {
+        Value::Bool(_) => String::new(),
+        Value::Int(_) | Value::Float(_) => py_str(value),
+        Value::Str(s) => s.to_string(),
+        Value::Dict(d) => d.iter().map(|(_, v)| _the_words_of_a_fact(v)).collect::<Vec<_>>().join(" "),
+        Value::List(items) | Value::Tuple(items) | Value::Set(items) => items.iter().map(_the_words_of_a_fact).collect::<Vec<_>>().join(" "),
+        _ => String::new(),
+    }
 }
 
-/// Python: bot/memory/store_replies.py:11833 `_a_fact_the_recap_does_not_say(memory, phrase, body_words)` (never called on the trace corpus)
-pub fn _a_fact_the_recap_does_not_say(memory: &mut Memory, phrase: &str, body_words: &[String]) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_fact_the_recap_does_not_say")
+/// Python: bot/memory/store_replies.py:11833 `_a_fact_the_recap_does_not_say(memory, phrase, body_words)`
+///
+/// True when this line filed a fact the recap above does not say.
+pub fn _a_fact_the_recap_does_not_say(memory: &mut Memory, phrase: &str, body_words: &str) -> bool {
+    let said = _summary_words(body_words);
+    let entries = mget(memory, "facts_log").clone();
+    for entry in entries.items() {
+        if !entry.is_dict() || !entry.get("key").map(Value::truthy).unwrap_or(false) {
+            continue;
+        }
+        let text_ = fold(&sget(entry, "text"));
+        if text::squash(&_told_phrase(&crate::memory::facts::no_tone(&text_))) != phrase {
+            continue;
+        }
+        let key = py_str(entry.get("key").unwrap());
+        let words = _summary_words(&_the_words_of_a_fact(user(memory).get(&key).unwrap_or(&Value::None)));
+        if words.iter().any(|w| !said.contains(w)) {
+            return true;
+        }
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:11855 `_kids_told(memory)` (never called on the trace corpus)
-pub fn _kids_told(memory: &mut Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_kids_told")
+/// Python: bot/memory/store_replies.py:11857 `_kids_told(memory)`
+///
+/// How many children the person said they have, or 0.
+pub fn _kids_told(memory: &mut Memory) -> i64 {
+    match user(memory).get("kids") {
+        Some(Value::Bool(_)) => 0,
+        Some(Value::Int(n)) => (*n).max(0),
+        Some(Value::Str(s)) if crate::understanding::pyuni::is_digit(text::strip(s)) => py_int(text::strip(s)).expect("ValueError"),
+        _ => 0,
+    }
 }
 
-/// Python: bot/memory/store_replies.py:11871 `_a_child_is_described(memory)` (never called on the trace corpus)
+strset!(CHILD);
+
+/// Python: bot/memory/store_replies.py:11873 `_a_child_is_described(memory)`
+///
+/// True when the store can say a child of theirs by name or age, which says the same thing.
 pub fn _a_child_is_described(memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_child_is_described")
+    others(memory).items().iter().any(|entry| {
+        let who = text::rstrip_chars(&sget(entry, "who"), "s").to_string();
+        !who.is_empty()
+            && CHILD.contains(&who)
+            && ["name", "age", "ages"].iter().any(|k| entry.get(k).map(Value::truthy).unwrap_or(false))
+    })
 }
 
-/// Python: bot/memory/store_replies.py:11880 `_a_few_children(count)` (never called on the trace corpus)
+static KID_NUMBERS_SAID: LazyLock<HashMap<i64, String>> = LazyLock::new(|| {
+    let mut out = HashMap::new();
+    for (word, number) in data::get("bot.memory.facts.KID_NUMBERS").pairs() {
+        out.insert(number.as_int().unwrap(), word.str().to_string());
+    }
+    out
+});
+
+/// Python: bot/memory/store_replies.py:11882 `_a_few_children(count)`
+///
+/// Two kids, one child, four children - the count the way a person says it.
 pub fn _a_few_children(count: i64) -> String {
-    crate::unported!("bot.memory.store_replies:_a_few_children")
+    if count == 1 {
+        return "one child".to_string();
+    }
+    KID_NUMBERS_SAID.get(&count).cloned().unwrap_or_else(|| count.to_string()) + " kids"
 }
+
+rx!(SUMMED_UP);
 
 /// Python: bot/memory/store_replies.py:11909 `_summed_up(low)`
+///
+/// True for a line that asks for the whole chat summed up, rather than for one line of it.
 pub fn _summed_up(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_summed_up")
+    SUMMED_UP.match_(text::strip(low)).is_some()
 }
 
 /// Python: bot/memory/store_replies.py:11913 `_summary_reply(memory)` (never called on the trace corpus)
