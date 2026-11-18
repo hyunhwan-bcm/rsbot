@@ -7801,7 +7801,7 @@ pub fn _a_relations_name_reply(memory: &mut Memory, low: &str, text_: &str) -> O
     let mine: Vec<&Value> = told.iter().filter(|e| sget(e, "who").to_lowercase() == who).collect();
     let named: Vec<&&Value> = mine.iter().filter(|e| e.get("name").map(Value::truthy).unwrap_or(false)).collect();
     if let Some(last) = named.last() {
-        let name = _called(&py_str(last.get("name").unwrap()));
+        let name = called_of(last.get("name"));
         return Some(_vary(
             &[
                 "Your ".to_string() + &who + " is called " + &name + ".",
@@ -8686,7 +8686,7 @@ pub fn _about_a_person_reply(memory: &mut Memory, low: &str, text_: &str) -> Opt
     }
     let (entry, lines) = _a_known_person(memory, &who);
     let named = match entry.get("name").filter(|n| n.truthy()) {
-        Some(n) => _called(&py_str(n)),
+        Some(n) => called_of(Some(n)),
         None => String::new(),
     };
     let clauses = _person_clauses(&who, &entry);
@@ -9998,59 +9998,485 @@ pub fn _height_reply(memory: &mut Memory) -> String {
     plain
 }
 
+/// `relations._called(name)` on any value: a name that is not a str is "" (as Python's is).
+fn called_of(v: Option<&Value>) -> String {
+    match v {
+        Some(Value::Str(s)) => crate::memory::relations::_called(s),
+        _ => String::new(),
+    }
+}
+
+static DRIVE_ASK: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.recall.DRIVE_ASK"));
+static CALLED_OR_NAME: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:called|name)\b", 0));
+static HOW_MANY: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bhow many\b", 0));
+static WAS_WERE_DID: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:was|were|did)\b", 0));
+static CALL_NAME_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:call|called|name|named)\b", 0));
+/// The animal an ask names, and the words for it (`_fact_reply`'s own table).
+static ANIMAL_ASKED: LazyLock<Vec<(&'static str, Re)>> = LazyLock::new(|| {
+    [
+        ("dog", "dog puppy"),
+        ("cat", "cat kitten"),
+        ("rabbit", "rabbit bunny"),
+        ("hamster", "hamster"),
+        ("fish", "fish goldfish"),
+        ("horse", "horse pony"),
+        ("parrot", "parrot bird"),
+    ]
+    .into_iter()
+    .map(|(animal, words)| (animal, Re::new(&format!(r"\b(?:{})s?\b", words.replace(' ', "|")), 0)))
+    .collect()
+});
+
+/// `d.get(key, default)`: the value when the key is there (whatever it is), else the default.
+fn get_or(d: &Value, key: &str, default: &str) -> String {
+    match d.get(key) {
+        Some(v) => py_str(v),
+        None => default.to_string(),
+    }
+}
+
+/// `pet.get("count") if isinstance(pet.get("count"), int) else 1`.
+fn int_count(pet: &Value, default: i64) -> i64 {
+    match pet.get("count") {
+        Some(Value::Int(i)) => *i,
+        Some(Value::Bool(b)) => *b as i64,
+        _ => default,
+    }
+}
+
 /// Python: bot/memory/store_replies.py:9514 `_fact_reply(memory, low, key=None)`
+///
+/// The reply for one of their facts. `key` is the fact already read from the ask.
 pub fn _fact_reply(memory: &mut Memory, low: &str, key: Option<&str>) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_fact_reply")
+    use crate::memory::relations::{_a, _animal_family};
+    // A how-to in front of the fact word is advice, not a recall of it.
+    if !low.is_empty() && A_HOW_TO_ASK.is_match(low) && !A_RECALL_WORD.is_match(low) {
+        return None;
+    }
+    let known = user(memory);
+    if key == Some("allergy") || low.contains("allerg") {
+        if ALLERGY_IN_THE_WORLD.is_match(low) {
+            return None;
+        }
+        let allergies = known.get("allergies").filter(|v| v.truthy()).cloned().unwrap_or(Value::list());
+        if allergies.truthy() {
+            let said = py_list(&allergies).iter().map(py_str).collect::<Vec<_>>().join(", ");
+            let plain = "You told me you're allergic to ".to_string() + &said + ".";
+            // Asked twice in a row, the phrasing rotates.
+            if said_before(memory, &plain) {
+                return Some(_vary(
+                    &["It's ".to_string() + &said + " \u{2014} that's what you said.", "Still ".to_string() + &said + ".", "Your allergy is ".to_string() + &said + "."],
+                    memory,
+                ));
+            }
+            return Some(plain);
+        }
+        if known.get("allergies").is_some() {
+            // The list is still there and empty: they named one and then took it back.
+            let fixed = mget(memory, "correction").clone();
+            let gone = text::strip(&sget(&fixed, "value")).to_lowercase();
+            if !gone.is_empty() && fixed.get("dropped").map(Value::truthy).unwrap_or(false) {
+                return Some("Nothing on the list now \u{2014} you took the ".to_string() + &gone + " one back.");
+            }
+            return Some("Nothing on the list now.".to_string());
+        }
+        let (who, theirs) = _other_fact(memory, "allergies");
+        if !theirs.is_empty() && !who.is_empty() {
+            return Some(_their_allergy(&who, &theirs));
+        }
+        if !theirs.is_empty() {
+            return Some(
+                "You haven't mentioned one for yourself \u{2014} the allergy to ".to_string()
+                    + &theirs.iter().map(py_str).collect::<Vec<_>>().join(", ")
+                    + " you mentioned was someone else's.",
+            );
+        }
+        return Some(_deny(memory, "allergy", "You haven't mentioned an allergy to me.", None));
+    }
+    if key == Some("budget") || low.contains("budget") {
+        let budget = known.get("budget").cloned().unwrap_or(Value::None);
+        if !budget.truthy() {
+            return Some(_deny(memory, "budget", "You haven't told me a budget.", None));
+        }
+        let budget = py_str(&budget);
+        // The first answer is the plain sentence; asked again, a different phrasing.
+        let plain = "Your budget is ".to_string() + &budget + ".";
+        if said_before(memory, &plain) {
+            return Some(_vary(
+                &["It's ".to_string() + &budget + " \u{2014} that's what you told me.", "You said ".to_string() + &budget + ".", "Still ".to_string() + &budget + "."],
+                memory,
+            ));
+        }
+        return Some(plain);
+    }
+    match key {
+        Some("birthday") => return Some(_birthday_reply(memory)),
+        Some("weight") => return Some(_weight_reply(memory)),
+        Some("height") => return Some(_height_reply(memory)),
+        _ => {}
+    }
+    if key == Some("diet") || (DIET_ASK.is_match(low) && !DIET_HOW_TO.is_match(low)) {
+        return _diet_reply(memory, low);
+    }
+    if key == Some("car") || DRIVE_ASK.is_match(low) {
+        if let Some(car) = known.get("car").filter(|c| c.truthy()) {
+            return Some(car_line(car));
+        }
+        return Some(pick(&["You haven't told me what you drive.", "I don't know your car \u{2014} you haven't said."], memory, ""));
+    }
+    let mut pets: Vec<Value> = known.get("pets").filter(|v| v.truthy()).map(py_list).unwrap_or_default();
+    let mut gone: Vec<Value> = known.get("pets_gone").filter(|v| v.truthy()).map(py_list).unwrap_or_default().into_iter().filter(|p| p.is_dict()).collect();
+    let mut asked: Option<&str> = None;
+    // "what is my dog called?" is about the dog, not the cat: read the animal they named.
+    for (animal, pattern) in ANIMAL_ASKED.iter() {
+        if pattern.is_match(low) {
+            asked = Some(animal);
+            pets.retain(|p| _animal_family(&s_or(p.get("animal"))) == *animal);
+            gone.retain(|p| _animal_family(&s_or(p.get("animal"))) == *animal);
+            break;
+        }
+    }
+    let coming_only: Vec<&Value> = pets.iter().filter(|p| p.is_dict() && p.get("coming").map(Value::truthy).unwrap_or(false)).collect();
+    if !coming_only.is_empty() && coming_only.len() == pets.len() && !CALLED_OR_NAME.is_match(low) {
+        // An animal that is on its way: the sentence says it is coming rather than here.
+        let pieces: Vec<String> = coming_only
+            .iter()
+            .map(|pet| {
+                let count = int_count(pet, 1);
+                if count > 1 {
+                    let animal = pet.get("animal").filter(|a| a.truthy()).cloned().unwrap_or(Value::from("pet"));
+                    crate::memory::corrected::_many(count, &animal)
+                } else {
+                    _a_pet(pet)
+                }
+            })
+            .collect();
+        let due = _put_together(&pieces);
+        if !due.is_empty() {
+            return Some("You're getting ".to_string() + &due + ".");
+        }
+    }
+    let counted = _a_count_ask(low);
+    if !pets.is_empty() {
+        if let Some(counted) = &counted {
+            // "how many cats" asks for the number, not for the list.
+            let kinds: HashSet<String> = pets.iter().map(|p| _animal_family(&s_or(p.get("animal")))).collect();
+            let total = _count_of_a_kind(&pets);
+            if kinds.len() == 1 && (counted == "any" || counted == "pet" || kinds.contains(counted)) {
+                let animal = _animal_family(&s_or(pets[0].get("animal")));
+                if total == 1 {
+                    // One animal, named: the number and the name both survive.
+                    let was = called_of(pets[0].get("name"));
+                    if !was.is_empty() {
+                        return Some("You've got one ".to_string() + &animal + " \u{2014} " + &was + ".");
+                    }
+                    return Some("You've got ".to_string() + &_a(&animal) + ".");
+                }
+                return Some("You've got ".to_string() + &_a_pet(&dict_of(vec![("animal", Value::from(animal.as_str())), ("count", Value::Int(total))])) + ".");
+            }
+        }
+    }
+    if !pets.is_empty() {
+        if CALLED_OR_NAME.is_match(low) && !pets.iter().any(|p| p.get("name").map(Value::truthy).unwrap_or(false)) {
+            return Some("You haven't told me a name for your ".to_string() + &get_or(&pets[0], "animal", "pet") + " yet.");
+        }
+        if let Some(together) = _pets_together(&pets).filter(|t| !t.is_empty()) {
+            return Some("You've got ".to_string() + &together + ".");
+        }
+        // "how many dogs do i have" asks for the number, so the number is the answer.
+        let counted = HOW_MANY.is_match(low);
+        if counted && pets.len() == 1 {
+            let pet = &pets[0];
+            let animal = pet.get("animal").filter(|a| a.truthy()).cloned().unwrap_or(Value::from("pet"));
+            let number = int_count(pet, 1).max(1);
+            let many = if number > 1 { crate::memory::corrected::_many(number, &animal) } else { "one ".to_string() + &py_str(&animal) };
+            let was = called_of(pet.get("name"));
+            return Some("You've got ".to_string() + &many + &(if was.is_empty() { ".".to_string() } else { " \u{2014} ".to_string() + &was + "." }));
+        }
+        if counted && pets.len() > 1 && pets.iter().map(|p| _animal_family(&s_or(p.get("animal")))).collect::<HashSet<_>>().len() == 1 {
+            let top = pets.iter().filter_map(|p| match p.get("count") {
+                Some(Value::Int(i)) => Some(*i),
+                Some(Value::Bool(b)) => Some(*b as i64),
+                _ => None,
+            }).max().unwrap_or(0);
+            if top >= pets.len() as i64 {
+                // The count is the whole set.
+                let animal = pets[0].get("animal").filter(|a| a.truthy()).cloned().unwrap_or(Value::from("pet"));
+                return Some("You've got ".to_string() + &crate::memory::corrected::_many(top, &animal) + ".");
+            }
+        }
+        let parts: Vec<String> = pets
+            .iter()
+            .map(|p| {
+                let count = match p.get("count") {
+                    Some(Value::Int(i)) => Some(*i),
+                    Some(Value::Bool(b)) => Some(*b as i64),
+                    _ => None,
+                };
+                match count {
+                    Some(c) if counted && c > 1 => {
+                        let animal = p.get("animal").filter(|a| a.truthy()).cloned().unwrap_or(Value::from("pet"));
+                        crate::memory::corrected::_many(c, &animal)
+                    }
+                    _ => _a_pet(p),
+                }
+            })
+            .collect();
+        // An animal on its way is not one in the house.
+        let coming = |p: &Value| p.get("coming").map(Value::truthy).unwrap_or(false);
+        let here: Vec<String> = pets.iter().zip(parts.iter()).filter(|(p, _)| !coming(p)).map(|(_, s)| s.clone()).collect();
+        let due: Vec<String> = pets.iter().zip(parts.iter()).filter(|(p, _)| coming(p)).map(|(_, s)| s.clone()).collect();
+        let mut said: Vec<String> = Vec::new();
+        if !here.is_empty() {
+            said.push("You've got ".to_string() + &_put_together(&here) + ".");
+        }
+        if !due.is_empty() {
+            said.push("You're getting ".to_string() + &_put_together(&due) + ".");
+        }
+        if !said.is_empty() {
+            return Some(said.join(" "));
+        }
+    }
+    if !gone.is_empty() {
+        // "what was my cat called?" asks after a death: the name is the thing they want back.
+        let was_called = WAS_WERE_DID.is_match(low) && CALL_NAME_WORDS.is_match(low);
+        let named: Vec<Value> = gone.iter().filter(|p| p.get("name").map(Value::truthy).unwrap_or(false)).cloned().collect();
+        if was_called && !named.is_empty() {
+            return Some(_was_called(&named));
+        }
+        // A pet they told me about and then lost is not a pet they never mentioned.
+        return Some(_a_pet_that_is_gone(&gone));
+    }
+    if let Some(asked) = asked {
+        // They do have pets, just not that one.
+        let theirs: Vec<String> = known
+            .get("pets")
+            .filter(|v| v.truthy())
+            .map(py_list)
+            .unwrap_or_default()
+            .iter()
+            .map(|p| {
+                _a(&get_or(p, "animal", "pet"))
+                    + &(if p.get("name").map(Value::truthy).unwrap_or(false) { " called ".to_string() + &called_of(p.get("name")) } else { String::new() })
+            })
+            .collect();
+        if !theirs.is_empty() {
+            return Some("I don't have ".to_string() + &_a(asked) + " from you \u{2014} " + &theirs.join(" and ") + " is what I have.");
+        }
+    }
+    Some("You haven't told me about a pet yet.".to_string())
 }
 
-/// Python: bot/memory/store_replies.py:9684 `_was_called(named)` (never called on the trace corpus)
-pub fn _was_called(named: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_was_called")
+/// Python: bot/memory/store_replies.py:9671 `_was_called(named)`
+///
+/// The name of a pet that is gone: "Your cat was called Milly.".
+pub fn _was_called(named: &[Value]) -> String {
+    let animal_of = |p: &Value| {
+        let a = sget(p, "animal");
+        if a.is_empty() {
+            "pet".to_string()
+        } else {
+            a
+        }
+    };
+    if named.len() == 1 {
+        return "Your ".to_string() + &animal_of(&named[0]) + " was called " + &called_of(named[0].get("name")) + ".";
+    }
+    let parts: Vec<String> = named.iter().map(|p| animal_of(p) + " " + &called_of(p.get("name"))).collect();
+    let last = parts.last().expect("IndexError: list index out of range");
+    "You called them ".to_string() + &parts[..parts.len() - 1].join(", ") + " and " + last + "."
 }
 
-/// Python: bot/memory/store_replies.py:9692 `_a_pet_that_is_gone(gone)` (never called on the trace corpus)
-pub fn _a_pet_that_is_gone(gone: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_a_pet_that_is_gone")
+/// Python: bot/memory/store_replies.py:9679 `_a_pet_that_is_gone(gone)`
+///
+/// A pet they no longer have, said back the way they told me: died, or gone elsewhere.
+pub fn _a_pet_that_is_gone(gone: &[Value]) -> String {
+    let one = |pet: &Value| {
+        let mut animal = sget(pet, "animal");
+        if animal.is_empty() {
+            animal = "pet".into();
+        }
+        let name = called_of(pet.get("name"));
+        if name.is_empty() {
+            animal
+        } else {
+            animal + " " + &name
+        }
+    };
+    let shown: Vec<String> = gone.iter().map(one).collect();
+    let which = match shown.len() {
+        n if n > 2 => "any pets".to_string(),
+        2 => "your ".to_string() + &shown[0] + " or your " + &shown[1],
+        _ => "your ".to_string() + shown.first().expect("IndexError: list index out of range"),
+    };
+    let died = |p: &Value| p.get("gone") == Some(&Value::from("died"));
+    if gone.iter().all(died) {
+        return "I'm sorry \u{2014} you told me ".to_string() + &which + " died.";
+    }
+    if !gone.iter().any(died) {
+        return "You told me you don't have ".to_string() + &which + " any more.";
+    }
+    let told_died: Vec<String> = gone.iter().enumerate().filter(|(_, p)| died(p)).map(|(i, _)| "your ".to_string() + &shown[i]).collect();
+    "I'm sorry \u{2014} you told me ".to_string() + &(if told_died.len() > 1 { told_died.join(" or ") } else { told_died[0].clone() }) + " died."
 }
 
-/// Python: bot/memory/store_replies.py:9715 `_put_together(parts)` (never called on the trace corpus)
-pub fn _put_together(parts: &[String]) -> Value {
-    crate::unported!("bot.memory.store_replies:_put_together")
+/// Python: bot/memory/store_replies.py:9701 `_put_together(parts)`
+///
+/// The pieces of a pet sentence as one phrase: "a dog", "a dog and a cat", "a, b and c".
+pub fn _put_together(parts: &[String]) -> String {
+    let parts: Vec<&String> = parts.iter().filter(|p| !p.is_empty()).collect();
+    match parts.len() {
+        0 => String::new(),
+        1 => parts[0].clone(),
+        n => parts[..n - 1].iter().map(|p| p.as_str()).collect::<Vec<_>>().join(", ") + " and " + parts[n - 1],
+    }
 }
 
-/// Python: bot/memory/store_replies.py:9724 `_pets_together(pets)` (never called on the trace corpus)
-pub fn _pets_together(pets: &Value) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_pets_together")
+/// The plural a pet word takes: "fish", "sheep" and "deer" keep their own.
+fn pet_plural(animal: &str) -> String {
+    if text::ends_with_any(animal, &["fish", "sheep", "deer"]) {
+        animal.to_string()
+    } else {
+        animal.to_string() + "s"
+    }
 }
 
-/// Python: bot/memory/store_replies.py:9755 `_a_pet(pet)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:9710 `_pets_together(pets)`
+///
+/// Two or more of the same animal, each named: "two cats called Tom and Jerry", or None.
+pub fn _pets_together(pets: &[Value]) -> Option<String> {
+    let animals: Vec<String> = pets
+        .iter()
+        .map(|p| {
+            let a = p.get("animal").filter(|a| a.truthy()).cloned().unwrap_or(Value::from("pet"));
+            py_str(&a)
+        })
+        .collect();
+    if pets.len() < 2 || animals.iter().collect::<HashSet<_>>().len() != 1 {
+        return None;
+    }
+    if !pets.iter().all(|p| !p.get("count").map(Value::truthy).unwrap_or(false)) {
+        return None;
+    }
+    let named: Vec<&Value> = pets.iter().filter(|p| p.get("name").map(Value::truthy).unwrap_or(false)).collect();
+    let nameless = pets.len() - named.len();
+    if named.is_empty() {
+        return None;
+    }
+    let many = pet_plural(&animals[0]);
+    let count = pets.len() as i64;
+    let number = NUMBER_WORDS.get(&count).cloned().unwrap_or_else(|| count.to_string());
+    let mut names: Vec<String> = named.iter().map(|p| called_of(p.get("name"))).collect();
+    if nameless == 1 {
+        // A second animal they have not named yet: the whole set said once, with the gap beside it.
+        names.push("one you haven't named".to_string());
+        return Some(number + " " + &many + " \u{2014} " + &_put_together(&names));
+    }
+    if nameless > 1 {
+        return None;
+    }
+    let last = names.last().unwrap().clone();
+    Some(number + " " + &many + " called " + &names[..names.len() - 1].join(", ") + " and " + &last)
+}
+
+/// Python: bot/memory/store_replies.py:9755 `_a_pet(pet)`
+///
+/// "a cat", "a cat called Milly", "two cats": a number they gave is said back as a number.
 pub fn _a_pet(pet: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_a_pet")
+    use crate::memory::relations::_a;
+    // The breed they named comes first.
+    let animal = {
+        let b = pet.get("breed").filter(|v| v.truthy()).or_else(|| pet.get("animal").filter(|v| v.truthy()));
+        match b {
+            Some(v) => py_str(v),
+            None => "pet".to_string(),
+        }
+    };
+    let count = pet.get("count").filter(|v| v.truthy()).cloned().unwrap_or(Value::Int(1));
+    if pet.get("name").map(Value::truthy).unwrap_or(false) {
+        let many = py_int_value(&count).map(|c| c > 1).unwrap_or(false);
+        if many {
+            // Two cats with one name between them: the number they gave stays in the reply.
+            let n = py_int_value(&count).unwrap();
+            let number = NUMBER_WORDS.get(&n).cloned().unwrap_or_else(|| py_str(&count));
+            return number + " " + &pet_plural(&animal) + ", one called " + &called_of(pet.get("name"));
+        }
+        return _a(&animal) + " called " + &called_of(pet.get("name"));
+    }
+    let n = py_int_value(&count).expect("ValueError: invalid literal for int()");
+    if n > 1 {
+        let number = NUMBER_WORDS.get(&n).cloned().unwrap_or_else(|| py_str(&count));
+        return number + " " + &pet_plural(&animal);
+    }
+    _a(&animal)
 }
 
-/// Python: bot/memory/store_replies.py:9783 `_a_why_line_they_have_answered(text, memory)`
-pub fn _a_why_line_they_have_answered(text: &str, memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_why_line_they_have_answered")
+rx!(ADVICE_ASK);
+static WHY: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bwhy\b", 0));
+static MY_PET_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bmy (?:dog|cat|pet)s?\b", 0));
+static MY_FACT_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bmy (?:dog|cat|pet)s?\b|\ballerg\w*\b|\bmy budget\b", 0));
+static WHAT_DID_I: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bwhat (?:did|have) i\b", 0));
+static SUBJECT_KEYS: LazyLock<HashMap<String, String>> = LazyLock::new(|| g("_SUBJECT_KEYS").str_map());
+
+/// Python: bot/memory/store_replies.py:9782 `_a_why_line_they_have_answered(text, memory)`
+///
+/// A why-line the store can answer, because it holds the subject the line names.
+pub fn _a_why_line_they_have_answered(text_: &str, memory: &mut Memory) -> bool {
+    let low = fold(text_);
+    WHY.is_match(&low) && _holds_the_subject(memory, text_)
 }
 
-/// Python: bot/memory/store_replies.py:9788 `_holds_the_subject(memory, text)`
-pub fn _holds_the_subject(memory: &mut Memory, text: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_holds_the_subject")
+/// Python: bot/memory/store_replies.py:9787 `_holds_the_subject(memory, text)`
+///
+/// Whether the store has the thing a why-line names, so it can say what they said.
+pub fn _holds_the_subject(memory: &mut Memory, text_: &str) -> bool {
+    let Some(key) = crate::memory::recall::ask(text_, true).filter(|k| !k.is_empty()) else { return false };
+    let known = user(memory);
+    let slot = SUBJECT_KEYS.get(&key).cloned().unwrap_or_else(|| key.clone());
+    let held = known.get(&slot).map(Value::truthy).unwrap_or(false);
+    if key == "limit" {
+        return held || known.get("diet").map(Value::truthy).unwrap_or(false) || known.get("limits").map(Value::truthy).unwrap_or(false);
+    }
+    held
 }
 
-/// Python: bot/memory/store_replies.py:9804 `_asks_for_a_fact(low, text='', memory=None)`
-pub fn _asks_for_a_fact(low: &str, text: &str, memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_asks_for_a_fact")
+/// Python: bot/memory/store_replies.py:9804 `_asks_for_a_fact(low, text="", memory=None)`
+///
+/// True when the line asks for one of their own facts, in the words they use for it.
+pub fn _asks_for_a_fact(low: &str, text_: &str, memory: &mut Memory) -> bool {
+    if MY_PET_WORD.is_match(low) && ADVICE_ASK.is_match(low) {
+        return false;
+    }
+    // A why-ask is a read of the store only when it holds the subject.
+    if WHY.is_match(low) {
+        return _holds_the_subject(memory, text_);
+    }
+    if MY_FACT_WORD.is_match(low) {
+        return true;
+    }
+    if WHAT_DID_I.is_match(low) {
+        return false;
+    }
+    ASK_WITHOUT_MY.is_match(low)
 }
 
 /// Python: bot/memory/store_replies.py:9829 `_vary(options, memory)`
+///
+/// pick(), but over the whole reply: a lead-in and a body put together can repeat a line the bot
+/// said, even when the pieces on their own do not.
 pub fn _vary(options: &[String], memory: &Memory) -> String {
-    crate::unported!("bot.memory.store_replies:_vary")
+    let turns = &memory.turns;
+    let recent: Vec<&str> = turns[turns.len().saturating_sub(5)..].iter().map(|t| t.bot.as_str()).collect();
+    let fresh: Vec<String> = options.iter().filter(|o| !recent.contains(&o.as_str())).cloned().collect();
+    let fresh = if fresh.is_empty() { options.to_vec() } else { fresh };
+    crate::py::random::Random::new(turns.len() as i128).choice(&fresh).clone()
 }
 
-/// Python: bot/memory/store_replies.py:9837 `_turn_lines(memory)` (never called on the trace corpus)
-pub fn _turn_lines(memory: &Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_turn_lines")
+/// Python: bot/memory/store_replies.py:9837 `_turn_lines(memory)`
+///
+/// The user and bot lines of the earlier turns, oldest first.
+pub fn _turn_lines(memory: &Memory) -> Vec<(String, String)> {
+    memory.turns.iter().map(|t| (t.user.clone(), t.bot.clone())).collect()
 }
 
 /// Python: bot/memory/store_replies.py:9866 `asks_again(text, memory=None)`
