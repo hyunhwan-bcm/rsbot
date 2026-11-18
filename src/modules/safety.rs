@@ -403,11 +403,19 @@ fn memory_value(memory: &Memory) -> Value {
 
 /// `pick(options, memory)`.
 fn pick(options: &[String], memory: &Memory) -> String {
+    #[cfg(test)]
+    if tests::FIRST_PICK.with(|first| first.get()) {
+        return options[0].clone();
+    }
     crate::compose::pick(options, &memory_value(memory), "")
 }
 
 /// `pick(options, memory, seed_text)`.
 fn pick_seeded(options: &[String], memory: &Memory, seed: &str) -> String {
+    #[cfg(test)]
+    if tests::FIRST_PICK.with(|first| first.get()) {
+        return options[0].clone();
+    }
     crate::compose::pick(options, &memory_value(memory), seed)
 }
 
@@ -3423,7 +3431,6 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
     let mut said: String;
     let mut mine: bool;
     let mut counted: Option<String>;
-    let mut wait: bool;
     // A character standing in for a letter inside a word is that letter, read before the engine
     // below takes the line apart: `k!ll` arrives as three words, one of which the engine folds to
     // `ok`, so the wish was handed on as "ok!ll" and no pattern could see it.
@@ -3460,7 +3467,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
     // for the next arm: it is read here, before everything, and it is answered with a way out.
     if _matches(&SHAKE_CHILD, &line) && !_matches(&SHAKE_IDIOM, &line) && (_matches(&SHAKE_CHILD_CONTEXT, &line) || (_matches(&SHAKE_COPING, &line) && !_matches(&SHAKE_ADULT, &line))) {
         _note(memory, "abuse");
-        return Some(pick((if _matches(&SHAKE_BABY_WORD, &line) { &SHAKE_REPLY } else { &SHAKE_CHILD_REPLY }), memory));
+        return Some(pick(if _matches(&SHAKE_BABY_WORD, &line) { &SHAKE_REPLY } else { &SHAKE_CHILD_REPLY }, memory));
     }
     // A long time out cold, or one somebody found them in, before the rows that read "all night"
     // and "until three" as sleep.
@@ -3668,10 +3675,10 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
             return Some(pick(&CPR_NO_PULSE_NOW, memory));
         }
         if _matches(&CPR_BABY, &line) {
-            return Some(pick((if start { &CPR_BABY_SCENE } else { &CPR_HOW_BABY }), memory));
+            return Some(pick(if start { &CPR_BABY_SCENE } else { &CPR_HOW_BABY }, memory));
         }
         if _matches(&CPR_CHILD, &line) {
-            return Some(pick((if start { &CPR_CHILD_SCENE } else { &CPR_HOW_CHILD }), memory));
+            return Some(pick(if start { &CPR_CHILD_SCENE } else { &CPR_HOW_CHILD }, memory));
         }
         if start {
             return Some(pick(&CPR_START, memory));
@@ -4073,7 +4080,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
     pet_gums_told = _matches(&PET_ANY, &line) && !_matches(&HUMAN_TOO, &line) && _matches(&PET_MOUTH, &line) && _matches(&PET_GUMS_TOLD, &line) && !_matches(&PET_EATEN_THING, &line);
     // The pet named twice over is still the pet: "my dog, he cant breathe" was the human 999 card.
     if _matches(&PET_APPOSITIVE, &line) && (_matches(&PET_CRISIS, &line) || _matches(&PET_BREATH, &line)) && !(_matches(&HUMAN_TOO, &PET_APPOSITIVE_SUB.sub(" ", &line))) && !pet_past && !pet_all_right {
-        kind = if (_matches(&PET_GASP, &line) || _matches(&PET_BREATH_ODD, &line)) { "pet_breath".to_string() } else { "pet_emergency".to_string() };
+        kind = if _matches(&PET_GASP, &line) || _matches(&PET_BREATH_ODD, &line) { "pet_breath".to_string() } else { "pet_emergency".to_string() };
         if _matches(&PET_FIT, &line) {
             kind = "pet_fit".to_string();
         }
@@ -4186,7 +4193,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
         return Some(_fit(&pick(REPLIES.at("struck_my_bike"), memory), &line, "struck_my_bike"));
     }
     for case in CASES.iter() {
-        let (name, patterns, needs_person) = (case.name.as_str(), &case.patterns[..], case.needs_person);
+        let (name, patterns, _needs_person) = (case.name.as_str(), &case.patterns[..], case.needs_person);
         if !_matches(patterns, &line) {
             if !(name == "red_flags" && _glass_test_line(&line, &before)) {
                 continue;
@@ -4660,7 +4667,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
                 _note(memory, "choking");
                 return Some(_fit(&pick(REPLIES.at("choking_baby"), memory), &line, "breathing"));
             }
-            kind = if (_matches(&FIRST_PERSON, &line) && !_matches(&CHOKE_PERSON, &line)) { "choking_self".to_string() } else { "choking_help".to_string() };
+            kind = if _matches(&FIRST_PERSON, &line) && !_matches(&CHOKE_PERSON, &line) { "choking_self".to_string() } else { "choking_help".to_string() };
             _note(memory, "choking");
             return Some(_fit(&pick(REPLIES.at(&kind), memory), &line, "breathing"));
         }
@@ -5332,7 +5339,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
         // 999", which is what the stairs arm said to "i keep falling down the stairs". A line
         // that puts somebody on the floor now, or that names an injury, keeps the card.
         if name == "fall" && _matches(&FALL_REPEAT, &line) && !_fall_with_sign(&line) && !_matches(&FALL_NOW, &line) && !_matches(&FALL_RED, &line) && !_matches(&FALL_PATTERN_HURT, &line) {
-            key = if (_matches(&[r"\bi\b", r"\bwe\b"], &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty()))) { "fall_pattern_self".to_string() } else { "fall_pattern".to_string() };
+            key = if _matches(&[r"\bi\b", r"\bwe\b"], &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty())) { "fall_pattern_self".to_string() } else { "fall_pattern".to_string() };
             return Some(_fit(&pick(REPLIES.at(&key), memory), &line, "fall_pattern"));
         }
         if name == "fall" && _matches(&NEAR_MISS, &line) && !_matches(&NEAR_MISS_HARM, &line) {
@@ -5619,7 +5626,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
         if name == "blue" && _matches(&BLUE_FACE_PART, &line) && _matches(&BLUE_COLD_CAUSE, &line) && !_matches(&WENT_BLUE_BREATH_RED, &line) && !_matches(&COLD_ILLNESS, &line) && !(_matches(&NEWBORN, &line) || _matches(&[r"\b(?:baby|babies|infant)\b"], &line)) {
             mine = !_matches(&OTHER_BODY, &line);
             _note(memory, "blue");
-            return Some(_fit(&pick(REPLIES.at((if mine { "blue_cold" } else { "blue_cold_other" })), memory), &line, "blue"));
+            return Some(_fit(&pick(REPLIES.at(if mine { "blue_cold" } else { "blue_cold_other" }), memory), &line, "blue"));
         }
         if name == "blue" && !_matches(&BLUE_FACE_PART, &line) && _matches(&LIMB_PART, &line) && _matches(&WENT_BLUE_FINE, &line) && !_matches(&WENT_BLUE_RED, &line) {
             continue;
@@ -5661,7 +5668,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
             continue;
         }
         if name == "fall" {
-            key = if (_matches(&[r"\bi\b", r"\bmy\b"], &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty()))) { "fall_self".to_string() } else { "fall".to_string() };
+            key = if _matches(&[r"\bi\b", r"\bmy\b"], &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty())) { "fall_self".to_string() } else { "fall".to_string() };
             return Some(_fit(&pick(REPLIES.at(&key), memory), &line, "fall"));
         }
         // A fall in someone older gets checked the same day even when they are up and talking, so
@@ -5706,7 +5713,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
             continue;
         }
         if name == "old_fall" {
-            key = if (_matches(&FIRST_PERSON, &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty()))) { "old_fall_self".to_string() } else { "old_fall".to_string() };
+            key = if _matches(&FIRST_PERSON, &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty())) { "old_fall_self".to_string() } else { "old_fall".to_string() };
             return Some(_fit(&pick(REPLIES.at(&key), memory), &line, "old_fall"));
         }
         // Floppy on the way to sleep, asked about as a normal thing: answer the question (#670).
@@ -5720,17 +5727,17 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
             continue;
         }
         if name == "hypo" {
-            key = if (_matches(&[r"\bi\b", r"\bmy\b"], &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty()))) { "hypo_self".to_string() } else { "hypo".to_string() };
+            key = if _matches(&[r"\bi\b", r"\bmy\b"], &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty())) { "hypo_self".to_string() } else { "hypo".to_string() };
             return Some(_fit(&pick(REPLIES.at(&key), memory), &line, "hypo"));
         }
         if name == "heat" {
-            key = if (_matches(&[r"\bi\b", r"\bmy\b"], &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty()))) { "heat_self".to_string() } else { "heat".to_string() };
+            key = if _matches(&[r"\bi\b", r"\bmy\b"], &line) && !(_person(&line).as_deref().map_or(false, |s| !s.is_empty())) { "heat_self".to_string() } else { "heat".to_string() };
             return Some(_fit(&pick(REPLIES.at(&key), memory), &line, "heat"));
         }
         if ["red_flags", "stiff_neck", "sepsis_signs", "newborn_fever", "newborn_fever_next"].contains(&name) {
             // The user is the patient unless the line names someone else, and "my baby" is someone
             // else: the reply has to tell them how to help, not how to be helped.
-            key = if (_matches(&[r"\bi\b", r"\bi'm\b", r"\bim\b", r"\bmy\b"], &line) && !(_matches(&PERSON_WORD, &line) || _matches(&[r"\b(?:newborn|infant|toddler|little\s+one|baby|babies)\b"], &line))) { "red_flags_self".to_string() } else { "red_flags".to_string() };
+            key = if _matches(&[r"\bi\b", r"\bi'm\b", r"\bim\b", r"\bmy\b"], &line) && !(_matches(&PERSON_WORD, &line) || _matches(&[r"\b(?:newborn|infant|toddler|little\s+one|baby|babies)\b"], &line)) { "red_flags_self".to_string() } else { "red_flags".to_string() };
             return Some(_fit(&pick(REPLIES.at(&key), memory), &line, "red_flags"));
         }
         if name == "chest" && _matches(&CHEST_FEELING, &line) && !_matches(&_CHEST_OTHER_RED, &line) && !_matches(&CHEST_FEELING_RED, &line) && !_matches(&AFTER_EXERCISE, &line) {
@@ -5816,7 +5823,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
             }
             // Whose body went down decides the wording: "put them on their side" is no use to the
             // person who was knocked out themselves.
-            key = if (_person(&line).as_deref().map_or(false, |s| !s.is_empty()) || _matches(&OTHER_BODY, &line)) { "electric_shock_floor".to_string() } else { "electric_shock_floor_self".to_string() };
+            key = if _person(&line).as_deref().map_or(false, |s| !s.is_empty()) || _matches(&OTHER_BODY, &line) { "electric_shock_floor".to_string() } else { "electric_shock_floor_self".to_string() };
             _note(memory, name);
             return Some(_fit(&pick(REPLIES.at(&key), memory), &line, name));
         }
@@ -6106,4 +6113,86 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
         }
     }
     return _follow_up(&line, memory);
+}
+
+#[cfg(test)]
+mod tests {
+    //! The rule chain checked against PyBot's own, rule by rule: both sides pick the first line of
+    //! the pool they chose (`scratch/mod3/safety_ref.py` patches Python's `pick` the same way), so
+    //! a difference is a difference in which rule answered, what it noted, or how it fitted the
+    //! line. Run with `SAFETY_REF=<reference jsonl> SAFETY_INPUT=<oracle .gz or lines .json>`.
+    use super::*;
+    use std::cell::Cell;
+    use std::io::BufRead;
+
+    thread_local! {
+        pub static FIRST_PICK: Cell<bool> = const { Cell::new(false) };
+    }
+
+    /// The memory each record's `respond` stage saw (`mem_in` plus every observer's diff).
+    fn inputs(path: &str) -> Vec<(String, Memory)> {
+        if path.ends_with(".json") {
+            let lines: Vec<String> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+            return lines.into_iter().map(|line| (line, Memory::new())).collect();
+        }
+        let reader = std::io::BufReader::new(flate2::read::GzDecoder::new(std::fs::File::open(path).unwrap()));
+        let mut out = Vec::new();
+        for line in reader.lines() {
+            let Ok(line) = line else { break };
+            let Ok(rec) = serde_json::from_str::<serde_json::Value>(&line) else { break };
+            let mut mem = rec["mem_in"].as_object().cloned().unwrap_or_default();
+            for o in rec["observe"].as_array().unwrap() {
+                for (k, v) in o["diff"]["set"].as_object().unwrap() {
+                    mem.insert(k.clone(), v.clone());
+                }
+                for k in o["diff"]["del"].as_array().unwrap() {
+                    mem.shift_remove(k.as_str().unwrap());
+                }
+            }
+            out.push((rec["text"].as_str().unwrap_or("").to_string(), Memory::from_plain(&mem)));
+        }
+        out
+    }
+
+    #[test]
+    #[ignore]
+    fn safety_against_the_reference() {
+        let (Ok(reference), Ok(input)) = (std::env::var("SAFETY_REF"), std::env::var("SAFETY_INPUT")) else { return };
+        crate::runtime::quiet_panics();
+        FIRST_PICK.with(|first| first.set(true));
+        let cases = inputs(&input);
+        let (mut ok, mut bad, mut shown) = (0, 0, 0);
+        for line in std::fs::read_to_string(&reference).unwrap().lines() {
+            let want: serde_json::Value = serde_json::from_str(line).unwrap();
+            let idx = want["idx"].as_u64().unwrap() as usize;
+            let Some((said, memory)) = cases.get(idx) else { continue };
+            let mut memory = memory.clone();
+            let got = guarded(|| _respond(said, &mut memory));
+            let raised = got.is_none();
+            let reply = got.flatten();
+            let case = memory.get("safety_case").and_then(Value::as_str).map(str::to_string);
+            let safe = memory.get("safety_safe").and_then(Value::as_bool);
+            let person = memory.get("safety_person").and_then(Value::as_str).map(str::to_string);
+            let same = reply.as_deref() == want["reply"].as_str()
+                && raised == !want["err"].is_null()
+                && case.as_deref() == want["case"].as_str()
+                && safe == want["safe"].as_bool()
+                && person.as_deref() == want["person"].as_str();
+            if same {
+                ok += 1;
+            } else {
+                bad += 1;
+                if shown < 25 {
+                    shown += 1;
+                    let panic = crate::runtime::take_last_panic().unwrap_or_default();
+                    eprintln!(
+                        "#{idx} {said:?}\n   rust: {reply:?} {case:?} {safe:?} {person:?} {}\n   py:   {} {} {} {} {}",
+                        if raised { format!("raised {panic}") } else { String::new() },
+                        want["reply"], want["case"], want["safe"], want["person"], want["err"]
+                    );
+                }
+            }
+        }
+        eprintln!("safety against the reference: {ok} same, {bad} different");
+    }
 }
