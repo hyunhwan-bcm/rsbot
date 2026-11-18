@@ -158,14 +158,14 @@ pub fn dishes_plan(key: &str) -> Option<&'static Value> {
     data::get("bot.knowledge.dishes.PLANS").get(key)
 }
 
-// NEEDS(bot.knowledge.dishes::dish_in) — the plan key a text names (D1's dish matcher).
-pub fn dishes_dish_in(_text: &str) -> Option<String> {
-    None
+/// `dishes.dish_in`: the plan key a text names (D1's port).
+pub fn dishes_dish_in(text: &str) -> Option<String> {
+    crate::knowledge::dishes::dish_in(text).map(str::to_string)
 }
 
 // NEEDS(bot.knowledge.dishes::ask_kind) — which kind of follow-up the line is.
-pub fn dishes_ask_kind(_u: &Understood) -> Option<String> {
-    None
+pub fn dishes_ask_kind(u: &Understood) -> Option<String> {
+    crate::knowledge::dishes::ask_kind(u).map(str::to_string)
 }
 
 // NEEDS(bot.knowledge.dishes::reply) — the plan's answer to a follow-up of that kind.

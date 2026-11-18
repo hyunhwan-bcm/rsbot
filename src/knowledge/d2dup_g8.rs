@@ -66,10 +66,7 @@ static IDEA_ASK: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowle
 /// matcher, with `understanding.topics.says_another_thing` and lookup's typo rules); until that
 /// is merged it names nothing.
 pub fn dish_in(text: &str) -> Option<String> {
-    if crate::py::text::strip(text).is_empty() {
-        return None;
-    }
-    None
+    crate::knowledge::dishes::dish_in(text).map(str::to_string)
 }
 
 // DUP(bot.knowledge.dishes::a_dish_is_already_the_plan)

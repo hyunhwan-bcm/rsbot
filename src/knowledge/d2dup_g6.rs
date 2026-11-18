@@ -210,8 +210,8 @@ pub fn asks_for_a_side_of_a_food(text: &str) -> bool {
 // NEEDS(bot.knowledge.dishes::dish_in)
 /// The dish the text names (D1 ports the dish matcher, `dishes._named`); until it is merged this
 /// stand-in names none.
-pub fn dish_in(_text: &str) -> Option<String> {
-    None
+pub fn dish_in(text: &str) -> Option<String> {
+    crate::knowledge::dishes::dish_in(text).map(str::to_string)
 }
 
 // ---------------------------------------------------------------------------------------------

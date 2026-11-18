@@ -230,10 +230,10 @@ pub fn reads_as_news(understood: &Understood, clean: &str) -> bool {
 // was DUP-D2(bot.knowledge.picking::choosing): now the real port
 pub use crate::knowledge::picking::choosing;
 
-// NEEDS(bot.knowledge.dishes::dish_in, bot.knowledge.dishes::PLANS)
-/// Whether the dish a text names has an oven temperature in its plan. dishes.dish_in is a
-/// matching engine of its own (D1); until it is merged no dish is found.
-pub fn a_dish_plan_has_a_heat(_text: &str) -> bool {
-    false
+/// `cooking._a_dish_with_a_heat`: the dish the text names (`dishes.dish_in`) has a plan with a
+/// truthy "temp" (`dishes.PLANS.get(name or "")`).
+pub fn a_dish_plan_has_a_heat(text: &str) -> bool {
+    let name = crate::knowledge::dishes::dish_in(text).unwrap_or("");
+    crate::data::get("bot.knowledge.dishes.PLANS").get(name).and_then(|plan| plan.get("temp")).map(|t| t.truthy()).unwrap_or(false)
 }
 
