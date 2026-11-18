@@ -285,11 +285,9 @@ fn topics_said_again(said: &str, memory: &Memory) -> Option<String> {
     None
 }
 
-/// CONTRACT: `counts::answer` is typed `()`; Python returns the store's answer or None. Read as
-/// None until the contract carries the value.
+/// `counts.answer(text, memory)`: the store's answer, or None.
 fn counts_answer(text_: &str, memory: &Memory) -> Option<String> {
-    crate::memory::counts::answer(text_, memory);
-    None
+    crate::memory::counts::answer(text_, memory)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -3837,7 +3835,7 @@ pub fn _the_figure_of_a_goal(lines: &[String], kind: Option<&str>, wanted: &[Str
 ///
 /// True when a figure is an answer to an ask that names a thing, or the ask names nothing.
 pub fn _the_figure_counts_the_thing(text_: &str, figure: &str) -> bool {
-    let thing = crate::memory::history::the_thing_they_named(text_);
+    let thing = Value::from(crate::memory::history::the_thing_they_named(text_));
     if !thing.truthy() {
         return true;
     }
@@ -3883,8 +3881,8 @@ fn narrowing_and_its_line(line: &str, memory: &Memory) -> Option<(String, String
 ///
 /// The line they said about the thing the ask names, quoted back, or None.
 pub fn _the_turn_that_names_it(text_: &str, memory: &Memory) -> Option<String> {
-    let row = crate::memory::history::the_earlier_turn(memory, text_, &Value::from(""));
-    let line = text::rstrip_chars(&text::squash(&py_str_or_empty(row.get("user"))), " .!?").to_string();
+    let row = crate::memory::history::the_earlier_turn(memory, text_, "");
+    let line = text::rstrip_chars(&text::squash(row.map_or("", |row| row.user.as_str())), " .!?").to_string();
     if line.is_empty() {
         return None;
     }

@@ -7000,7 +7000,7 @@ pub fn _diet_reply(memory: &mut Memory, low: &str) -> Option<String> {
         let was = user(memory).get("diet").cloned().unwrap_or(Value::None);
         if said == "changed" && was.truthy() {
             // The reply says what it is doing with the old value, so the store has to do it.
-            crate::memory::forget(memory, "diet", &[py_str(&was)], "");
+            crate::memory::forget(memory, "diet", &Value::from(vec![was.clone()]), "");
             user_set(memory, "diet_changed", was.clone());
         }
         return ret_opt(crate::memory::change::reply(&said, "diet", &s_or(Some(&was))));

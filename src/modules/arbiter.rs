@@ -259,8 +259,8 @@ pub fn _a_past_that_is_not_there(index: usize, candidates: &[Candidate], text: &
         return index;
     }
     guarded(|| {
-        let memory = memory_value(mem);
-        let speaks_of_a_past = |reply: &str| crate::memory::history::a_past_that_is_not_there(reply, &memory, Some(text));
+        let memory = m(mem);
+        let speaks_of_a_past = |reply: &str| crate::memory::history::a_past_that_is_not_there(reply, Some(&*memory), Some(text));
         let reply = if index < candidates.len() { candidates[index].reply.as_str() } else { "" };
         if !speaks_of_a_past(reply) {
             return index;
@@ -4097,6 +4097,7 @@ pub fn _a_plainer_reading_of_the_same_answer(candidates: &[Candidate], best: usi
 }
 
 /// The memory as a Python-like value, for readings whose contract takes one.
+#[allow(dead_code)]
 fn memory_value(mem: &Mem) -> Value {
     Value::from_plain(&serde_json::Value::Object(m(mem).to_plain()))
 }
@@ -4426,7 +4427,7 @@ mod hooks {
             "figure_asked_again" => md::figure_asked_again::takes_as_it_comes(text, &m(mem)).unwrap_or(false),
             "taking_asked_again" => md::taking_asked_again::takes_as_it_comes(text, &m(mem)).unwrap_or(false),
             "a_limit_over_the_answer" => md::a_limit_over_the_answer::TAKES_AS_IT_COMES(text, &m(mem)),
-            "already" => crate::memory::already::takes_as_it_comes(text, &m(mem)).truthy(),
+            "already" => crate::memory::already::takes_as_it_comes(text, &m(mem)),
             "chat" => md::chat::TAKES_AS_IT_COMES(text, &mut mem.borrow_mut()),
             "answers" => md::answers::TAKES_AS_IT_COMES(text, &mut mem.borrow_mut()),
             "ruled_out" => md::ruled_out::takes_as_it_comes(text, &m(mem)).unwrap_or(false),

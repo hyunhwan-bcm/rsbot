@@ -1356,30 +1356,22 @@ pub fn _the_price_verdict(clean: &str, memory: &Memory) -> Option<String> {
     Some(said)
 }
 
-/// The turns as the plain list of dicts Python's memory holds.
-fn turns_value(memory: &Memory) -> Value {
-    crate::compose::fallback::memory_value(memory).get("turns").cloned().unwrap_or(Value::None)
-}
-
 /// Python: bot/compose/reading.py:1859 `_the_store_found_it_outside(clean, memory, a_price)`
 /// Whether the figure the store judged is outside the range it judged it against; yes whenever
 /// anything about it cannot be read.
 pub fn _the_store_found_it_outside(clean: &str, memory: &Memory) -> bool {
     let read = caught(|| -> bool {
-        let meant = crate::memory::price::_the_price_they_mean(clean, memory);
-        let mine = match meant.items().first() {
-            Some(v) if v.truthy() => v.as_f64().or_else(|| v.as_int().map(|n| n as f64)).unwrap_or_else(|| panic!("TypeError: not a number")),
+        let (meant, _said) = crate::memory::price::_the_price_they_mean(clean, memory);
+        let mine = match meant {
+            Some(v) if v != 0.0 => v,
             _ => return true,
         };
-        let answers = crate::memory::price::_answers_in(&turns_value(memory));
+        let answers = crate::memory::price::_answers_in(&memory.turns);
         let period = crate::memory::price::_the_period_they_said(clean, memory);
-        let aim = crate::memory::price::_the_range_that_is_about_it(&answers, mine, &period).into_value();
-        if aim.is_none() {
+        let Some((low, high, _spoken)) = crate::memory::price::_the_range_that_is_about_it(&answers, mine, period.as_deref()) else {
             return true;
-        }
-        let ends = aim.items();
-        let num = |v: &Value| v.as_f64().or_else(|| v.as_int().map(|n| n as f64)).unwrap_or_else(|| panic!("TypeError: not a number"));
-        !(num(&ends[0]) <= mine && mine <= num(&ends[1]))
+        };
+        !(low <= mine && mine <= high)
     });
     read.unwrap_or(true)
 }
