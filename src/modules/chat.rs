@@ -1342,13 +1342,15 @@ pub fn _a_trip(flat: &str, memory: &Memory) -> bool {
 }
 
 /// `answers._offer(lambda reject: answers._in_context(text, memory, reject=reject), memory,
-/// understood)`: (item is not None, reply). The contract types `_offer`'s reader as a `Value`,
-/// which cannot carry the closure; this is the one place that call is made.
+/// understood)`: (item is not None, reply). The reader is `answers._offer_with`'s closure form,
+/// handed the same memory Python's lambda closes over.
 fn answers_offer_in_context(text_: &str, memory: &mut Memory, understood: &Understood) -> (bool, Value) {
-    let _ = (text_, memory, understood);
-    // Counted as a call into an unported function, which is what it is until the contract
-    // can carry the reader.
-    panic!("UNPORTED bot.modules.answers:_offer (its reader parameter is typed &Value; chat passes a closure over _in_context)")
+    let (item, reply) = crate::modules::answers::_offer_with(
+        &mut |m: &mut Memory, reject| crate::modules::answers::_in_context_with(text_, m, reject),
+        memory,
+        understood,
+    );
+    (item.is_some(), py(reply))
 }
 
 /// Python: bot/modules/chat.py:4791 `_answers_it(text, understood, memory)`: the entry's reply
@@ -1356,7 +1358,7 @@ fn answers_offer_in_context(text_: &str, memory: &mut Memory, understood: &Under
 pub fn _answers_it(text_: &str, understood: &Understood, memory: &mut Memory) -> bool {
     let read = attempt(|| {
         if let Some(found) = crate::knowledge::lookup::find(understood, None, None, false) {
-            let reply = crate::modules::answers::_payload(found, &*memory, understood);
+            let reply = crate::modules::answers::_payload_mut(found, memory, understood);
             if !text::strip(&reply).is_empty() {
                 return Some(true);
             }
