@@ -37,6 +37,16 @@ pub fn pct_d(x: f64) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------
+// DUP ports of helpers owned by other workstreams (full original logic).
+
+use crate::state::Memory;
+
+/// DUP(bot.memory::last_bot): the bot's last reply; "" when there is no earlier turn.
+pub fn last_bot(memory: &Memory) -> String {
+    memory.turns.last().map(|t| t.bot.clone()).unwrap_or_default()
+}
+
+// ---------------------------------------------------------------------------------------------
 // A differential check for the group's modules (test only): replays calls recorded by calling
 // every function guard / reply / shape of a module's entries on many readings, whether or not
 // PyBot would route the line there. `RSBOT_G6_DIFF=<dir> cargo test --release --lib g6_diff`.
@@ -108,7 +118,12 @@ mod g6_diff {
         let show: usize = std::env::var("RSBOT_G6_SHOW").ok().and_then(|s| s.parse().ok()).unwrap_or(3);
         let mut readings: HashMap<String, Understood> = HashMap::new();
         for line in std::io::BufReader::new(std::fs::File::open(format!("{dir}/readings.jsonl")).unwrap()).lines() {
-            let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+            let mut v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+            // `kept` is a dict on some single-turn readings ({"place", "time"}) while the typed
+            // reading holds a string; none of the group's functions read it.
+            if v["understood"]["kept"].is_object() {
+                v["understood"]["kept"] = serde_json::Value::Null;
+            }
             match serde_json::from_value(v["understood"].clone()) {
                 Ok(u) => {
                     readings.insert(v["h"].as_str().unwrap().to_string(), u);
@@ -165,5 +180,34 @@ mod g6_diff {
         if !misses.is_empty() {
             println!("functions with no port that were called: {misses:?}");
         }
+    }
+
+    /// Direct calls of the group's non-entry functions (`RSBOT_G6_CALLS=<file.jsonl>`): each line
+    /// names a function, its arguments and what Python returned.
+    #[test]
+    fn g6_calls() {
+        let Ok(path) = std::env::var("RSBOT_G6_CALLS") else { return };
+        let (mut ok, mut bad) = (0, 0);
+        for line in std::io::BufReader::new(std::fs::File::open(path).unwrap()).lines() {
+            let c: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+            let s = |k: &str| c[k].as_str().unwrap_or("").to_string();
+            let mut memory = Memory::new();
+            if !s("user").is_empty() || !s("bot").is_empty() {
+                memory.turns.push(crate::state::Turn { user: s("user"), bot: s("bot"), module: None });
+            }
+            let reading = Understood { clean: s("text"), ..Default::default() };
+            let got: serde_json::Value = match s("fn").as_str() {
+                "the_still_ok_follow_up" => serde_json::json!(crate::knowledge::freshness::the_still_ok_follow_up(&s("text"), &memory)),
+                "_left_out" => serde_json::json!(crate::knowledge::freshness::_left_out(&memory, &reading)),
+                other => panic!("no dispatch for {other}"),
+            };
+            if got == c["want"] {
+                ok += 1;
+            } else {
+                bad += 1;
+                println!("{} {:?}\n   rust {}\n   py   {}", s("fn"), s("text"), got, c["want"]);
+            }
+        }
+        println!("direct calls {ok} ok / {bad} differ");
     }
 }
