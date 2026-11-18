@@ -2549,9 +2549,9 @@ pub fn _the_last_answer(memory: &Memory) -> String {
 
 /// `_the_topics_on_the_chat(topic=None, memory=None)`: the topic in hand first, then the ones the
 /// chat has been on, newest first.
-pub fn _the_topics_on_the_chat(topic: &str, memory: &Memory) -> Vec<String> {
+pub fn _the_topics_on_the_chat(topic: &str, memory: Option<&Memory>) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
-    for one in records(memory).iter().rev() {
+    for one in memory.map(records).unwrap_or(&[]).iter().rev() {
         let said = rget(one, "text");
         if !said.is_empty() && !out.contains(&said) {
             out.push(said);
@@ -2568,8 +2568,8 @@ pub fn _the_topics_on_the_chat(topic: &str, memory: &Memory) -> Vec<String> {
 
 /// `_the_thing_a_measure_is_of(line, topic=None, memory=None)`: the bare thing a measure ask
 /// names, when the chat has an answer to be a follow-up on.
-pub fn _the_thing_a_measure_is_of(line: &str, topic: &str, memory: &Memory) -> Option<String> {
-    if _the_last_answer(memory).is_empty() {
+pub fn _the_thing_a_measure_is_of(line: &str, topic: &str, memory: Option<&Memory>) -> Option<String> {
+    if memory.map(_the_last_answer).unwrap_or_default().is_empty() {
         return None;
     }
     if !A_BARE_MEASURE.is_match(&line.to_lowercase()) {
@@ -2616,7 +2616,7 @@ pub fn _keyed_to(keyed: &HashSet<String>, word: &str) -> bool {
 
 /// `_a_measure_of_the_topic(line, topic=None, memory=None)`: the measure ask widened with a topic
 /// word, or None.
-pub fn _a_measure_of_the_topic(line: &str, topic: &str, memory: &Memory) -> Option<String> {
+pub fn _a_measure_of_the_topic(line: &str, topic: &str, memory: Option<&Memory>) -> Option<String> {
     let thing = _the_thing_a_measure_is_of(line, topic, memory)?;
     let said: HashSet<String> = words(line).into_iter().collect();
     for one in _the_topics_on_the_chat(topic, memory) {
@@ -2642,6 +2642,12 @@ pub fn _a_measure_of_the_topic(line: &str, topic: &str, memory: &Memory) -> Opti
 /// `carry_the_ask(line, topic, understood=None, memory=None)`: a follow-up that names nothing
 /// takes the topic's own words with it, or None.
 pub fn carry_the_ask(line: &str, topic: &str, understood: &Understood, memory: &Memory) -> Option<String> {
+    carry_the_ask_with(line, topic, Some(understood), Some(memory))
+}
+
+/// `carry_the_ask(line, topic, understood=None, memory=None)` with the reading and the memory
+/// optional, as `_widened` calls it.
+pub fn carry_the_ask_with(line: &str, topic: &str, understood: Option<&Understood>, memory: Option<&Memory>) -> Option<String> {
     let lowered = line.to_lowercase();
     if ABOUT_THE_CHAT.is_match(&lowered) {
         return None;
@@ -2662,8 +2668,8 @@ pub fn carry_the_ask(line: &str, topic: &str, understood: &Understood, memory: &
     if let Some(measured) = _a_measure_of_the_topic(line, topic, memory) {
         return Some(measured);
     }
-    if elided && !_the_answer_covers_it(line, memory, Some(understood)) {
-        return _an_elided_ask_situated(line, topic, Some(understood));
+    if elided && !memory.is_some_and(|m| _the_answer_covers_it(line, m, understood)) {
+        return _an_elided_ask_situated(line, topic, understood);
     }
     None
 }
@@ -4845,318 +4851,1491 @@ pub fn _only_the_topics_own_words(text_: &str, record: &Value) -> bool {
 }
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
 
-    /// Python: bot/memory/topics.py:6289 `next_slot_reading(understood, memory)`
-    pub fn next_slot_reading(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:next_slot_reading")
-    }
+static NEXT_SLOT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NEXT_SLOT"));
+static ASK_SLOT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASK_SLOT"));
+static ASK_WORDS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASK_WORDS"));
+static TWO_PETS_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "TWO_PETS_ASK"));
+static PET_ARRIVING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PET_ARRIVING"));
+static PET_EXISTING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PET_EXISTING"));
+static WEATHER_NOISE: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "WEATHER_NOISE"));
+static NOW_AND_HERE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NOW_AND_HERE"));
+static WEATHER_ASKS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "WEATHER_ASKS"));
+static PERIOD_ONLY: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "PERIOD_ONLY"));
+static MEAL_NAMES: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "MEAL_NAMES"));
+static MEAL_ONLY: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "MEAL_ONLY"));
+static OPENS_A_FOLLOW_UP: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "OPENS_A_FOLLOW_UP"));
+static A_TRIP_TAKEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_TRIP_TAKEN"));
+static IT_IS_PART_OF_THE_PHRASE: LazyLock<Vec<String>> = LazyLock::new(|| t::strs(M, "IT_IS_PART_OF_THE_PHRASE"));
+static POINTING_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| t::strs(M, "POINTING_WORDS"));
+static WITHOUT_A_DETERMINER: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "WITHOUT_A_DETERMINER"));
+static WHAT_IT_IS_LIKE: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "WHAT_IT_IS_LIKE"));
+static WHAT_STANDS_IN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "WHAT_STANDS_IN"));
+static STANDS_IN: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "STANDS_IN"));
+static MONEY: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "MONEY"));
+pub static YES_NO: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "YES_NO"));
+static PROGNOSIS: LazyLock<IndexMap<String, String>> = LazyLock::new(|| t::map(M, "PROGNOSIS"));
+static HOW_LONG_KEY: LazyLock<Vec<String>> = LazyLock::new(|| t::strs(M, "HOW_LONG_KEY"));
+static LIKE_LOOKUPS: LazyLock<i64> = LazyLock::new(|| t::int(M, "LIKE_LOOKUPS"));
+static LIMIT_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "LIMIT_ASK"));
+static THE_LIMIT_ITSELF: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "THE_LIMIT_ITSELF"));
+static THE_LIMIT: LazyLock<Vec<String>> = LazyLock::new(|| t::strs(M, "THE_LIMIT"));
+static HE_OR_SHE_OPENS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "HE_OR_SHE_OPENS"));
+static ASKS_HOW_EARLY_THERE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASKS_HOW_EARLY_THERE"));
+static A_FLIGHT_IN_THE_TOPIC: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_FLIGHT_IN_THE_TOPIC"));
+static THE_AIRPORT: LazyLock<&'static str> = LazyLock::new(|| t::string(M, "THE_AIRPORT"));
+static CHILD_CARE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CHILD_CARE"));
+static KEEP_IT_UP: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "KEEP_IT_UP"));
+static STAYING_WITH_IT: LazyLock<&'static str> = LazyLock::new(|| t::string(M, "STAYING_WITH_IT"));
+static AN_ACTIVITY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "AN_ACTIVITY"));
+static LIMIT_LINE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "LIMIT_LINE"));
+static GATHERING_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "GATHERING_WORDS"));
+static TOO_SOON_TO_COOK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "TOO_SOON_TO_COOK"));
+static FOR_SOMEBODY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "FOR_SOMEBODY"));
+static PUTTING_ON: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PUTTING_ON"));
+static ASK_SHAPE_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "ASK_SHAPE_WORDS"));
+static WORDS_THIS_TURN: LazyLock<&'static str> = LazyLock::new(|| t::string(M, "WORDS_THIS_TURN"));
+static TURN_TOPIC: LazyLock<&'static str> = LazyLock::new(|| t::string(M, "TURN_TOPIC"));
+static VERB_FORMS: LazyLock<HashSet<String>> = LazyLock::new(|| t::set("bot.understanding.kinds.", "VERB_FORMS"));
+static VERBISH: LazyLock<HashSet<String>> = LazyLock::new(|| t::set("bot.understanding.kinds.", "VERBISH"));
 
-    /// Python: bot/memory/topics.py:6352 `_introduction_covered(new, old)` (never called on the trace corpus)
-    pub fn _introduction_covered(new: &Value, old: &Value) -> bool {
-        crate::unported!("bot.memory.topics:_introduction_covered")
-    }
+static THERE_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bthere\b", crate::py::re::I));
+/// `sorted(MONTH_NAMES, key=len, reverse=True)` (ties alphabetically: Python's are in set order).
+static MONTHS_LONGEST_FIRST: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let mut v: Vec<String> = MONTH_NAMES.iter().cloned().collect();
+    v.sort();
+    v.sort_by_key(|s| std::cmp::Reverse(text::len(s)));
+    v
+});
+/// `sorted(MONTH_NAMES | SEASONS, key=len, reverse=True)` (ties alphabetically).
+static PERIODS_LONGEST_FIRST: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let mut v: Vec<String> = MONTH_NAMES.iter().chain(SEASONS.iter()).cloned().collect();
+    v.sort();
+    v.dedup();
+    v.sort_by_key(|s| std::cmp::Reverse(text::len(s)));
+    v
+});
+/// `sorted(MEAL_NAMES, key=len, reverse=True)` (ties alphabetically).
+static MEALS_LONGEST_FIRST: LazyLock<Vec<String>> = LazyLock::new(|| {
+    let mut v: Vec<String> = MEAL_NAMES.iter().cloned().collect();
+    v.sort();
+    v.sort_by_key(|s| std::cmp::Reverse(text::len(s)));
+    v
+});
 
-    /// Python: bot/memory/topics.py:6367 `introduction_question(text, memory)`
-    pub fn introduction_question(text: &str, memory: &Memory) -> String {
-        crate::unported!("bot.memory.topics:introduction_question")
-    }
-
-    /// Python: bot/memory/topics.py:6462 `the_weather_ask(understood)`
-    pub fn the_weather_ask(understood: &Understood) -> bool {
-        crate::unported!("bot.memory.topics:the_weather_ask")
-    }
-
-    /// Python: bot/memory/topics.py:6478 `the_place_and_month(text)`
-    pub fn the_place_and_month(text: &str) -> Value {
-        crate::unported!("bot.memory.topics:the_place_and_month")
-    }
-
-    /// Python: bot/memory/topics.py:6507 `_the_period_in(text)`
-    pub fn _the_period_in(text: &str) -> String {
-        crate::unported!("bot.memory.topics:_the_period_in")
-    }
-
-    /// Python: bot/memory/topics.py:6527 `_a_period_and_nothing_else(line)`
-    pub fn _a_period_and_nothing_else(line: &str) -> bool {
-        crate::unported!("bot.memory.topics:_a_period_and_nothing_else")
-    }
-
-    /// Python: bot/memory/topics.py:6535 `the_period_they_ask_about(understood, memory)`
-    pub fn the_period_they_ask_about(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:the_period_they_ask_about")
-    }
-
-    /// Python: bot/memory/topics.py:6571 `_the_answer_was_about_the_weather(memory)`
-    pub fn _the_answer_was_about_the_weather(memory: &Memory) -> bool {
-        crate::unported!("bot.memory.topics:_the_answer_was_about_the_weather")
-    }
-
-    /// Python: bot/memory/topics.py:6583 `_the_place_the_chat_is_on(line, memory)` (never called on the trace corpus)
-    pub fn _the_place_the_chat_is_on(line: &str, memory: &Memory) -> Value {
-        crate::unported!("bot.memory.topics:_the_place_the_chat_is_on")
-    }
-
-    /// Python: bot/memory/topics.py:6607 `_with_the_period(asked, was, now)` (never called on the trace corpus)
-    pub fn _with_the_period(asked: &str, was: &str, now: &Value) -> String {
-        crate::unported!("bot.memory.topics:_with_the_period")
-    }
-
-    /// Python: bot/memory/topics.py:6628 `_the_meal_in(text)`
-    pub fn _the_meal_in(text: &str) -> String {
-        crate::unported!("bot.memory.topics:_the_meal_in")
-    }
-
-    /// Python: bot/memory/topics.py:6637 `_a_meal_and_nothing_else(line)`
-    pub fn _a_meal_and_nothing_else(line: &str) -> bool {
-        crate::unported!("bot.memory.topics:_a_meal_and_nothing_else")
-    }
-
-    /// Python: bot/memory/topics.py:6645 `the_meal_they_ask_about(understood, memory)`
-    pub fn the_meal_they_ask_about(understood: &Understood, memory: &Memory) {
-        crate::unported!("bot.memory.topics:the_meal_they_ask_about")
-    }
-
-    /// Python: bot/memory/topics.py:6675 `meal_follow_up(understood, memory)`
-    pub fn meal_follow_up(understood: &Understood, memory: &Memory) {
-        crate::unported!("bot.memory.topics:meal_follow_up")
-    }
-
-    /// Python: bot/memory/topics.py:6693 `_with_the_meal(asked, was, now)` (never called on the trace corpus)
-    pub fn _with_the_meal(asked: &str, was: &str, now: &Value) -> String {
-        crate::unported!("bot.memory.topics:_with_the_meal")
-    }
-
-    /// Python: bot/memory/topics.py:6699 `the_weather_of_the_trip(understood, memory)`
-    pub fn the_weather_of_the_trip(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:the_weather_of_the_trip")
-    }
-
-    /// Python: bot/memory/topics.py:6728 `_the_trip_said(line, memory)` (never called on the trace corpus)
-    pub fn _the_trip_said(line: &str, memory: &Memory) -> Value {
-        crate::unported!("bot.memory.topics:_the_trip_said")
-    }
-
-    /// Python: bot/memory/topics.py:6755 `_the_lines_said(memory)` (never called on the trace corpus)
-    pub fn _the_lines_said(memory: &Memory) -> Value {
-        crate::unported!("bot.memory.topics:_the_lines_said")
-    }
-
-    /// Python: bot/memory/topics.py:6814 `the_ask_about_the_thing_it_points_at(understood, memory)`
-    pub fn the_ask_about_the_thing_it_points_at(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:the_ask_about_the_thing_it_points_at")
-    }
-
-    /// Python: bot/memory/topics.py:6867 `the_pronoun_written_as_what_it_stands_for(understood, memory)`
-    pub fn the_pronoun_written_as_what_it_stands_for(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:the_pronoun_written_as_what_it_stands_for")
-    }
-
-    /// Python: bot/memory/topics.py:6948 `_the_thing_with_a_determiner(thing)`
-    pub fn _the_thing_with_a_determiner(thing: &str) -> Vec<String> {
-        crate::unported!("bot.memory.topics:_the_thing_with_a_determiner")
-    }
-
-    /// Python: bot/memory/topics.py:7177 `the_prognosis_the_line_asks(understood, memory)`
-    pub fn the_prognosis_the_line_asks(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:the_prognosis_the_line_asks")
-    }
-
-    /// Python: bot/memory/topics.py:7264 `_keyed_on_how_long(entry)` (never called on the trace corpus)
-    pub fn _keyed_on_how_long(entry: &'static Entry) -> bool {
-        crate::unported!("bot.memory.topics:_keyed_on_how_long")
-    }
-
-    /// Python: bot/memory/topics.py:7270 `_the_thing_as_a_question_names_it(named)` (never called on the trace corpus)
-    pub fn _the_thing_as_a_question_names_it(named: &Value) -> Value {
-        crate::unported!("bot.memory.topics:_the_thing_as_a_question_names_it")
-    }
-
-    /// Python: bot/memory/topics.py:7282 `the_property_of_the_thing(understood, memory)`
-    pub fn the_property_of_the_thing(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:the_property_of_the_thing")
-    }
-
-    /// Python: bot/memory/topics.py:7381 `the_limit_of_the_thing(understood, memory)`
-    pub fn the_limit_of_the_thing(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:the_limit_of_the_thing")
-    }
-
-    /// Python: bot/memory/topics.py:7434 `_the_limit_written_out(line, thing, memory)` (never called on the trace corpus)
-    pub fn _the_limit_written_out(line: &str, thing: &str, memory: &Memory) -> Value {
-        crate::unported!("bot.memory.topics:_the_limit_written_out")
-    }
-
-    /// Python: bot/memory/topics.py:7456 `_a_doing_word(word)` (never called on the trace corpus)
-    pub fn _a_doing_word(word: &str) -> bool {
-        crate::unported!("bot.memory.topics:_a_doing_word")
-    }
-
-    /// Python: bot/memory/topics.py:7462 `_fills_from_the_things(line, understood, thing, memory)` (never called on the trace corpus)
-    pub fn _fills_from_the_things(line: &str, understood: &Understood, thing: &str, memory: &Memory) -> Value {
-        crate::unported!("bot.memory.topics:_fills_from_the_things")
-    }
-
-    /// Python: bot/memory/topics.py:7487 `_fills(line, thing)` (never called on the trace corpus)
-    pub fn _fills(line: &str, thing: &str) -> Value {
-        crate::unported!("bot.memory.topics:_fills")
-    }
-
-    /// Python: bot/memory/topics.py:7528 `the_airport_there_is(understood, memory)`
-    pub fn the_airport_there_is(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:the_airport_there_is")
-    }
-
-    /// Python: bot/memory/topics.py:7562 `the_animal_the_subject_is(understood, memory)`
-    pub fn the_animal_the_subject_is(understood: Option<&Understood>, memory: &Memory) {
-        crate::unported!("bot.memory.topics:the_animal_the_subject_is")
-    }
-
-    /// Python: bot/memory/topics.py:7617 `_the_kind_of_animal(text)` (never called on the trace corpus)
-    pub fn _the_kind_of_animal(text: &str) -> Value {
-        crate::unported!("bot.memory.topics:_the_kind_of_animal")
-    }
-
-    /// Python: bot/memory/topics.py:7626 `answers_about_another_creature(answer, what_the_line_is)` (never called on the trace corpus)
-    pub fn answers_about_another_creature(answer: &str, what_the_line_is: &Value) -> bool {
-        crate::unported!("bot.memory.topics:answers_about_another_creature")
-    }
-
-    /// Python: bot/memory/topics.py:7651 `_called(who)` (never called on the trace corpus)
-    pub fn _called(who: &str) -> Value {
-        crate::unported!("bot.memory.topics:_called")
-    }
-
-    /// Python: bot/memory/topics.py:7661 `_the_pet_the_turns_before_named(memory, back=3)`
-    pub fn _the_pet_the_turns_before_named(memory: &Memory, back: i64) -> String {
-        crate::unported!("bot.memory.topics:_the_pet_the_turns_before_named")
-    }
-
-    /// Python: bot/memory/topics.py:7689 `a_detail_of_the_thing_we_hold(understood, memory)`
-    pub fn a_detail_of_the_thing_we_hold(understood: &Understood, memory: &Memory) -> bool {
-        crate::unported!("bot.memory.topics:a_detail_of_the_thing_we_hold")
-    }
-
-    /// Python: bot/memory/topics.py:7698 `_the_kind_the_line_leaves_out(understood, memory)`
-    pub fn _the_kind_the_line_leaves_out(understood: &Understood, memory: &Memory) {
-        crate::unported!("bot.memory.topics:_the_kind_the_line_leaves_out")
-    }
-
-    /// Python: bot/memory/topics.py:7717 `the_thing_a_detail_belongs_to(understood, memory)`
-    pub fn the_thing_a_detail_belongs_to(understood: &Understood, memory: &Memory) {
-        crate::unported!("bot.memory.topics:the_thing_a_detail_belongs_to")
-    }
-
-    /// Python: bot/memory/topics.py:7860 `_carrying_on(understood, memory)`
-    pub fn _carrying_on(understood: &Understood, memory: &Value) {
-        crate::unported!("bot.memory.topics:_carrying_on")
-    }
-
-    /// Python: bot/memory/topics.py:7891 `_what_the_turn_took_away(record, memory)`
-    pub fn _what_the_turn_took_away(record: &Value, memory: &Memory) -> Vec<String> {
-        crate::unported!("bot.memory.topics:_what_the_turn_took_away")
-    }
-
-    /// Python: bot/memory/topics.py:7913 `_widened(line, understood, record, memory)`
-    pub fn _widened(line: &str, understood: &Understood, record: &Value, memory: &Memory) -> Option<String> {
-        crate::unported!("bot.memory.topics:_widened")
-    }
-
-    /// Python: bot/memory/topics.py:7946 `_the_length_of_the_aim(understood, memory)`
-    pub fn _the_length_of_the_aim(understood: &Understood, memory: &Memory) -> Option<Understood> {
-        crate::unported!("bot.memory.topics:_the_length_of_the_aim")
-    }
-
-    /// Python: bot/memory/topics.py:7994 `_a_gathering_read_as_the_food(understood, line, memory)`
-    pub fn _a_gathering_read_as_the_food(understood: &Understood, line: &str, memory: &Value) {
-        crate::unported!("bot.memory.topics:_a_gathering_read_as_the_food")
-    }
-
-    /// Python: bot/memory/topics.py:8024 `_the_whole_topic(line, record_text, memory=None)`
-    pub fn _the_whole_topic(line: &str, record_text: &str, memory: &Memory) -> Option<String> {
-        crate::unported!("bot.memory.topics:_the_whole_topic")
-    }
-
-    /// Python: bot/memory/topics.py:8081 `_the_answer_is_about_what_the_line_names(entry, line)`
-    pub fn _the_answer_is_about_what_the_line_names(entry: &'static Entry, line: &str) -> bool {
-        crate::unported!("bot.memory.topics:_the_answer_is_about_what_the_line_names")
-    }
-
-    /// Python: bot/memory/topics.py:8110 `_already_answered_here(entry, memory)`
-    pub fn _already_answered_here(entry: &'static Entry, memory: &Memory) -> bool {
-        crate::unported!("bot.memory.topics:_already_answered_here")
-    }
-
-    /// Python: bot/memory/topics.py:8125 `_how_much_of_the_thing_the_entry_uses(entry, said)`
-    pub fn _how_much_of_the_thing_the_entry_uses(entry: &'static Entry, said: &str) -> i64 {
-        crate::unported!("bot.memory.topics:_how_much_of_the_thing_the_entry_uses")
-    }
-
-    /// Python: bot/memory/topics.py:8132 `_the_things_the_chat_named(record_text, memory, line='')`
-    pub fn _the_things_the_chat_named(record_text: &str, memory: &Memory, line: &str) -> Option<String> {
-        crate::unported!("bot.memory.topics:_the_things_the_chat_named")
-    }
-
-    /// Python: bot/memory/topics.py:8161 `followup_reading(understood, memory)`
-    pub fn followup_reading(understood: &Understood, memory: &Value) -> Understood {
-        crate::unported!("bot.memory.topics:followup_reading")
-    }
-
-    /// Python: bot/memory/topics.py:8393 `note(memory, text, kind=None)`
-    pub fn note(memory: &mut Memory, text: &str, kind: &str) -> Value {
-        crate::unported!("bot.memory.topics:note")
-    }
-
-    /// Python: bot/memory/topics.py:8410 `_the_reply_to_the_turn_before(memory)`
-    pub fn _the_reply_to_the_turn_before(memory: &Memory) -> String {
-        crate::unported!("bot.memory.topics:_the_reply_to_the_turn_before")
-    }
-
-    /// Python: bot/memory/topics.py:8418 `_the_step_back_is_undone(memory)`
-    pub fn _the_step_back_is_undone(memory: &mut Memory) {
-        crate::unported!("bot.memory.topics:_the_step_back_is_undone")
-    }
-
-    /// Python: bot/memory/topics.py:8436 `_the_words_before_the_turn(memory)`
-    pub fn _the_words_before_the_turn(memory: &Memory) -> Value {
-        crate::unported!("bot.memory.topics:_the_words_before_the_turn")
-    }
-
-    /// Python: bot/memory/topics.py:8444 `_the_records(memory)`
-    pub fn _the_records(memory: &Memory) {
-        crate::unported!("bot.memory.topics:_the_records")
-    }
-
-    /// Python: bot/memory/topics.py:8450 `_the_words_this_turn(memory, before, record, previous)`
-    pub fn _the_words_this_turn(memory: &mut Memory, before: &Value, record: &Value, previous: &Value) {
-        crate::unported!("bot.memory.topics:_the_words_this_turn")
-    }
-
-    /// Python: bot/memory/topics.py:8467 `_a_step_back(reply)`
-    pub fn _a_step_back(reply: &str) -> bool {
-        crate::unported!("bot.memory.topics:_a_step_back")
-    }
-
-    /// Python: bot/memory/topics.py:8476 `_the_detail_steps_back(memory, reply)`
-    pub fn _the_detail_steps_back(memory: &mut Memory, reply: &str) -> Value {
-        crate::unported!("bot.memory.topics:_the_detail_steps_back")
-    }
-
-    /// Python: bot/memory/topics.py:8503 `the_step_back_takes_its_words_back(memory, reply)`
-    pub fn the_step_back_takes_its_words_back(memory: &mut Memory, reply: &str) -> Option<Vec<String>> {
-        crate::unported!("bot.memory.topics:the_step_back_takes_its_words_back")
-    }
-
+/// The line a reading is read from (`understood.get("clean") or understood.get("text") or ""`).
+fn _line_of(understood: &Understood) -> String {
+    if understood.clean.is_empty() { understood.text.clone() } else { understood.clean.clone() }
 }
 
+/// `dict(understood)` with `clean` (and `words`) put in, and `norm_text` when Python sets it.
+fn _reading_with(understood: &Understood, clean: &str, norm_text: bool) -> Understood {
+    let mut reading = understood.clone();
+    reading.clean = clean.to_string();
+    reading.words = words(clean);
+    if norm_text {
+        reading.norm_text = clean.to_string();
+    }
+    reading
+}
+
+/// `ref.get(word)` for the pointing words the reading resolves.
+fn _ref_slot<'a>(understood: &'a Understood, word: &str) -> Option<&'a str> {
+    let r = &understood.reference;
+    match word {
+        "it" => r.it.as_deref(),
+        "that" => r.that.as_deref(),
+        "they" => r.they.as_deref(),
+        "there" => r.there.as_deref(),
+        "he" => r.he.as_deref(),
+        "she" => r.she.as_deref(),
+        _ => None,
+    }
+}
+
+/// `memory.get("person")` is a non-empty dict.
+fn _about_somebody(memory: &Memory) -> bool {
+    matches!(memory.get("person"), Some(p @ Value::Dict(_)) if p.truthy())
+}
+
+/// The id of `memory["last_answer"]` when it is a dict, else None.
+fn _last_answer_id(memory: &Memory) -> Option<Value> {
+    match memory.get("last_answer") {
+        Some(last @ Value::Dict(_)) => last.get("id").cloned(),
+        _ => None,
+    }
+}
+
+/// `next_slot_reading(understood, memory)`: "and for lunch" read as the last question with lunch
+/// in it, or None.
+pub fn next_slot_reading(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let line = low_squash(&_line_of(understood));
+    let slot = NEXT_SLOT.match_(&line)?;
+    if understood.kind == "question" {
+        return None;
+    }
+    let previous = memory.turns.last().map(|t_| t_.user.clone()).unwrap_or_default();
+    let asked = low_squash(&previous);
+    if asked.is_empty() || !ASK_WORDS.is_match(&asked) {
+        return None;
+    }
+    let tail = ASK_SLOT.search(&asked)?;
+    let thing = text::strip(slot.str(1)).to_string();
+    if thing.is_empty() || thing == text::strip(tail.str(1)) {
+        return None;
+    }
+    let mut reading = understood.clone();
+    reading.clean = text::strip(&format!("{}for {thing}", &asked[..tail.start()])).to_string();
+    reading.text = reading.clean.clone();
+    reading.words = words(&reading.clean);
+    reading.kind = "question".to_string();
+    reading.intent = "question".to_string();
+    Some(reading)
+}
+
+/// `_introduction_covered(new, old)`: an animal introduction card answers this pair.
+pub fn _introduction_covered(new: &str, old: &str) -> bool {
+    let cats = ["cat", "kitten"];
+    let dogs = ["dog", "puppy"];
+    (cats.contains(&new) && old == "cat") || (cats.contains(&new) && dogs.contains(&old)) || (dogs.contains(&new) && cats.contains(&old))
+}
+
+/// `PET_ONE.get(word, word)`.
+fn _pet_one(word: &str) -> String {
+    PET_ONE.get(word).cloned().unwrap_or_else(|| word.to_string())
+}
+
+/// `introduction_question(text, memory)`: the full introduction question for "will they get
+/// on?" after a second pet, or "".
+pub fn introduction_question(text_: &str, memory: &Memory) -> String {
+    if !TWO_PETS_ASK.is_match(text_) {
+        return String::new();
+    }
+    let Some(known) = memory.get("user").filter(|u| is_dict(u)) else { return String::new() };
+    let mut animals: Vec<String> = Vec::new();
+    for pet in known.get("pets").map(Value::items).unwrap_or(&[]) {
+        let animal = if is_dict(pet) { pet.get("animal").map(value_str).unwrap_or_default() } else { String::new() };
+        let animal = _pet_one(&text::strip(&animal).to_lowercase());
+        if !animal.is_empty() && !animals.contains(&animal) {
+            animals.push(animal);
+        }
+    }
+    if animals.len() != 2 {
+        return String::new();
+    }
+    let plan = known.get("plan");
+    let named = match plan {
+        Some(Value::Str(p)) => PET_WORD.search(p).map(|m| m.str(1).to_lowercase()),
+        _ => None,
+    };
+    let mut new = String::new();
+    if let Some(named) = named {
+        new = _pet_one(&named);
+    } else {
+        let mut arriving: Vec<String> = Vec::new();
+        for fact in memory.get("facts_log").map(Value::items).unwrap_or(&[]) {
+            if !is_dict(fact) || fact.get("key").and_then(Value::as_str) != Some("pet") {
+                continue;
+            }
+            let said = rget(fact, "text");
+            let Some(found) = PET_WORD.search(&said) else { continue };
+            if !PET_ARRIVING.is_match(&said) || PET_EXISTING.is_match(&said) {
+                continue;
+            }
+            let animal = _pet_one(&found.str(1).to_lowercase());
+            if !arriving.contains(&animal) {
+                arriving.push(animal);
+            }
+        }
+        if arriving.len() == 1 {
+            new = arriving.remove(0);
+        }
+    }
+    if new.is_empty() {
+        return String::new();
+    }
+    let others: Vec<&String> = animals.iter().filter(|a| **a != new).collect();
+    if others.len() != 1 {
+        return String::new();
+    }
+    let old = others[0];
+    if !_introduction_covered(&new, old) {
+        return String::new();
+    }
+    format!("how do i introduce a new {new} to my older {old}")
+}
+
+/// `the_weather_ask` read on a line.
+fn _the_weather_ask_in(line: &str) -> bool {
+    let said = words(line);
+    if !said.iter().any(|w| WEATHER_WORDS.contains(w)) {
+        return false;
+    }
+    let low = line.to_lowercase();
+    if !ASK_CUE.is_match(&low) && !WEATHER_ASKS.is_match(&low) {
+        return false;
+    }
+    said.iter().all(|w| WEATHER_WORDS.contains(w) || WEATHER_NOISE.contains(w))
+}
+
+/// `the_weather_ask(understood)`: a line that only asks about the weather.
+pub fn the_weather_ask(understood: &Understood) -> bool {
+    _the_weather_ask_in(&_line_of(understood))
+}
+
+/// `the_place_and_month(text)`: the place and the month a line names, as the knowledge base
+/// spells them, or (None, None).
+pub fn the_place_and_month(text_: &str) -> (Option<String>, Option<String>) {
+    let low = low_squash(text_);
+    if low.is_empty() {
+        return (None, None);
+    }
+    for name in crate::knowledge::travel::CITY_CLIMATE.longest_first() {
+        let pattern = format!(r"(?<![a-z]){}(?![a-z])", crate::py::re::escape(name));
+        if !crate::understanding::rx(&pattern).is_match(&low) {
+            continue;
+        }
+        let month = MONTHS_LONGEST_FIRST.iter().find(|word| crate::understanding::rx(&format!(r"(?<![a-z]){word}")).is_match(&low)).cloned();
+        return (Some(name.clone()), month);
+    }
+    (None, None)
+}
+
+/// `_the_period_in(text)`: the period a line names, as it is spelled there, or "".
+pub fn _the_period_in(text_: &str) -> String {
+    let low = low_squash(text_);
+    for name in PERIODS_LONGEST_FIRST.iter() {
+        for found in crate::understanding::rx(&format!(r"(?<![a-z]){name}(?![a-z])")).finditer(&low) {
+            let before = text::split(&low[..found.start()]);
+            let after = text::strip_chars(&low[found.end()..], " ?!.,");
+            let lead = ["in", "next", "this", "the", "early", "late", "mid", "until", "til", "by", "for", "about", "of", "and"];
+            if before.is_empty() || lead.contains(&before[before.len() - 1].as_str()) {
+                return found.as_str().to_string();
+            }
+            if !["may", "march", "fall"].contains(&name.as_str()) || after.is_empty() {
+                return found.as_str().to_string();
+            }
+        }
+    }
+    String::new()
+}
+
+/// `_a_period_and_nothing_else(line)`: a line that names a period and nothing else of its own.
+pub fn _a_period_and_nothing_else(line: &str) -> bool {
+    if _the_period_in(line).is_empty() {
+        return false;
+    }
+    words(line).iter().all(|w| PERIOD_ONLY.contains(w) || MONTH_NAMES.contains(w) || SEASONS.contains(w))
+}
+
+/// `the_period_they_ask_about(understood, memory)`: the question on the table asked again about
+/// a new month or season, or None.
+pub fn the_period_they_ask_about(understood: &Understood, memory: &Memory) -> Option<String> {
+    let line = _line_of(understood);
+    if !_a_period_and_nothing_else(&line) {
+        return None;
+    }
+    let period = _the_period_in(&line);
+    let asked = carried_topic(memory, &line).map(|r| rget(r, "text")).unwrap_or_default();
+    let was = _the_period_in(&asked);
+    if was == period {
+        return None;
+    }
+    if was.is_empty() {
+        if !_the_answer_was_about_the_weather(memory) {
+            return None;
+        }
+        let place = _the_place_the_chat_is_on(&line, memory)?;
+        return Some(format!("what is the weather like in {place} in {period}"));
+    }
+    let low = asked.to_lowercase();
+    if !ASK_CUE.is_match(&low) && !WEATHER_ASKS.is_match(&low) {
+        return None;
+    }
+    Some(_with_the_period(&asked, &was, &period))
+}
+
+/// `_the_answer_was_about_the_weather(memory)`: the last thing the bot said was about the weather.
+pub fn _the_answer_was_about_the_weather(memory: &Memory) -> bool {
+    for turn in memory.turns.iter().rev() {
+        if text::strip(&turn.bot).is_empty() {
+            continue;
+        }
+        return words(&turn.bot).iter().any(|w| WEATHER_WORDS.contains(w));
+    }
+    false
+}
+
+/// `_the_place_the_chat_is_on(line, memory)`: the place the chat is still on, from the trip the
+/// person stated, or None.
+pub fn _the_place_the_chat_is_on(line: &str, memory: &Memory) -> Option<String> {
+    let mine = words(line).join(" ");
+    for said in _the_lines_said(memory) {
+        if words(&said).join(" ") == mine {
+            continue;
+        }
+        if _the_weather_ask_in(&said) {
+            continue;
+        }
+        if _a_period_and_nothing_else(&said) {
+            continue;
+        }
+        if A_TRIP_TAKEN.is_match(&low_squash(&said)) {
+            return None;
+        }
+        let (place, _month) = the_place_and_month(&said);
+        return place;
+    }
+    None
+}
+
+/// The first whole-word match of `was` in `asked` swapped for `now`, lower-cased and squashed.
+fn _swap_word(asked: &str, was: &str, now: &str) -> String {
+    let pattern = format!(r"(?<![a-z]){}(?![a-z])", crate::py::re::escape(was));
+    let out = crate::understanding::rx(&pattern).sub_with(asked, 1, |_| now.to_string());
+    low_squash(&out)
+}
+
+/// `_with_the_period(asked, was, now)`: the earlier question with its period swapped.
+pub fn _with_the_period(asked: &str, was: &str, now: &str) -> String {
+    _swap_word(asked, was, now)
+}
+
+/// `_the_meal_in(text)`: the meal a line names, or "".
+pub fn _the_meal_in(text_: &str) -> String {
+    let low = low_squash(text_);
+    for name in MEALS_LONGEST_FIRST.iter() {
+        if crate::understanding::rx(&format!(r"(?<![a-z]){name}(?![a-z])")).is_match(&low) {
+            return name.clone();
+        }
+    }
+    String::new()
+}
+
+/// `_a_meal_and_nothing_else(line)`: a line that names a meal and nothing else of its own.
+pub fn _a_meal_and_nothing_else(line: &str) -> bool {
+    if _the_meal_in(line).is_empty() {
+        return false;
+    }
+    words(line).iter().all(|w| MEAL_ONLY.contains(w) || MEAL_NAMES.contains(w))
+}
+
+/// `the_meal_they_ask_about(understood, memory)`: the question on the table asked again about
+/// another meal, or None.
+pub fn the_meal_they_ask_about(understood: &Understood, memory: &Memory) -> Option<String> {
+    let line = _line_of(understood);
+    if !_a_meal_and_nothing_else(&line) {
+        return None;
+    }
+    let meal = _the_meal_in(&line);
+    let asked = carried_topic(memory, &line).map(|r| rget(r, "text")).unwrap_or_default();
+    let was = _the_meal_in(&asked);
+    if was.is_empty() {
+        if OPENS_A_FOLLOW_UP.match_(&line).is_none() {
+            return None;
+        }
+        return Some(format!("what can i have for {meal}"));
+    }
+    if was == meal {
+        return None;
+    }
+    if !ASK_CUE.is_match(&asked.to_lowercase()) {
+        return None;
+    }
+    Some(_with_the_meal(&asked, &was, &meal))
+}
+
+/// `meal_follow_up(understood, memory)`: the line read again with the meal it names in it, as a
+/// reading, or None.
+pub fn meal_follow_up(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let meal = the_meal_they_ask_about(understood, memory).filter(|m| !m.is_empty())?;
+    Some(_reading_with(understood, &meal, true))
+}
+
+/// `_with_the_meal(asked, was, now)`: the earlier question with its meal swapped.
+pub fn _with_the_meal(asked: &str, was: &str, now: &str) -> String {
+    _swap_word(asked, was, now)
+}
+
+/// `the_weather_of_the_trip(understood, memory)`: the trip's climate question, when a weather
+/// follow-up can be answered with it, or None.
+pub fn the_weather_of_the_trip(understood: &Understood, memory: &Memory) -> Option<String> {
+    if !the_weather_ask(understood) {
+        return None;
+    }
+    let line = _line_of(understood);
+    let (place, _) = the_place_and_month(&line);
+    if place.is_some() {
+        return None;
+    }
+    if NOW_AND_HERE.is_match(&line.to_lowercase()) {
+        return None;
+    }
+    let (place, month) = the_place_and_month(&_the_trip_said(&line, memory));
+    let (place, month) = (place?, month?);
+    Some(format!("what is the weather like in {place} in {month}"))
+}
+
+/// `_the_trip_said(line, memory)`: the trip the chat is on, when it names a place and a month,
+/// or "".
+pub fn _the_trip_said(line: &str, memory: &Memory) -> String {
+    let mine = words(line).join(" ");
+    for said in _the_lines_said(memory) {
+        if words(&said).join(" ") == mine {
+            continue;
+        }
+        if _the_weather_ask_in(&said) {
+            continue;
+        }
+        let (place, month) = the_place_and_month(&said);
+        if place.is_none() || month.is_none() {
+            return String::new();
+        }
+        if A_TRIP_TAKEN.is_match(&low_squash(&said)) {
+            return String::new();
+        }
+        return said;
+    }
+    String::new()
+}
+
+/// `_the_lines_said(memory)`: the lines the person has said, newest first.
+pub fn _the_lines_said(memory: &Memory) -> Vec<String> {
+    memory.turns.iter().rev().filter(|t_| !text::strip(&t_.user).is_empty()).map(|t_| t_.user.clone()).collect()
+}
+
+/// `the_ask_about_the_thing_it_points_at(understood, memory)`: the reading with the thing a
+/// pronoun points at written in front of it, or None.
+pub fn the_ask_about_the_thing_it_points_at(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let _ = memory;
+    let line = text::squash(&_line_of(understood));
+    if line.is_empty() || !THING_ITSELF.is_match(&line) {
+        return None;
+    }
+    let low = line.to_lowercase();
+    if PROCEED.iter().any(|p| low.contains(p.as_str())) {
+        return None;
+    }
+    if IT_IS_PART_OF_THE_PHRASE.iter().any(|p| low.contains(p.as_str())) {
+        return None;
+    }
+    if WHAT_IT_COSTS.is_match(&line) {
+        return None;
+    }
+    if understood.reference.kind.as_deref() != Some("thing") {
+        return None;
+    }
+    let thing = understood.reference.it.clone().filter(|s| !s.is_empty()).or_else(|| understood.reference.that.clone())?;
+    let thing = text::squash(&thing);
+    if thing.is_empty() || text::split(&thing).len() > 3 || ["it", "that", "them", "they", "you", "me"].contains(&thing.as_str()) {
+        return None;
+    }
+    if low.contains(&thing) {
+        return None;
+    }
+    let put = format!("my {thing}");
+    let filled = text::squash(&THING_ITSELF.sub_with(&line, 1, |_| put.clone()));
+    Some(_reading_with(understood, &filled, false))
+}
+
+/// `the_pronoun_written_as_what_it_stands_for(understood, memory)`: this line with its pronoun
+/// replaced by the thing it stands for, or None.
+pub fn the_pronoun_written_as_what_it_stands_for(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let line = text::squash(&_line_of(understood));
+    if line.is_empty() {
+        return None;
+    }
+    if understood.kind != "question" {
+        return None;
+    }
+    let low = line.to_lowercase();
+    if PROCEED.iter().any(|p| low.contains(p.as_str())) {
+        return None;
+    }
+    if IT_IS_PART_OF_THE_PHRASE.iter().any(|p| low.contains(p.as_str())) {
+        return None;
+    }
+    if _entry(&line).is_some() {
+        return None;
+    }
+    let last_id = _last_answer_id(memory);
+    let record = carried_topic(memory, &line);
+    let topic_entry = record.and_then(|r| _entry(&rget(r, "text")));
+    let topic_domain = topic_entry.map(|e| e.domain.clone()).filter(|d| !d.is_empty());
+    for word in POINTING_WORDS.iter() {
+        let Some(thing) = _ref_slot(understood, word) else { continue };
+        let thing = text::squash(thing);
+        if thing.is_empty() || ["it", "that", "them", "they", "you", "me", "there"].contains(&thing.to_lowercase().as_str()) {
+            continue;
+        }
+        let named = crate::understanding::rx(&format!(r"\b{}\b", crate::py::re::escape(&thing.to_lowercase())));
+        if named.is_match(&low) {
+            continue;
+        }
+        let pointer = crate::understanding::rx_flags(&format!(r"\b{word}\b"), crate::py::re::I);
+        if !pointer.is_match(&line) {
+            continue;
+        }
+        let last_word = text::split(&thing).last().unwrap().to_lowercase();
+        for phrase in _the_thing_with_a_determiner(&thing) {
+            let filled = low_squash(&pointer.sub_with(&line, 1, |_| phrase.clone()));
+            let Some(entry) = _entry(&filled) else { continue };
+            if !_the_entry_is_about_the_thing(entry, &last_word) {
+                continue;
+            }
+            if !_the_entry_answers_the_ask(entry, &filled) {
+                continue;
+            }
+            if let Some(domain) = &topic_domain {
+                if entry.domain != *domain {
+                    continue;
+                }
+            }
+            if let Some(id) = last_id.as_ref().filter(|i| i.truthy()) {
+                if Value::from(entry.id.as_str()) == *id {
+                    continue;
+                }
+            }
+            return Some(_reading_with(understood, &filled, true));
+        }
+    }
+    None
+}
+
+/// `_the_thing_with_a_determiner(thing)`: the ways this thing can be written into a line.
+pub fn _the_thing_with_a_determiner(thing: &str) -> Vec<String> {
+    let mut ways = Vec::new();
+    let first = text::split(thing).first().map(|f| f.to_lowercase()).unwrap_or_default();
+    if !WITHOUT_A_DETERMINER.contains(&first) {
+        let article = if first.chars().next().is_some_and(|c| "aeiou".contains(c)) { "an" } else { "a" };
+        ways.push(format!("{article} {thing}"));
+        ways.push(format!("the {thing}"));
+        ways.push(format!("my {thing}"));
+    }
+    ways.push(thing.to_string());
+    ways
+}
+
+/// `the_prognosis_the_line_asks(understood, memory)`: a bare "will it get better", read as the
+/// prognosis of the thing the chat is on, or None.
+pub fn the_prognosis_the_line_asks(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let line = text::strip(&_line_of(understood)).to_string();
+    if line.is_empty() || !YES_NO.is_match(&line) || !WHAT_STANDS_IN.is_match(&line) {
+        return None;
+    }
+    let said = words(&line);
+    let outcomes: Vec<String> = said.iter().filter_map(|w| PROGNOSIS.get(w).cloned()).collect();
+    if outcomes.is_empty() {
+        return None;
+    }
+    if said.iter().any(|w| !STOPWORDS.contains(w) && !STANDS_IN.contains(w) && !PROGNOSIS.contains_key(w) && !WHAT_IT_IS_LIKE.contains(w)) {
+        return None;
+    }
+    if _about_somebody(memory) {
+        return None;
+    }
+    let thing = subject(memory);
+    let named = if thing.is_empty() { Vec::new() } else { words(&thing) };
+    if named.len() != 1 || named.iter().any(|w| WHO.contains(w)) {
+        return None;
+    }
+    let word = named[0].clone();
+    let already = _entry(&topic_text(memory));
+    let mut tried: Vec<String> = Vec::new();
+    for outcome in outcomes.into_iter().chain(["last".to_string(), "get better".to_string()]) {
+        if tried.contains(&outcome) {
+            continue;
+        }
+        tried.push(outcome.clone());
+        for written in _the_thing_as_a_question_names_it(&named) {
+            let ask = if outcome == "last" {
+                format!("how long does {written} last")
+            } else {
+                format!("how long does {written} take to {outcome}")
+            };
+            let Some(entry) = _entry(&ask) else { continue };
+            if !_the_entry_is_about_the_thing(entry, &word) {
+                continue;
+            }
+            if !_keyed_on_how_long(entry) {
+                continue;
+            }
+            if already.is_some_and(|a| a.key == entry.key) {
+                continue;
+            }
+            return Some(_reading_with(understood, &text::squash(&ask), true));
+        }
+    }
+    None
+}
+
+/// `_keyed_on_how_long(entry)`: the entry is the row about how long the thing goes on.
+pub fn _keyed_on_how_long(entry: &'static Entry) -> bool {
+    entry.key.iter().any(|group| {
+        HOW_LONG_KEY.iter().any(|phrase| match group {
+            KeyPart::Word(s) => s.contains(phrase.as_str()),
+            KeyPart::Any(v) => v.iter().any(|a| a == phrase),
+        })
+    })
+}
+
+/// `_the_thing_as_a_question_names_it(named)`: the thing as said, then with an article.
+pub fn _the_thing_as_a_question_names_it(named: &[String]) -> Vec<String> {
+    let whole = named.join(" ");
+    if ["my", "a", "an", "the", "his", "her", "our", "their", "your"].contains(&named[0].as_str()) {
+        return vec![whole];
+    }
+    vec![whole.clone(), format!("a {whole}"), format!("the {whole}")]
+}
+
+/// `the_property_of_the_thing(understood, memory)`: a bare yes/no about what the thing in hand is
+/// like, read with that thing in it, or None.
+pub fn the_property_of_the_thing(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let line = text::strip(&_line_of(understood)).to_string();
+    if line.is_empty() || !YES_NO.is_match(&line) || !WHAT_STANDS_IN.is_match(&line) {
+        return None;
+    }
+    let said = words(&line);
+    if !said.iter().any(|w| WHAT_IT_IS_LIKE.contains(w)) {
+        return None;
+    }
+    if said.iter().any(|w| !WHAT_IT_IS_LIKE.contains(w) && !STOPWORDS.contains(w) && !STANDS_IN.contains(w)) {
+        return None;
+    }
+    if _about_somebody(memory) {
+        return None;
+    }
+    let thing = subject(memory);
+    if thing.is_empty() || words(&thing).iter().any(|w| WHO.contains(w)) {
+        return None;
+    }
+    let mut item: Option<(String, &'static Entry)> = None;
+    let mut already: Option<Option<&'static Entry>> = None;
+    let mut fallback: Option<(String, &'static Entry)> = None;
+    let money = said.iter().any(|w| MONEY.contains(w));
+    for (looked, candidate) in _fills_from_the_things(&line, understood, &thing, memory).into_iter().enumerate() {
+        if looked as i64 + 1 > *LIKE_LOOKUPS {
+            break;
+        }
+        let Some(found) = _entry(&candidate) else { continue };
+        let already = *already.get_or_insert_with(|| _entry(&topic_text(memory)));
+        if already.is_some_and(|a| a.key == found.key) {
+            continue;
+        }
+        if money && !_key_words_of(found).iter().any(|w| MONEY.contains(w)) {
+            if fallback.is_none() {
+                fallback = Some((candidate, found));
+            }
+            continue;
+        }
+        item = Some((candidate, found));
+        break;
+    }
+    let (filled, _) = item.or(fallback)?;
+    Some(_reading_with(understood, &low_squash(&filled), true))
+}
+
+/// `the_limit_of_the_thing(understood, memory)`: a bare "how much is too much" read with the
+/// thing the chat is on in it, or None.
+pub fn the_limit_of_the_thing(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    if _memory_is_empty(memory) {
+        return None;
+    }
+    let line = text::strip(&_line_of(understood)).to_string();
+    if line.is_empty() || !LIMIT_ASK.is_match(&line) {
+        return None;
+    }
+    if words(&line).iter().any(|w| !THE_LIMIT_ITSELF.contains(w) && !STOPWORDS.contains(w)) {
+        return None;
+    }
+    if _about_somebody(memory) {
+        return None;
+    }
+    let thing = subject(memory);
+    if thing.is_empty() || words(&thing).iter().any(|w| WHO.contains(w)) {
+        return None;
+    }
+    let already = _entry(&topic_text(memory));
+    let mut seen: Vec<String> = Vec::new();
+    for candidate in _the_limit_written_out(&line, &thing, memory) {
+        if seen.contains(&candidate) {
+            continue;
+        }
+        seen.push(candidate.clone());
+        if seen.len() as i64 > *LIKE_LOOKUPS {
+            break;
+        }
+        let Some(found) = _entry(&candidate) else { continue };
+        let keyed = _key_words_of(found);
+        if !["limit", "limits", "safe"].iter().any(|w| keyed.contains(*w)) {
+            continue;
+        }
+        if already.is_some_and(|a| a.key == found.key) {
+            continue;
+        }
+        return Some(_reading_with(understood, &candidate, true));
+    }
+    None
+}
+
+/// `key_subject(line, memory)` inside Python's `try`: a failure is no key at all.
+fn _key_subject_or_none(line: &str, memory: &Memory) -> Vec<String> {
+    crate::runtime::guarded(|| key_subject(line, Some(memory))).unwrap_or_default()
+}
+
+/// `_the_limit_written_out(line, thing, memory)`: the ask with the thing in it, the thing's own
+/// name before the doing word beside it.
+pub fn _the_limit_written_out(line: &str, thing: &str, memory: &Memory) -> Vec<String> {
+    let whole = text::squash(thing);
+    let all = text::split(&whole);
+    let named: Vec<String> = all.iter().filter(|w| !_a_doing_word(w)).cloned().collect();
+    let mut parts: Vec<String> = named.clone();
+    parts.push(whole.clone());
+    parts.extend(all.iter().filter(|w| !named.contains(w)).cloned());
+    for word in _key_subject_or_none(line, memory) {
+        let w = text::strip(&word).to_string();
+        if !w.is_empty() && !parts.contains(&w) {
+            parts.push(w);
+        }
+    }
+    let mut out = Vec::new();
+    for one in &parts {
+        for said in THE_LIMIT.iter() {
+            out.push(said.replace("{thing}", one));
+        }
+    }
+    out
+}
+
+/// `_a_doing_word(word)`: a word that says what is done rather than what it is done to.
+pub fn _a_doing_word(word: &str) -> bool {
+    VERB_FORMS.contains(word) || VERBISH.contains(word)
+}
+
+/// `_fills_from_the_things(line, understood, thing, memory)`: every ask the line means, the gist
+/// of the thing first and then the words of its key.
+pub fn _fills_from_the_things(line: &str, understood: &Understood, thing: &str, memory: &Memory) -> Vec<String> {
+    let mut things = vec![thing.to_string()];
+    for word in _key_subject_or_none(&_line_of(understood), memory) {
+        if !text::strip(&word).is_empty() {
+            things.push(word);
+        }
+    }
+    let mut out: Vec<String> = Vec::new();
+    for one in &things {
+        for ask in _fills(line, one) {
+            if !out.contains(&ask) {
+                out.push(ask);
+            }
+        }
+    }
+    out
+}
+
+/// `_fills(line, thing)`: the asks the line means, written out with the thing in it, best first.
+pub fn _fills(line: &str, thing: &str) -> Vec<String> {
+    let whole = text::squash(thing);
+    let said = WHAT_STANDS_IN.sub_with(line, 1, |_| whole.clone());
+    if words(line).iter().any(|w| MONEY.contains(w)) {
+        return vec![format!("how much does {whole} cost"), format!("is {whole} expensive")];
+    }
+    vec![said]
+}
+
+/// `the_airport_there_is(understood, memory)`: a question about how early to be there, in a chat
+/// about a flight, read as the airport.
+pub fn the_airport_there_is(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let line = text::strip(&_line_of(understood)).to_string();
+    if line.is_empty() || !words(&line).iter().any(|w| w == "there") || !ASKS_HOW_EARLY_THERE.is_match(&line) {
+        return None;
+    }
+    let trip = topic_text(memory);
+    if trip.is_empty() || !A_FLIGHT_IN_THE_TOPIC.is_match(&trip) {
+        return None;
+    }
+    let airport: &str = &THE_AIRPORT;
+    let filled = THERE_WORD.sub_with(&line, 1, |_| airport.to_string());
+    if filled == line {
+        return None;
+    }
+    let found = _entry(&filled)?;
+    if _entry(&trip).is_some_and(|a| a.key == found.key) {
+        return None;
+    }
+    Some(_reading_with(understood, &low_squash(&filled), true))
+}
+
+/// `the_animal_the_subject_is(understood, memory)`: a line whose subject is a bare "he"/"she",
+/// read with the animal the chat is on, or None.
+pub fn the_animal_the_subject_is(understood: Option<&Understood>, memory: &Memory) -> Option<Understood> {
+    let understood = understood?;
+    let line = text::strip(&_line_of(understood)).to_string();
+    if line.is_empty() || PET_WORD.is_match(&line) {
+        return None;
+    }
+    let opens = HE_OR_SHE_OPENS.match_(&line)?;
+    let who = understood
+        .reference
+        .he
+        .clone()
+        .filter(|h| !h.is_empty())
+        .or_else(|| understood.reference.she.clone())
+        .unwrap_or_default();
+    if who.is_empty() || !PET_WORD.is_match(&who) {
+        return None;
+    }
+    let mut thing = the_pet_the_line_before_named(memory);
+    if thing.is_empty() {
+        thing = _called(&who);
+    }
+    let filled = format!("{}{} {}", opens.name_str("lead"), thing, text::lstrip(&line[opens.end()..]));
+    let item = _entry(&filled)?;
+    if _entry(&line).is_some_and(|e| std::ptr::eq(e, item)) {
+        return None;
+    }
+    let kind = text::rstrip_chars(&text::split(&thing).last().cloned().unwrap_or_default().to_lowercase(), "s").to_string();
+    let keyed = _key_words_of(item);
+    if !keyed.contains(&kind) && !keyed.iter().any(|w| stem(w) == kind) {
+        return None;
+    }
+    Some(_reading_with(understood, &low_squash(&filled), false))
+}
+
+/// `_the_kind_of_animal(text)`: the animal a line or an answer names, as the family word.
+pub fn _the_kind_of_animal(text_: &str) -> HashSet<String> {
+    let mut found = HashSet::new();
+    for word in PET_WORD.findall_str(text_) {
+        let word = text::rstrip_chars(&_pet_one(&word.to_lowercase()), "s").to_string();
+        found.insert(BABY_OF.get(&word).cloned().unwrap_or(word));
+    }
+    found
+}
+
+/// `answers_about_another_creature(answer, what_the_line_is)`: the answer in hand is about a
+/// person or another animal than the one the chat is on.
+pub fn answers_about_another_creature(answer: &str, what_the_line_is: &str) -> bool {
+    let said = text::split(answer).into_iter().take(60).collect::<Vec<_>>().join(" ");
+    if said.is_empty() {
+        return false;
+    }
+    if CHILD_CARE.is_match(&said) {
+        return true;
+    }
+    let kind = _the_kind_of_animal(what_the_line_is);
+    let named = _the_kind_of_animal(&said);
+    !named.is_empty() && !named.iter().any(|n| kind.contains(n))
+}
+
+/// `_called(who)`: "my dog" from the animal the reading points at.
+pub fn _called(who: &str) -> String {
+    let who = low_squash(text::strip(who));
+    if who.is_empty() {
+        return String::new();
+    }
+    let first = text::split(&who)[0].clone();
+    if ["my", "our", "the", "a"].contains(&first.as_str()) { who } else { format!("my {who}") }
+}
+
+/// `_the_pet_the_turns_before_named(memory, back=3)`: "my puppy" when the puppy was named a turn
+/// or two before, else "".
+pub fn _the_pet_the_turns_before_named(memory: &Memory, back: i64) -> String {
+    let thing = the_pet_the_line_before_named(memory);
+    if !thing.is_empty() {
+        return thing;
+    }
+    let user = memory.get("user").filter(|u| is_dict(u)).cloned().unwrap_or_else(Value::dict);
+    let mut lines: Vec<String> = Vec::new();
+    for turn in memory.turns.iter().rev() {
+        if !text::strip(&turn.user).is_empty() {
+            lines.push(turn.user.clone());
+        }
+        if lines.len() as i64 > back {
+            break;
+        }
+    }
+    let end = ((back + 1).max(0) as usize).min(lines.len());
+    for line in lines.iter().take(end).skip(1) {
+        let mut one = Memory::new();
+        one.turns.push(crate::state::Turn { user: line.clone(), bot: String::new(), module: None });
+        one.set("user", user.clone());
+        let found = the_pet_the_line_before_named(&one);
+        if !found.is_empty() {
+            return found;
+        }
+    }
+    String::new()
+}
+
+/// `a_detail_of_the_thing_we_hold(understood, memory)`: "the chewing" when that is a detail of the
+/// animal the store holds.
+pub fn a_detail_of_the_thing_we_hold(understood: &Understood, memory: &Memory) -> bool {
+    _the_kind_the_line_leaves_out(understood, memory).is_some()
+}
+
+/// `_the_kind_the_line_leaves_out(understood, memory)`: (line, kind) when the line names a detail
+/// and leaves out the animal the store holds.
+pub fn _the_kind_the_line_leaves_out(understood: &Understood, memory: &Memory) -> Option<(String, String)> {
+    let line = text::strip(&_line_of(understood)).to_string();
+    if line.is_empty() || !ASK_CUE.is_match(&line.to_lowercase()) {
+        return None;
+    }
+    let low = line.to_lowercase();
+    if PET_WORD.is_match(&line) || PROCEED.iter().any(|p| low.contains(p.as_str())) {
+        return None;
+    }
+    let thing = _the_pet_the_turns_before_named(memory, 3);
+    if thing.is_empty() {
+        return None;
+    }
+    let kind = text::split(&thing).last().unwrap().clone();
+    if words(&line).contains(&kind) {
+        return None;
+    }
+    Some((line, kind))
+}
+
+/// `the_thing_a_detail_belongs_to(understood, memory)`: the ask read with the kind of thing the
+/// store holds, when the ask names only a detail.
+pub fn the_thing_a_detail_belongs_to(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let (line, kind) = _the_kind_the_line_leaves_out(understood, memory)?;
+    let filled = format!("{line} {kind}");
+    let item = _entry(&filled)?;
+    let keyed = _key_words_of(item);
+    if !keyed.contains(&kind) && !keyed.contains(&stem(&kind)) {
+        return None;
+    }
+    let said: Vec<String> = words(&line)
+        .into_iter()
+        .filter(|w| !ASK_PART.contains(w) && !ASK_ONLY.contains(w) && !STAND_IN.contains(w) && !STOPWORDS.contains(w))
+        .collect();
+    let trouble: Vec<String> = said.iter().filter(|w| !IMPERATIVE.contains(*w)).cloned().collect();
+    if !_names_it(if trouble.is_empty() { &said } else { &trouble }, item) {
+        return None;
+    }
+    Some(_reading_with(understood, &low_squash(&filled), false))
+}
+
+/// `_carrying_on(understood, memory)`: the bare "how do i keep it up" as the carrying-on
+/// question, or None.
+pub fn _carrying_on(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let line = _line_of(understood);
+    let found = KEEP_IT_UP.search(&line)?;
+    let topic = carried_topic(memory, &line).map(|r| rget(r, "text")).unwrap_or_default();
+    if text::strip(&topic).is_empty() || !AN_ACTIVITY.is_match(&topic) {
+        return None;
+    }
+    let staying: &str = &STAYING_WITH_IT;
+    let said = format!("{}{}{}", &line[..found.start()], staying, &line[found.end()..]);
+    Some(_reading_with(understood, &low_squash(text::strip(&said)), true))
+}
+
+/// `_what_the_turn_took_away(record, memory)`: the things a turn took off the thing in hand.
+pub fn _what_the_turn_took_away(record: &Value, memory: &Memory) -> HashSet<String> {
+    let _ = memory;
+    if !is_dict(record) {
+        return HashSet::new();
+    }
+    let text_or_user = record.get("text").filter(|v| v.truthy()).or_else(|| record.get("user")).map(value_str).unwrap_or_default();
+    let said = low_squash(&text_or_user);
+    let Some(found) = LIMIT_LINE.match_(&said) else { return HashSet::new() };
+    let mut taken = HashSet::new();
+    for word in text::split(found.name_str("thing")) {
+        if STOPWORDS.contains(&word) || text::len(&word) < 3 {
+            continue;
+        }
+        taken.insert(stem(&word));
+    }
+    taken
+}
+
+/// `_widened(line, understood, record, memory)`: this line read with the record's subject put
+/// back in, or None when that reaches nothing.
+pub fn _widened(line: &str, understood: &Understood, record: &Value, memory: &Memory) -> Option<String> {
+    if crate::memory::when::asks_what_today_is(line) {
+        return None;
+    }
+    if !is_dict(record) {
+        return None;
+    }
+    let topic_text = rget(record, "text");
+    if text::strip(&topic_text).is_empty() {
+        return None;
+    }
+    let taken = _what_the_turn_took_away(record, memory);
+    if leans_on_topic(understood, memory) {
+        let mut subject_words = _subject_words_to_carry(record, line, memory);
+        if !taken.is_empty() {
+            subject_words.retain(|w| !taken.contains(&stem(&w.to_lowercase())));
+        }
+        let said = words(line);
+        if subject_words.is_empty() || subject_words.iter().all(|w| said.contains(w)) {
+            return None;
+        }
+        if let Some(text_) = widen(line, &subject_words, &topic_text) {
+            return Some(text_);
+        }
+        return carry_the_ask_with(line, &topic_text, None, None);
+    }
+    carry_the_ask_with(line, &topic_text, None, None)
+}
+
+/// `_the_length_of_the_aim(understood, memory)`: this turn read as the length of the aim the chat
+/// is on, when it asks only a length. A reading that fails leaves the line as it was.
+pub fn _the_length_of_the_aim(understood: &Understood, memory: &Memory) -> Option<Understood> {
+    let line = _line_of(understood);
+    if line.is_empty() {
+        return None;
+    }
+    let asked = crate::runtime::guarded(|| crate::memory::named::a_goal_measured(&line, memory))?;
+    if asked.is_empty() {
+        return None;
+    }
+    Some(_reading_with(understood, &asked, true))
+}
+
+/// `_a_gathering_read_as_the_food(understood, line, memory)`: "we are having a barbecue" read as
+/// the food for it, when its own words reach nothing.
+pub fn _a_gathering_read_as_the_food(understood: &Understood, line: &str, memory: &Memory) -> Option<String> {
+    let _ = memory;
+    if understood.kind != "statement" || !understood.asks.is_empty() {
+        return None;
+    }
+    let mut gathering: Vec<String> = words(line).into_iter().filter(|w| GATHERING_WORDS.contains(w)).collect();
+    gathering.sort();
+    gathering.dedup();
+    if gathering.is_empty() || !PUTTING_ON.is_match(line) {
+        return None;
+    }
+    if _entry(line).is_some() {
+        return None;
+    }
+    if TOO_SOON_TO_COOK.is_match(line) {
+        return None;
+    }
+    if FOR_SOMEBODY.is_match(line) {
+        return None;
+    }
+    for candidate in [format!("{} food", gathering.join(" ")), "party food".to_string()] {
+        if _entry(&candidate).is_some() {
+            return Some(candidate);
+        }
+    }
+    None
+}
+
+/// `_the_whole_topic(line, record_text, memory=None)`: the line read with the topic's own words,
+/// phrase and all, or None when that reaches nothing.
+pub fn _the_whole_topic(line: &str, record_text: &str, memory: &Memory) -> Option<String> {
+    if !_leads_a_question(line) {
+        return None;
+    }
+    let mut best: Option<String> = None;
+    let mut best_score: i64 = -1;
+    let last_id = _last_answer_id(memory);
+    for said in _the_things_the_chat_named(record_text, memory, line) {
+        let widened = format!("{line} {said}");
+        let Some(reached) = _entry(&widened) else { continue };
+        if last_id.as_ref().is_some_and(|id| *id == Value::from(reached.id.as_str())) {
+            continue;
+        }
+        if _already_answered_here(reached, memory) {
+            continue;
+        }
+        if !_the_answer_is_about_what_the_line_names(reached, line) {
+            continue;
+        }
+        let score = _how_much_of_the_thing_the_entry_uses(reached, &said);
+        if score > best_score {
+            best = Some(widened);
+            best_score = score;
+        }
+    }
+    best
+}
+
+/// `_the_answer_is_about_what_the_line_names(entry, line)`: the entry's own answer talks about the
+/// thing the line asks about.
+pub fn _the_answer_is_about_what_the_line_names(entry: &'static Entry, line: &str) -> bool {
+    let asked: Vec<String> = keywords(line).into_iter().filter(|w| text::len(w) > 3).collect();
+    if asked.is_empty() {
+        return true;
+    }
+    let named: Vec<String> = asked.into_iter().filter(|w| !ASK_SHAPE_WORDS.contains(w)).collect();
+    if named.is_empty() {
+        return false;
+    }
+    let said = words(&_reply_as_str(entry));
+    named.iter().any(|w| said.iter().any(|token| alike(w, token)))
+}
+
+/// `_already_answered_here(entry, memory)`: the reply the entry gives has already been said in
+/// this conversation.
+pub fn _already_answered_here(entry: &'static Entry, memory: &Memory) -> bool {
+    let reply = text::strip(&_reply_as_str(entry)).to_string();
+    if reply.is_empty() {
+        return false;
+    }
+    let opening = text::split(&reply.to_lowercase()).into_iter().take(8).collect::<Vec<_>>().join(" ");
+    memory.turns.iter().any(|turn| {
+        let said = low_squash(&turn.bot);
+        !said.is_empty() && said.starts_with(&opening)
+    })
+}
+
+/// `_how_much_of_the_thing_the_entry_uses(entry, said)`: how many of the thing's own content words
+/// the entry is keyed on.
+pub fn _how_much_of_the_thing_the_entry_uses(entry: &'static Entry, said: &str) -> i64 {
+    let keyed = _key_words_of(entry);
+    keywords(said).iter().filter(|w| text::len(w) > 2 && keyed.iter().any(|k| alike(w, k))).count() as i64
+}
+
+/// `_the_things_the_chat_named(record_text, memory, line="")`: the things the chat has named,
+/// newest first, to read a follow-up against.
+pub fn _the_things_the_chat_named(record_text: &str, memory: &Memory, line: &str) -> Vec<String> {
+    let mut seen: Vec<String> = Vec::new();
+    let mut out: Vec<String> = Vec::new();
+    let mut texts = vec![record_text.to_string()];
+    if _leads_a_question(line) {
+        let all = records(memory);
+        for record in _last(all, 4).iter().rev() {
+            if is_dict(record) {
+                texts.push(rget(record, "text"));
+            }
+        }
+    }
+    for t_ in texts {
+        let said = low_squash(&t_);
+        if said.is_empty() || text::split(&said).len() > 12 {
+            continue;
+        }
+        let key = words(&said).join(" ");
+        if seen.contains(&key) {
+            continue;
+        }
+        seen.push(key);
+        out.push(said);
+    }
+    out
+}
+
+/// `followup_reading(understood, memory)`: this turn's reading with the current topic's subject
+/// put back in, when the line leans on it.
+pub fn followup_reading(understood: &Understood, memory: &Memory) -> Understood {
+    if let Some(r) = _carrying_on(understood, memory) {
+        return r;
+    }
+    if let Some(r) = next_slot_reading(understood, memory) {
+        return r;
+    }
+    if _after_an_emergency(memory) || _after_a_correction(memory) {
+        return understood.clone();
+    }
+    if let Some(r) = _the_length_of_the_aim(understood, memory) {
+        return r;
+    }
+    if let Some(r) = the_pronoun_written_as_what_it_stands_for(understood, memory) {
+        return r;
+    }
+    if let Some(r) = the_thing_it_is(understood, memory) {
+        return r;
+    }
+    if let Some(r) = the_prognosis_the_line_asks(understood, memory) {
+        return r;
+    }
+    if let Some(r) = the_property_of_the_thing(understood, memory) {
+        return r;
+    }
+    if let Some(r) = the_animal_the_subject_is(Some(understood), memory) {
+        return r;
+    }
+    if let Some(r) = the_airport_there_is(understood, memory) {
+        return r;
+    }
+    if let Some(r) = the_limit_of_the_thing(understood, memory) {
+        return r;
+    }
+    let line = crate::memory::filler::without_the_shrug(&_line_of(understood));
+    if let Some(gathering) = _a_gathering_read_as_the_food(understood, &line, memory) {
+        return _reading_with(understood, &gathering, true);
+    }
+    if let Some(period) = the_period_they_ask_about(understood, memory) {
+        return _reading_with(understood, &period, true);
+    }
+    if let Some(meal) = meal_follow_up(understood, memory) {
+        return meal;
+    }
+    if let Some(trip) = the_weather_of_the_trip(understood, memory) {
+        return _reading_with(understood, &trip, true);
+    }
+    let Some(record) = carried_topic(memory, &line).cloned() else { return understood.clone() };
+    if left_for_a_blank(memory, &line) {
+        return understood.clone();
+    }
+    let same_ask = how_much_of_the_thing_in_hand(&line, memory);
+    if !same_ask.is_empty() {
+        return _reading_with(understood, &same_ask, true);
+    }
+    if let Some(brought) = the_thing_the_subject_brings(understood, memory) {
+        return _reading_with(understood, &brought, true);
+    }
+    let topic = rget(&record, "text");
+    if elided_ask(&line) {
+        // Python builds a reading from the situated ask here and drops it: only the call (and the
+        // cache it fills) is kept.
+        let _ = carry_the_ask(&line, &topic, understood, memory);
+    }
+    let leaning = _the_turn_we_lean_on(understood, memory);
+    if !leaning.is_none() && _said_later_than(&leaning, &record) {
+        if let Some(newer) = _widened(&line, understood, &leaning, memory) {
+            return _reading_with(understood, &low_squash(&newer), true);
+        }
+    }
+    let text_: String;
+    if understood.intent == "correction" {
+        if text::strip(&topic).is_empty() || words(&topic).join(" ") == words(&line).join(" ") {
+            return understood.clone();
+        }
+        // a correction is read as the topic it corrected
+        text_ = topic.clone();
+    } else if bare_question(understood, memory) && carry_the_ask(&line, &topic, understood, memory).is_none() {
+        let mut extra: Vec<String> = Vec::new();
+        let not_doing = _what_they_are_not_doing(&topic);
+        let said = words(&line);
+        for word in _subject_words_to_carry(&record, &line, memory) {
+            if not_doing.contains(&word) || _how_they_feel(&word) {
+                continue;
+            }
+            if !said.contains(&word) && !extra.contains(&word) {
+                extra.push(word);
+            }
+        }
+        if extra.is_empty() {
+            return understood.clone();
+        }
+        let widened = format!("{line} {}", extra.join(" "));
+        if _entry(&widened).is_none() {
+            let mut whole_words = text::split(&topic);
+            whole_words.push(line.clone());
+            let said_whole = whole_words.join(" ");
+            let item = _entry(&said_whole);
+            match item {
+                Some(item) if extra.iter().any(|w| _keyed_to(&_key_words_of(item), w)) => text_ = said_whole,
+                _ => return understood.clone(),
+            }
+        } else {
+            text_ = widened;
+        }
+    } else if !_still_the_topic(&record, memory) {
+        return understood.clone();
+    } else if leans_on_topic(understood, memory) {
+        let subject_words = _subject_words_to_carry(&record, &line, memory);
+        let said = words(&line);
+        if subject_words.is_empty() || subject_words.iter().all(|w| said.contains(w)) {
+            return understood.clone();
+        }
+        let found = widen(&line, &subject_words, &topic)
+            .or_else(|| carry_the_ask(&line, &topic, understood, memory))
+            .or_else(|| _constrains_the_ask(&line, &topic))
+            .or_else(|| _the_whole_topic(&line, &topic, memory));
+        match found {
+            Some(t_) => text_ = t_,
+            None => return understood.clone(),
+        }
+    } else {
+        let found = carry_the_ask(&line, &topic, understood, memory)
+            .or_else(|| _constrains_the_ask(&line, &topic))
+            .or_else(|| _the_whole_topic(&line, &topic, memory));
+        match found {
+            Some(t_) => text_ = t_,
+            None => return understood.clone(),
+        }
+    }
+    _reading_with(understood, &low_squash(&text_), true)
+}
+
+thread_local! {
+    /// The topic record as `note` left it, to tell whether PyBot's runtime copy has since come
+    /// between `memory["topic"]` and its entry in `memory["topics"]` (see `_the_runtime_copied`).
+    static TOPIC_AFTER_NOTE: std::cell::RefCell<Option<Value>> = const { std::cell::RefCell::new(None) };
+}
+
+/// PyBot's runtime deep-copies each memory key on its own for every responder, and a chosen
+/// reply's copy becomes the memory: from then on `memory["topic"]` is no longer the same dict as
+/// its entry in `memory["topics"]`. The Rust runtime's copy shares them, so when the last turn
+/// had a chosen reply and the topic is still the one `note` left, the sharing is ended here.
+fn _the_runtime_copied(memory: &mut Memory) {
+    let chosen = memory.turns.last().is_some_and(|t_| t_.module.is_some());
+    if !chosen {
+        return;
+    }
+    let left = TOPIC_AFTER_NOTE.with(|c| c.borrow().clone());
+    let Some(left) = left else { return };
+    if let Some(topic) = memory.get("topic") {
+        if same_object(topic, &left) {
+            let copied = fresh(topic);
+            memory.set("topic", copied);
+        }
+    }
+}
+
+/// `note(memory, text, kind=None)`: file the line, and note what filing it put on the record the
+/// chat is on.
+pub fn note(memory: &mut Memory, text_: &str, kind: &str) -> Value {
+    _the_runtime_copied(memory);
+    _the_step_back_is_undone(memory);
+    let before = _the_words_before_the_turn(memory);
+    let previous = current(memory).cloned();
+    let record = _note(memory, text_, kind);
+    _the_words_this_turn(memory, &before, &record, previous.as_ref());
+    let left = memory.get("topic").cloned();
+    TOPIC_AFTER_NOTE.with(|c| *c.borrow_mut() = left);
+    record
+}
+
+/// `_the_reply_to_the_turn_before(memory)`: what the bot said last.
+pub fn _the_reply_to_the_turn_before(memory: &Memory) -> String {
+    memory.turns.iter().rev().find(|t_| !t_.bot.is_empty()).map(|t_| t_.bot.clone()).unwrap_or_default()
+}
+
+/// `_the_step_back_is_undone(memory)`: take back the words the turn before added when its reply
+/// was a step back.
+pub fn _the_step_back_is_undone(memory: &mut Memory) -> Option<Vec<String>> {
+    if !(memory.has(&WORDS_THIS_TURN) || memory.has(&TURN_TOPIC)) {
+        return None;
+    }
+    let said = _the_reply_to_the_turn_before(memory);
+    if said.is_empty() {
+        memory.remove(&WORDS_THIS_TURN);
+        memory.remove(&TURN_TOPIC);
+        return None;
+    }
+    the_step_back_takes_its_words_back(memory, &said)
+}
+
+/// `_the_words_before_the_turn(memory)`: the words each record holds, by the text of the line it
+/// came from.
+pub fn _the_words_before_the_turn(memory: &Memory) -> IndexMap<String, Vec<String>> {
+    let mut held = IndexMap::new();
+    for record in _the_records(memory) {
+        held.insert(rget(&record, "text"), rwords(&record));
+    }
+    held
+}
+
+/// `_the_records(memory)`: the topic record and then every record in `topics`.
+pub fn _the_records(memory: &Memory) -> Vec<Value> {
+    let mut out = Vec::new();
+    if let Some(topic) = memory.get("topic").filter(|t_| is_dict(t_)) {
+        out.push(topic.clone());
+    }
+    for record in records(memory) {
+        if is_dict(record) {
+            out.push(record.clone());
+        }
+    }
+    out
+}
+
+/// `_the_words_this_turn(memory, before, record, previous)`: note what this turn added to the
+/// record, and which record it left in place.
+pub fn _the_words_this_turn(memory: &mut Memory, before: &IndexMap<String, Vec<String>>, record: &Value, previous: Option<&Value>) {
+    memory.remove(&WORDS_THIS_TURN);
+    memory.remove(&TURN_TOPIC);
+    if !is_dict(record) {
+        return;
+    }
+    let said = rget(record, "text");
+    let had = before.get(&said);
+    let added: Vec<String> = rwords(record).into_iter().filter(|w| !had.is_some_and(|h| h.contains(w))).collect();
+    if !added.is_empty() {
+        let mut noted = Value::dict();
+        noted.set_key("text", said.as_str());
+        noted.set_key("words", Value::from(added));
+        memory.set(&WORDS_THIS_TURN, noted);
+    }
+    let mut turn_topic = Value::dict();
+    turn_topic.set_key("text", said.as_str());
+    turn_topic.set_key("of", rget(record, "of"));
+    turn_topic.set_key("was", previous.filter(|p| is_dict(p)).map(|p| rget(p, "text")).unwrap_or_default());
+    memory.set(&TURN_TOPIC, turn_topic);
+}
+
+/// `_a_step_back(reply)`: the reply is one of the pools that say the bot cannot answer this.
+pub fn _a_step_back(reply: &str) -> bool {
+    crate::runtime::guarded(|| crate::compose::fallback::is_a_hedge(text::strip(reply))).unwrap_or(false)
+}
+
+/// `_the_detail_steps_back(memory, reply)`: put back the thing the chat was on when this turn's
+/// detail about it was only stepped back from.
+pub fn _the_detail_steps_back(memory: &mut Memory, reply: &str) -> Option<Value> {
+    let noted = memory.remove(&TURN_TOPIC);
+    let noted = noted.filter(|n| is_dict(n))?;
+    if !_a_step_back(reply) {
+        return None;
+    }
+    let mut back = rget(&noted, "of");
+    if back.is_empty() {
+        back = rget(&noted, "was");
+    }
+    if back.is_empty() || back == rget(&noted, "text") {
+        return None;
+    }
+    let record = current(memory)?;
+    if !is_dict(record) || rget(record, "text") != rget(&noted, "text") {
+        return None;
+    }
+    let older = records(memory).iter().filter(|k| is_dict(k) && rget(k, "text") == back).last().cloned()?;
+    let said = fresh(&older);
+    memory.set("topic", said.clone());
+    if let Some(topics) = memory.get_mut("topics").and_then(Value::items_mut) {
+        topics.retain(|other| !same_object(other, &older) && rget(other, "text") != back);
+        topics.push(said.clone());
+    }
+    Some(said)
+}
+
+/// `the_step_back_takes_its_words_back(memory, reply)`: undo this turn's word merge when the turn
+/// stepped back.
+pub fn the_step_back_takes_its_words_back(memory: &mut Memory, reply: &str) -> Option<Vec<String>> {
+    _the_detail_steps_back(memory, reply);
+    let noted = memory.remove(&WORDS_THIS_TURN);
+    let noted = noted.filter(|n| is_dict(n))?;
+    if !_a_step_back(reply) {
+        return None;
+    }
+    let taken = rwords(&noted);
+    if taken.is_empty() {
+        return None;
+    }
+    let text_ = rget(&noted, "text");
+    let mut took_back: Option<Vec<String>> = None;
+    // Every record holding that line, the topic and the items of `topics`, each changed in place:
+    // one dict held in both places is changed once and stays one dict.
+    let mut done: Vec<(Value, Value)> = Vec::new();
+    let mut change = |record: &mut Value, took_back: &mut Option<Vec<String>>| {
+        if !is_dict(record) || rget(record, "text") != text_ {
+            return;
+        }
+        if let Some((_, new)) = done.iter().find(|(old, _)| same_object(old, record)) {
+            *took_back = Some(rwords(new));
+            *record = new.clone();
+            return;
+        }
+        let kept: Vec<String> = rwords(record).into_iter().filter(|w| !taken.contains(w)).collect();
+        let old = record.clone();
+        let mut new = fresh(record);
+        new.set_key("words", Value::from(kept.clone()));
+        done.push((old, new.clone()));
+        *record = new;
+        *took_back = Some(kept);
+    };
+    if let Some(topic) = memory.get_mut("topic") {
+        change(topic, &mut took_back);
+    }
+    if let Some(list) = memory.get_mut("topics").and_then(Value::items_mut) {
+        for record in list.iter_mut() {
+            change(record, &mut took_back);
+        }
+    }
+    took_back
+}
