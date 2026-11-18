@@ -3616,3 +3616,47 @@ fn opt_pool_exact<T: PyRet>(v: T) -> Option<Vec<String>> {
 fn memory_value(memory: &Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::Turn;
+
+    fn memory_with(bots: &[&str]) -> Memory {
+        let mut m = Memory::new();
+        m.turns = bots.iter().map(|b| Turn { user: String::new(), bot: b.to_string(), module: None }).collect();
+        m
+    }
+
+    // Expected values from PyBot (bot.compose.fallback_chain), clock pinned to 2026-11-17.
+    #[test]
+    fn choose_like_python() {
+        let pool = owned(&["a", "b", "c"]);
+        assert_eq!(_choose_opt(&pool, &memory_with(&["a"]), "hello", None).as_deref(), Some("b"));
+        assert_eq!(_choose_opt(&pool, &memory_with(&["a", "b", "c"]), "hello", None).as_deref(), Some("b"));
+        assert_eq!(_choose_opt(&pool, &Memory::new(), "hello", Some("seed me")).as_deref(), Some("a"));
+        assert_eq!(_choose_opt(&owned(&["a"]), &memory_with(&["a"]), "hello", None).as_deref(), Some("a"));
+        assert_eq!(_choose_opt(&[], &Memory::new(), "hello", None), None);
+        assert_eq!(_mixed_seed("abc"), 304891);
+        assert_eq!(_mixed_seed("Ünïcode line"), 159460);
+    }
+
+    #[test]
+    fn format_like_python() {
+        assert_eq!(py_format("{who} said {{hi}}", &[("who", "your mum")]), "your mum said {hi}");
+        assert!(caught(|| py_format("{nobody}", &[("who", "x")])).is_none());
+    }
+
+    #[test]
+    fn names_and_birthdays() {
+        assert_eq!(_a_name_told("my kids are called jack and emma"), Some(("Jack and Emma".into(), "kids".into(), true)));
+        assert_eq!(_a_name_told("my car is called betsy"), Some(("Betsy".into(), String::new(), false)));
+        let mut b = Value::dict();
+        b.set_key("who", "mum");
+        b.set_key("to_come", 73i64);
+        b.set_key("turns", "next  month");
+        let said = _the_birthday_said_back(&b);
+        assert_eq!(said[0], "Your mum turns 73 next month \u{2014} that's one to look forward to. Are you doing anything for it?");
+        assert_eq!(said[2], "Lovely \u{2014} your mum at 73 next month. Will you mark it somehow?");
+    }
+}

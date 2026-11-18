@@ -390,5 +390,9 @@ mod tests {
         assert!(talks_about_the_conversation("Hello again. Where were we?"));
         assert!(!talks_about_the_conversation("come back with \"sorry - where were we?\""));
         assert!(!talks_about_the_conversation("Not the last time I looked"));
+        let long = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three twenty-four twenty-five twenty-six twenty-seven: twenty-eight twenty-nine thirty thirty-one thirty-two thirty-three thirty-four thirty-five thirty-six thirty-seven thirty-eight; thirty-nine forty forty-one forty-two forty-three forty-four forty-five forty-six forty-seven forty-eight forty-nine fifty fifty-one fifty-two fifty-three";
+        let parts = _the_parts(long);
+        assert_eq!(parts.len(), 3);
+        assert!(parts[1].starts_with("Twenty-eight") && parts[2].starts_with("Thirty-nine"));
     }
 }

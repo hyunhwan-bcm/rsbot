@@ -3349,3 +3349,44 @@ pub fn next_step(clean: &str, memory: &Memory) -> Option<String> {
     }
     Some(_say_with(&STEP_ONE_LINES, memory, &flat, &[("step", &step)]))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn s(v: &[&str]) -> Vec<String> {
+        v.iter().map(|x| x.to_string()).collect()
+    }
+
+    // Expected values from PyBot (bot.compose.verdict); positions are Python's character indices.
+    #[test]
+    fn readers_like_python() {
+        assert_eq!(_round_robin(&s(&["x", "y", "z", "w"]), "is that bad"), s(&["y", "z", "w", "x"]));
+        assert_eq!(_the_person_for(Some("gp"), Some("the same day")), "your GP the same day");
+        assert_eq!(_the_person_for(Some("111"), None), "111");
+        assert_eq!(_the_person_for(Some("physio"), Some(" this  week ,")), "your physio this week");
+        assert_eq!(_the_person_for(Some("dentist"), Some("")), "your dentist");
+        assert_eq!(_the_person_for(Some("A&E"), None), "A&E");
+        assert_eq!(
+            _stated_before_the_judgement("Blood in it, breathlessness or three weeks of it is a reason to ring the surgery or 111."),
+            "blood in it, breathlessness or three weeks of it"
+        );
+        assert!(!_said_without_a_not("it is unusually common", 9, 7));
+        assert!(!_said_without_a_not("it is not usual", 10, 5));
+        assert!(_said_without_a_not("usual", 0, 5));
+        assert_eq!(_first_positive("It is common at four, but less usual past ten", &s(&["usual", "common"])), Some(6));
+        assert_eq!(_unconditional_care("See a GP if the arm is weak or numb. Ring 111 today."), Some(37));
+        assert_eq!(_danger("It is not dangerous. If it bleeds a lot, that is an emergency."), Some(49));
+        assert_eq!(_danger("That could be dangerous - stop using it."), Some(14));
+        assert_eq!(
+            _up_to_a_break(
+                "Fill a freezer bag with white vinegar - half vinegar, half water if the chrome worries you - tie it over the shower head so the nozzles soak for an hour, then rub them with a sponge and poke any blocked holes with a pin",
+                "Fill a freezer bag with white vinegar",
+                12
+            ),
+            "Fill a freezer bag with white vinegar - half vinegar"
+        );
+        // Python 3.12's re.escape leaves "," and ":" alone.
+        assert_eq!(_own_pattern("Still, {Step}: first."), "Still,\\ .+?:\\ first\\.");
+    }
+}
