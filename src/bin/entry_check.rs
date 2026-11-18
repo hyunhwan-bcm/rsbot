@@ -13,6 +13,10 @@ use std::collections::{BTreeMap, HashMap};
 use std::io::BufRead;
 
 fn main() {
+    // every oracle was recorded with the clock pinned to this day
+    if std::env::var_os("RSBOT_TODAY").is_none() {
+        unsafe { std::env::set_var("RSBOT_TODAY", "2026-11-17") };
+    }
     rsbot::runtime::quiet_panics();
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut split = "gold".to_string();

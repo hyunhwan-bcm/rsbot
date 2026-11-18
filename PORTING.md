@@ -84,7 +84,7 @@ deep-copies memory for every module; in Rust that is `memory.clone()` (cheap).
   where nothing catches it, a panic is right (the runtime skips the module, as Python's does).
 - **Truthiness, dict order** (insertion order: use `IndexMap` or `Vec<(K, V)>`), **set order**
   (Python's string-set order depends on a per-process hash seed: if output depends on it, note it).
-- **Clock**: pinned to 2026-11-17 in every oracle run.
+- **Clock**: `py::clock::today()` / `now_utc()` (chrono) for `date.today()` / `datetime.now(timezone.utc)`; never read the time anywhere else. Pinned by `RSBOT_TODAY` (the checkers pin 2026-11-17, as every oracle was recorded).
 
 ## Checking
 

@@ -147,6 +147,10 @@ fn check_e2e(rows: &[Row], o: &Opts) -> (usize, usize) {
 }
 
 fn main() {
+    // every oracle was recorded with the clock pinned to this day
+    if std::env::var_os("RSBOT_TODAY").is_none() {
+        unsafe { std::env::set_var("RSBOT_TODAY", "2026-11-17") };
+    }
     quiet_panics();
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut o = Opts { split: "gold".into(), show: 5, limit: None };
