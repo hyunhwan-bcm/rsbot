@@ -120,6 +120,60 @@ fn main() {
             }
             println!("units: calls {ok} ok / {bad} differ");
         }
+        "entries" => {
+            // kno_check entries FILE: make_entry_turns.py's calls, on the same memory and reading.
+            use rsbot::knowledge::entry::{by_id, Reply};
+            let mut stats: BTreeMap<String, (usize, usize)> = BTreeMap::new();
+            let mut missing: BTreeMap<String, usize> = BTreeMap::new();
+            let mut shown = 0;
+            for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
+                let t: J = serde_json::from_str(&line.unwrap()).unwrap();
+                let memory = Memory::from_plain(t["memory"].as_object().unwrap());
+                let Some(reading) = memory.understood.clone() else { continue };
+                for c in t["calls"].as_array().unwrap() {
+                    let (id, kind) = (c["e"].as_str().unwrap(), c["k"].as_str().unwrap());
+                    let Some(entry) = by_id(id) else { *missing.entry(format!("entry {id}")).or_default() += 1; continue };
+                    let f = if kind == "guard" { entry.guard.clone() } else { match &entry.reply { Reply::Fn(f) => Some(f.clone()), _ => None } };
+                    let Some(f) = f else { continue };
+                    let ported = if kind == "guard" { rsbot::knowledge::registry::has_guard(&f.id) } else { rsbot::knowledge::registry::has_reply(&f.id) };
+                    if !ported { *missing.entry(format!("{kind} {}", f.id)).or_default() += 1; continue; }
+                    rsbot::py::random::seed(0);
+                    let got = if kind == "guard" {
+                        json!(rsbot::knowledge::registry::guard(&f, &reading))
+                    } else {
+                        let mut m = memory.clone();
+                        match rsbot::knowledge::registry::try_reply(&f, &mut m, &reading) {
+                            Ok(r) => opt(r),
+                            Err(()) => J::String("!".into()),
+                        }
+                    };
+                    let want = &c["r"];
+                    let same = match (want.as_str(), &got) {
+                        (Some(w), _) if w.starts_with('!') => got == json!(false) || got.as_str().is_some_and(|g| g.starts_with('!')),
+                        _ => &got == want,
+                    };
+                    let st = stats.entry(format!("{kind} {}", f.id)).or_default();
+                    if same { st.0 += 1 } else {
+                        st.1 += 1;
+                        if shown < show {
+                            shown += 1;
+                            println!("-- {kind} {id} {} {:?}\n   rust {got}\n   py   {want}", t["h"], reading.text);
+                        }
+                    }
+                }
+            }
+            let (mut ok, mut bad, mut fok, mut fbad) = (0, 0, 0, 0);
+            for (name, (o, b)) in &stats {
+                ok += o;
+                bad += b;
+                if *b > 0 { fbad += 1; println!("{name}: {o} ok, {b} differ"); } else { fok += 1; }
+            }
+            println!("entries: functions {fok} match, {fbad} differ; calls {ok} ok / {bad} differ");
+            if !missing.is_empty() {
+                println!("not ported: {} ({} calls)", missing.len(), missing.values().sum::<usize>());
+                for (k, n) in missing.iter().take(30) { println!("  {n} {k}"); }
+            }
+        }
         other => panic!("unknown check {other}"),
     }
 }
