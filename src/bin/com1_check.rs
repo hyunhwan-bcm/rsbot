@@ -668,6 +668,7 @@ fn main() {
     std::panic::set_hook(Box::new(|_| {}));
     let mut tally: BTreeMap<String, [usize; 5]> = BTreeMap::new(); // ok, wrong, unported, panic, skipped
     let mut shown: HashMap<String, usize> = HashMap::new();
+    let mut deps: BTreeMap<String, usize> = BTreeMap::new(); // the stub a call stopped at
     for line in std::io::BufReader::new(std::fs::File::open(format!("{dir}/calls.jsonl")).unwrap()).lines() {
         let r: Json = serde_json::from_str(&line.unwrap()).unwrap();
         let name = r["fn"].as_str().unwrap().to_string();
@@ -705,6 +706,7 @@ fn main() {
                 let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
                 if msg.starts_with("UNPORTED") {
                     t[2] += 1;
+                    *deps.entry(msg.clone()).or_default() += 1;
                 } else {
                     t[3] += 1;
                     let n = shown.entry(name.clone()).or_default();
@@ -722,6 +724,11 @@ fn main() {
         if t[1] + t[3] > 0 || only.is_some() {
             println!("{name}: ok {} wrong {} unported {} panic {} skipped {}", t[0], t[1], t[2], t[3], t[4]);
         }
+    }
+    if args.iter().any(|a| a == "--deps") {
+        let mut d: Vec<_> = deps.iter().collect();
+        d.sort_by(|a, b| b.1.cmp(a.1));
+        for (m, n) in d { println!("{n:6} {m}"); }
     }
     println!("TOTAL: ok {} wrong {} unported {} panic {} skipped {} ({} functions)", sum[0], sum[1], sum[2], sum[3], sum[4], tally.len());
 }
