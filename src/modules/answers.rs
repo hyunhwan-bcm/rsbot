@@ -6156,52 +6156,332 @@ pub fn _the_line_asks_what_this_one_meant(memory: &Memory) -> bool {
     _the_bot_has_something_to_go_over(memory)
 }
 
-// ==== ported code ends; the stubs below are the functions not yet ported ====
+re_static!(_DISH_NAME_IN_TEXT);
+strs_static!(_TURN_ONLY);
+static TRIPS_THE_JOURNEY_ASK: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.trips.THE_JOURNEY_ASK"));
+static REPEAT_A_PAY_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.repeat.A_PAY_WORD"));
+static COMPOSER_UNKNOWN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.fallback.UNKNOWN"));
+/// `pets.DOG_FEED_AMOUNT_ENTRY`, the module's own object (its domain is not the canonical row's).
+static DOG_FEED_AMOUNT_ENTRY: LazyLock<&'static Entry> =
+    LazyLock::new(|| Box::leak(Box::new(Entry::from_value(usize::MAX, data::get("bot.knowledge.pets.DOG_FEED_AMOUNT_ENTRY")))));
+/// `cooking.DISHES` as (id, text).
+static COOKING_DISHES: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
+    data::get("bot.knowledge.cooking.DISHES")
+        .items()
+        .iter()
+        .map(|d| (d.get("id").map(py_str).unwrap_or_default(), d.get("text").map(py_str_or_empty).unwrap_or_default()))
+        .collect()
+});
 
 /// Python: bot/modules/answers.py:8331 `respond(text, memory)` - a runtime hook; its signature is the runtime's.
-pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.modules.answers:respond")
+///
+/// As bound at the end of answers.py: `paragraph.then_framed(again.replied(respond))`.
+pub fn respond(text_: &str, memory: &mut Memory) -> Option<String> {
+    // again.replied: the earlier-turn check, applied once at the exit
+    let reply = match _respond_hook(text_, memory) {
+        Some(r) if !text::strip(&r).is_empty() => {
+            let framed = py_try(|| memory::again::instead(&r, text_, memory).py()).flatten();
+            Some(framed.unwrap_or(r))
+        }
+        other => other,
+    };
+    // paragraph.then_framed: a paragraph the chat has had is framed as the repeat it is
+    memory::paragraph::a_paragraph_the_chat_has_had(reply.as_deref(), text_, memory)
+}
+
+/// The body of answers.py's `respond`, before the two wrappers.
+fn _respond_hook(text_: &str, memory: &mut Memory) -> Option<String> {
+    memory.asked_now = Some(text_.to_string());
+    if memory::thread::only_the_arrival(text_) {
+        return None;
+    }
+    if compose::said_about_me::answer_followup(text_, memory).py_truth() {
+        return None;
+    }
+    if TRIPS_THE_JOURNEY_ASK.is_match(text_) && memory::trips::reply_for(text_, memory, true).py_truth() {
+        return None;
+    }
+    if _the_line_asks_what_this_one_meant(memory) {
+        return None;
+    }
+    if _a_judgement_of_the_figure_on_the_table(text_, memory) {
+        return None;
+    }
+    if THEIR_OWN_ASK.is_match(text_) {
+        return None;
+    }
+    if REPEAT_A_PAY_WORD.is_match(&text::squash(&text_.to_lowercase())) && memory::repeat::the_figure_they_gave(text_, memory).py_truth() {
+        return None;
+    }
+    if memory::portions::an_ask(text_, memory)
+        || memory::portions::a_count_to_fill(text_, memory)
+        || memory::portions::a_bare_count_to_fill(text_, memory)
+    {
+        return None;
+    }
+    let understood = memory.understood.clone();
+    if understood.as_ref().is_some_and(|u| u.subject_unclear.as_deref().is_some_and(|s| !s.is_empty())) {
+        return None;
+    }
+    if _a_bare_thanks(understood.as_ref()) && !memory::repeat::after_an_ack(text_).py_truth() {
+        return None;
+    }
+    if compose::fallback::the_day_remarked(text_).py_truth() {
+        return None;
+    }
+    if memory::not_this::the_place_ruled_out(text_, memory).py_truth() {
+        return None;
+    }
+    if py_try(|| memory::repeat::asks_what_that_costs(text_, memory)).unwrap_or(false) {
+        return None;
+    }
+    if memory::facts::a_name_picked(text_, memory).py_truth() {
+        return None;
+    }
+    let dog_feed = knowledge::pets::the_dog_feed_follow_up(text_, memory);
+    if !dog_feed.is_empty() {
+        _remember_answer(memory, Some(*DOG_FEED_AMOUNT_ENTRY), &dog_feed, &[]);
+        return Some(dog_feed);
+    }
+    let limit = _a_limit_on_the_plan(text_, memory);
+    if let Some(judged) = memory::price::judged(text_, memory).py() {
+        _keep_the_answer(text_, Some(&judged), memory);
+        return Some(judged);
+    }
+    if let Some(resized) = memory::size::answer_for(text_, memory).py() {
+        _keep_the_answer(text_, Some(&resized), memory);
+        return Some(resized);
+    }
+    if memory::tried::a_card_is_not_the_answer(text_, memory) {
+        return None;
+    }
+    let first = memory::a_year_of_birth::reply(text_, memory).py().or_else(|| _answer(text_, memory));
+    let named = _the_dish_by_name(first.as_deref(), memory);
+    let mut reply: Option<String> = compose::with_name(named.as_deref(), memory);
+    if let Some(judged) = memory::price::judged_with_the_card(text_, reply.as_deref(), memory).py() {
+        _keep_the_answer(text_, Some(&judged), memory);
+        return Some(judged);
+    }
+    let placed = _the_question_with_the_place_on_it(text_, memory, reply.as_deref());
+    if !placed.is_empty() {
+        _keep_the_answer(text_, Some(&placed), memory);
+        return Some(placed);
+    }
+    let truthy = |r: &Option<String>| r.as_deref().is_some_and(|s| !s.is_empty());
+    if truthy(&reply) {
+        reply = _fitted_to_what_they_eat(reply.as_deref(), text_, memory);
+    }
+    if truthy(&reply) {
+        reply = Some(_the_sentence_it_names(reply.as_deref().unwrap(), text_, memory));
+    }
+    if truthy(&reply) {
+        reply = Some(compose::lead::answer_first(reply.as_deref().unwrap(), memory.understood.as_ref(), text_));
+    }
+    if truthy(&reply) {
+        reply = Some(compose::lead::shape(reply.as_deref().unwrap(), memory.understood.as_ref(), text_));
+    }
+    if truthy(&reply) {
+        let declared = _the_sentence_owed(text_, reply.as_deref().unwrap(), memory).unwrap_or(Value::None);
+        reply = Some(compose::lead::the_sentence_owed(reply.as_deref().unwrap(), memory.understood.as_ref(), &declared));
+    }
+    if !truthy(&reply) && limit {
+        return None;
+    }
+    if !truthy(&reply) {
+        let card = knowledge::shopping::the_card_after_a_present(None, Some(&*memory), Some(text_));
+        if card.as_deref().is_some_and(|c| !c.is_empty()) && knowledge::shopping::a_present_was_answered(memory) {
+            reply = card;
+        }
+    }
+    if !truthy(&reply) {
+        reply = _the_one_to_pick_for(text_, memory);
+    }
+    _keep_the_answer(text_, reply.as_deref(), memory);
+    // `step_of=_first_step`: the function, by its Python id (the healing port calls
+    // `answers::_first_step` for it)
+    let step_of = Value::Fn(std::sync::Arc::new(crate::data::FnRef {
+        id: "bot.modules.answers:_first_step:820".to_string(),
+        cells: vec![],
+        defaults: vec![],
+    }));
+    memory::healing::vetted(text_, memory, reply.as_deref(), &step_of)
 }
 
 /// Python: bot/modules/answers.py:8580 `_the_question_with_the_place_on_it(text, memory, reply)`
-pub fn _the_question_with_the_place_on_it(text: &str, memory: &Memory, reply: Option<&str>) -> String {
-    crate::unported!("bot.modules.answers:_the_question_with_the_place_on_it")
+/// The last question asked again with the place this line says, answered; or "".
+pub fn _the_question_with_the_place_on_it(text_: &str, memory: &Memory, reply: Option<&str>) -> String {
+    let question = memory::whereabout::the_question_with_the_place(text_, memory);
+    if question.is_empty() {
+        return String::new();
+    }
+    let said = memory.get("last_answer").and_then(|l| l.get("reply")).map(py_str_or_empty).unwrap_or_default();
+    let mut own = _of_its_own(memory);
+    let answered = _answer(&question, &mut own);
+    let placed = compose::with_name(_the_dish_by_name(answered.as_deref(), memory).as_deref(), memory);
+    let Some(placed) = placed.filter(|p| !p.is_empty() && !COMPOSER_UNKNOWN.contains(p)) else { return String::new() };
+    let others = [said, reply.unwrap_or("").to_string()];
+    for other in &others {
+        if !other.is_empty() && text::strip(&placed) == text::strip(other) {
+            return String::new();
+        }
+    }
+    let flat_placed = _flat(&placed);
+    for other in &others {
+        let flat_other = _flat(other);
+        if !flat_other.is_empty() && flat_placed.contains(&flat_other) {
+            return String::new();
+        }
+        if !flat_other.is_empty() && flat_placed.contains(&text::slice(&flat_other, 0, Some(60))) {
+            return String::new();
+        }
+    }
+    placed
 }
 
-/// Python: bot/modules/answers.py:8623 `_of_its_own(memory)` (never called on the trace corpus)
-pub fn _of_its_own(memory: &Memory) -> Value {
-    crate::unported!("bot.modules.answers:_of_its_own")
+/// Python: bot/modules/answers.py:8623 `_of_its_own(memory)`
+/// The store with the last turn's reading taken out, so a question is answered on its words.
+pub fn _of_its_own(memory: &Memory) -> Memory {
+    let mut own = memory.clone();
+    for key in _TURN_ONLY.iter() {
+        if key == "understood" {
+            own.understood = None;
+        } else {
+            own.remove(key);
+        }
+    }
+    own
 }
 
 /// Python: bot/modules/answers.py:8631 `_keep_the_answer(text, reply, memory)`
-pub fn _keep_the_answer(text: &str, reply: Option<&str>, memory: &mut Memory) {
-    crate::unported!("bot.modules.answers:_keep_the_answer")
+/// Keep the answer this module gives, so the next line can be about it.
+pub fn _keep_the_answer(text_: &str, reply: Option<&str>, memory: &mut Memory) {
+    let Some(reply) = reply.filter(|r| !text::strip(r).is_empty()) else { return };
+    let here = memory.turns.len() as i64;
+    if let Some(kept) = memory.get("last_answer").filter(|k| k.is_dict()) {
+        if kept.get("turn").and_then(Value::as_int) == Some(here) && kept.get("reply").is_some_and(Value::truthy) {
+            return;
+        }
+    }
+    _remember_answer(memory, None, reply, &memory::topics::keywords(text_));
 }
 
 /// Python: bot/modules/answers.py:8655 `_the_sentence_it_names(reply, text, memory)`
-pub fn _the_sentence_it_names(reply: &str, text: &str, memory: &Memory) -> String {
-    crate::unported!("bot.modules.answers:_the_sentence_it_names")
+/// `reply` cut to the sentence naming this line's own word, when the paragraph was said before.
+pub fn _the_sentence_it_names(reply: &str, text_: &str, memory: &Memory) -> String {
+    let mine = _flat(reply);
+    if mine.is_empty() {
+        return reply.to_string();
+    }
+    if !memory.turns.iter().any(|turn| _flat(&turn.bot) == mine) {
+        return reply.to_string();
+    }
+    let before = _said_before_now(text_, Some(memory));
+    let reply_words = word_set(reply);
+    let named: HashSet<String> =
+        memory::topics::keywords(text_).into_iter().filter(|w| !before.contains(w) && reply_words.contains(w)).collect();
+    if named.is_empty() {
+        return reply.to_string();
+    }
+    let parts: Vec<String> = SENTENCE
+        .split(text::strip(reply))
+        .iter()
+        .map(|s| text::strip(s).to_string())
+        .filter(|s| !s.is_empty() && !named.is_disjoint(&word_set(s)))
+        .collect();
+    if parts.is_empty() {
+        return reply.to_string();
+    }
+    let cut = parts[..parts.len().min(2)].join(" ");
+    if text::split_ref(&cut).len() < 4 || text::len(&cut) >= text::len(text::strip(reply)) {
+        return reply.to_string();
+    }
+    cut
 }
 
 /// Python: bot/modules/answers.py:8685 `_fitted_to_what_they_eat(reply, text, memory)`
-pub fn _fitted_to_what_they_eat(reply: &str, text: &str, memory: &Memory) -> String {
-    crate::unported!("bot.modules.answers:_fitted_to_what_they_eat")
+/// The answer with the food they do not eat taken out of it, or "" when it cannot be.
+pub fn _fitted_to_what_they_eat(reply: Option<&str>, text_: &str, memory: &mut Memory) -> Option<String> {
+    let reply = reply?;
+    if text::strip(reply).is_empty() {
+        return Some(reply.to_string());
+    }
+    let avoided = knowledge::cooking::avoids(memory, None);
+    let mut avoided_list: Vec<String> = avoided.iter().cloned().collect();
+    avoided_list.sort();
+    let reply = knowledge::meat_in_a_card::swapped_out(reply, text_, &avoided_list);
+    let Some(fitted) = knowledge::cooking::fits_the_diet(Some(&reply), &avoided, text_) else { return Some(String::new()) };
+    let theirs = knowledge::cooking::avoids_for_the_one_talked_about(memory);
+    match knowledge::cooking::fitted_for_the_one_talked_about(Some(&fitted), &theirs, text_) {
+        None => Some(String::new()),
+        Some(f) => Some(f),
+    }
 }
 
 /// Python: bot/modules/answers.py:8726 `_the_dish_by_name(answer, memory)`
+/// A reply that points at the dish ("that one") says the dish's name instead.
 pub fn _the_dish_by_name(answer: Option<&str>, memory: &Memory) -> Option<String> {
-    crate::unported!("bot.modules.answers:_the_dish_by_name")
+    let answer = answer?;
+    if !answer.to_lowercase().contains(" that one") {
+        return Some(answer.to_string());
+    }
+    let plan = knowledge::cooking_more::plan_recent(memory).unwrap_or_default();
+    let offered: Vec<String> = plan.get("offered").map(|o| o.items().iter().filter(|n| n.truthy()).map(py_str).collect()).unwrap_or_default();
+    let Some(last) = offered.last() else { return Some(answer.to_string()) };
+    let text_of = COOKING_DISHES.iter().rev().find(|(id, _)| id == last).map(|(_, t)| t.clone()).unwrap_or_default();
+    let mut name = String::new();
+    if let Some(said) = _DISH_NAME_IN_TEXT.match_(&text_of) {
+        if text::split_ref(said.str(1)).len() <= 5 {
+            name = said.str(1).to_lowercase();
+        }
+    }
+    if name.is_empty() {
+        let shown = _last_answer(memory).and_then(|s| s.get("reply").map(py_str_or_empty)).unwrap_or_default();
+        if let Some(screen) = _DISH_NAME_IN_TEXT.match_(&shown) {
+            if text::split_ref(screen.str(1)).len() <= 5 {
+                name = screen.str(1).to_lowercase();
+            }
+        }
+    }
+    if name.is_empty() {
+        return Some(answer.to_string());
+    }
+    let the_name = format!("the {name}");
+    Some(inline_re!(r"\bthat one\b", RE_I).sub_with(answer, 1, |_| the_name.clone()))
 }
 
-/// Python: bot/modules/answers.py:8762 `_the_same_answer_again(answer, memory)` (never called on the trace corpus)
+/// Python: bot/modules/answers.py:8762 `_the_same_answer_again(answer, memory)`
+/// True when this answer says what the answer just given said, lead-in aside.
 pub fn _the_same_answer_again(answer: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.modules.answers:_the_same_answer_again")
+    let was = _flat(&memory::last_bot(memory));
+    let now = _flat(&_without_lead_in(answer));
+    if was.is_empty() || now.is_empty() {
+        return false;
+    }
+    now.starts_with(&text::slice(&was, 0, Some(60))) || was.starts_with(&text::slice(&now, 0, Some(60)))
 }
 
-/// Python: bot/modules/answers.py:8774 `_the_figure_the_thing_we_are_on_holds(text, memory)` (never called on the trace corpus)
-pub fn _the_figure_the_thing_we_are_on_holds(text: &str, memory: &Memory) -> Value {
-    crate::unported!("bot.modules.answers:_the_figure_the_thing_we_are_on_holds")
+/// Python: bot/modules/answers.py:8774 `_the_figure_the_thing_we_are_on_holds(text, memory)`
+/// The answer the thing we are on gives this length ask, when it holds the time asked for.
+pub fn _the_figure_the_thing_we_are_on_holds(text_: &str, memory: &mut Memory) -> String {
+    let Some(understood) = memory.understood.clone() else { return String::new() };
+    let wider = memory::topics::followup_reading(&understood, &memory_value(memory));
+    // `wider is understood`: the reading handed back unchanged
+    if wider == understood {
+        return String::new();
+    }
+    if _flat(&wider.clean) == _flat(&understood.clean) {
+        return String::new();
+    }
+    let (item, reply) =
+        _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(knowledge::lookup::find(&wider, None, reject, false)), memory, &wider);
+    let reply = text::strip(&reply.unwrap_or_default()).to_string();
+    if item.is_none() || reply.is_empty() {
+        return String::new();
+    }
+    if _figure_missing(&reply, text_).is_some() { String::new() } else { reply }
 }
+
+// ==== ported code ends; the stubs below are the functions not yet ported ====
 
 /// Python: bot/modules/answers.py:8799 `_a_length_ask_with_no_figure(text, memory, answer='')` (never called on the trace corpus)
 pub fn _a_length_ask_with_no_figure(text: &str, memory: &Memory, answer: &str) -> Value {
