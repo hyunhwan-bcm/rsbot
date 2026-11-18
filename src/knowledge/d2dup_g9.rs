@@ -140,26 +140,8 @@ pub use crate::knowledge::dishes::_same_word;
 // was DUP(bot.knowledge.dishes::_ruled_out_near): now the real port
 pub use crate::knowledge::dishes::_ruled_out_near;
 
-// DUP(bot.knowledge.dishes::dishes_ruled_out)
-/// The plan keys a text names only to rule them out ("isnt a roast").
-pub fn dishes_ruled_out(text: &str) -> std::collections::HashSet<String> {
-    let have = crate::knowledge::d2_shared::tokens(text);
-    let mut out = std::collections::HashSet::new();
-    for (key, names) in PLAN_NAMES.iter() {
-        for wanted in names {
-            if wanted.is_empty() || wanted.len() > have.len() {
-                continue;
-            }
-            for i in 0..(have.len() - wanted.len() + 1) {
-                if (0..wanted.len()).all(|j| _same_word(&have[i + j], &wanted[j])) && _ruled_out_near(&have, i, wanted.len()) {
-                    out.insert(key.clone());
-                    break;
-                }
-            }
-        }
-    }
-    out
-}
+// was DUP(bot.knowledge.dishes::dishes_ruled_out): now the real port
+pub use crate::knowledge::dishes::dishes_ruled_out;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/entertainment.py (owned by the entertainment group)
