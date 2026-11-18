@@ -3365,9 +3365,8 @@ pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
 /// CONTRACT: `memory::again::instead` returns `()`, so no framing can come back yet; the call is
 /// still made so a raise is a raise.
 fn again_instead(reply: &str, said: &str, memory: &Memory) -> Option<String> {
-    #[allow(clippy::let_unit_value)]
-    let _framed = crate::memory::again::instead(reply, said, memory);
-    None
+    use crate::modules::arbiter::Reading;
+    crate::memory::again::instead(reply, said, memory).text()
 }
 
 /// The rule chain of `respond`, before the earlier-turn check: an emergency reply, a first-aid
@@ -6118,7 +6117,7 @@ fn _respond(text: &str, memory: &mut Memory) -> Option<String> {
 #[cfg(test)]
 mod tests {
     //! The rule chain checked against PyBot's own, rule by rule: both sides pick the first line of
-    //! the pool they chose (`scratch/mod3/safety_ref.py` patches Python's `pick` the same way), so
+    //! the pool they chose (`harness/mod3_safety_ref.py` patches Python's `pick` the same way), so
     //! a difference is a difference in which rule answered, what it noted, or how it fitted the
     //! line. Run with `SAFETY_REF=<reference jsonl> SAFETY_INPUT=<oracle .gz or lines .json>`.
     use super::*;

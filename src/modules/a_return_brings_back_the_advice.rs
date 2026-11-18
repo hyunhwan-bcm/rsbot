@@ -182,9 +182,8 @@ pub fn _has_substance(advice: &str) -> bool {
 /// CONTRACT: `memory::topics::resumed` returns `()`, so no record can come back yet; the call is
 /// still made so a raise is a raise.
 fn resumed(memory: &Memory) -> Value {
-    #[allow(clippy::let_unit_value)]
-    let _record = topics::resumed(memory);
-    Value::None
+    use crate::modules::arbiter::Reading;
+    topics::resumed(memory).read()
 }
 
 /// Python: bot/modules/a_return_brings_back_the_advice.py:183 `_the_return_advice(memory)`: the

@@ -229,7 +229,6 @@ pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
 /// CONTRACT: `memory::obstacle::answer_for` returns `()`, so no answer can come back yet; the
 /// call is still made so a raise is a raise and its memory writes happen.
 fn obstacle_answer_for(text: &str, memory: &mut Memory) -> bool {
-    #[allow(clippy::let_unit_value)]
-    let _answer = crate::memory::obstacle::answer_for(text, memory);
-    false
+    use crate::modules::arbiter::Reading;
+    crate::memory::obstacle::answer_for(text, memory).is_truthy()
 }

@@ -4101,6 +4101,58 @@ fn memory_value(mem: &Mem) -> Value {
     Value::from_plain(&serde_json::Value::Object(m(mem).to_plain()))
 }
 
+/// What a reading from another lane hands back, read as Python would read it. A contract stub
+/// typed `()` (its traced calls only ever returned None) reads as None; when its owner gives it the
+/// real return type, the same adapter carries the value with no change here.
+pub(crate) trait Reading {
+    fn read(self) -> Value;
+    fn text(self) -> Option<String>
+    where
+        Self: Sized,
+    {
+        match self.read() {
+            Value::Str(s) => Some(s.to_string()),
+            _ => None,
+        }
+    }
+    fn is_truthy(self) -> bool
+    where
+        Self: Sized,
+    {
+        self.read().truthy()
+    }
+}
+impl Reading for () {
+    fn read(self) -> Value {
+        Value::None
+    }
+}
+impl Reading for bool {
+    fn read(self) -> Value {
+        Value::Bool(self)
+    }
+}
+impl Reading for String {
+    fn read(self) -> Value {
+        Value::from(self)
+    }
+}
+impl Reading for Value {
+    fn read(self) -> Value {
+        self
+    }
+}
+impl Reading for Vec<String> {
+    fn read(self) -> Value {
+        Value::from(self)
+    }
+}
+impl<T: Reading> Reading for Option<T> {
+    fn read(self) -> Value {
+        self.map(Reading::read).unwrap_or(Value::None)
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Readings from the other lanes.
 //
@@ -4110,7 +4162,7 @@ fn memory_value(mem: &Mem) -> Value {
 // or a draw on the random generator happens as in Python, and reads the result as None; those are
 // marked CONTRACT and listed in the workstream report.
 mod lanes {
-    use super::{m, py_str, Mem, Set};
+    use super::{m, py_str, Mem, Reading, Set};
     use crate::data::{self, Value};
     use crate::py::re::Re;
     use crate::state::Memory;
@@ -4159,11 +4211,9 @@ mod lanes {
     }
 
     /// `fallback.about_the_bot(clean)`: the kind of question about the bot, or None.
-    /// CONTRACT: `compose::fallback::about_the_bot` returns `()`, so no kind can come back.
+    /// CONTRACT: while `compose::fallback::about_the_bot` is typed `()`, no kind comes back (see [`Reading`]).
     pub fn about_the_bot(clean: &str) -> Option<String> {
-        #[allow(clippy::let_unit_value)]
-        let _kind = crate::compose::fallback::about_the_bot(clean);
-        None
+        crate::compose::fallback::about_the_bot(clean).text()
     }
 
     /// `fallback.venue_hours(clean, None)`.
@@ -4181,9 +4231,7 @@ mod lanes {
     /// `fallback.reads_as_a_return(text)`: the thing named after "as i was saying about", or None.
     /// CONTRACT: `compose::fallback::reads_as_a_return` returns `()`.
     pub fn reads_as_a_return(text: &str) -> Option<String> {
-        #[allow(clippy::let_unit_value)]
-        let _named = crate::compose::fallback::reads_as_a_return(text);
-        None
+        crate::compose::fallback::reads_as_a_return(text).text()
     }
 
     /// `fallback.asks_about_a_care_answer(care_about, last, memory, own)`.
@@ -4209,17 +4257,13 @@ mod lanes {
     /// `_repeat.asked_back(text, memory)` read as a truth value.
     /// CONTRACT: `memory::repeat::asked_back` returns `()`.
     pub fn repeat_asked_back(text: &str, mem: &Mem) -> bool {
-        #[allow(clippy::let_unit_value)]
-        let _asked = crate::memory::repeat::asked_back(text, &m(mem));
-        false
+        crate::memory::repeat::asked_back(text, &m(mem)).is_truthy()
     }
 
     /// `_repeat.the_figure_they_gave(text, memory)`.
     /// CONTRACT: `memory::repeat::the_figure_they_gave` returns `()`.
     pub fn repeat_the_figure_they_gave(text: &str, mem: &Mem) -> Value {
-        #[allow(clippy::let_unit_value)]
-        let _figure = crate::memory::repeat::the_figure_they_gave(text, &m(mem));
-        Value::None
+        crate::memory::repeat::the_figure_they_gave(text, &m(mem)).read()
     }
 
     /// `_repeat.MOVE_ASK`.
@@ -4247,17 +4291,13 @@ mod lanes {
     /// `_lineback.an_earlier_turn(text, memory)` read as a truth value.
     /// CONTRACT: `memory::lineback::an_earlier_turn` returns `()`.
     pub fn lineback_an_earlier_turn(text: &str, mem: &Mem) -> bool {
-        #[allow(clippy::let_unit_value)]
-        let _found = crate::memory::lineback::an_earlier_turn(text, &m(mem));
-        false
+        crate::memory::lineback::an_earlier_turn(text, &m(mem)).is_truthy()
     }
 
     /// `_lineback.the_kind_they_gave(text, memory)`.
     /// CONTRACT: `memory::lineback::the_kind_they_gave` returns `()`.
     pub fn lineback_the_kind_they_gave(text: &str, mem: &Mem) -> Value {
-        #[allow(clippy::let_unit_value)]
-        let _line = crate::memory::lineback::the_kind_they_gave(text, &m(mem));
-        Value::None
+        crate::memory::lineback::the_kind_they_gave(text, &m(mem)).read()
     }
 
     /// `_cooking.SHORTAGE_WORDS`.
@@ -4306,15 +4346,13 @@ mod lanes {
 
     /// `fit.gives(reply, want, text)`: True, False, or None when the words cannot tell.
     pub fn fit_gives(reply: &str, want: &str, text: &str) -> Option<bool> {
-        crate::compose::fit::gives(reply, want, text)
+        crate::compose::fit::gives(reply, want, Some(text))
     }
 
     /// `_reading.reply_to_a_bare_doubt(text, memory)`.
     /// CONTRACT: `compose::reading::reply_to_a_bare_doubt` returns `()`.
     pub fn reply_to_a_bare_doubt(text: &str, mem: &Mem) -> Value {
-        #[allow(clippy::let_unit_value)]
-        let _reply = crate::compose::reading::reply_to_a_bare_doubt(text, &m(mem));
-        Value::None
+        crate::compose::reading::reply_to_a_bare_doubt(text, &m(mem)).read()
     }
 
     /// `memory_store.REPEAT_WORDS`.
@@ -4351,9 +4389,8 @@ mod lanes {
     /// CONTRACT: `compose::leaving::pool` returns `()` (and takes `&[String]`/`&Memory` where
     /// Python passes None), so the pool it picks cannot be compared: read as not the reason pool.
     pub fn leaving_pool_is_the_reason_pool(typed: &str) -> bool {
-        #[allow(clippy::let_unit_value)]
-        let _pool = crate::compose::leaving::pool(typed, &[], true, &Memory::new(), true);
-        false
+        let pool = crate::compose::leaving::pool(typed, &[], true, &Memory::new(), true).read();
+        !pool.is_none() && pool.strs() == data::strs("bot.compose.leaving.REASON_POOL")
     }
 }
 
@@ -4455,7 +4492,7 @@ mod hooks {
 #[cfg(test)]
 mod tests {
     //! The arbiter's own readings checked against PyBot's on the lines and candidates of a turn
-    //! oracle (`scratch/mod3/arbiter_ref.py` writes the reference). Run with
+    //! oracle (`harness/mod3_arbiter_ref.py` writes the reference). Run with
     //! `ARBITER_REF=<reference jsonl> ARBITER_INPUT=<oracle .gz>`.
     use super::*;
     use serde_json::{json, Value as J};
@@ -4683,7 +4720,7 @@ mod tests {
         eprintln!("arbiter readings against the reference: {ok} same, {bad} different, {raised} raised");
     }
 
-    /// The small modules' pure readings against PyBot's (`scratch/mod3/small_ref.py`). Run with
+    /// The small modules' pure readings against PyBot's (`harness/mod3_small_ref.py`). Run with
     /// `SMALL_REF=<reference jsonl>`.
     #[test]
     #[ignore]

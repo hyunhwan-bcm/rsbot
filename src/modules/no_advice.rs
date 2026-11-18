@@ -25,9 +25,8 @@ pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
 /// CONTRACT: `compose::no_advice::pool_name` returns `()` (the traced calls only returned None),
 /// so no pool name can come back yet; the call is still made so a raise is a raise.
 fn pool_name(text: &str) -> Option<String> {
-    #[allow(clippy::let_unit_value)]
-    let _pool = crate::compose::no_advice::pool_name(text);
-    None
+    use crate::modules::arbiter::Reading;
+    crate::compose::no_advice::pool_name(text).text()
 }
 
 /// Python: bot/modules/no_advice.py:53 `TAKES_AS_IT_COMES(text, memory=None)`: the lines this
