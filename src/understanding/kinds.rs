@@ -3,7 +3,21 @@
 
 use crate::understanding::normalize::Line;
 use crate::understood::{CareHome, Suggestion, Summons, TakingUp, Understood};
+use crate::data;
+use crate::py::re::Re;
+use crate::py::text;
 use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::sync::LazyLock;
+
+const M: &str = "bot.understanding.kinds.";
+
+fn set(name: &str) -> HashSet<String> {
+    data::set(&format!("{M}{name}"))
+}
+fn re(name: &str) -> &'static Re {
+    data::re(&format!("{M}{name}"))
+}
 
 /// What `classify(line)` returns (Python's dict, same keys). `_read_line` changes `intent`,
 /// `asks`, `replies_to_bot`, `about_bot` and `about_bot_kind` afterwards.
@@ -200,12 +214,6 @@ pub fn _the_step_went_wrong(rest: &[String]) -> bool {
     todo!("kinds::_the_step_went_wrong")
 }
 
-/// `_speaker_before(text, at)`: `at` is a byte offset into `text` (Python's index, as Rust
-/// regex matches give it).
-pub fn _speaker_before(text: &str, at: usize) -> bool {
-    let _ = (text, at);
-    todo!("kinds::_speaker_before")
-}
 
 /// `_asks_back(norm)`.
 pub fn _asks_back(norm: &[String]) -> bool {
@@ -213,26 +221,150 @@ pub fn _asks_back(norm: &[String]) -> bool {
     todo!("kinds::_asks_back")
 }
 
-/// `a_bad_verdict(norm, index)`.
-pub fn a_bad_verdict(norm: &[String], index: usize) -> bool {
-    let _ = (norm, index);
-    todo!("kinds::a_bad_verdict")
-}
 
-/// `small_talk_only(norm)`.
-pub fn small_talk_only(norm: &[String]) -> bool {
-    let _ = norm;
-    todo!("kinds::small_talk_only")
-}
 
-/// `feeling_by_sound(word)`.
-pub fn feeling_by_sound(word: &str) -> Option<String> {
-    let _ = word;
-    todo!("kinds::feeling_by_sound")
-}
 
 /// `a_broken_heart_shape(text)`.
 pub fn a_broken_heart_shape(text: &str) -> bool {
     let _ = text;
     todo!("kinds::a_broken_heart_shape")
+}
+
+static FEELING_FILLER: LazyLock<HashSet<String>> = LazyLock::new(|| set("FEELING_FILLER"));
+static MOOD_NOUNS: LazyLock<HashSet<String>> = LazyLock::new(|| set("MOOD_NOUNS"));
+static SPEAKER_TAIL: LazyLock<&'static Re> = LazyLock::new(|| re("SPEAKER_TAIL"));
+static VERDICT_NOUNS: LazyLock<HashSet<String>> = LazyLock::new(|| set("VERDICT_NOUNS"));
+static VERDICT_ADJECTIVES: LazyLock<HashSet<String>> = LazyLock::new(|| set("VERDICT_ADJECTIVES"));
+static VERDICT_FILLER: LazyLock<HashSet<String>> = LazyLock::new(|| set("VERDICT_FILLER"));
+static COPULAS: LazyLock<HashSet<String>> = LazyLock::new(|| set("COPULAS"));
+static PRONOUN_SUBJECT: LazyLock<HashSet<String>> = LazyLock::new(|| set("PRONOUN_SUBJECT"));
+static ASKING_SUBJECT: LazyLock<HashSet<String>> = LazyLock::new(|| set("ASKING_SUBJECT"));
+static NOT_A_THING: LazyLock<HashSet<String>> = LazyLock::new(|| set("NOT_A_THING"));
+static SMALL_TALK_LEFTOVER: LazyLock<HashSet<String>> = LazyLock::new(|| set("SMALL_TALK_LEFTOVER"));
+static SMALL_TALK_WORDS: LazyLock<Vec<Vec<String>>> =
+    LazyLock::new(|| data::get(&format!("{M}SMALL_TALK_WORDS")).items().iter().map(|p| p.strs()).collect());
+/// `EMOTION_WORDS`: feeling name -> its cue words, in Python's dict order.
+pub(crate) static EMOTION_WORDS: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| {
+    data::get(&format!("{M}EMOTION_WORDS")).pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect()
+});
+static RE_IM: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bi'?m\b", 0));
+static RE_IVE: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bi'?ve\b", 0));
+
+/// The words of a text with Python's `word.strip('.,!?;:-|"\'').lower()`.
+fn stripped_words(text: &str) -> Vec<String> {
+    text::split_ref(text).into_iter().map(|w| text::strip_chars(w, ".,!?;:-|\"'").to_lowercase()).collect()
+}
+
+/// `_speaker_before(text, at)`: the words just before `at` (a byte offset) make the speaker the
+/// one in the state ("i am so", "i feel", "my mood is").
+pub fn _speaker_before(text: &str, at: usize) -> bool {
+    let mut words = stripped_words(&text[..at.min(text.len())]);
+    while words.last().is_some_and(|w| FEELING_FILLER.contains(w)) {
+        words.pop();
+    }
+    let tail = words[words.len().saturating_sub(5)..].join(" ");
+    let tail = RE_IM.sub("i am", &tail);
+    let tail = RE_IVE.sub("i have", &tail);
+    if SPEAKER_TAIL.is_match(&tail) {
+        return true;
+    }
+    let recent = &words[words.len().saturating_sub(4)..];
+    if let Some(my) = recent.iter().position(|w| w == "my") {
+        for word in &recent[my + 1..] {
+            if MOOD_NOUNS.contains(word) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// `a_bad_verdict(norm, index)`: the word at `index` is a verdict on a thing ("the film was
+/// rubbish"), not a feeling.
+pub fn a_bad_verdict(norm: &[String], index: usize) -> bool {
+    if index >= norm.len() || (!VERDICT_NOUNS.contains(&norm[index]) && !VERDICT_ADJECTIVES.contains(&norm[index])) {
+        return false;
+    }
+    let mut back = index as isize - 1;
+    while back >= 0 && VERDICT_FILLER.contains(&norm[back as usize]) {
+        back -= 1;
+    }
+    if back < 0 || !COPULAS.contains(&norm[back as usize]) {
+        return false;
+    }
+    let subject = back - 1;
+    if subject < 0 {
+        return false;
+    }
+    let s = &norm[subject as usize];
+    !(PRONOUN_SUBJECT.contains(s) || ASKING_SUBJECT.contains(s) || COPULAS.contains(s) || NOT_A_THING.contains(s))
+}
+
+/// `small_talk_only(norm)`: the line is a small-talk phrase and nothing else ("how are you").
+pub fn small_talk_only(norm: &[String]) -> bool {
+    if norm.is_empty() || norm.len() > 10 {
+        return false;
+    }
+    for phrase in SMALL_TALK_WORDS.iter() {
+        let size = phrase.len();
+        if size > norm.len() {
+            continue;
+        }
+        for at in 0..=(norm.len() - size) {
+            if norm[at..at + size] != phrase[..] {
+                continue;
+            }
+            let rest_left = norm[..at].iter().chain(norm[at + size..].iter());
+            if rest_left.into_iter().all(|w| SMALL_TALK_LEFTOVER.contains(w)) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// `_skeleton(word)`: the consonants of a word ("anxous" and "anxious" share one).
+pub fn _skeleton(word: &str) -> String {
+    word.to_lowercase().chars().filter(|c| c.is_alphabetic() && !"aeiouy".contains(*c)).collect()
+}
+
+/// `_sound_cues()`: (skeleton -> feeling -> cues, every one-word cue).
+fn _sound_cues() -> &'static (HashMap<String, BTreeMap<String, Vec<String>>>, HashSet<String>) {
+    static CUES: LazyLock<(HashMap<String, BTreeMap<String, Vec<String>>>, HashSet<String>)> = LazyLock::new(|| {
+        let mut index: HashMap<String, BTreeMap<String, Vec<String>>> = HashMap::new();
+        let mut known = HashSet::new();
+        for (name, cues) in EMOTION_WORDS.iter() {
+            for cue in cues {
+                if cue.contains(' ') {
+                    continue;
+                }
+                known.insert(cue.clone());
+                if text::len(cue) < 4 {
+                    continue;
+                }
+                index.entry(_skeleton(cue)).or_default().entry(name.clone()).or_default().push(cue.clone());
+            }
+        }
+        (index, known)
+    });
+    &CUES
+}
+
+/// `feeling_by_sound(word)`: the one feeling a misspelt word sounds like ("anxous" -> anxious).
+pub fn feeling_by_sound(word: &str) -> Option<String> {
+    static COMMON_NAMES: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.understanding.lexicon.COMMON_NAMES"));
+    let low = text::strip_chars(text::strip(word), ".,!?;:'\"()").to_lowercase();
+    if text::len(&low) < 4 || !text::is_alpha(&low) {
+        return None;
+    }
+    let (index, known) = _sound_cues();
+    if known.contains(&low) || COMMON_NAMES.contains(&low) {
+        return None;
+    }
+    let first: String = low.chars().take(1).collect();
+    let found: BTreeSet<&String> = match index.get(&_skeleton(&low)) {
+        Some(matches) => matches.iter().filter(|(_, cues)| cues.iter().any(|c| c.chars().take(1).collect::<String>() == first)).map(|(n, _)| n).collect(),
+        None => BTreeSet::new(),
+    };
+    if found.len() == 1 { found.into_iter().next().cloned() } else { None }
 }
