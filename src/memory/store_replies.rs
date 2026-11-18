@@ -4322,7 +4322,7 @@ pub fn _the_time_that_moved(told: &str, fixed: &Value, value: &str) -> Option<St
 /// True when the figure this line changed is money put by each month, not a word of a fact.
 pub fn _a_rate_changed(text_: &str, memory: &Memory) -> bool {
     let Some(rewritten) = some_str(crate::memory::resize::rewritten(text_, &memory_value(memory))) else { return false };
-    if crate::memory::resize::rate(&rewritten).val().is_none() {
+    if crate::memory::resize::rate(&rewritten).is_none() {
         return false;
     }
     PUTTING_BY.is_match(&rewritten)
