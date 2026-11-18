@@ -108,7 +108,7 @@ pub fn the_answer_they_gave(text_: &str, memory: &Memory) -> Option<String> {
         if what.is_empty() || NOTHING_WENT_WRONG.search(&what).is_some() || text::split_ref(&what).len() > 3 {
             return None;
         }
-        let pool: Vec<String> = WANTED_IT.iter().map(|l| format_named(l, &[("", &what)])).collect();
+        let pool: Vec<String> = WANTED_IT.iter().map(|l| format_named(l, &[("0", &what)])).collect();
         return Some(pick(&pool, memory, &line));
     }
     if !_opens_on_the_comparison(&line) {
