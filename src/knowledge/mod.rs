@@ -54,3 +54,5 @@ pub mod sleep;
 pub mod still_ok;
 pub mod swaps;
 pub mod tenancy;
+pub mod cooking;
+pub mod d2dup_cooka;
