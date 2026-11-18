@@ -199,3 +199,29 @@ pub fn py_str(v: &Value) -> String {
         other => panic!("str() of {other:?} is not a value this port formats"),
     }
 }
+
+/// `x is None` for what a callee gives back, whatever type its port has today (`()` is a stub
+/// that returns None; an Option or a Value says so itself).
+pub trait IsNone {
+    fn is_py_none(&self) -> bool;
+}
+impl IsNone for () {
+    fn is_py_none(&self) -> bool {
+        true
+    }
+}
+impl<T> IsNone for Option<T> {
+    fn is_py_none(&self) -> bool {
+        self.is_none()
+    }
+}
+impl IsNone for Value {
+    fn is_py_none(&self) -> bool {
+        self.is_none()
+    }
+}
+impl IsNone for String {
+    fn is_py_none(&self) -> bool {
+        false
+    }
+}
