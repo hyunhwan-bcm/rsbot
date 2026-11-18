@@ -52,7 +52,7 @@ pub fn reads_as_handoff(text: &str) -> bool {
 /// Python: bot/compose/handoff.py:130 `takes_as_it_comes(text, memory)`
 ///
 /// Read by the arbiter: yes to every bare hand-off and to one that names its subject.
-pub fn takes_as_it_comes(text: &str, memory: &Memory) -> bool {
+pub fn takes_as_it_comes(text: &str, _memory: &Memory) -> bool {
     reads_as_handoff(text) || reads_as_handoff_about_a_thing(text).is_some_and(|t| !t.is_empty())
 }
 

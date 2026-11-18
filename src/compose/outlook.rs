@@ -32,7 +32,7 @@ pub fn points_at_the_thread(text: &str) -> bool {
 /// True when the line asks how the thing turns out, pointing at it with a pronoun. The
 /// contract's `clean` is a str; every caller passes the normalised line, which Python reads in
 /// place of `text` (so `text` is not read here).
-pub fn asks_the_outlook(text: &str, clean: &str) -> bool {
+pub fn asks_the_outlook(_text: &str, clean: &str) -> bool {
     let said = text::squash(&text::lower(clean));
     if said.is_empty() || text::split_ref(&said).len() > 9 {
         return false;

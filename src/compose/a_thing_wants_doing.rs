@@ -23,7 +23,7 @@ static A_THING_WANTS_DOING: LazyLock<Vec<String>> = LazyLock::new(|| data::strs(
 /// Python: bot/compose/a_thing_wants_doing.py:48 `reads(text, memory=None)`
 ///
 /// The thing the line hands over, when it is in a state that wants doing, else None.
-pub fn reads(text: &str, memory: &Memory) -> Option<String> {
+pub fn reads(text: &str, _memory: &Memory) -> Option<String> {
     let flat = text::squash(&text::lower(text));
     let words = text::split_ref(&flat);
     if flat.is_empty() || words.len() > 8 {
