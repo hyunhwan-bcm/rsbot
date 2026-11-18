@@ -3,7 +3,7 @@
 //!
 //! The Python file is imported from the last line of `fallback.py`, so the two read as one
 //! module; here the readings of `fallback.py` are called as `fallback::...`.
-#![allow(non_snake_case, clippy::all, unused_variables)]
+#![allow(non_snake_case, clippy::all)]
 
 use crate::compose::fallback;
 use crate::data::{self, Value};
@@ -92,26 +92,56 @@ pub trait PyRet {
     {
         None
     }
+    /// The text with `None` and `""` kept apart (for the readers where Python tells them apart).
+    fn into_opt_string(self) -> Option<String>
+    where
+        Self: Sized,
+    {
+        None
+    }
+    /// A pool with `None` and an empty pool kept apart (`x is not None`).
+    fn into_pool_exact(self) -> Option<Vec<String>>
+    where
+        Self: Sized,
+    {
+        self.into_pool()
+    }
+    /// What it was, as a Python value (to hand on to a reader that takes the value itself).
+    fn into_value(self) -> Value
+    where
+        Self: Sized;
 }
 
 impl PyRet for () {
     fn truthy(&self) -> bool {
         false
     }
+    fn into_value(self) -> Value {
+        Value::None
+    }
 }
 impl PyRet for bool {
     fn truthy(&self) -> bool {
         *self
+    }
+    fn into_value(self) -> Value {
+        Value::Bool(self)
     }
 }
 impl PyRet for i64 {
     fn truthy(&self) -> bool {
         *self != 0
     }
+    fn into_value(self) -> Value {
+        Value::Int(self)
+    }
 }
 impl PyRet for usize {
     fn truthy(&self) -> bool {
         *self != 0
+    }
+    fn into_value(self) -> Value {
+        Value::Int(self as i64)
     }
 }
 impl PyRet for String {
@@ -121,6 +151,12 @@ impl PyRet for String {
     fn into_text(self) -> Option<String> {
         if self.is_empty() { None } else { Some(self) }
     }
+    fn into_opt_string(self) -> Option<String> {
+        Some(self)
+    }
+    fn into_value(self) -> Value {
+        Value::from(self)
+    }
 }
 impl PyRet for &str {
     fn truthy(&self) -> bool {
@@ -128,6 +164,12 @@ impl PyRet for &str {
     }
     fn into_text(self) -> Option<String> {
         if self.is_empty() { None } else { Some(self.to_string()) }
+    }
+    fn into_opt_string(self) -> Option<String> {
+        Some(self.to_string())
+    }
+    fn into_value(self) -> Value {
+        Value::from(self)
     }
 }
 impl PyRet for Vec<String> {
@@ -137,6 +179,12 @@ impl PyRet for Vec<String> {
     fn into_pool(self) -> Option<Vec<String>> {
         if self.is_empty() { None } else { Some(self) }
     }
+    fn into_pool_exact(self) -> Option<Vec<String>> {
+        Some(self)
+    }
+    fn into_value(self) -> Value {
+        Value::from(self)
+    }
 }
 impl PyRet for &[String] {
     fn truthy(&self) -> bool {
@@ -145,6 +193,12 @@ impl PyRet for &[String] {
     fn into_pool(self) -> Option<Vec<String>> {
         if self.is_empty() { None } else { Some(self.to_vec()) }
     }
+    fn into_pool_exact(self) -> Option<Vec<String>> {
+        Some(self.to_vec())
+    }
+    fn into_value(self) -> Value {
+        Value::from(self.to_vec())
+    }
 }
 impl PyRet for &Vec<String> {
     fn truthy(&self) -> bool {
@@ -152,6 +206,12 @@ impl PyRet for &Vec<String> {
     }
     fn into_pool(self) -> Option<Vec<String>> {
         if self.is_empty() { None } else { Some(self.clone()) }
+    }
+    fn into_pool_exact(self) -> Option<Vec<String>> {
+        Some(self.clone())
+    }
+    fn into_value(self) -> Value {
+        Value::from(self.clone())
     }
 }
 impl PyRet for Value {
@@ -170,6 +230,21 @@ impl PyRet for Value {
             _ => None,
         }
     }
+    fn into_opt_string(self) -> Option<String> {
+        match &self {
+            Value::Str(s) => Some(s.to_string()),
+            _ => None,
+        }
+    }
+    fn into_pool_exact(self) -> Option<Vec<String>> {
+        match &self {
+            Value::List(_) | Value::Tuple(_) | Value::Set(_) => Some(self.strs()),
+            _ => None,
+        }
+    }
+    fn into_value(self) -> Value {
+        self
+    }
 }
 impl PyRet for &Value {
     fn truthy(&self) -> bool {
@@ -181,6 +256,15 @@ impl PyRet for &Value {
     fn into_pool(self) -> Option<Vec<String>> {
         self.clone().into_pool()
     }
+    fn into_opt_string(self) -> Option<String> {
+        self.clone().into_opt_string()
+    }
+    fn into_pool_exact(self) -> Option<Vec<String>> {
+        self.clone().into_pool_exact()
+    }
+    fn into_value(self) -> Value {
+        self.clone()
+    }
 }
 impl<T: PyRet> PyRet for Option<T> {
     fn truthy(&self) -> bool {
@@ -191,6 +275,18 @@ impl<T: PyRet> PyRet for Option<T> {
     }
     fn into_pool(self) -> Option<Vec<String>> {
         self.and_then(|v| v.into_pool())
+    }
+    fn into_opt_string(self) -> Option<String> {
+        self.and_then(|v| v.into_opt_string())
+    }
+    fn into_pool_exact(self) -> Option<Vec<String>> {
+        self.and_then(|v| v.into_pool_exact())
+    }
+    fn into_value(self) -> Value {
+        match self {
+            Some(v) => v.into_value(),
+            None => Value::None,
+        }
     }
 }
 
@@ -205,6 +301,11 @@ pub fn text_of<T: PyRet>(v: T) -> Option<String> {
 /// The pool a call gave back, or None for None / an empty pool.
 pub fn pool_of<T: PyRet>(v: T) -> Option<Vec<String>> {
     v.into_pool()
+}
+
+/// The text a call gave back with None and "" kept apart.
+pub fn opt_string_of<T: PyRet>(v: T) -> Option<String> {
+    v.into_opt_string()
 }
 
 /// A memory with nothing in it: what a Python reader that takes `memory=None` sees.
@@ -1376,7 +1477,7 @@ pub fn _reads_value<T: PyRet>(pred: impl Fn(&str) -> T, clean: &str, repaired: &
 /// Python: bot/compose/fallback_chain.py:2958 `_a_countdown_in_a_care_thread(memory, clean,
 /// repaired, understood)`: the date said plainly, or None. (The skeleton had this returning
 /// nothing; Python returns the line or None.)
-pub fn _a_countdown_in_a_care_thread(memory: &Memory, clean: &str, repaired: &str, understood: &Understood) -> Option<String> {
+pub fn _a_countdown_in_a_care_thread(memory: &Memory, clean: &str, repaired: &str, _understood: &Understood) -> Option<String> {
     if !crate::memory::topics::in_a_safety_thread(memory) {
         return None;
     }
@@ -1820,7 +1921,7 @@ pub fn _a_detail_about_what_was_said(text_: &str, memory: &Memory) -> bool {
 }
 
 /// Python: bot/compose/fallback_chain.py:6019 `_a_dish_name(clean, words, memory)`
-pub fn _a_dish_name(clean: &str, words: &[String], memory: &Memory) -> bool {
+pub fn _a_dish_name(_clean: &str, words: &[String], memory: &Memory) -> bool {
     if words.len() < 2 || !DISH_PARTICIPLE.contains(&words[0]) {
         return false;
     }
@@ -2221,12 +2322,1297 @@ pub fn _a_day_asked_without_a_cheer(clean: &str, memory: &Memory) -> bool {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Not ported yet.
+// The chain: `_reply_for`.
 // ---------------------------------------------------------------------------------------------
 
+data_re!(M; ANSWERING_A_QUOTED_ASK, A_BIT_PAST_IT, A_CHILD, A_DISMISSAL, A_GOODNESS_ASKED_OF_ME, A_HELP_WORD,
+    A_SKILL_ASKED_OF_ME, A_SORRY_ON_ITS_OWN, A_WAY_OF_BEING, CANNOT_ANYTHING_ASK, CANNOT_READ_YOURS,
+    CANNOT_SEE_ANYTHING, DITHER, DITHER_OPEN, DITHER_YES_NO, FLAT_LINE, FORGETS_AGAIN, FORGETS_A_CLASH,
+    FORGET_A_DATE, FORGET_A_SECRET, FRIGHTENED, HANDS_IT_BACK, HAND_BACK, HEALTH_MODIFIER, HELP_SERVICE,
+    I_RATE_A_SKILL, LEAVING_A_PERSON, LEFT_BEHIND, LOST_QUESTION, NOT_LEAVING_ANYONE, NOT_SELF, PLAN_IDIOM,
+    PLAN_MEDICINE_SLOW, PLAN_NOT_YET, QUOTE_ASKS, RATES_A_SKILL, SELF_BLAME_ASKS, SELF_SUBJECT, SO_NOTHING_LIVE,
+    TELL_HARD, THANKS_GOOD_AGAIN, THANKS_WENT_BADLY, THE_LEAVE_HAS_HAPPENED, WORDING_ASKS, WORDING_ASKS_WHO,
+    WOULD_HAVE_BEEN, _A_CORRECTION, _CAUGHT, _ILL, _LUMP);
+data_strs!(M; ABOUT_TALLY, ABOUT_THE_BOT_LINES, ACK, ACK_AFTER_TROUBLE, ACK_WARM, ACTS_FOR_ME, AGREEMENT,
+    ASKED_A_RATING, ASKED_IF_GOOD, A_CHILD_LEAVING, A_CHILD_LEFT, A_COMPARISON_OF_STANDING, A_CORRECTION_TAKEN,
+    A_COST_SOMEBODY_ASKS, A_CROWD_AHEAD, A_DREAD, A_LAUGH, A_LOVE_FOR_PEOPLE, A_LOVE_FOR_SOMEONE, A_STATE_NOW,
+    A_STATE_PAST, A_SUGGESTED, A_SUGGESTED_BY_SOMEONE, A_SUM_STATED, A_THING_LOOKS_SAD, A_WANT_IT_OVER,
+    BAD_STRETCH_REPLIES, CAME_BACK, CANNOT_ANYTHING, CANNOT_SEE_ANYTHING_LINES, CANNOT_YOUR_OWN, CARD_LINES,
+    CARING, CARING_FOR_A_BODY, CHECK_PHRASES, CLOSED_DOOR, CONGRATS, DATES_KEEP_SLIPPING, DECLINED_PLAN,
+    DECLINED_PLAN_GENTLE, DITHER_DECIDE, DITHER_OPEN_LINES, DITHER_TWO_WAY_LINES, DOUBLE_BOOKED,
+    ELDER_AID_REPLIES, ELDER_CLINIC_REPLIES, ELDER_DOCTOR_REPLIES, ELDER_HELP_REPLIES, EMBARRASSED, EMPTY, FLAT,
+    FOUND_IT, GREETING, GRIEF_AFTER, GRIEVANCE, HABIT_REPLY, HAND, HANDS_BACK, HELP_ALREADY, HOW_ARE_YOU,
+    IDIOM_GLAD, IDIOM_SHY, INVITED, INVITED_TO_TALK, KEEPS_FORGETTING, KNOCKED, LANDED_BAD, LATE_BEHIND_LINES,
+    LATE_NOW_LINES, LAUGHED_AT, LEFT_POOL, LEFT_POOL_GONE, LOCKED_OUT_LINES, LOCKED_OUT_OF_THE_CAR, LOST_A_THING,
+    LOST_A_THING_AGAIN, LUMP, MILESTONE, MISHAP_BACK, NAMED_NEGATIVE, NEAR_MISS_REPLY, NEUTRAL, NEVER_MIND,
+    NEWS_TO_COME, NOTHING_TO_WEAR_REPLIES, NOT_FIT_ENOUGH, NOT_TOO_OLD, NO_DIRECTION_REPLY, ONE_SKILL_RATED,
+    PAUSE_IN_A_SAFETY_THREAD, PENDING_DOUBT, PENDING_LANDED, PENDING_WAITING, PENDING_WHEN,
+    PET_CONDITION_TROUBLE, PET_LOW_REPLY, PET_TROUBLE, PLAN, PLAN_DONE, PLAN_DONE_ACK, PLAN_KNOCKED,
+    PLAN_MEDICINE_REPLY, PLAN_MEDICINE_SLOW_REPLY, PLEASURE_GONE_LINES, POSITIVE, PREGNANCY_BLEEDING, PRESENT,
+    QUOTE_LINES, REACTIONS_CARE, REACTION_REPEAT, RELATIONSHIP_DECISION, RELIEF, RETURNED_TO_A_THING,
+    RETURNED_TO_IT, RETURNED_TO_IT_FIRST, RUMINATION_REPLIES, RUN_OUT_LINES, SECRETS_KEEP_SLIPPING, SELF_BLAME,
+    SOMEONE_GONE, SOMEONE_LEAVING, SOMEONE_SERIOUSLY_ILL, SORRY_FOR_ASKING, SORRY_ON_ITS_OWN,
+    STUCK_AFTER_TROUBLE, SUDDEN_LOSS, SYMPTOM, SYMPTOM_COLD, SYMPTOM_LINGERS, TELL_HARD_LINES, THANKS,
+    THANKS_NO_BETTER, THANKS_THEN_SAID, THE_FIRST_HOUR_AND_A_CHILD, TIGHT_MONEY, TIGHT_MONEY_MORE, TIPS_LINES,
+    UNKNOWN, UNKNOWN_HEALTH, UNKNOWN_WORD, WALKED_INTO_POOL, WIN_AND_A_COST, WIN_IN_A_SILENCE, WORDING_LINES);
+data_set!(M; ACKS, ANIMALS, COMFORT_SAID, EXPERT_WORDS, HEALTH_WORDS);
 
-/// Python: bot/compose/fallback_chain.py:2986 `_reply_for(text, memory, understood=None, verdict=True)`
-pub fn _reply_for(text: &str, memory: &mut Memory, understood: Option<&Understood>, verdict: bool) -> Option<String> {
-    crate::unported!("bot.compose.fallback_chain:_reply_for")
+/// A `{str: pool}` dict of this module, in order.
+fn pool_map(name: &str) -> Vec<(String, Vec<String>)> {
+    data::get(&format!("{M}{name}")).pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect()
+}
+static ABOUT: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| pool_map("ABOUT"));
+static ABOUT_SELF: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| pool_map("ABOUT_SELF"));
+static BODY_POOLS: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| pool_map("BODY_POOLS"));
+static BOUND_FOR: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| pool_map("BOUND_FOR"));
+static CUT_FOR: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| pool_map("CUT_FOR"));
+/// `REACTIONS_SAID`: a reaction pool -> the pool for when the person already said it.
+static REACTIONS_SAID: LazyLock<Vec<(Vec<String>, Vec<String>)>> = LazyLock::new(|| {
+    data::get(&format!("{M}REACTIONS_SAID")).pairs().iter().map(|(k, v)| (k.strs(), v.strs())).collect()
+});
+static VET_WHO: LazyLock<String> = LazyLock::new(|| data::string(&format!("{M}VET_WHO")));
+
+/// `d[key]` for one of the `{str: pool}` dicts (KeyError as in Python).
+fn pool_at<'a>(map: &'a [(String, Vec<String>)], key: &str) -> &'a Vec<String> {
+    map.iter().find(|(k, _)| k == key).map(|(_, v)| v).unwrap_or_else(|| panic!("KeyError: {key}"))
+}
+fn has_key(map: &[(String, Vec<String>)], key: &str) -> bool {
+    map.iter().any(|(k, _)| k == key)
 }
 
+static MORNING_AFTER: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.morning_after.A_MORNING_AFTER"));
+static DRAFT_LEAD_INS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.draft.LEAD_INS"));
+static DRAFT_NOT_YET: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.draft.NOT_YET"));
+static LOSS_AFTER_REPLIES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.loss.AFTER_REPLIES"));
+static STUCK: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.stuck.STUCK"));
+static ACK_COMPLAINT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.ack.COMPLAINT"));
+static UNSEEN_LINES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.unseen.LINES"));
+/// `childwords.THE_WORDS_FOR_A_CHILD`. The export did not load `bot/compose/childwords.py` (this
+/// file imports it inside `_reply_for`), so the pool is not in the data bundle.
+fn the_words_for_a_child() -> Vec<String> {
+    match data::try_get("bot.compose.childwords.THE_WORDS_FOR_A_CHILD") {
+        Some(v) => v.strs(),
+        None => panic!("UNPORTED data bot.compose.childwords.THE_WORDS_FOR_A_CHILD (not in the bundle)"),
+    }
+}
+
+/// The (axis, part) pairs `the_limits_said` gives back.
+pub trait PyPairs {
+    fn into_pairs(self) -> Vec<(String, String)>;
+}
+impl PyPairs for Vec<(String, String)> {
+    fn into_pairs(self) -> Vec<(String, String)> {
+        self
+    }
+}
+impl PyPairs for Value {
+    fn into_pairs(self) -> Vec<(String, String)> {
+        self.items().iter().map(|p| (p.items().first().map(|x| x.str().to_string()).unwrap_or_default(), p.items().get(1).map(|x| x.str().to_string()).unwrap_or_default())).collect()
+    }
+}
+impl PyPairs for Vec<String> {
+    fn into_pairs(self) -> Vec<(String, String)> {
+        // The skeleton's guess (a list of strings) cannot carry Python's (axis, part) tuples.
+        panic!("UNPORTED contract bot.compose.fallback:the_limits_said returns (axis, part) pairs")
+    }
+}
+
+/// `_choose(pool, memory, clean)` as the chain says it.
+macro_rules! choose {
+    ($pool:expr, $memory:expr, $clean:expr) => {
+        _choose_opt(&$pool, &*$memory, &$clean, None)
+    };
+    ($pool:expr, $memory:expr, $clean:expr, $seed:expr) => {
+        _choose_opt(&$pool, &*$memory, &$clean, Some(&$seed))
+    };
+}
+
+/// `_choose(...).format(...)` / `.replace(...)` on a line that must be there: Python's
+/// `None.format` raises.
+fn chosen(line: Option<String>) -> String {
+    line.unwrap_or_else(|| panic!("AttributeError: 'NoneType' object has no attribute 'format'"))
+}
+
+/// Python: bot/compose/fallback_chain.py:2986 `_reply_for(text, memory, understood=None,
+/// verdict=True)`: the composer's reply to this turn, or None.
+pub fn _reply_for(text_: &str, memory: &mut Memory, understood: Option<&Understood>, verdict: bool) -> Option<String> {
+    let understood: Understood = match understood {
+        Some(u) => u.clone(),
+        None => match &memory.understood {
+            Some(u) => u.clone(),
+            None => crate::understanding::understand(text_, Some(&*memory)),
+        },
+    };
+    let was_taste = {
+        let state = memory.setdefault("compose", Value::dict());
+        let was = state.get("taste").is_some_and(|v| v.truthy());
+        state.set_key("taste", false);
+        was
+    };
+    let mut kind = if understood.kind.is_empty() { "statement".to_string() } else { understood.kind.clone() };
+    let words: Vec<String> = understood.words.clone();
+    let clean = if understood.clean.is_empty() { low_squash(text_) } else { understood.clean.clone() };
+    if let Some(counted) = _a_countdown_in_a_care_thread(memory, &clean, text_, &understood) {
+        if !counted.is_empty() {
+            return Some(counted);
+        }
+    }
+    if let Some(after) = text_of(fallback::_after_safety(memory, &clean, Some(&understood))) {
+        return Some(after);
+    }
+    let for_the_child = if text_.is_empty() { clean.as_str() } else { text_ };
+    if crate::compose::childwords::asks_the_words_for_a_child(for_the_child, memory) {
+        return choose!(the_words_for_a_child(), memory, clean);
+    }
+    if let Some(at_a_time) = text_of(crate::compose::talktime::answer_for(&clean, memory)) {
+        return Some(at_a_time);
+    }
+    if crate::compose::morning_after::reads_as_a_morning_after(&clean) {
+        return choose!(MORNING_AFTER, memory, clean);
+    }
+    if let Some(hurt) = _somebody_hurt(&clean, memory, &understood) {
+        if !hurt.is_empty() {
+            return Some(hurt);
+        }
+    }
+    if !fallback::_a_care_thread_to_leave_alone(memory) {
+        if let Some(safety_ask) = pool_of(crate::compose::safetyask::reply_for(&clean, memory)) {
+            return choose!(safety_ask, memory, clean);
+        }
+    }
+    if HANDS_IT_BACK.match_(&clean).is_some() && !_options_already_up(memory) {
+        return choose!(HANDS_BACK, memory, clean);
+    }
+    let returned = opt_string_of(fallback::reads_as_a_return(&clean));
+    if let Some(returned) = returned {
+        if !fallback::_came_back(&clean) && !fallback::_grief_thread(memory) {
+            if !returned.is_empty() {
+                return Some(py_format(&chosen(choose!(RETURNED_TO_A_THING, memory, clean)), &[("thing", &returned)]));
+            }
+            if !fallback::_a_chat_behind_it(memory) {
+                return choose!(RETURNED_TO_IT_FIRST, memory, clean);
+            }
+            return choose!(RETURNED_TO_IT, memory, clean);
+        }
+    }
+    if let Some(drafted) = text_of(fallback::_named_draft(memory, text_, &words, &clean)) {
+        return Some(drafted);
+    }
+    if understood.agreement.as_deref().is_some_and(|a| !a.is_empty()) {
+        return choose!(AGREEMENT, memory, clean);
+    }
+    if understood.tight_on_money {
+        let mut pool: Vec<String> = TIGHT_MONEY.clone();
+        if understood.amount_left {
+            pool.retain(|line| !text::lower(line).contains("what's left"));
+        }
+        return choose!(pool, memory, clean);
+    }
+    if fallback::a_continuation_of_the_tight_week(memory, &clean) {
+        return choose!(TIGHT_MONEY_MORE, memory, clean);
+    }
+    if _a_low_day(&clean, &understood) {
+        return choose!(LOW_DAY_REPLIES, memory, clean, text_);
+    }
+    if HAND_BACK.match_(&fallback::_self_line(text_)).is_some() && !memory.turns.is_empty() {
+        return choose!(HOW_ARE_YOU, memory, clean, text_);
+    }
+    let mut verdict_pool: Option<Vec<String>> = if verdict { pool_of(fallback::_verdict_pool(&clean, memory)) } else { None };
+    if verdict_pool.is_some() && fallback::in_a_safety_thread(memory) {
+        verdict_pool = None;
+    } else if verdict_pool.is_some() && fallback::a_happening_now(memory) {
+        verdict_pool = None;
+    } else if verdict_pool.is_some() && fallback::a_loss_in_the_thread(memory) {
+        verdict_pool = pool_of(fallback::_the_heavy_pool(memory));
+    }
+    if verdict_pool.is_none() {
+        if let Some(tried_reply) = text_of(fallback::_after_advice(memory, &clean, &words)) {
+            return Some(tried_reply);
+        }
+    }
+    if let Some(refused) = pool_of(fallback::_a_refusal_to_answer(&clean, memory, &words)) {
+        let advice = fallback::the_advice(memory);
+        let seed = if advice.is_empty() { clean.clone() } else { advice };
+        return choose!(refused, memory, clean, seed);
+    }
+    if let Some(doable) = text_of(fallback::_a_doable(&clean, memory)) {
+        return Some(doable);
+    }
+    if let Some(pool) = verdict_pool {
+        return choose!(pool, memory, clean);
+    }
+    if let Some(answered) = text_of(crate::compose::reaction::reply_for(&clean, memory)) {
+        return Some(answered);
+    }
+    let reaction: Option<Vec<String>> = pool_of(fallback::_reaction_pool(&clean, memory));
+    let is_repeat = reaction.as_ref().is_some_and(|r| *r == *REACTION_REPEAT);
+    if is_repeat {
+        if let Some(again) = text_of(crate::compose::why::said_again(&clean, memory)) {
+            return Some(again);
+        }
+    }
+    if let Some(mut pool) = reaction.clone() {
+        if !fallback::_a_care_thread_to_leave_alone(memory) {
+            if fallback::_the_person_already_said_it(memory) {
+                if let Some((_, said)) = REACTIONS_SAID.iter().find(|(k, _)| *k == pool) {
+                    pool = said.clone();
+                }
+            }
+            return choose!(pool, memory, clean);
+        }
+        if !is_repeat {
+            return choose!(REACTIONS_CARE, memory, clean);
+        }
+    }
+    if let Some(the_day) = pool_of(fallback::_the_day_described(&clean)) {
+        if !fallback::in_a_safety_thread(memory)
+            && !fallback::_a_care_thread_to_leave_alone(memory)
+            && !fallback::_the_turn_before_was_a_heavy_one(memory, &clean)
+        {
+            return choose!(the_day, memory, clean);
+        }
+    }
+    if !words.is_empty() && words.len() <= 6 && FLAT_LINE.match_(&words.join(" ")).is_some() {
+        return choose!(FLAT, memory, clean);
+    }
+    if let Some(view) = text_of(fallback::_the_view_asked_for(&clean, memory)) {
+        return Some(view);
+    }
+    if let Some(no_words) = pool_of(fallback::_no_words(&clean)) {
+        return choose!(no_words, memory, clean);
+    }
+    if kind == "thanks" && text_.contains('?') {
+        kind = "question".into();
+    }
+    let plain_clean = fallback::_plain(&clean);
+    let asks_for_help = fallback::_asks_for_help(&plain_clean, Some(&understood));
+    let opens_with_hello =
+        kind == "statement" && fallback::_reads_as_greeting(&words, text_) && !fallback::_reads_as_question(text_, &words);
+    if opens_with_hello
+        && !asks_for_help
+        && (crate::understanding::kinds::greeting_only(&words) || understood.intent == "request")
+    {
+        kind = "greeting".into();
+    }
+    if kind == "empty" {
+        return choose!(EMPTY, memory, clean);
+    }
+    if kind == "greeting" && !asks_for_help {
+        return choose!(GREETING, memory, clean);
+    }
+    if kind == "thanks" {
+        if truthy(fallback::_thanks_news_went_badly(&clean)) {
+            return choose!(THANKS_NO_BETTER, memory, clean);
+        }
+        if let Some(bye) = pool_of(crate::compose::leaving::pool(&clean, &words, true, memory, true)) {
+            return choose!(bye, memory, clean);
+        }
+        return choose!(THANKS, memory, clean);
+    }
+    let loved = _loves_people(&clean);
+    if kind != "question" && loved != 0 {
+        return if loved > 1 { choose!(A_LOVE_FOR_PEOPLE, memory, clean) } else { choose!(A_LOVE_FOR_SOMEONE, memory, clean) };
+    }
+    if let Some(going_on) = text_of(crate::compose::handoff::reply_for(&clean, memory)) {
+        return Some(going_on);
+    }
+    let restated = if memory.get("correction_answered").is_some_and(|v| v.truthy()) { String::new() } else { _restated(&understood) };
+    if !restated.is_empty() {
+        if let Some(reply) = _answers_the_correction(&restated, memory) {
+            if !reply.is_empty() {
+                return Some(reply);
+            }
+        }
+    }
+    if let Some(corrected) = text_of(crate::memory::ack::value_put_right(&clean, memory)) {
+        return Some(corrected);
+    }
+    if let Some(wondered) = text_of(crate::memory::ack::_a_condition_they_wonder_about(&clean, memory)) {
+        return Some(wondered);
+    }
+    let plain = fallback::_plain(&clean);
+    let mut repaired = if understood.plain.is_empty() { clean.clone() } else { understood.plain.clone() };
+    if fallback::_is_presence_check(&clean) {
+        return choose!(PRESENT, memory, clean);
+    }
+    if fallback::_a_declined_plan(&plain, false) && !truthy(crate::compose::draft::drafter(memory, &clean, &[])) {
+        if fallback::_a_hard_week(memory) {
+            return choose!(DECLINED_PLAN_GENTLE, memory, clean);
+        }
+        if fallback::_the_turn_before_was_a_heavy_one(memory, &plain) {
+            // left to the readers that answer a feeling
+        } else if fallback::_someone_else_dropped_it(&plain) {
+            return choose!(PLAN_KNOCKED, memory, clean);
+        } else {
+            return choose!(DECLINED_PLAN, memory, clean);
+        }
+    }
+    if let Some(help_topic) = pool_of(fallback::_help_topic(&clean, &understood)) {
+        return choose!(help_topic, memory, clean);
+    }
+    if let Some(leaning) = text_of(fallback::_a_leaning_side(&plain, memory)) {
+        return Some(leaning);
+    }
+    if let Some(mine) = text_of(fallback::_my_pick(&plain, memory)) {
+        return Some(mine);
+    }
+    if let Some(pool) = pool_of(fallback::_a_verdict_on_their_plan(&plain, memory, false)) {
+        return choose!(pool, memory, clean);
+    }
+    if let Some(place_ask) = pool_of(fallback::_a_place_asked_about(&plain, memory)) {
+        return choose!(place_ask, memory, clean);
+    }
+    let body = fallback::_thread_is_about_the_body(memory, 4);
+    if let Some(saying_ask) = text_of(crate::compose::why::respond_to_a_saying_ask(&clean, memory, &understood, body)) {
+        return Some(saying_ask);
+    }
+    let mut about = text_of(fallback::_about(&plain, Some(&understood)));
+    if about.as_deref().is_some_and(|a| a == "self_doing" || a == "clothes")
+        && ANSWERING_A_QUOTED_ASK.search(&clean).is_some()
+        && truthy(fallback::_the_answers_take_it(&clean))
+    {
+        about = None;
+    }
+    if about.as_deref() == Some("memory") && fallback::_a_tally_of_its_own_day(&understood) {
+        return choose!(ABOUT_TALLY, memory, clean);
+    }
+    if about.as_deref() == Some("hand") {
+        return choose!(HAND, memory, clean);
+    }
+    if let Some(a) = about.as_deref() {
+        if has_key(&ABOUT, a) {
+            return choose!(pool_at(&ABOUT, a), memory, clean);
+        }
+        return choose!(pool_at(&ABOUT_SELF, a), memory, clean);
+    }
+    if let Some(awkward) = pool_of(fallback::_their_own_slip(&clean, memory)) {
+        let mut said = choose!(awkward, memory, clean);
+        if said.is_none() {
+            said = if awkward == *LAUGHED_AT { choose!(EMBARRASSED, memory, clean) } else { choose!(LAUGHED_AT, memory, clean) };
+        }
+        if let Some(said) = said.filter(|s| !s.is_empty()) {
+            return Some(said);
+        }
+    }
+    if SELF_SUBJECT.search(&clean).is_some()
+        && SELF_BLAME_ASKS.search(&clean).is_none()
+        && WORDING_ASKS.search(&clean).is_none()
+        && RATES_A_SKILL.search(&clean).is_none()
+        && !truthy(fallback::_own_feeling(&clean))
+    {
+        return choose!(SELF_BLAME, memory, clean);
+    }
+    let mut asking = kind == "question"
+        || (kind == "statement"
+            && (fallback::_reads_as_question(text_, &words)
+                || (repaired != clean && fallback::_reads_as_a_question_when_repaired(&repaired))));
+    if asking && truthy(fallback::_thanks_then_said(&clean)) {
+        asking = false;
+    }
+    if asking && fallback::_acknowledges_alone(&clean) {
+        asking = false;
+    }
+    if let Some(action) = text_of(fallback::_action(&clean, memory)) {
+        return Some(action);
+    }
+    if WOULD_HAVE_BEEN.search(&clean).is_some() {
+        return choose!(MILESTONE, memory, clean);
+    }
+    if let Some(bye) = pool_of(crate::compose::leaving::pool(&clean, &words, true, memory, true)) {
+        return choose!(bye, memory, clean);
+    }
+    if crate::compose::leaving::reads_as_a_leave_with_a_body_in_it(&clean, &words) {
+        if let Some(bye) = pool_of(crate::compose::leaving::pool(&clean, &words, false, memory, true)) {
+            return choose!(bye, memory, clean);
+        }
+    }
+    let mut asks_for_words =
+        fallback::_asks_for_words(&clean, &words) || (repaired != clean && fallback::_asks_for_words(&repaired, &words));
+    if WORDING_ASKS_WHO.search(&clean).is_some() && words.iter().any(|w| EXPERT_WORDS.contains(w)) {
+        asks_for_words = true;
+    }
+    if QUOTE_ASKS.search(&clean).is_some() {
+        return choose!(QUOTE_LINES, memory, clean);
+    }
+    if asks_for_words {
+        if TELL_HARD.search(&clean).is_some() {
+            return choose!(TELL_HARD_LINES, memory, clean);
+        }
+        if words.iter().any(|w| w == "card") {
+            return choose!(CARD_LINES, memory, clean);
+        }
+        return choose!(WORDING_LINES, memory, clean);
+    }
+    if fallback::_asks_how_are_you(&plain, &understood.plain) || understood.asks_how_i_am {
+        return choose!(HOW_ARE_YOU, memory, clean);
+    }
+    if let Some(taste) = text_of(fallback::_taste(&plain, memory, was_taste, asking, &repaired)) {
+        if let Some(state) = memory.get_mut("compose") {
+            state.set_key("taste", true);
+        }
+        return Some(taste);
+    }
+    if let Some(number) = pool_of(fallback::_their_contact_number(&plain, asking)) {
+        return choose!(number, memory, clean);
+    }
+    if fallback::_a_no_from_the_bot(&plain) {
+        let cannot = fallback::_live(&plain, true, memory).filter(|p| !p.is_empty()).or_else(|| pool_of(fallback::_the_live_thing_named(&plain)));
+        if let Some(cannot) = cannot {
+            return choose!(cannot, memory, clean);
+        }
+        if CANNOT_SEE_ANYTHING.search(&plain).is_some() {
+            return choose!(CANNOT_SEE_ANYTHING_LINES, memory, clean);
+        }
+        if CANNOT_READ_YOURS.search(&plain).is_some() {
+            let pool = pool_of(fallback::_what_no_eyes_already_says(&plain)).unwrap_or_else(|| CANNOT_YOUR_OWN.clone());
+            return choose!(pool, memory, clean);
+        }
+        if SO_NOTHING_LIVE.search(&plain).is_some()
+            || (fallback::_the_bot_says_it_cannot(&plain) && CANNOT_ANYTHING_ASK.search(&plain).is_some())
+        {
+            return choose!(CANNOT_ANYTHING, memory, clean);
+        }
+    }
+    if let Some(live) = fallback::_live(&plain, asking, memory).filter(|p| !p.is_empty()) {
+        return choose!(live, memory, clean);
+    }
+    if crate::compose::loss::found_what_was_lost(&clean) {
+        let last = text_of(crate::memory::last_user(memory, 1)).unwrap_or_default();
+        if crate::compose::loss::lost_thing_to_find(&last) {
+            return choose!(FOUND_IT, memory, clean);
+        }
+    }
+    if crate::compose::loss::locked_out(&clean) {
+        if crate::compose::loss::locked_out_of_the_car(&clean) {
+            return choose!(LOCKED_OUT_OF_THE_CAR, memory, clean);
+        }
+        return choose!(LOCKED_OUT_LINES, memory, clean);
+    }
+    if crate::compose::loss::keeps_losing_thing(&clean) {
+        return choose!(LOST_A_THING_AGAIN, memory, clean);
+    }
+    if crate::compose::loss::lost_thing_to_find(&clean) {
+        return choose!(LOST_A_THING, memory, clean);
+    }
+    if crate::compose::unseen::reads(&clean) {
+        return choose!(UNSEEN_LINES, memory, clean);
+    }
+    let own = pool_of(fallback::_own_feeling(&clean)).or_else(|| {
+        if LOST_QUESTION.search(&clean).is_some() && NOT_SELF.search(&clean).is_none() { Some(NO_DIRECTION_REPLY.clone()) } else { None }
+    });
+    if let Some(own) = own {
+        return choose!(own, memory, clean);
+    }
+    if let Some(routine) = _routine_pool(&clean, &words, Some(&*memory)) {
+        return choose!(routine, memory, clean);
+    }
+    if I_RATE_A_SKILL.search(&clean).is_some() && WORDING_ASKS.search(&clean).is_none() && A_WAY_OF_BEING.search(&clean).is_none() {
+        return choose!(ONE_SKILL_RATED, memory, clean);
+    }
+    if SELF_BLAME_ASKS.search(&clean).is_none() {
+        if A_SKILL_ASKED_OF_ME.search(&clean).is_some() && A_WAY_OF_BEING.search(&clean).is_none() {
+            return choose!(ASKED_A_RATING, memory, clean);
+        }
+        if A_GOODNESS_ASKED_OF_ME.search(&clean).is_some() {
+            return choose!(ASKED_IF_GOOD, memory, clean);
+        }
+    }
+    let body = fallback::_thread_is_about_the_body(memory, 4);
+    if let Some(why_follow_up) = text_of(crate::compose::why::respond(&clean, memory, &understood, body)) {
+        return Some(why_follow_up);
+    }
+    if let Some(asked) = _act_asked_of_me(&clean) {
+        return choose!(asked, memory, clean);
+    }
+    if _acts_for_me(&clean, Some(&mut *memory)) {
+        return choose!(ACTS_FOR_ME, memory, clean);
+    }
+    if let Some(ordered) = _an_order_it_cannot_do(&clean) {
+        return choose!(ordered, memory, clean);
+    }
+    let repaired_low = text::lower(&repaired);
+    if crate::compose::badnews::reads_like_a_symptom(&repaired_low) && _LUMP.search(&repaired).is_some() {
+        return choose!(LUMP, memory, clean);
+    }
+    let settled = format!(" {} ", NOT_AN_APOSTROPHE_WORD.sub(" ", &clean));
+    let settled_words = text::split(&settled.replace('\'', ""));
+    let not_sore = |memory: &Memory| -> bool {
+        let _ = memory;
+        !(opt_string_of(crate::compose::trouble::reads_as_trouble(&clean, Some(words.as_slice()), &repaired)).as_deref() == Some("sore")
+            && _CAUGHT.search(&clean).is_none())
+    };
+    if crate::compose::badnews::reads_like_a_symptom(&repaired_low)
+        && fallback::_who_for(&clean, &settled, &settled_words, None).filter(|s| !s.is_empty()).is_none()
+        && not_sore(memory)
+        && crate::compose::says_it_has_lingered(&repaired, _ILL.search(&repaired).is_some())
+    {
+        return choose!(SYMPTOM_LINGERS, memory, clean);
+    }
+    if asking
+        && crate::compose::badnews::reads_like_a_symptom(&repaired_low)
+        && fallback::_who_for(&clean, &settled, &settled_words, None).filter(|s| !s.is_empty()).is_none()
+        && not_sore(memory)
+    {
+        return if _ILL.search(&repaired).is_some() { choose!(SYMPTOM_COLD, memory, clean) } else { choose!(SYMPTOM, memory, clean) };
+    }
+    if _a_lateness_report(&clean, &understood.norm_text) {
+        let pool: &Vec<String> =
+            if clean.contains("behind") || understood.norm_text.contains("behind") { &LATE_BEHIND_LINES } else { &LATE_NOW_LINES };
+        return choose!(pool, memory, clean);
+    }
+    let invited = text_of(fallback::_an_invitation(&clean));
+    if invited.as_deref() == Some("talk") {
+        return choose!(INVITED_TO_TALK, memory, clean);
+    }
+    if invited.is_some() {
+        return choose!(INVITED, memory, clean);
+    }
+    let mut limits: Vec<(String, String)> = fallback::the_limits_said(&clean).into_pairs();
+    if limits.is_empty() {
+        limits = vec![(fallback::reads_as_a_narrowing(&clean), String::new())];
+    }
+    for (axis, part) in &limits {
+        if axis.is_empty() || !fallback::the_answer_to_cut(memory, &Value::from(axis.as_str())).truthy() {
+            continue;
+        }
+        let bound = fallback::the_bound_said(if part.is_empty() { &clean } else { part });
+        if !bound.is_empty() {
+            return Some(py_format(&chosen(choose!(pool_at(&BOUND_FOR, axis), memory, clean)), &[("bound", &bound)]));
+        }
+        return choose!(pool_at(&CUT_FOR, axis), memory, clean);
+    }
+    let refused = text_of(fallback::_a_carer_refused(&clean)).or_else(|| text_of(fallback::_a_carer_refused(&repaired)));
+    if let Some(refused) = refused {
+        if !fallback::_hedged_recently(memory, 3)
+            && !(fallback::_in_a_loss_thread(memory) || fallback::_grief_thread(memory) || fallback::in_a_safety_thread(memory))
+        {
+            let pool: &Vec<String> = match refused.as_str() {
+                "aid" => &ELDER_AID_REPLIES,
+                "clinic" => &ELDER_CLINIC_REPLIES,
+                "doctor" => &ELDER_DOCTOR_REPLIES,
+                "help" => &ELDER_HELP_REPLIES,
+                other => panic!("KeyError: {other}"),
+            };
+            let said_before = memory.turns.last().map(|t| t.bot.clone()).unwrap_or_default();
+            if !in_a_pool(&said_before, &[&ELDER_AID_REPLIES, &ELDER_CLINIC_REPLIES, &ELDER_DOCTOR_REPLIES, &ELDER_HELP_REPLIES]) {
+                let seed = format!("{clean} {}", fallback::_the_line_before(memory));
+                return choose!(pool, memory, clean, seed);
+            }
+        }
+    }
+    if let Some(handed) = pool_of(crate::compose::no_eyes::handed_you_something(&clean)) {
+        return choose!(handed, memory, clean);
+    }
+    if let Some(body_lines) = pool_of(crate::compose::no_eyes::look_at_a_body_lines(&clean, None, memory)) {
+        return choose!(body_lines, memory, clean);
+    }
+    if let Some(cannot_see) = pool_of(crate::compose::no_eyes::cannot_see_your_thing(&clean)) {
+        return choose!(cannot_see, memory, clean);
+    }
+    if fallback::_am_i_a_nuisance(&clean) && !fallback::_grief_thread(memory) && !fallback::in_a_safety_thread(memory) {
+        return choose!(SORRY_FOR_ASKING, memory, clean);
+    }
+    if asking && !_takes_something_back(&clean, memory) {
+        if reads_as_no_pleasure(&clean) || (!repaired.is_empty() && reads_as_no_pleasure(&repaired)) {
+            return choose!(PLEASURE_GONE_LINES, memory, clean);
+        }
+        if let Some(step) = text_of(crate::compose::step_when_low(&clean, memory, &COMFORT_SAID.iter().cloned().collect::<Vec<_>>())) {
+            return Some(step);
+        }
+        if reads_as_a_question_about_the_bot(&clean) || reads_as_a_question_about_the_bot(&repaired) {
+            return choose!(ABOUT_THE_BOT_LINES, memory, clean);
+        }
+        let unknown = fallback::_unknown(&understood, memory, &clean);
+        if _a_wear_ask_about_a_day(&clean, &repaired, text_) && fallback::is_a_hedge(&unknown) {
+            return choose!(_the_wear_pool_for_the_line(&clean, &repaired, text_), memory, clean);
+        }
+        return Some(unknown);
+    }
+    if let Some(drafted) = text_of(crate::compose::draft::drafter(memory, text_, &words)) {
+        let lines: Vec<String> = DRAFT_LEAD_INS.iter().map(|lead| format!("{lead} \"{drafted}\"")).collect();
+        return choose!(lines, memory, clean);
+    }
+    if crate::compose::draft::not_the_message(memory, text_) {
+        return choose!(DRAFT_NOT_YET, memory, clean);
+    }
+    use crate::compose::badnews;
+    use crate::compose::goodnews;
+    if _reads(badnews::reads_as_pregnancy_bleeding, &clean, &repaired, false) {
+        return choose!(PREGNANCY_BLEEDING, memory, clean);
+    }
+    if fallback::a_fresh_death_and_the_words(&clean) {
+        return choose!(THE_FIRST_HOUR_AND_A_CHILD, memory, clean);
+    }
+    if _reads(badnews::reads_as_sudden_loss, &clean, &repaired, false) {
+        return choose!(SUDDEN_LOSS, memory, clean);
+    }
+    if _reads(goodnews::reads_as_recovery, &clean, &repaired, true) && !fallback::_in_a_loss_thread(memory) {
+        return choose!(RELIEF, memory, clean);
+    }
+    if _reads(goodnews::reads_as_a_clear_result, &clean, &repaired, true) && !fallback::_in_a_loss_thread(memory) {
+        return choose!(RELIEF, memory, clean);
+    }
+    if goodnews::reads_as_settled(&text::lower(&clean))
+        && goodnews::worry_on_the_table(memory, &Value::Int(4))
+        && !fallback::_in_a_loss_thread(memory)
+    {
+        return choose!(RELIEF, memory, clean);
+    }
+    if _reads(badnews::reads_as_a_closed_door, &clean, &repaired, false) {
+        return choose!(CLOSED_DOOR, memory, clean);
+    }
+    if fallback::_came_back(&clean) && fallback::in_a_safety_thread(memory) {
+        return choose!(PAUSE_IN_A_SAFETY_THREAD, memory, clean);
+    }
+    if fallback::_came_back(&clean) && !fallback::_grief_thread(memory) {
+        return choose!(CAME_BACK, memory, clean);
+    }
+    if _reads(badnews::reads_as_the_leaving, &clean, &repaired, false)
+        && !_reads(badnews::reads_as_the_speakers_own_plan, &clean, &repaired, false)
+        && !_a_things_state(memory, &clean)
+    {
+        return if badnews::reads_as_a_leaving_already_gone(&clean) { choose!(LEFT_POOL_GONE, memory, clean) } else { choose!(LEFT_POOL, memory, clean) };
+    }
+    if let Some(situation) = pool_of(crate::compose::circumstance::pool(&clean)) {
+        return choose!(situation, memory, clean);
+    }
+    if let Some(broken_into) = text_of(crate::compose::remark::break_in_reply_for(&clean, &words, memory)) {
+        return Some(broken_into);
+    }
+    if _reads(badnews::reads_as_bad_news, &clean, &repaired, false)
+        && !_reads(badnews::reads_as_the_speakers_own_plan, &clean, &repaired, false)
+        && PLAN_IDIOM.search(&clean).is_none()
+        && !(_reads(badnews::reads_as_an_award_lost, &clean, &repaired, false) && truthy(fallback::who_settles(&clean, memory)))
+    {
+        if _a_things_state(memory, &clean) {
+            return choose!(A_THING_LOOKS_SAD, memory, clean);
+        }
+        if _reads(badnews::reads_as_the_leaving, &clean, &repaired, false) {
+            return if badnews::reads_as_a_leaving_already_gone(&clean) { choose!(LEFT_POOL_GONE, memory, clean) } else { choose!(LEFT_POOL, memory, clean) };
+        }
+        if opt_string_of(crate::compose::remark::reads_as_report(&clean, &words)).as_deref() == Some("again") {
+            if let Some(again) = text_of(crate::compose::remark::report_reply_for(&clean, &words, memory)) {
+                return Some(again);
+            }
+        }
+        if !asking && _reads(fallback::reads_as_someone_close_is_ill, &clean, &repaired, false) {
+            return choose!(SOMEONE_SERIOUSLY_ILL, memory, clean);
+        }
+        return if _reads(badnews::reads_as_news_with_a_name, &clean, &repaired, false) { choose!(NAMED_NEGATIVE, memory, clean) } else { choose!(NEGATIVE, memory, clean) };
+    }
+    if !asking
+        && !fallback::_in_a_loss_thread(memory)
+        && _reads(|t: &str| LEAVING_A_PERSON.search(t).is_some(), &clean, &repaired, false)
+        && _reads(|t: &str| LEFT_BEHIND.search(t).is_some(), &clean, &repaired, false)
+        && !_reads(|t: &str| NOT_LEAVING_ANYONE.search(t).is_some(), &clean, &repaired, false)
+    {
+        let is_a_child = _reads(|t: &str| A_CHILD.search(t).is_some(), &clean, &repaired, false);
+        let has_happened = _reads(|t: &str| THE_LEAVE_HAS_HAPPENED.search(t).is_some(), &clean, &repaired, false);
+        let pool = if has_happened {
+            if is_a_child { A_CHILD_LEFT.clone() } else { SOMEONE_GONE.clone() }
+        } else {
+            _only_what_the_line_gives(if is_a_child { &A_CHILD_LEAVING } else { &SOMEONE_LEAVING }, &clean)
+        };
+        return choose!(pool, memory, clean);
+    }
+    if _reads(|t: &str| ACK_COMPLAINT.search(t).is_some(), &clean, &repaired, false) {
+        if _a_things_state(memory, &clean) {
+            return choose!(A_THING_LOOKS_SAD, memory, clean);
+        }
+        return choose!(NEGATIVE, memory, clean);
+    }
+    let clean_low = text::lower(&clean);
+    let repaired_low = text::lower(&repaired);
+    let a_good_time_here = |memory: &Memory| -> bool { _reads_value(|t: &str| fallback::_a_good_time(t, memory), &clean, &repaired) };
+    if _asks_the_bot(&understood)
+        && !_takes_something_back(&clean, memory)
+        && !a_good_time_here(memory)
+        && !_reads(goodnews::reads_as_a_win_nobody_noticed, &clean_low, &repaired_low, false)
+        && !fallback::_a_good_time(&clean, memory)
+        && !(fallback::_reads_as_dither(&clean, &repaired) && fallback::_weighs_a_choice(&clean))
+        && !fallback::_a_dead_end(&clean)
+        && fallback::_the_person_they_are_stuck_on(&clean).is_empty()
+        && !fallback::_acknowledges_alone(&clean)
+    {
+        let tips = fallback::_tips(memory, &clean, &repaired);
+        if !tips.is_empty() {
+            return Some(tips);
+        }
+        if let Some(free_time) = text_of(fallback::_the_stretch_of_time(&clean, memory)) {
+            return Some(free_time);
+        }
+        if let Some(lost) = fallback::the_lost_ask_reply(memory, &clean, &repaired).filter(|s| !s.is_empty()) {
+            return Some(lost);
+        }
+        let pool = fallback::unknown_pool(&clean, &words);
+        if pool == *UNKNOWN_WORD {
+            let drafting = pool_of(crate::compose::fallback_pools::_drafting_pool(&clean)).unwrap_or_default();
+            return choose!(drafting, memory, clean);
+        }
+        if let Some(routed) = crate::compose::finding_out::for_the_ask(&clean, &repaired, &understood).filter(|p| !p.is_empty()) {
+            if let Some(said) = choose!(routed, memory, clean).filter(|s| !s.is_empty()) {
+                return Some(said);
+            }
+        }
+        if _a_wear_ask_about_a_day(&clean, &repaired, text_) {
+            return choose!(_the_wear_pool_for_the_line(&clean, &repaired, text_), memory, clean);
+        }
+        return choose!(UNKNOWN, memory, clean);
+    }
+    if _reads(fallback::_is_a_tips_ask, &clean, &repaired, false) {
+        let tips = fallback::_tips(memory, &clean, &repaired);
+        if !tips.is_empty() {
+            return Some(tips);
+        }
+        return choose!(TIPS_LINES, memory, clean);
+    }
+    if let Some(told) = text_of(fallback::_trouble(memory, &repaired, &words)) {
+        return Some(told);
+    }
+    if fallback::asks_for_more(&clean, memory) && !fallback::_hedged_recently(memory, 3) && fallback::_answered_recently(memory) {
+        return choose!(HELP_ALREADY, memory, clean);
+    }
+    if fallback::_in_sudden_loss_thread(memory) {
+        return choose!(LOSS_AFTER_REPLIES, memory, clean);
+    }
+    if words.len() <= 2 && meets(&words, &ACKS) {
+        if fallback::_a_loss_recently(memory) {
+            return choose!(LOSS_AFTER_REPLIES, memory, clean);
+        }
+        if fallback::_the_last_line_was_bad_news(memory) {
+            return choose!(LOSS_AFTER_REPLIES, memory, clean);
+        }
+        if fallback::_the_last_line_was_a_fault(memory) {
+            return choose!(ACK_AFTER_TROUBLE, memory, clean);
+        }
+        if fallback::_the_last_line_was_heavy(memory) {
+            return choose!(ACK_WARM, memory, clean);
+        }
+        return choose!(ACK, memory, clean);
+    }
+    if !fallback::_in_a_loss_thread(memory) {
+        if FORGETS_A_CLASH.search(&plain).is_some() {
+            return choose!(DOUBLE_BOOKED, memory, clean);
+        }
+        if FORGET_A_DATE.search(&plain).is_some() {
+            return choose!(DATES_KEEP_SLIPPING, memory, clean);
+        }
+        if FORGET_A_SECRET.search(&plain).is_some() {
+            return choose!(SECRETS_KEEP_SLIPPING, memory, clean);
+        }
+    }
+    if FORGETS_AGAIN.search(&plain).is_some() && !fallback::_in_a_loss_thread(memory) {
+        return choose!(KEEPS_FORGETTING, memory, clean);
+    }
+    if fallback::_is_rumination(&clean) {
+        return choose!(RUMINATION_REPLIES, memory, clean);
+    }
+    let mut mood = _mood(&words, &clean);
+    if let Some(carried) = pool_of(crate::compose::trouble::carried_on(&clean, &words, memory)) {
+        return choose!(carried, memory, clean);
+    }
+    if _a_near_miss(&clean) {
+        return choose!(NEAR_MISS_REPLY, memory, clean);
+    }
+    if mood == "neutral" && !repaired.is_empty() && repaired != clean {
+        mood = _mood(&_words(&repaired), &repaired);
+    }
+    if mood != "positive" && _reads(badnews::reads_for_a_pet, &clean_low, &repaired_low, false) {
+        if _reads(badnews::reads_as_a_pet_low, &clean_low, &repaired_low, false) {
+            return choose!(PET_LOW_REPLY, memory, clean);
+        }
+        let condition = _reads(badnews::reads_as_a_pet_condition, &clean_low, &repaired_low, false);
+        return if condition { choose!(PET_CONDITION_TROUBLE, memory, clean) } else { choose!(PET_TROUBLE, memory, clean) };
+    }
+    if mood != "positive" && _reads(|t: &str| badnews::reads_as_a_carer_body(t, memory), &clean_low, &repaired_low, false) {
+        return choose!(CARING_FOR_A_BODY, memory, clean);
+    }
+    if mood != "positive" && _reads(|t: &str| badnews::reads_for_a_carer(t, memory), &clean_low, &repaired_low, false) {
+        return choose!(CARING, memory, clean);
+    }
+    if mood == "neutral" && _reads(badnews::reads_like_a_symptom, &clean_low, &repaired_low, false) && not_sore(memory) {
+        return if _ILL.search(&repaired).is_some() { choose!(SYMPTOM_COLD, memory, clean) } else { choose!(SYMPTOM, memory, clean) };
+    }
+    if fallback::_a_relationship_ending(&clean) {
+        return choose!(RELATIONSHIP_DECISION, memory, clean);
+    }
+    if fallback::a_comparison_of_standing(&clean) && !fallback::_in_a_loss_thread(memory) {
+        return choose!(A_COMPARISON_OF_STANDING, memory, clean);
+    }
+    if mood != "negative" && !crate::compose::limit::a_limit_on_the_answer(&clean) && fallback::_something_funny(&clean, memory) {
+        return choose!(A_LAUGH, memory, clean);
+    }
+    if !fallback::_in_a_care_thread(memory) && _the_crowd_is_ahead(&clean) {
+        return choose!(A_CROWD_AHEAD, memory, clean);
+    }
+    if mood != "negative" && a_good_time_here(memory) {
+        if fallback::_in_a_care_thread(memory) {
+            return choose!(A_GOOD_TIME_IN_A_CARE_THREAD, memory, clean);
+        }
+        return choose!(A_GOOD_TIME, memory, clean);
+    }
+    if mood != "negative" && _reads(goodnews::reads_as_a_win_nobody_noticed, &clean_low, &repaired_low, false) {
+        return choose!(WIN_IN_A_SILENCE, memory, clean);
+    }
+    if mood != "negative" && _reads(goodnews::reads_as_a_win_a_cost_came_with, &clean_low, &repaired_low, false) {
+        return choose!(WIN_AND_A_COST, memory, clean);
+    }
+    let occasion = {
+        let first = goodnews::reads_as_an_occasion(&clean_low);
+        if truthy(first.clone()) {
+            Some(first)
+        } else if repaired != clean {
+            let second = goodnews::reads_as_an_occasion(&repaired_low);
+            if truthy(second.clone()) { Some(second) } else { None }
+        } else {
+            None
+        }
+    };
+    if mood != "negative" {
+        if let Some(occasion) = occasion {
+            let pool = pool_of(fallback::_occasion_pool(&occasion_value(occasion), &clean)).unwrap_or_default();
+            return choose!(pool, memory, clean);
+        }
+    }
+    let ahead_pool = _reads_value(fallback::_a_day_ahead, &clean, &repaired);
+    if mood != "negative" {
+        if let Some(ahead) = ahead_pool {
+            return choose!(ahead, memory, clean);
+        }
+    }
+    if mood != "negative" && _reads(goodnews::reads_as_news_to_come, &clean_low, &repaired_low, false) {
+        if let Some(birthday) = _a_birthday_still_to_come(&clean, memory) {
+            return choose!(_the_birthday_said_back(&birthday), memory, clean);
+        }
+        return choose!(NEWS_TO_COME, memory, clean);
+    }
+    if truthy(crate::memory::facts::a_limit_on_the_plan(&clean)) {
+        if let Some(said_back) = text_of(crate::memory::ack::a_limit_reply(text_, memory)) {
+            return Some(said_back);
+        }
+    }
+    if mood == "neutral" && fallback::_dreading(&clean) {
+        return choose!(A_DREAD, memory, clean);
+    }
+    if mood == "neutral" && fallback::_wants_it_over(&clean) {
+        return choose!(A_WANT_IT_OVER, memory, clean);
+    }
+    if mood != "negative" && _reads_value(fallback::_looking_forward, &clean, &repaired) {
+        return choose!(NEWS_TO_COME, memory, clean);
+    }
+    if mood == "neutral" && _reads(goodnews::reads_as_good_news, &clean_low, &repaired_low, false) {
+        return choose!(fallback::_says_only_what_they_said(&CONGRATS, &clean), memory, clean);
+    }
+    let arrived = goodnews::new_thing(&clean_low);
+    if truthy(arrived.clone()) && mood != "negative" {
+        let pool = pool_of(goodnews::new_thing_replies(&occasion_value(arrived))).unwrap_or_default();
+        return choose!(pool, memory, clean);
+    }
+    if let Some(regretted) = text_of(crate::compose::remark::regret_reply_for(&clean, &words, memory, &understood.plain)) {
+        return Some(regretted);
+    }
+    if let Some(idiom) = PLAN_IDIOM.search(&clean) {
+        return if !idiom.as_str().contains("excit") { choose!(IDIOM_SHY, memory, clean) } else { choose!(IDIOM_GLAD, memory, clean) };
+    }
+    if fallback::_plan_reported(&clean, &mood) && crate::memory::ack::reads_as_a_trip(&clean).map_or(true, |t| t.is_empty()) {
+        if fallback::reads_as_a_change_of_medicine(&clean) {
+            let whole: &Vec<String> = if PLAN_MEDICINE_SLOW.search(&clean).is_some() { &PLAN_MEDICINE_SLOW_REPLY } else { &PLAN_MEDICINE_REPLY };
+            return choose!(whole, memory, clean);
+        }
+        if PLAN_DONE.iter().any(|phrase| clean.contains(phrase.as_str())) && PLAN_NOT_YET.search(&clean).is_none() {
+            return choose!(PLAN_DONE_ACK, memory, clean);
+        }
+        return choose!(PLAN, memory, clean);
+    }
+    let promise = opt_pool_exact(fallback::_a_promise_that_keeps_moving(&clean));
+    if let Some(promise) = promise {
+        if mood != "positive" {
+            return choose!(promise, memory, clean);
+        }
+    }
+    if mood != "positive" && fallback::_someone_else_minding(&clean, &words, fallback::_grievance_thread(memory)) {
+        if fallback::_grief_thread(memory) {
+            return choose!(GRIEF_AFTER, memory, clean);
+        }
+        return choose!(GRIEVANCE, memory, clean);
+    }
+    if mood == "neutral" && fallback::_sorry_for_asking(&clean) {
+        return choose!(SORRY_FOR_ASKING, memory, clean);
+    }
+    let said = fallback::_thanks_then_said(&clean);
+    if truthy(fallback::_thanks_news_went_badly(&clean)) {
+        return choose!(THANKS_NO_BETTER, memory, clean);
+    }
+    if !said.is_empty() {
+        let said_words = A_WORD.findall_str(&said);
+        if THANKS_GOOD_AGAIN.search(&said).is_some() || (THANKS_WENT_BADLY.search(&said).is_none() && _mood(&said_words, &said) != "negative") {
+            return choose!(THANKS_THEN_SAID, memory, clean);
+        }
+    }
+    if mood == "neutral" && (fallback::_thanks_with_more(&clean) || fallback::_acknowledges_alone(&clean)) {
+        return choose!(THANKS, memory, clean);
+    }
+    if mood == "neutral"
+        && (DITHER.search(&clean).is_some() || DITHER.search(&repaired).is_some())
+        && HELP_SERVICE.search(&clean).is_some()
+    {
+        if clean.contains("vet")
+            || clean.contains("vets")
+            || words.iter().any(|w| ANIMALS.contains(w) || ANIMALS.contains(text::rstrip_chars(w, "s")))
+        {
+            return Some(VET_WHO.clone());
+        }
+        return choose!(UNKNOWN_HEALTH, memory, clean);
+    }
+    if mood == "neutral" {
+        if let Some(about_a_person) = text_of(fallback::_a_question_about_the_person(&clean, memory)) {
+            return Some(about_a_person);
+        }
+    }
+    if let Some(free_time) = text_of(fallback::_the_stretch_of_time(&clean, memory)) {
+        return Some(free_time);
+    }
+    if mood == "neutral" && fallback::_reads_as_dither(&clean, &repaired) && fallback::_weighs_a_choice(&clean) {
+        if (meets(&words, &HEALTH_WORDS) && HEALTH_MODIFIER.search(&clean).is_none())
+            || CHECK_PHRASES.iter().any(|phrase| clean.contains(phrase.as_str()))
+        {
+            return choose!(UNKNOWN_HEALTH, memory, clean);
+        }
+        if DITHER_YES_NO.search(&clean).is_some() {
+            return choose!(DITHER_DECIDE, memory, clean);
+        }
+        if DITHER_OPEN.search(&clean).is_some() {
+            return choose!(DITHER_OPEN_LINES, memory, clean);
+        }
+        return choose!(DITHER_TWO_WAY_LINES, memory, clean);
+    }
+    if mood == "neutral" && fallback::_run_out(&clean) && !fallback::_in_a_care_thread(memory) {
+        return choose!(RUN_OUT_LINES, memory, clean);
+    }
+    if mood == "neutral" && fallback::_only_the_stuck_phrase(&clean) && !fallback::_in_a_care_thread(memory) {
+        if A_HELP_WORD.search(&clean).is_some() {
+            return choose!(HAND, memory, clean);
+        }
+        if fallback::_news_above(memory, false) || fallback::_a_subject_above(memory) || fallback::_a_bad_line_above(memory) {
+            return choose!(STUCK_AFTER_TROUBLE, memory, clean);
+        }
+        if !(STUCK.match_(&clean).is_some() || fallback::_a_start_ask(&clean)) {
+            return choose!(DITHER_OPEN_LINES, memory, clean);
+        }
+    }
+    if _a_problem_stated(&clean, Some(&repaired)) {
+        return choose!(HAND, memory, clean);
+    }
+    if let Some(amount) = text_of(crate::compose::quantity::reply_for(&clean, memory)) {
+        return Some(amount);
+    }
+    if let Some(named_after) = _named_after_reply(&clean, memory) {
+        if !named_after.is_empty() {
+            return Some(named_after);
+        }
+    }
+    if mood == "neutral" {
+        if let Some(own) = pool_of(fallback::_own_feeling(&clean)) {
+            return choose!(own, memory, clean);
+        }
+        if fallback::_a_knock_on_oneself(&clean) {
+            return choose!(KNOCKED, memory, clean);
+        }
+        if fallback::_a_knock_into_a_thing(&clean) {
+            return choose!(WALKED_INTO_POOL, memory, clean);
+        }
+        if fallback::_a_mishap(&clean, &words) {
+            return choose!(MISHAP_BACK, memory, clean);
+        }
+        if let Some(summons) = understood.summons.as_ref() {
+            let summons_value = Value::from_plain(&serde_json::to_value(summons).unwrap_or_default());
+            let pool = pool_of(fallback::_summons_pool(&summons_value, &clean)).unwrap_or_default();
+            return choose!(pool, memory, clean);
+        }
+        let taking_up = understood.taking_up.as_ref().map(|t| Value::from_plain(&serde_json::to_value(t).unwrap_or_default())).unwrap_or(Value::None);
+        if let Some(taken) = text_of(crate::compose::remark::interest_reply_for(&taking_up, memory)) {
+            return Some(taken);
+        }
+        if let Some(planned) = crate::compose::remark::reply_for(&clean, &words, memory, &understood.topics).filter(|s| !s.is_empty()) {
+            return Some(planned);
+        }
+        if let Some(arranged) = text_of(crate::compose::remark::arranged_reply_for(&clean, &words, memory)) {
+            return Some(arranged);
+        }
+        let pool = fallback::_thing_done_pool(&clean).filter(|p| !p.is_empty());
+        if mood != "negative" {
+            if let Some(pool) = pool {
+                return choose!(pool, memory, clean);
+            }
+        }
+        if let Some(reported) = text_of(crate::compose::remark::report_reply_for(&clean, &words, memory)) {
+            return Some(reported);
+        }
+        if !asking && reads_as_a_flat_habit(text_, &understood) {
+            return choose!(HABIT_REPLY, memory, clean);
+        }
+        if let Some(together) = text_of(crate::compose::remark::the_two_of_them(&clean, memory)) {
+            return Some(together);
+        }
+        if let Some(of_theirs) = text_of(crate::compose::remark::their_people_reply_for(&clean, &words, memory)) {
+            return Some(of_theirs);
+        }
+        if let Some(got_ahead) = _a_thing_got_ahead(&clean) {
+            return choose!(got_ahead, memory, clean);
+        }
+        if let Some(going_on) = text_of(crate::compose::remark::their_mood_going_on_reply_for(&clean, memory)) {
+            return Some(going_on);
+        }
+        if let Some(mooded) = text_of(crate::compose::remark::their_mood_with_you_reply_for(&clean, &words, memory)) {
+            return Some(mooded);
+        }
+        let wear = crate::compose::worn::reads_as_worn(&clean, &words, &repaired);
+        if truthy(wear.clone()) {
+            let pool = pool_of(crate::compose::worn::pool(&occasion_value(wear))).unwrap_or_default();
+            return choose!(pool, memory, clean);
+        }
+        if let Some(disliked) = text_of(fallback::the_dislike_ask(&clean, memory)) {
+            return Some(disliked);
+        }
+        let said_back = crate::memory::ack::reply(text_, memory);
+        if crate::compose::remark::a_want_said_back(said_back.as_deref(), &clean) {
+            if let Some(theirs) = text_of(crate::compose::remark::dependant_want_reply_for(&clean, &words, memory)) {
+                return Some(theirs);
+            }
+        }
+        if let Some(told) = _a_day_told_instead_of_the_receipt(said_back.as_deref(), &clean, memory) {
+            if !told.is_empty() {
+                return Some(told);
+            }
+        }
+        if let Some(said_back) = said_back.filter(|s| !s.is_empty()) {
+            return Some(said_back);
+        }
+    }
+    if mood == "neutral" {
+        if let Some(of_theirs) = text_of(crate::compose::remark::their_people_reply_for(&clean, &words, memory)) {
+            return Some(of_theirs);
+        }
+        if _the_morning_has_a_clock(&clean) {
+            let at = _the_time_said(&clean).map(|(m, _)| m.str(1).to_string()).unwrap_or_default();
+            return choose!(_the_clock_pool(&at), memory, clean);
+        }
+        let said_back = crate::memory::ack::reply(text_, memory);
+        if crate::compose::remark::a_want_said_back(said_back.as_deref(), &clean) {
+            if let Some(theirs) = text_of(crate::compose::remark::dependant_want_reply_for(&clean, &words, memory)) {
+                return Some(theirs);
+            }
+        }
+        if let Some(told) = _a_day_told_instead_of_the_receipt(said_back.as_deref(), &clean, memory) {
+            if !told.is_empty() {
+                return Some(told);
+            }
+        }
+        if let Some(said_back) = said_back.filter(|s| !s.is_empty()) {
+            return Some(said_back);
+        }
+        let shape = crate::compose::trouble::reads_as_trouble(&clean, Some(words.as_slice()), &repaired);
+        if truthy(shape.clone()) {
+            let pool = pool_of(crate::compose::trouble::pool(&occasion_value(shape), &clean, memory)).unwrap_or_default();
+            if let Some(said) = choose!(pool, memory, clean).filter(|s| !s.is_empty()) {
+                return Some(said);
+            }
+        }
+    }
+    if mood == "negative" {
+        let shape = crate::compose::trouble::reads_as_trouble(&clean, Some(words.as_slice()), &repaired);
+        if opt_string_of(shape.clone()).as_deref() == Some("sore") && _CAUGHT.search(&clean).is_none() && FRIGHTENED.search(&clean).is_none() {
+            let pool = pool_of(crate::compose::trouble::pool(&occasion_value(shape), &clean, memory)).unwrap_or_default();
+            if let Some(said) = choose!(pool, memory, clean).filter(|s| !s.is_empty()) {
+                return Some(said);
+            }
+        }
+    }
+    let mut landed: Option<String> = None;
+    if !(fallback::_in_a_loss_thread(memory) || fallback::_grief_thread(memory)) {
+        landed = opt_string_of(fallback::_the_news_landed(&clean));
+    }
+    match landed.as_deref() {
+        Some("bad") => return choose!(LANDED_BAD, memory, clean),
+        Some("good") => return choose!(fallback::_says_only_what_they_said(&CONGRATS, &clean), memory, clean),
+        Some("landed") => return choose!(PENDING_LANDED, memory, clean),
+        _ => {}
+    }
+    let answered = opt_string_of(crate::compose::toknow::ask_about_what_to_look_out_for(&clean, memory));
+    if let Some(answered) = answered.as_ref().filter(|s| !s.is_empty()) {
+        return Some(answered.clone());
+    }
+    if answered.is_none() && fallback::_an_open_result(&clean) {
+        let pool: &Vec<String> = if fallback::_a_time_in_it(&clean) {
+            &PENDING_WAITING
+        } else if fallback::_a_guessed_result(&clean) {
+            &PENDING_DOUBT
+        } else {
+            &PENDING_WHEN
+        };
+        return choose!(pool, memory, clean);
+    }
+    if opens_with_hello && mood == "neutral" {
+        return choose!(GREETING, memory, clean);
+    }
+    if _reads_as_a_bad_stretch(&clean) {
+        return choose!(BAD_STRETCH_REPLIES, memory, clean);
+    }
+    if _says_there_is_nothing_to_wear(&clean, &repaired, text_) {
+        return choose!(NOTHING_TO_WEAR_REPLIES, memory, clean);
+    }
+    if _a_wear_ask_about_a_day(&clean, &repaired, text_) {
+        return choose!(_the_wear_pool_for_the_line(&clean, &repaired, text_), memory, clean);
+    }
+    if mood == "neutral" && _A_CORRECTION.match_(&clean).is_none() && truthy(crate::memory::swap::rewritten(&clean, &memory_value(memory))) {
+        return choose!(UNKNOWN, memory, clean);
+    }
+    if crate::understanding::kinds::verdicts_a_thing(&clean) {
+        return choose!(NEGATIVE, memory, clean);
+    }
+    let mut state = _body_state(&clean);
+    if state.is_none() {
+        repaired = understood.plain.clone();
+        if !repaired.is_empty() && repaired != clean {
+            state = _body_state(&repaired);
+        }
+    }
+    if let Some(state) = state.filter(|s| !s.is_empty()) {
+        return choose!(pool_at(&BODY_POOLS, &state), memory, clean);
+    }
+    let pool = fallback::_thing_done_pool(&clean).filter(|p| !p.is_empty());
+    if mood != "negative" {
+        if let Some(pool) = pool {
+            if !_a_things_state(memory, &clean) {
+                return choose!(pool, memory, clean);
+            }
+        }
+    }
+    if mood == "negative" && _a_things_state(memory, &clean) {
+        return choose!(A_THING_LOOKS_SAD, memory, clean);
+    }
+    if A_BIT_PAST_IT.search(&clean).is_some()
+        && fallback::_a_thing_they_started(memory, &Value::Int(3))
+        && !fallback::_hedged_recently(memory, 3)
+        && !fallback::_thread_is_about_the_body(memory, 4)
+    {
+        return if fallback::_names_their_age(&clean) { choose!(NOT_TOO_OLD, memory, clean) } else { choose!(NOT_FIT_ENOUGH, memory, clean) };
+    }
+    if crate::compose::leaving::reads_as_a_leave_with_a_trouble_in_it(&clean, &words) {
+        if let Some(bye) = pool_of(crate::compose::leaving::pool(&clean, &words, true, memory, false)) {
+            return choose!(bye, memory, clean);
+        }
+    }
+    if fallback::_a_cost_somebody_asks(&clean) {
+        return choose!(A_COST_SOMEBODY_ASKS, memory, clean);
+    }
+    if let Some(lost) = fallback::the_lost_ask_reply(memory, &clean, &repaired).filter(|s| !s.is_empty()) {
+        return Some(lost);
+    }
+    if RESULT_WENT_WRONG.search(&clean).is_some() {
+        return choose!(A_THING_CAME_OUT_WRONG, memory, clean);
+    }
+    if PLAN_THAT_FELL_THROUGH.search(&clean).is_some() {
+        return choose!(A_PLAN_THAT_FELL_THROUGH, memory, clean);
+    }
+    let state = if RESULT_WENT_WRONG.search(&clean).is_some() || mood == "positive" { None } else { _a_state_of_theirs(&clean) };
+    if let Some(state) = state {
+        return if state == "then" { choose!(A_STATE_PAST, memory, clean) } else { choose!(A_STATE_NOW, memory, clean) };
+    }
+    if _a_bad_time_told(&clean, memory) {
+        return choose!(A_BAD_TIME_TOLD, memory, clean);
+    }
+    if _a_day_asked_without_a_cheer(&clean, memory) {
+        return choose!(A_DAY_ASKED_PLAIN, memory, clean);
+    }
+    if let Some(named) = _a_name_told_reply(&clean, memory) {
+        if !named.is_empty() {
+            return Some(named);
+        }
+    }
+    if let Some(suggestion) = understood.suggestion.as_ref() {
+        if !asking {
+            let who = suggestion.who.clone();
+            if !who.is_empty() {
+                return choose!(formatted(&A_SUGGESTED_BY_SOMEONE, &[("who", &who)]), memory, clean);
+            }
+            return choose!(A_SUGGESTED, memory, clean);
+        }
+    }
+    if _a_thing_they_regret(&clean) {
+        return choose!(A_THING_THEY_REGRET, memory, clean);
+    }
+    if _a_betrayal(&clean) {
+        return choose!(A_BETRAYAL, memory, clean);
+    }
+    if let Some(care) = _a_care_home_line(Some(&understood), memory) {
+        if !care.is_empty() {
+            return Some(care);
+        }
+    }
+    if let Some(wrecked) = pool_of(crate::compose::finding_out::the_wrecked_form_reply(&clean)) {
+        if let Some(said) = choose!(wrecked, memory, clean).filter(|s| !s.is_empty()) {
+            return Some(said);
+        }
+    }
+    if let Some(sum_said) = _a_sum_with_nothing_beside_it(&clean, Some(&*memory)) {
+        if !sum_said.is_empty() {
+            return choose!(formatted(&A_SUM_STATED, &[("said", &sum_said)]), memory, clean);
+        }
+    }
+    if let Some(rest) = _the_rest_of_the_day(&clean, memory, &mood) {
+        return choose!(rest, memory, clean);
+    }
+    if let Some(reported) = _a_report_from_elsewhere(&clean) {
+        return choose!(reported, memory, clean);
+    }
+    if mood == "neutral" && _a_small_day(&clean, memory) && !_just_asked_about_the_day(memory) {
+        return choose!(A_SMALL_DAY, memory, clean);
+    }
+    if A_SORRY_ON_ITS_OWN.match_(text::strip(&clean)).is_some() {
+        return choose!(SORRY_ON_ITS_OWN, memory, clean);
+    }
+    if A_DISMISSAL.match_(text::strip(&clean)).is_some() {
+        return choose!(NEVER_MIND, memory, clean);
+    }
+    if _takes_something_back(&clean, memory) {
+        return choose!(A_CORRECTION_TAKEN, memory, clean);
+    }
+    let positive = fallback::_says_only_what_they_said(&POSITIVE, &clean);
+    if mood == "neutral" {
+        if let Some(one_thing) = pool_of(crate::compose::onething::pool(&clean, &understood, memory)) {
+            return choose!(one_thing, memory, clean);
+        }
+        if let Some(narrowed) = text_of(crate::compose::limit::a_limit_the_reading_missed(&clean, memory)) {
+            return Some(narrowed);
+        }
+    }
+    if reads_as_no_pleasure(&clean) {
+        return choose!(PLEASURE_GONE_LINES, memory, clean);
+    }
+    match mood.as_str() {
+        "positive" => choose!(positive, memory, clean),
+        "negative" => choose!(NEGATIVE, memory, clean),
+        "neutral" => choose!(NEUTRAL, memory, clean),
+        other => panic!("KeyError: {other}"),
+    }
+}
+
+/// `str` pattern for "settled" in `_reply_for`: `re.sub(r"[^a-z0-9']", " ", clean)`.
+static NOT_AN_APOSTROPHE_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"[^a-z0-9']", 0));
+
+/// A value a reader gave back, handed on to the reader that takes it (an occasion, a new thing, a
+/// shape): whatever it was, as a Python value.
+fn occasion_value<T: PyRet>(v: T) -> Value {
+    v.into_value()
+}
+
+/// `x is not None` for a reader that gives a pool or None: an empty pool still counts.
+fn opt_pool_exact<T: PyRet>(v: T) -> Option<Vec<String>> {
+    v.into_pool_exact()
+}
+
+/// The memory as a plain Python value, for a reader whose contract takes one.
+fn memory_value(memory: &Memory) -> Value {
+    Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
+}
