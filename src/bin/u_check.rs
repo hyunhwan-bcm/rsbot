@@ -110,6 +110,60 @@ fn main() {
             }
             println!("kinds ok {ok} bad {bad} {fields:?}");
         }
+        "kindsfns" => {
+            use rsbot::understanding::kinds as k;
+            let show: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(5);
+            let (mut ok, mut bad, mut shown) = (0, 0, 0);
+            let mut fields: std::collections::BTreeMap<String, usize> = Default::default();
+            for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
+                let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+                let l: rsbot::understanding::normalize::Line = serde_json::from_value(v["line"].clone()).unwrap();
+                let read: k::Read = serde_json::from_value(v["read"].clone()).unwrap();
+                let earlier: Vec<String> = serde_json::from_value(v["earlier"].clone()).unwrap();
+                let mut as_read = rsbot::understood::Understood::default();
+                as_read.kind = read.kind.clone();
+                as_read.intent = read.intent.clone();
+                as_read.asks = read.asks.clone();
+                as_read.followup = true;
+                as_read.text = v["text"].as_str().unwrap().to_string();
+                let mut prev = rsbot::understood::Understood::default();
+                prev.over_time = Some(true);
+                prev.over_time_what = Some("price".into());
+                prev.text = "earlier".into();
+                let j = |x: serde_json::Value| x;
+                let got: Vec<(&str, serde_json::Value)> = vec![
+                    ("over_time", j(serde_json::to_value(k::over_time(&l, &read, None, false)).unwrap())),
+                    ("carrying", j(serde_json::to_value(k::over_time(&l, &as_read, Some(&prev), true)).unwrap())),
+                    ("taking_up", serde_json::to_value(k::taking_up(&l, Some(&read))).unwrap()),
+                    ("care_home", serde_json::to_value(k::a_care_home(&l.clean)).unwrap()),
+                    ("carried_home", serde_json::to_value(k::a_home_carried_forward(&l.clean, &earlier)).unwrap()),
+                    ("setup", serde_json::to_value(k::the_setup(&l)).unwrap()),
+                    ("routine", serde_json::to_value(k::is_a_routine(&l, Some(&read))).unwrap()),
+                    ("shift", serde_json::to_value(k::shift_worked(&l.clean)).unwrap()),
+                    ("after_any", serde_json::to_value(k::after_any_link(&l.norm)).unwrap()),
+                    ("how_i_am", serde_json::to_value(k::asks_how_i_am(&l.norm)).unwrap()),
+                    ("noun_req", serde_json::to_value(k::noun_phrase_request(&l)).unwrap()),
+                    ("opening", serde_json::to_value(k::opening_line(&l.norm)).unwrap()),
+                    ("talk", serde_json::to_value(k::talk_frame(&l.norm)).unwrap()),
+                    ("courtesy", serde_json::to_value(k::the_line_after_a_courtesy(&l.norm)).unwrap()),
+                    ("emotion", serde_json::to_value(k::emotion_of(&l.norm_text)).unwrap()),
+                    ("asks_back", serde_json::to_value(k::_asks_back(&l.norm)).unwrap()),
+                    ("fall", serde_json::to_value(k::_a_fall_that_is_not_one(&l.norm)).unwrap()),
+                    ("step", serde_json::to_value(k::_a_step_done(&l.norm)).unwrap()),
+                    ("wrong", serde_json::to_value(k::_the_step_went_wrong(&l.norm)).unwrap()),
+                ];
+                let mut same = true;
+                for (name, g) in got {
+                    if g != v[name] {
+                        same = false;
+                        *fields.entry(name.to_string()).or_default() += 1;
+                        if shown < show { println!("-- {name} {:?}\n   rust {}\n   py   {}", l.norm_text, g, v[name]); shown += 1; }
+                    }
+                }
+                if same { ok += 1 } else { bad += 1 }
+            }
+            println!("kindsfns ok {ok} bad {bad} {fields:?}");
+        }
         x => panic!("unknown check {x}"),
     }
 }
