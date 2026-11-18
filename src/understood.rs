@@ -236,9 +236,8 @@ pub struct Understood {
     pub norm_text: String,
     pub fixes: Fixes,
     pub clauses: Vec<Vec<String>>,
-    /// None only when the line has no clause at all (nothing but punctuation).
-    pub focus: Option<Vec<String>>,
-    pub asking: Option<Vec<String>>,
+    pub focus: Vec<String>,
+    pub asking: Vec<String>,
     pub signals: Signals,
     pub topic: Option<String>,
     pub topic_score: i64,
@@ -281,15 +280,4 @@ pub struct Understood {
     /// Any other key a module put on the reading, by Python key.
     #[serde(flatten)]
     pub extra: IndexMap<String, serde_json::Value>,
-}
-
-impl Understood {
-    /// The focus clause, or nothing (`line["focus"] or []`).
-    pub fn focus_words(&self) -> &[String] {
-        self.focus.as_deref().unwrap_or(&[])
-    }
-    /// `asking` (falls back to nothing).
-    pub fn asking_words(&self) -> &[String] {
-        self.asking.as_deref().unwrap_or(&[])
-    }
 }

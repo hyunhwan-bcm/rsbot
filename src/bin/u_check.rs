@@ -39,6 +39,45 @@ fn main() {
             let want: Vec<String> = serde_json::from_value(v["every_word"].clone()).unwrap();
             println!("every_word: {} vs {} same={}", ew.len(), want.len(), ew.iter().map(|s| s.as_str()).eq(want.iter().map(|s| s.as_str())));
         }
+        "norm" => {
+            // u_check norm LINES.jsonl [--show K]: the three pre-passes and normalise(pre)
+            let show: usize = args.get(3).and_then(|s| s.parse().ok()).unwrap_or(5);
+            let (mut ok, mut bad, mut shown) = (0, 0, 0);
+            let mut fields: std::collections::BTreeMap<String, usize> = Default::default();
+            for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
+                let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+                let text = v["text"].as_str().unwrap();
+                let got_pre = rsbot::runtime::guarded(|| {
+                    use rsbot::understanding::normalize as n;
+                    n::_the_sugar_that_is_blood(&n::_the_part_that_hurts(&n::without_the_figure_of_speech(text)))
+                });
+                let want_pre = v["pre"].as_str().unwrap();
+                let mut same = true;
+                if got_pre.as_deref() != Some(want_pre) {
+                    same = false;
+                    *fields.entry("(pre)".into()).or_default() += 1;
+                    if shown < show { println!("-- pre {text:?}\n   rust {got_pre:?}\n   py   {want_pre:?}"); shown += 1; }
+                }
+                let got = rsbot::runtime::guarded(|| rsbot::understanding::normalize::normalise(want_pre));
+                let got = got.map(|l| serde_json::to_value(l).unwrap()).unwrap_or(serde_json::Value::Null);
+                let want = &v["line"];
+                if let (Some(g), Some(w)) = (got.as_object(), want.as_object()) {
+                    for (k, wv) in w {
+                        if g.get(k) != Some(wv) {
+                            same = false;
+                            *fields.entry(k.clone()).or_default() += 1;
+                            if shown < show { println!("-- {k} {text:?}\n   rust {}\n   py   {}", g.get(k).map(|x| x.to_string()).unwrap_or_default(), wv); shown += 1; }
+                        }
+                    }
+                } else {
+                    same = false;
+                    *fields.entry("(panic)".into()).or_default() += 1;
+                    if shown < show { println!("-- panic {text:?}"); shown += 1; }
+                }
+                if same { ok += 1 } else { bad += 1 }
+            }
+            println!("norm ok {ok} bad {bad} {fields:?}");
+        }
         x => panic!("unknown check {x}"),
     }
 }
