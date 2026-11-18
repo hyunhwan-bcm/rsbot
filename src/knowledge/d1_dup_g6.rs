@@ -199,6 +199,11 @@ mod g6_diff {
             let got: serde_json::Value = match s("fn").as_str() {
                 "the_still_ok_follow_up" => serde_json::json!(crate::knowledge::freshness::the_still_ok_follow_up(&s("text"), &memory)),
                 "_left_out" => serde_json::json!(crate::knowledge::freshness::_left_out(&memory, &reading)),
+                "crosses_a_border" => serde_json::json!(crate::knowledge::geography::crosses_a_border(&s("text"))),
+                "carries_it_out_of_britain" => serde_json::json!(crate::knowledge::geography::carries_it_out_of_britain(&s("text"))),
+                "directed_place" => serde_json::json!(crate::knowledge::geography::directed_place(&s("text"))),
+                "destination_place" => serde_json::json!(crate::knowledge::geography::destination_place(&s("text"))),
+                "_countries_said" => serde_json::json!(crate::knowledge::geography::_countries_said(&s("text"))),
                 other => panic!("no dispatch for {other}"),
             };
             if got == c["want"] {
