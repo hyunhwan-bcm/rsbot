@@ -1361,7 +1361,32 @@ pub fn _line_rows(
     }
 }
 
-/// `_rows_key(...)`: what the scanned rows depend on (`forms` by content).
+/// `_rows_key(forms, typed, named, frame, framed=False, asked=(), ask_said=())`: the cache key of
+/// a line's rows, as Python builds it (each position's forms sorted).
+pub fn _rows_key(forms: &crate::data::Value, typed: &[String], named: &[String], frame: bool, framed: bool, asked: &[String], ask_said: &[String]) -> crate::data::Value {
+    use crate::data::Value;
+    let strs = |v: &[String]| Value::Tuple(Arc::new(v.iter().map(|w| Value::from(w.as_str())).collect()));
+    let groups: Vec<Value> = forms
+        .items()
+        .iter()
+        .map(|group| {
+            let mut g = group.strs();
+            g.sort();
+            strs(&g)
+        })
+        .collect();
+    Value::Tuple(Arc::new(vec![
+        Value::Tuple(Arc::new(groups)),
+        strs(typed),
+        strs(named),
+        Value::Bool(frame),
+        Value::Bool(framed),
+        strs(asked),
+        strs(ask_said),
+    ]))
+}
+
+/// `_rows_key(...)` as the port keys its rows cache (`forms` by content).
 type RowsKey = (usize, usize, Vec<Vec<String>>, Vec<String>, Vec<String>, bool, bool, Vec<String>, Vec<String>);
 
 /// `_line_rows`' use of `_ROWS_CACHE`: the rows a line scanned before, for the whole knowledge
