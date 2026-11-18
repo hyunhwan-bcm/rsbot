@@ -3999,6 +3999,899 @@ pub fn _the_name_without_a_possessive(text: &str) -> Vec<(String, String)> {
     stems
 }
 
+// ---------------------------------------------------------------------------------------------
+// relations' names, children and their ages, states of other people, names offered and picked
+
+fres!(
+    KID_COUNT, KID_COUNT_AND, FIGURE_PAIR, FIGURE_WORD, KID_AGES, KID_AGES_AFTER_A_COMMA,
+    ONES_BY_ONE, KID_ELSEWHERE, KID_ASKING, KID_NONE, KID_NONE_NOT_AFTER_ALL, COUNT_OF_THEM,
+    COUNT_OF_THEM_ELSEWHERE, KID_AGES_ARE, KID_GROUP_AGES_ARE, KID_COUNT_AGES, KID_ADULTS_AGES,
+    KID_AGES_NOT, KID_NAME_AGES, KID_NAME_AGE, FIGURE_AFTER, OTHER_STATE, OTHER_LIMIT, OWN_STATE,
+    YEAR_OLD, OWN_AGE_BEFORE_IT, YEAR_OLD_ANIMAL, THING_AGED, A_PERSON_AGED, NAMED_THING_AGED,
+    THING_AGED_QUALIFIED, AFTER_YEAR_OLD, LIST_BEFORE_IT, A_LIST_OF_AGES, GROUP_NAMED,
+    THING_NAMED_BACK, PEOPLE_NAMED_ANYWHERE, _A_THING_SAID_IS, _A_THING_POINTED_AT, BARE_NAME,
+);
+fsets!(AGES_ONLY_WORD, NOT_A_NAME_HEDGE, PERSON_ELSEWHERE, PEOPLE_AGED, AFTER_YEAR_OLD_OKAY, NOT_A_BARE_NAME);
+fstrs!(CHILDREN_WORDS, KIDS, KID_GROUP, KID_ONE_BY_ONE);
+fmaps!(FIGURE_WORDS);
+
+/// `KID_NUMBERS`: the number a count word says.
+pub static KID_NUMBERS: LazyLock<HashMap<String, i64>> = LazyLock::new(|| {
+    data::get("bot.memory.facts.KID_NUMBERS")
+        .pairs()
+        .iter()
+        .filter_map(|(k, v)| Some((k.as_str()?.to_string(), v.as_int()?)))
+        .collect()
+});
+
+fn bundle_int(name: &str) -> i64 {
+    data::get(&format!("bot.memory.facts.{name}")).as_int().unwrap_or(0)
+}
+
+static BREED_RE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.understanding.breeds.BREED_RE"));
+
+/// The names in `found` for one person word (`[entry["who"] for entry in found]`).
+fn has_who(found: &[Value], who: &str) -> bool {
+    found.iter().any(|e| vget(e, "who").as_str() == Some(who))
+}
+
+/// "my sons" is the son: the plural is kept as the relation when the singular is one.
+fn singular_relation(who: String) -> String {
+    if who.ends_with('s') && RELATIONS.contains(&who[..who.len() - 1].to_string()) {
+        who[..who.len() - 1].to_string()
+    } else {
+        who
+    }
+}
+
+/// Python: bot/memory/facts.py:6684 `_a_relations_name(text)`: [{"who": "sister", "name": "meg"}]
+/// for a name the line gives to someone in the family.
+pub fn _a_relations_name(text: &str) -> Vec<Value> {
+    let mut found: Vec<Value> = Vec::new();
+    let text = stated_not_asked(text);
+    if text.is_empty() {
+        return found;
+    }
+    let text = text.as_str();
+    let without_possessive = _the_name_without_a_possessive(text);
+    let unpossessed = |name: &str| -> String {
+        let key = lower(name);
+        without_possessive.iter().find(|(k, _)| *k == key).map(|(_, v)| v.clone()).unwrap_or_else(|| name.to_string())
+    };
+    for pattern in [&*OTHER_CALLED, &*OTHER_NAME_IS, &*OTHER_NAMED_BARE] {
+        for m in pattern.finditer(text) {
+            let who = singular_relation(a_person_word(m.name_str("who")));
+            let name = m.name_str("name");
+            if !_looks_like_a_name(name) || !_name_after_a_title(name) {
+                continue;
+            }
+            if has_who(&found, &who) {
+                continue;
+            }
+            found.push(dict(vec![("who", who.into()), ("name", name.into())]));
+        }
+    }
+    for m in OTHER_NAMED_BEFORE_VERB.finditer(text) {
+        let who = singular_relation(a_person_word(m.name_str("who")));
+        let name = unpossessed(m.name_str("name"));
+        if !_the_word_then_a_verb(&name, m.name_str("verb")) {
+            continue;
+        }
+        if !_may_be_a_name(&name) {
+            continue;
+        }
+        if has_who(&found, &who) {
+            continue;
+        }
+        found.push(dict(vec![("who", who.into()), ("name", name.into())]));
+    }
+    for pattern in [&*OTHER_NAMED_CAPITAL, &*OTHER_NAMED_MIDLINE] {
+        for m in pattern.finditer(text) {
+            let who = singular_relation(a_person_word(m.name_str("who")));
+            let name = unpossessed(m.name_str("name"));
+            if !_may_be_a_name(&name) {
+                continue;
+            }
+            if has_who(&found, &who) {
+                continue;
+            }
+            found.push(dict(vec![("who", who.into()), ("name", name.into())]));
+        }
+    }
+    found
+}
+
+/// Python: bot/memory/facts.py:6775 `figures_as_digits(text)`: the line with every figure it
+/// spells as a word written as a digit instead.
+pub fn figures_as_digits(text: &str) -> String {
+    if text.is_empty() {
+        return String::new();
+    }
+    let text = FIGURE_PAIR.sub_fn(text, |m| {
+        let n = FIGURE_WORDS.get(&lower(m.str(1))).and_then(|s| py_int(s)).unwrap_or(0);
+        (20 + n).to_string()
+    });
+    FIGURE_WORD.sub_fn(&text, |m| FIGURE_WORDS.get(&lower(m.as_str())).cloned().unwrap_or_default())
+}
+
+inline_re!(ONE_TO_TWO_DIGITS, r"\d{1,2}", 0);
+inline_re!(ONE_TO_THREE_DIGITS, r"\d{1,3}", 0);
+
+/// Python: bot/memory/facts.py:6796 `kid_ages(text)`.
+///
+/// CONTRACT NOTE: Python returns the ages as ints; the skeleton gave this `Vec<String>`. This
+/// keeps the contract (the ages written as figures); `kid_ages_n` returns the numbers.
+pub fn kid_ages(text: &str) -> Vec<String> {
+    kid_ages_n(text).iter().map(|a| a.to_string()).collect()
+}
+
+/// `kid_ages(text)`: the ages the line gives the children, oldest reading only, or [].
+pub fn kid_ages_n(text: &str) -> Vec<i64> {
+    let digits = figures_as_digits(text);
+    let found = KID_AGES.search(&digits).or_else(|| KID_AGES_AFTER_A_COMMA.search(&digits));
+    if let Some(m) = found {
+        return ONE_TO_TWO_DIGITS
+            .findall_str(m.name_str("ages"))
+            .iter()
+            .filter_map(|n| py_int(n))
+            .filter(|a| (0..=110).contains(a))
+            .collect();
+    }
+    if let Some(counted) = _children_by_year_old(&digits) {
+        return _ages_held(&counted);
+    }
+    let others = _other_ages(text);
+    let grouped: Vec<&Value> = others.iter().filter(|e| KID_GROUP.contains(&lower(&str_or_empty(e.get("who"))))).collect();
+    if !grouped.is_empty() && !grouped.iter().any(|e| vget(e, "name").truthy()) {
+        let mut held: Vec<i64> = Vec::new();
+        for entry in &grouped {
+            for age in _ages_held(entry) {
+                if !held.contains(&age) {
+                    held.push(age);
+                }
+            }
+        }
+        if !held.is_empty() {
+            return held;
+        }
+    }
+    let each: Vec<&Value> = others.iter().filter(|e| KID_ONE_BY_ONE.contains(&lower(&str_or_empty(e.get("who"))))).collect();
+    if each.len() >= 2 && !each.iter().any(|e| vget(e, "name").truthy()) {
+        let mut held: Vec<i64> = Vec::new();
+        for entry in &each {
+            for age in _ages_held(entry) {
+                if !held.contains(&age) {
+                    held.push(age);
+                }
+            }
+        }
+        if !held.is_empty() {
+            return held;
+        }
+    }
+    Vec::new()
+}
+
+/// Python: bot/memory/facts.py:6849 `the_ones_are_given_one_at_a_time(text)`: whether the line
+/// hands the ages out one by one ("ones 7 and ones 4", "the older one is 7").
+pub fn the_ones_are_given_one_at_a_time(text: &str) -> bool {
+    ONES_BY_ONE.is_match(&squash(&lower(text).replace('\'', "")))
+}
+
+/// Python: bot/memory/facts.py:6856 `ages_said_one_by_one(text, count)`.
+///
+/// CONTRACT NOTE: Python returns the ages as ints; the skeleton gave this `Vec<String>`. This
+/// keeps the contract (the ages written as figures); `ages_said_one_by_one_n` returns the numbers.
+pub fn ages_said_one_by_one(text: &str, count: i64) -> Vec<String> {
+    ages_said_one_by_one_n(text, count).iter().map(|a| a.to_string()).collect()
+}
+
+/// `ages_said_one_by_one(text, count)`: the ages a line gives a group the store counts, or [].
+pub fn ages_said_one_by_one_n(text: &str, count: i64) -> Vec<i64> {
+    if count < 2 {
+        return Vec::new();
+    }
+    let flat = squash(&lower(text).replace('\'', ""));
+    if flat.is_empty() || pt::split(&flat).len() > 12 {
+        return Vec::new();
+    }
+    let flat = figures_as_digits(&ONES_BY_ONE.sub(" & ", &flat));
+    let mut ages = Vec::new();
+    for word in NOT_ALNUM_RUN.split(&flat) {
+        if word.is_empty() {
+            continue;
+        }
+        if pt::is_digit(&word) {
+            let age = py_int(&word).unwrap_or(-1);
+            if !(0 < age && age <= 120) {
+                return Vec::new();
+            }
+            ages.push(age);
+        } else if !AGES_ONLY_WORD.contains(&word) {
+            return Vec::new();
+        }
+    }
+    if ages.len() as i64 == count {
+        ages
+    } else {
+        Vec::new()
+    }
+}
+
+/// Python: bot/memory/facts.py:6903 `kid_count(text)`: "i have two kids" -> 2, "i dont have any
+/// kids" -> 0: the number a line states, or None.
+pub fn kid_count(text: &str) -> Option<i64> {
+    if KID_ASKING.match_(text).is_some() {
+        return None;
+    }
+    if let Some(none) = KID_NONE.search(text) {
+        if !KID_NONE_NOT_AFTER_ALL.is_match(&text[none.end()..]) {
+            return Some(0);
+        }
+    }
+    let Some(m) = KID_COUNT.search(text).or_else(|| KID_COUNT_AND.search(text)) else {
+        let ages = kid_ages_n(text);
+        if !ages.is_empty() {
+            return Some(ages.len() as i64);
+        }
+        if let Some(counted) = _children_by_year_old(&figures_as_digits(text)) {
+            return Some(_ages_held(&counted).len() as i64);
+        }
+        let others = _other_ages(text);
+        let grouped: Vec<&Value> = others.iter().filter(|e| KID_GROUP.contains(&lower(&str_or_empty(e.get("who"))))).collect();
+        if !grouped.is_empty() && !grouped.iter().any(|e| vget(e, "name").truthy()) {
+            let mut held: Vec<i64> = Vec::new();
+            for entry in &grouped {
+                for age in _ages_held(entry) {
+                    if !held.contains(&age) {
+                        held.push(age);
+                    }
+                }
+            }
+            if !held.is_empty() {
+                return Some(held.len() as i64);
+            }
+        }
+        let each: Vec<&Value> = others
+            .iter()
+            .filter(|e| {
+                KID_ONE_BY_ONE.contains(&lower(&str_or_empty(e.get("who"))))
+                    && (vget(e, "age").truthy() || !_ages_held(e).is_empty())
+            })
+            .collect();
+        if each.len() >= 2 && !each.iter().any(|e| vget(e, "name").truthy()) {
+            return Some(each.len() as i64);
+        }
+        return None;
+    };
+    if KID_ELSEWHERE.is_match(&text[m.end()..]) {
+        return None;
+    }
+    let said = lower(m.name("n").filter(|s| !s.is_empty()).or_else(|| m.name("m").filter(|s| !s.is_empty())).unwrap_or(""));
+    if said.starts_with("a couple") {
+        return Some(2);
+    }
+    if pt::is_digit(&said) {
+        return py_int(&said);
+    }
+    KID_NUMBERS.get(&said).copied()
+}
+
+/// Python: bot/memory/facts.py:6973 `count_of_the_people(text, memory)`: "there are three of them"
+/// -> 3, while the group in hand is the children; None otherwise.
+pub fn count_of_the_people(text: &str, memory: &Memory) -> Option<i64> {
+    if KID_ASKING.match_(text).is_some() {
+        return None;
+    }
+    let m = COUNT_OF_THEM.search(text)?;
+    let said = lower(m.name_str("n"));
+    let number = if pt::is_digit(&said) { py_int(&said) } else { KID_NUMBERS.get(&said).copied() };
+    let number = number.filter(|n| *n != 0)?;
+    if !(1 < number && number <= 12) {
+        return None;
+    }
+    if COUNT_OF_THEM_ELSEWHERE.match_(&text[m.end()..]).is_some() {
+        return None;
+    }
+    if !_the_group_in_hand_is_the_children(memory) {
+        return None;
+    }
+    Some(number)
+}
+
+inline_re!(NOT_A_WORD_RUN, r"[^a-z']+", 0);
+
+/// Python: bot/memory/facts.py:6998 `_the_group_in_hand_is_the_children(memory)`: whether the
+/// children are what the chat was last on, so a bare count is theirs.
+pub fn _the_group_in_hand_is_the_children(memory: &Memory) -> bool {
+    let said = memory.turns.last().map(|t| low_squash(&t.user)).unwrap_or_default();
+    let words: HashSet<String> = NOT_A_WORD_RUN.split(&said).into_iter().collect();
+    if CHILDREN_WORDS.iter().any(|w| words.contains(w)) {
+        return true;
+    }
+    if let Some(user) = memory.get("user") {
+        if user.is_dict() && vget(user, "kids").truthy() {
+            let animals = ["cats", "cat", "dogs", "dog", "pets", "pet", "fish", "birds"];
+            return !animals.iter().any(|a| words.contains(*a));
+        }
+    }
+    false
+}
+
+/// Python: bot/memory/facts.py:7095 `_kids_named_with_ages(text)`: [{"who", "name", "age"}] for the
+/// children given with a name and an age, or [].
+pub fn _kids_named_with_ages(text: &str) -> Vec<Value> {
+    let mut found = Vec::new();
+    for m in KID_NAME_AGES.finditer(text) {
+        let rest = m.name_str("rest");
+        let rest_at = m.name_span("rest").map(|s| s.0).unwrap_or(m.start());
+        if KID_AGES_NOT.is_match(&text[..rest_at]) {
+            continue;
+        }
+        let pairs = KID_NAME_AGE.finditer(rest);
+        if pairs.is_empty() {
+            continue;
+        }
+        if ONE_TO_THREE_DIGITS.findall_str(rest).len() != pairs.len() || FIGURE_AFTER.is_match(&text[m.end()..]) {
+            continue;
+        }
+        for pair in &pairs {
+            let name = pair.name_str("name");
+            let age = int_of(pair.name_str("age"));
+            let low = lower(name);
+            if NOT_A_NAME.contains(&low)
+                || KIDS.contains(&low)
+                || NOT_A_NAME_HEDGE.contains(&low)
+                || NOT_A_NAME_MIDDLE.contains(&low)
+                || NOT_A_NAME_THING.contains(&low)
+                || NOT_A_NAME_STATE.contains(&low)
+                || MONTHS.contains(&low)
+                || DAYS.contains(&low)
+                || !(0..=120).contains(&age)
+            {
+                continue;
+            }
+            if age <= 2 && !name.chars().next().is_some_and(char::is_alphabetic) {
+                continue;
+            }
+            found.push(dict(vec![("who", lower(m.name_str("who")).into()), ("name", name.into()), ("age", age.into())]));
+        }
+    }
+    found
+}
+
+/// Python: bot/memory/facts.py:7127 `_the_same_person(one, other)`: whether two readings of the
+/// people in a line are about the same person.
+pub fn _the_same_person(one: &Value, other: &Value) -> bool {
+    if str_or_empty(one.get("who")) != str_or_empty(other.get("who")) {
+        return false;
+    }
+    lower(&str_or_empty(one.get("name"))) == lower(&str_or_empty(other.get("name")))
+}
+
+inline_re!(OWN_STATE_HEDGED, r"\b(?:was|were|thought|maybe|might|may|hope|hoping|could)\b", 0);
+
+/// Python: bot/memory/facts.py:7184 `_own_states(text)`: {"pregnant": True, "weeks": 12} for the
+/// person themselves, or {}.
+pub fn _own_states(text: &str) -> Value {
+    let digits = figures_as_digits(text);
+    for m in OWN_STATE.finditer(&digits) {
+        let said = lower(m.as_str());
+        if OWN_STATE_HEDGED.is_match(&said) {
+            continue;
+        }
+        let mut found = dict(vec![("pregnant", true.into())]);
+        if let Some(weeks) = m.name("weeks") {
+            let w = int_of(weeks);
+            if 1 <= w && w <= bundle_int("OWN_PREGNANCY_WEEKS_MAX") {
+                found.set_key("weeks", w);
+            }
+        }
+        return found;
+    }
+    Value::dict()
+}
+
+/// Python: bot/memory/facts.py:7206 `_other_states(text)`: [{"who", "pregnant"|"breastfeeding":
+/// True}] and [{"who", "drinks": False}] for these people.
+pub fn _other_states(text: &str) -> Vec<Value> {
+    let mut found = Vec::new();
+    for m in OTHER_STATE.finditer(text) {
+        let tense = lower(m.name_str("tense"));
+        if tense == "was" || tense == "were" {
+            continue;
+        }
+        let who = squash(&lower(m.name_str("who")));
+        let state = lower(m.name_str("state"));
+        if PREGNANCY_STATES.contains(&state) {
+            let mut entry = dict(vec![("who", who.into()), ("pregnant", true.into())]);
+            if let Some(weeks) = m.name("weeks").filter(|w| !w.is_empty()) {
+                let w = int_of(weeks);
+                if (1..=45).contains(&w) {
+                    entry.set_key("weeks", w);
+                }
+            }
+            found.push(entry);
+        } else {
+            found.push(dict(vec![("who", who.into()), ("breastfeeding", true.into())]));
+        }
+    }
+    for m in OTHER_LIMIT.finditer(text) {
+        let who = squash(&lower(m.name_str("who")));
+        found.push(dict(vec![("who", who.into()), ("drinks", false.into())]));
+    }
+    found
+}
+
+inline_re!(LOWER_WORDS, r"[a-z']+", 0);
+
+/// The last word of a noun group, lowered (`noun.split()[-1].lower()`).
+fn last_word_lower(noun: &str) -> String {
+    lower(pt::split_ref(noun).last().copied().unwrap_or(""))
+}
+
+/// Python: bot/memory/facts.py:7332 `_the_years_are_a_things(text)`: whether every age in years on
+/// the line belongs to a thing rather than to a child.
+pub fn _the_years_are_a_things(text: &str) -> bool {
+    let figures = YEAR_OLD.finditer(text);
+    if figures.is_empty() {
+        return false;
+    }
+    for m in &figures {
+        let before = &text[back_chars(text, m.start(), 80)..m.start()];
+        let words = LOWER_WORDS.findall_str(&lower(before));
+        if words.iter().any(|w| PEOPLE_AGED.contains(w)) {
+            return false;
+        }
+        if let Some(named) = _A_THING_SAID_IS.search(before) {
+            if !PEOPLE_AGED.contains(&last_word_lower(named.name_str("noun"))) {
+                continue;
+            }
+        }
+        if _A_THING_POINTED_AT.is_match(before) {
+            continue;
+        }
+        return false;
+    }
+    true
+}
+
+static MY_A_PERSON: LazyLock<Re> =
+    LazyLock::new(|| Re::new(&format!(r"\bmy\s+{}\b", data::string("bot.memory.facts._A_PERSON")), I));
+
+/// Python: bot/memory/facts.py:7356 `_children_by_year_old(text)`: the children a line counts in
+/// years: {"who": "kids", "ages": [...]}, or None.
+pub fn _children_by_year_old(text: &str) -> Option<Value> {
+    if !YEAR_OLD.is_match(text) {
+        return None;
+    }
+    if _the_years_are_a_things(text) {
+        return None;
+    }
+    if !GROUP_NAMED.is_match(text) && MY_A_PERSON.is_match(text) {
+        return None;
+    }
+    let group_named = GROUP_NAMED.is_match(text);
+    let figures = YEAR_OLD.finditer(text);
+    if group_named && figures.len() > 1 {
+        return None;
+    }
+    let mut ages: Vec<i64> = Vec::new();
+    for m in &figures {
+        let age = int_of(m.name_str("age"));
+        if !(0..=120).contains(&age) {
+            continue;
+        }
+        if OWN_AGE_BEFORE_IT.is_match(&text[..m.start()]) {
+            continue;
+        }
+        if !group_named && A_PERSON_AGED.is_match(&text[back_chars(text, m.start(), 40)..m.start()]) {
+            continue;
+        }
+        if YEAR_OLD_ANIMAL.is_match(&text[back_chars(text, m.start(), 24)..m.start()]) {
+            continue;
+        }
+        let before = &text[back_chars(text, m.start(), 40)..m.start()];
+        if BREED_RE.is_match(before) {
+            continue;
+        }
+        if !PEOPLE_NAMED_ANYWHERE.is_match(text) {
+            let window = &text[back_chars(text, m.start(), bundle_int("SUBJECT_REACH") as usize)..m.start()];
+            let nearest = THING_NAMED_BACK.finditer(window).into_iter().last();
+            if let Some(nearest) = &nearest {
+                let noun = pt::split(nearest.name_str("noun"));
+                if noun.is_empty() || !PEOPLE_AGED.contains(&lower(noun.last().unwrap())) {
+                    continue;
+                }
+            }
+        }
+        if group_named && LIST_BEFORE_IT.is_match(before) {
+            continue;
+        }
+        if THING_AGED.is_match(before) {
+            continue;
+        }
+        if let Some(qualified) = THING_AGED_QUALIFIED.search(before) {
+            let thing = lower(qualified.name_str("noun"));
+            if !PEOPLE_AGED.contains(&thing) && !PERSON_ELSEWHERE.contains(&thing) {
+                continue;
+            }
+        }
+        if let Some(named) = NAMED_THING_AGED.search(before) {
+            if !PEOPLE_AGED.contains(&last_word_lower(named.name_str("noun"))) {
+                continue;
+            }
+        }
+        if let Some(after) = AFTER_YEAR_OLD.match_(&text[m.end()..]) {
+            if !group_named && !AFTER_YEAR_OLD_OKAY.contains(&lower(after.name_str("word"))) {
+                continue;
+            }
+        }
+        if age >= bundle_int("CHILD_AGE_UNDER") && !group_named {
+            continue;
+        }
+        ages.push(age);
+    }
+    if ages.is_empty() {
+        return None;
+    }
+    Some(if ages.len() > 1 {
+        dict(vec![("who", "kids".into()), ("ages", Value::from(ages.into_iter().map(Value::from).collect::<Vec<_>>()))])
+    } else {
+        dict(vec![("who", "kids".into()), ("age", ages[0].into())])
+    })
+}
+
+/// Python: bot/memory/facts.py:7436 `_ages_held(entry)`: every age an entry holds, the list and the
+/// lone one together, in the order given.
+pub fn _ages_held(entry: &Value) -> Vec<i64> {
+    let mut held: Vec<i64> = vget(entry, "ages").items().iter().filter_map(Value::as_int).collect();
+    if let Some(age) = vget(entry, "age").as_int() {
+        if !held.contains(&age) {
+            held.push(age);
+        }
+    }
+    held
+}
+
+fn ints(values: &[i64]) -> Value {
+    Value::from(values.iter().map(|v| Value::from(*v)).collect::<Vec<_>>())
+}
+
+/// Python: bot/memory/facts.py:7444 `_keep_the_ages(found, entry)`: add a reading about a group of
+/// children, or fold it into the group already read.
+pub fn _keep_the_ages(found: &mut Vec<Value>, entry: &Value) {
+    let who = vget(entry, "who").clone();
+    let Some(at) = found.iter().position(|one| *vget(one, "who") == who) else {
+        found.push(entry.clone());
+        return;
+    };
+    let said = _ages_held(entry);
+    let held = _ages_held(&found[at]);
+    if !held.is_empty() && !said.is_empty() && held.len() >= said.len() && said.iter().all(|a| held.contains(a)) {
+        return;
+    }
+    let known = &mut found[at];
+    known.del_key("age");
+    let ages: Vec<i64> = if said.len() > 1 {
+        said
+    } else {
+        let mut all = held.clone();
+        all.extend(said.into_iter().filter(|a| !held.contains(a)));
+        all
+    };
+    known.set_key("ages", ints(&ages));
+    if ages.len() == 1 {
+        known.del_key("ages");
+        known.set_key("age", ages[0]);
+    }
+}
+
+struct OtherAgePatterns {
+    pattern: Re,
+    pair: Re,
+    named: Re,
+}
+
+static OTHER_AGE_PATTERNS: LazyLock<OtherAgePatterns> = LazyLock::new(|| {
+    let mut rel: Vec<String> = RELATIONS.clone();
+    rel.sort_by(|a, b| pt::len(b).cmp(&pt::len(a)));
+    let relations = rel.join("|");
+    let who_one = format!(r"(?:{relations})(?:\s+in\s+laws?)?");
+    let group_two = "grandparents|grandchildren";
+    OtherAgePatterns {
+        pattern: Re::new(
+            &format!(
+                r"\bmy\s+(?:(?P<many>(?:{who_one}|{group_two})s?)\s+are|(?P<one>{who_one})\s*(?:'s|is|was))\s+(?P<age>\d{{1,3}})\b"
+            ),
+            I,
+        ),
+        pair: Re::new(
+            &format!(
+                r"\bmy\s+(?P<a>{who_one})\s+and\s+(?:my\s+)?(?P<b>{who_one})s?\s+(?:are|is)\s+(?P<ages>\d{{1,3}}(?:\s*(?:,|and)\s*\d{{1,3}})+)"
+            ),
+            I,
+        ),
+        named: Re::new(
+            &format!(r"\bmy\s+(?P<who>{relations})\s+(?P<name>[A-Za-z][a-z'-]{{1,19}})\s*(?:'s|is|was)\s+(?P<age>\d{{1,3}})\b"),
+            I,
+        ),
+    }
+});
+
+/// Python: bot/memory/facts.py:7466 `_other_ages(text)`: [{"who", "age"}] for the people the line
+/// gives an age for, or [].
+pub fn _other_ages(text: &str) -> Vec<Value> {
+    let text = figures_as_digits(text);
+    let mut found: Vec<Value> = Vec::new();
+    let text = stated_not_asked(&text);
+    if text.is_empty() {
+        return found;
+    }
+    let text = text.as_str();
+    let p = &*OTHER_AGE_PATTERNS;
+    for m in p.pair.finditer(text) {
+        let ages: Vec<i64> = ONE_TO_THREE_DIGITS.findall_str(m.name_str("ages")).iter().map(|n| int_of(n)).collect();
+        if !ages.iter().all(|a| (0..=120).contains(a)) || ages.len() < 2 {
+            continue;
+        }
+        for (who, age) in [lower(m.name_str("a")), lower(m.name_str("b"))].into_iter().zip(ages) {
+            match found.iter().position(|one| vget(one, "who").as_str() == Some(who.as_str())) {
+                None => found.push(dict(vec![("who", who.into()), ("age", age.into())])),
+                Some(i) => found[i].set_key("age", age),
+            }
+        }
+    }
+    for kid_pattern in [&*KID_GROUP_AGES_ARE, &*KID_COUNT_AGES, &*KID_ADULTS_AGES] {
+        for m in kid_pattern.finditer(text) {
+            let ages: Vec<i64> = ONE_TO_THREE_DIGITS.findall_str(m.name_str("ages")).iter().map(|n| int_of(n)).collect();
+            if ages.is_empty() || !ages.iter().all(|a| (0..=120).contains(a)) {
+                continue;
+            }
+            let ages_at = m.name_span("ages").map(|s| s.0).unwrap_or(m.start());
+            if KID_AGES_NOT.is_match(&text[..ages_at]) {
+                continue;
+            }
+            if AGE_TAIL.match_(&text[m.end()..]).is_none() {
+                continue;
+            }
+            let mut who = lower(m.name_str("who"));
+            if who.is_empty() {
+                who = found
+                    .iter()
+                    .map(|one| str_or_empty(one.get("who")))
+                    .find(|w| KID_GROUP.contains(&lower(w)))
+                    .unwrap_or_else(|| "kids".into());
+            }
+            let entry = if ages.len() > 1 {
+                dict(vec![("who", who.into()), ("ages", ints(&ages))])
+            } else {
+                dict(vec![("who", who.into()), ("age", ages[0].into())])
+            };
+            _keep_the_ages(&mut found, &entry);
+        }
+    }
+    for m in CHAINED_RELATION_AGE.finditer(text) {
+        let age = int_of(m.name_str("age"));
+        let age_end = m.name_span("age").map(|s| s.1).unwrap_or(m.end());
+        if !(0..=120).contains(&age) || _month_age_after(text, age_end) {
+            continue;
+        }
+        let first = POSSESSIVE_END.sub("", &lower(m.name_str("first")));
+        let mut entry = dict(vec![("who", format!("{first}'s {}", lower(m.name_str("second"))).into()), ("age", age.into())]);
+        if let Some(name) = m.name("name").filter(|n| !n.is_empty()) {
+            if !_A_WORD_FOR_A_PERSON.contains(&lower(name)) {
+                entry.set_key("name", name);
+            }
+        }
+        found.push(entry);
+    }
+    for m in RELATION_WHOS_AGE.finditer(text) {
+        let age = int_of(m.name_str("age"));
+        if !(0..=120).contains(&age) || _month_age_after(text, m.end()) {
+            continue;
+        }
+        found.push(dict(vec![("who", lower(m.name_str("who")).into()), ("age", age.into())]));
+    }
+    for m in AGE_TO_COME.finditer(text) {
+        let (kind, mut who) = subject_at(text, m.end());
+        if kind != "other" || (!who.is_empty() && !RELATIONS.contains(&who)) {
+            continue;
+        }
+        let age = int_of(m.str(1));
+        if !(0..=120).contains(&age) {
+            continue;
+        }
+        let turns = low_squash(m.str(2));
+        if who.is_empty() {
+            who = _relation_before(text, m.start());
+        }
+        if !who.is_empty() {
+            if let Some(i) = found.iter().position(|one| vget(one, "who").as_str() == Some(who.as_str())) {
+                if !vget(&found[i], "turns").truthy() {
+                    found[i].set_key("turns", turns.as_str());
+                    if *vget(&found[i], "age") != Value::from(age) {
+                        found[i].set_key("to_come", age);
+                    }
+                    continue;
+                }
+            }
+            found.push(dict(vec![("who", who.into()), ("age", age.into()), ("turns", turns.into())]));
+        } else {
+            let pronoun = _the_pronoun(text, m.end());
+            if !pronoun.is_empty() {
+                let person = _the_person_the_pronoun_is(text, m.start(), &pronoun);
+                if !person.is_empty() {
+                    found.push(dict(vec![("who", person.into()), ("age", age.into()), ("turns", turns.into())]));
+                } else {
+                    found.push(dict(vec![("pronoun", pronoun.into()), ("age", age.into()), ("turns", turns.into())]));
+                }
+            }
+        }
+    }
+    for m in p.named.finditer(text) {
+        let name = m.name_str("name");
+        if !_may_be_a_name(name) {
+            continue;
+        }
+        if AGE_TAIL.match_(&text[m.end()..]).is_none() {
+            continue;
+        }
+        let age = int_of(m.name_str("age"));
+        if !(0..=120).contains(&age) {
+            continue;
+        }
+        let who = singular_relation(lower(m.name_str("who")));
+        let kept = tidy(name);
+        match _the_person(&found, &who, &kept) {
+            None => found.push(dict(vec![("who", who.into()), ("name", kept.into()), ("age", age.into())])),
+            Some(i) => {
+                found[i].setdefault("name", kept.as_str());
+                found[i].set_key("age", age);
+            }
+        }
+    }
+    for m in p.pattern.finditer(text) {
+        let plural = m.name("many").filter(|s| !s.is_empty());
+        if let Some(plural) = plural {
+            let age_at = m.name_span("age").map(|s| s.0).unwrap_or(m.start());
+            if let Some(listed) = match_at(&A_LIST_OF_AGES, text, age_at) {
+                let ages: Vec<i64> = ONE_TO_THREE_DIGITS.findall_str(listed.name_str("ages")).iter().map(|n| int_of(n)).collect();
+                if ages.len() > 1 && ages.iter().all(|a| (0..=120).contains(a)) && AGE_TAIL.match_(&text[listed.end()..]).is_some() {
+                    _keep_the_ages(&mut found, &dict(vec![("who", squash(&lower(plural)).into()), ("ages", ints(&ages))]));
+                    continue;
+                }
+            }
+        }
+        let rest = &text[m.end()..];
+        if AGE_TAIL.match_(rest).is_none() {
+            continue;
+        }
+        let age = int_of(m.name_str("age"));
+        if !(0..=120).contains(&age) {
+            continue;
+        }
+        let who = plural.or_else(|| m.name("one").filter(|s| !s.is_empty())).unwrap_or("");
+        let who = IN_LAWS_END.sub("in law", &squash(&lower(who)));
+        let who = singular_relation(who);
+        match _the_person(&found, &who, "") {
+            None => found.push(dict(vec![("who", who.into()), ("age", age.into())])),
+            Some(i) => {
+                let entry = &mut found[i];
+                if vget(entry, "turns").truthy() && !vget(entry, "age").is_none() && *vget(entry, "age") != Value::from(age) {
+                    let previous = vget(entry, "age").clone();
+                    entry.set_key("to_come", previous);
+                }
+                entry.set_key("age", age);
+            }
+        }
+    }
+    if let Some(counted) = _children_by_year_old(text) {
+        _keep_the_ages(&mut found, &counted);
+    }
+    for entry in _kids_named_with_ages(text) {
+        if !found.iter().any(|one| *vget(one, "who") == *vget(&entry, "who") && *vget(one, "name") == *vget(&entry, "name")) {
+            found.push(entry);
+        }
+    }
+    found
+}
+
+static RELATION_BEFORE: LazyLock<Re> = LazyLock::new(|| Re::new(&format!(r"\bmy\s+({})\b", RELATIONS.join("|")), I));
+
+/// Python: bot/memory/facts.py:7659 `_relation_before(text, pos)`: the relation the line named most
+/// recently before `pos`, or "" for none. (`pos` is a byte offset.)
+pub fn _relation_before(text: &str, pos: usize) -> String {
+    let mut who = String::new();
+    for m in RELATION_BEFORE.finditer(&text[..pos]) {
+        who = lower(m.str(1));
+    }
+    who
+}
+
+/// Python: bot/memory/facts.py:7667 `pet_appositive(text, start=0)`: the name given for the animal
+/// at `start` as an aside ("a rescue dog, biscuit"), or None. (`start` is a byte offset.)
+pub fn pet_appositive(text: &str, start: i64) -> Option<String> {
+    let start = boundary_at(text, start.max(0) as usize);
+    let later: Vec<usize> = PETS.finditer(text).iter().map(|m| m.start()).filter(|p| *p >= start).collect();
+    let limit = if later.len() > 1 { later[1] } else { text.len() };
+    let span = &text[start..limit.max(start)];
+    let m = PET_APPOSITIVE.search(span)?;
+    if !_names_it_aside(&m, span) {
+        return None;
+    }
+    Some(m.str(1).to_string())
+}
+
+inline_re!(NAME_IN_A_LIST, r"[A-Za-z][a-z'-]{1,20}", 0);
+
+/// Python: bot/memory/facts.py:7687 `names_offered(memory)`: the names the bot itself put in front
+/// of them on the turn before, and what they are for: {"animal", "names"}, or None.
+pub fn names_offered(memory: &Memory) -> Option<Value> {
+    let last = memory.turns.last()?;
+    let m = NAMES_OFFERED.search(&last.bot)?;
+    let names: Vec<String> = NAME_IN_A_LIST.findall_str(m.name_str("list")).into_iter().filter(|w| lower(w) != "or" && lower(w) != "and").collect();
+    if names.len() < 2 {
+        return None;
+    }
+    Some(dict(vec![("animal", lower(m.name_str("animal")).into()), ("names", str_list(&names))]))
+}
+
+/// Python: bot/memory/facts.py:7707 `a_name_picked(text, memory)`: the name given as the answer to
+/// the bot's own question or list, or None.
+pub fn a_name_picked(text: &str, memory: &Memory) -> Option<String> {
+    let word = bare_name(text)?;
+    let last = memory.turns.last()?;
+    let asked = last.bot.as_str();
+    let asked_for_one = pt::rstrip_chars(pt::rstrip(asked), "\"").ends_with('?') && PET_NAME_ASKED.is_match(asked);
+    let theirs = NAME_PICK_ASK.is_match(&last.user);
+    if !(asked_for_one || theirs || names_offered(memory).is_some()) {
+        return None;
+    }
+    Some(word)
+}
+
+inline_re!(A_VOWEL, r"[aeiouy]", 0);
+inline_re!(ONLY_DIGITS, r"\d+", 0);
+
+/// Python: bot/memory/facts.py:7736 `bare_name(text)`: the one word a line is, when the line is
+/// nothing but that word: "biscuit", "milo"; None otherwise.
+pub fn bare_name(text: &str) -> Option<String> {
+    let m = BARE_NAME.match_(pt::strip(text))?;
+    let word = m.str(1).to_string();
+    let low = lower(&word);
+    if is_addressing(&word) {
+        return None;
+    }
+    if NOT_A_BARE_NAME.contains(&low) || NOT_A_PET_NAME.contains(&low) || PET_ANIMALS.contains(&low) {
+        return None;
+    }
+    if !A_VOWEL.is_match(&low) || ONLY_DIGITS.fullmatch(&low).is_some() {
+        return None;
+    }
+    Some(word)
+}
+
+/// Python: bot/memory/facts.py:8916 `is_addressing(word)`: whether a word is how someone addresses
+/// a person ("mate", "love"), not a pet's name.
+pub fn is_addressing(word: &str) -> bool {
+    ADDRESSING.contains(&lower(word))
+}
+
+fsets!(ADDRESSING);
+
+/// Python: bot/memory/facts.py:8921 `_names_it_aside(match, text)`: whether the word after the
+/// animal in commas names it.
+pub fn _names_it_aside(m: &Match, text: &str) -> bool {
+    let word = m.str(1);
+    if !_not_a_name(word, true) {
+        return true;
+    }
+    word.chars().next().is_some_and(char::is_uppercase) && A_LETTER_ANY.is_match(&text[m.end()..])
+}
+
+inline_re!(A_LETTER_ANY, r"[A-Za-z]", 0);
+
 // Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
 // define yet, with signatures from the generated contract. Port them in place (move a
 // function up into the file when you port it).
@@ -4158,115 +5051,27 @@ mod skeleton_stubs {
 
 
 
-    /// Python: bot/memory/facts.py:6684 `_a_relations_name(text)`
-    pub fn _a_relations_name(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_a_relations_name")
-    }
 
-    /// Python: bot/memory/facts.py:6775 `figures_as_digits(text)`
-    pub fn figures_as_digits(text: &str) -> String {
-        crate::unported!("bot.memory.facts:figures_as_digits")
-    }
 
-    /// Python: bot/memory/facts.py:6796 `kid_ages(text)`
-    pub fn kid_ages(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:kid_ages")
-    }
 
-    /// Python: bot/memory/facts.py:6849 `the_ones_are_given_one_at_a_time(text)` (never called on the trace corpus)
-    pub fn the_ones_are_given_one_at_a_time(text: &str) -> bool {
-        crate::unported!("bot.memory.facts:the_ones_are_given_one_at_a_time")
-    }
 
-    /// Python: bot/memory/facts.py:6856 `ages_said_one_by_one(text, count)`
-    pub fn ages_said_one_by_one(text: &str, count: i64) -> Vec<String> {
-        crate::unported!("bot.memory.facts:ages_said_one_by_one")
-    }
 
-    /// Python: bot/memory/facts.py:6903 `kid_count(text)`
-    pub fn kid_count(text: &str) {
-        crate::unported!("bot.memory.facts:kid_count")
-    }
 
-    /// Python: bot/memory/facts.py:6973 `count_of_the_people(text, memory)`
-    pub fn count_of_the_people(text: &str, memory: &Memory) {
-        crate::unported!("bot.memory.facts:count_of_the_people")
-    }
 
-    /// Python: bot/memory/facts.py:6998 `_the_group_in_hand_is_the_children(memory)` (never called on the trace corpus)
-    pub fn _the_group_in_hand_is_the_children(memory: &Memory) -> bool {
-        crate::unported!("bot.memory.facts:_the_group_in_hand_is_the_children")
-    }
 
-    /// Python: bot/memory/facts.py:7095 `_kids_named_with_ages(text)`
-    pub fn _kids_named_with_ages(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_kids_named_with_ages")
-    }
 
-    /// Python: bot/memory/facts.py:7127 `_the_same_person(one, other)` (never called on the trace corpus)
-    pub fn _the_same_person(one: &str, other: &str) -> bool {
-        crate::unported!("bot.memory.facts:_the_same_person")
-    }
 
-    /// Python: bot/memory/facts.py:7184 `_own_states(text)`
-    pub fn _own_states(text: &str) -> Value {
-        crate::unported!("bot.memory.facts:_own_states")
-    }
 
-    /// Python: bot/memory/facts.py:7206 `_other_states(text)`
-    pub fn _other_states(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_other_states")
-    }
 
-    /// Python: bot/memory/facts.py:7332 `_the_years_are_a_things(text)`
-    pub fn _the_years_are_a_things(text: &str) -> bool {
-        crate::unported!("bot.memory.facts:_the_years_are_a_things")
-    }
 
-    /// Python: bot/memory/facts.py:7356 `_children_by_year_old(text)`
-    pub fn _children_by_year_old(text: &str) {
-        crate::unported!("bot.memory.facts:_children_by_year_old")
-    }
 
-    /// Python: bot/memory/facts.py:7436 `_ages_held(entry)`
-    pub fn _ages_held(entry: &Value) -> Value {
-        crate::unported!("bot.memory.facts:_ages_held")
-    }
 
-    /// Python: bot/memory/facts.py:7444 `_keep_the_ages(found, entry)`
-    pub fn _keep_the_ages(found: &Value, entry: &Value) {
-        crate::unported!("bot.memory.facts:_keep_the_ages")
-    }
 
-    /// Python: bot/memory/facts.py:7466 `_other_ages(text)`
-    pub fn _other_ages(text: &str) -> Vec<String> {
-        crate::unported!("bot.memory.facts:_other_ages")
-    }
 
-    /// Python: bot/memory/facts.py:7659 `_relation_before(text, pos)` (never called on the trace corpus)
-    pub fn _relation_before(text: &str, pos: &Value) -> Value {
-        crate::unported!("bot.memory.facts:_relation_before")
-    }
 
-    /// Python: bot/memory/facts.py:7667 `pet_appositive(text, start=0)`
-    pub fn pet_appositive(text: &str, start: i64) {
-        crate::unported!("bot.memory.facts:pet_appositive")
-    }
 
-    /// Python: bot/memory/facts.py:7687 `names_offered(memory)`
-    pub fn names_offered(memory: &Memory) {
-        crate::unported!("bot.memory.facts:names_offered")
-    }
 
-    /// Python: bot/memory/facts.py:7707 `a_name_picked(text, memory)`
-    pub fn a_name_picked(text: &str, memory: &Memory) {
-        crate::unported!("bot.memory.facts:a_name_picked")
-    }
 
-    /// Python: bot/memory/facts.py:7736 `bare_name(text)`
-    pub fn bare_name(text: &str) -> Option<String> {
-        crate::unported!("bot.memory.facts:bare_name")
-    }
 
     /// Python: bot/memory/facts.py:7772 `foods_ruled_out(found)`
     pub fn foods_ruled_out(found: &Value) -> Vec<String> {
@@ -4398,15 +5203,7 @@ mod skeleton_stubs {
         crate::unported!("bot.memory.facts:_pet_age")
     }
 
-    /// Python: bot/memory/facts.py:8916 `is_addressing(word)`
-    pub fn is_addressing(word: &str) -> bool {
-        crate::unported!("bot.memory.facts:is_addressing")
-    }
 
-    /// Python: bot/memory/facts.py:8921 `_names_it_aside(match, text)` (never called on the trace corpus)
-    pub fn _names_it_aside(r#match: &Value, text: &str) -> bool {
-        crate::unported!("bot.memory.facts:_names_it_aside")
-    }
 
     /// Python: bot/memory/facts.py:8967 `_describes_them(word)`
     pub fn _describes_them(word: &str) -> bool {
