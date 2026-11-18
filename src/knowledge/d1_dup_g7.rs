@@ -1,2 +1,58 @@
 //! DUP ports (group 7 of workstream D1): private ports of helpers from modules other
 //! workstreams own, each marked `DUP(<python module>::<name>)` so the integrator can replace it.
+
+use crate::data;
+use crate::py::re::Re;
+use crate::py::text;
+use crate::state::Memory;
+use crate::understood::Understood;
+use std::collections::HashSet;
+use std::sync::LazyLock;
+
+static GOING_OFF_ASK: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cooking.GOING_OFF_ASK"));
+static KEEPING_VERB: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cooking.KEEPING_VERB"));
+static IN_THE_OVEN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cooking.IN_THE_OVEN"));
+static JOINT_BEEF: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.cooking.JOINT_BEEF"));
+static JOINT_PORK: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.cooking.JOINT_PORK"));
+
+/// DUP(bot.knowledge.cooking::_same): the word is the wanted one or starts with it.
+pub fn _same(word: &str, wanted: &str) -> bool {
+    !word.is_empty() && !wanted.is_empty() && (word == wanted || word.starts_with(wanted))
+}
+
+/// DUP(bot.knowledge.cooking::_roast_joint): the oven time for the joint the line names (both
+/// when it names none); None on a keeping or going-off line.
+pub fn _roast_joint(_memory: &Memory, understood: &Understood) -> Option<String> {
+    let line = text::squash(&understood.text).to_lowercase();
+    if GOING_OFF_ASK.iter().any(|p| line.contains(p.as_str())) {
+        return None;
+    }
+    if KEEPING_VERB.iter().any(|p| line.contains(p.as_str())) && !IN_THE_OVEN.iter().any(|w| line.contains(w.as_str())) {
+        return None;
+    }
+    let words: Vec<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
+    let names = |wanted: &[&str]| words.iter().any(|w| wanted.iter().any(|x| _same(w, x)));
+    if names(&["pork", "gammon", "ham"]) {
+        return Some(JOINT_PORK.clone());
+    }
+    if names(&["beef", "lamb", "mutton"]) {
+        return Some(JOINT_BEEF.clone());
+    }
+    Some(format!("{} {}", *JOINT_BEEF, *JOINT_PORK))
+}
+
+static STARTING_OUT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.repeat.STARTING_OUT"));
+static STARTING_INTO: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.repeat.STARTING_INTO"));
+static STARTING_AT: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.repeat.STARTING_AT"));
+static STARTING_BACK: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.repeat.STARTING_BACK"));
+
+/// DUP(bot.memory.repeat::_starting_out_names_a_thing): "starting out <thing>" names a thing
+/// (not "starting out again", "starting out slowly").
+pub fn _starting_out_names_a_thing(line: &str) -> bool {
+    let Some(found) = STARTING_OUT.search(line) else { return false };
+    let (first, second) = (found.str(1), found.str(2));
+    if STARTING_INTO.contains(first) || STARTING_AT.contains(first) {
+        return !second.is_empty() && !STARTING_BACK.contains(second);
+    }
+    !STARTING_BACK.contains(first)
+}
