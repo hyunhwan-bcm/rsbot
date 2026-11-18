@@ -5041,134 +5041,618 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
     general_or_about(general, text_, memory)
 }
 
-/// Python: bot/memory/store_replies.py:5073 `_a_place_new_to_the_chat(memory, low)` (never called on the trace corpus)
+strset!(PLACES);
+static FACTS_COUNTRIES: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.facts.COUNTRIES"));
+static PLACE_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z][a-z'\-]+", 0));
+
+/// Python: bot/memory/store_replies.py:5073 `_a_place_new_to_the_chat(memory, low)`
+///
+/// True when the line names a place nothing said so far named.
 pub fn _a_place_new_to_the_chat(memory: &mut Memory, low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_place_new_to_the_chat")
+    let named: HashSet<String> = PLACE_WORDS.findall_str(&text::squash(low)).into_iter().map(|w| w.to_lowercase()).collect();
+    let places: Vec<&String> = named.iter().filter(|w| PLACES.contains(*w) || FACTS_COUNTRIES.contains(*w)).collect();
+    if places.is_empty() {
+        return false;
+    }
+    let said = recent_turns(memory, 12).iter().map(|t| fold(&t.user)).collect::<Vec<_>>().join(" ");
+    !places.iter().any(|p| said.contains(p.as_str()))
 }
+
+rx!(OWN_ASK);
+strset!(ASK_FILLER, NO_THING);
+static THREE_LETTERS: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b[a-z]{3}\b", 0));
 
 /// Python: bot/memory/store_replies.py:5095 `_about_what_they_said(text, memory)`
-pub fn _about_what_they_said(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_about_what_they_said")
+///
+/// A yes-or-no ask the store has no fact for, answered from their own earlier line.
+pub fn _about_what_they_said(text_: &str, memory: &mut Memory) -> Option<String> {
+    use crate::memory::topics::stem;
+    let low = text::strip_chars(&fold(text_), " ?!.,").to_string();
+    if OWN_ASK.match_(&low).is_none() || text::split(&low).len() > 9 {
+        return None;
+    }
+    let stems: HashSet<String> = LETTER_WORDS.findall_str(&low).iter().map(|w| stem(w)).collect();
+    let mut words: HashSet<String> =
+        stems.into_iter().filter(|w| text::len(w) > 3 && !ASK_FILLER.contains(w) && !NO_THING.contains(w)).collect();
+    // A thing named in three letters is still the thing: "car", "job", "dog", "gas".
+    words.extend(THREE_LETTERS.findall_str(&low).into_iter().filter(|w| !NO_THING.contains(w) && !ASK_FILLER.contains(w)));
+    if words.is_empty() {
+        return None;
+    }
+    let said_before: Vec<String> = memory.turns.iter().map(|t| t.user.clone()).collect();
+    let newest = text::strip_chars(&fold(said_before.last().map(String::as_str).unwrap_or("")), " ?!.,").to_string();
+    for line in said_before.iter().rev() {
+        let said: HashSet<String> = LETTER_WORDS.findall_str(&line.to_lowercase()).iter().map(|w| stem(w)).collect();
+        if !words.iter().all(|w| said.contains(w)) {
+            continue;
+        }
+        // The newest line about the thing is the one read; an older one goes back to them as what
+        // they said earlier, with the door open.
+        let phrase = _told_phrase(line);
+        if !phrase.is_empty() {
+            let phrase = phrase.replace("can not", "cannot");
+            let flat = text::strip_chars(&fold(line), " ?!.,").to_string();
+            if flat != newest {
+                return Some(pick(
+                    &[
+                        "Earlier you said ".to_string() + &phrase + " - still the case?",
+                        "You said ".to_string() + &phrase + ", earlier in this chat - still the case?",
+                    ],
+                    memory,
+                    "",
+                ));
+            }
+            return Some(pick(&["You told me ".to_string() + &phrase + ".", "You said ".to_string() + &phrase + "."], memory, ""));
+        }
+        return None;
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:5154 `_the_job_was_just_said(memory)` (never called on the trace corpus)
+rx!(AVOID_ADVICE, BARE_WHAT_I_DO, AVOID_REST, EATING, ALLERGY_SAID);
+strset!(JOB_LINE_WORDS);
+
+/// Python: bot/memory/store_replies.py:5175 `_the_job_was_just_said(memory)`
+///
+/// True when the line before the ask is where the job was given, and is nothing but the job.
 pub fn _the_job_was_just_said(memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_the_job_was_just_said")
+    let job = text::strip(&sget(&user(memory), "job")).to_lowercase();
+    if job.is_empty() {
+        return false;
+    }
+    let turns = memory.turns.clone();
+    for turn in turns.iter().rev() {
+        let said = text::strip(&turn.user).to_string();
+        if said.is_empty() {
+            continue;
+        }
+        if BARE_WHAT_I_DO.match_(&_bare(&said)).is_some() {
+            continue; // the ask again: it answers the line before it too
+        }
+        return said.to_lowercase().contains(&job) && _nothing_but_the_job(&said, &job, memory);
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:5185 `_nothing_but_the_job(said, job, memory)` (never called on the trace corpus)
-pub fn _nothing_but_the_job(said: &str, job: &Value, memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_nothing_but_the_job")
+/// Python: bot/memory/store_replies.py:5207 `_nothing_but_the_job(said, job, memory)`
+///
+/// True when the job is all the line said, once the words around it are set aside.
+pub fn _nothing_but_the_job(said: &str, job: &str, memory: &mut Memory) -> bool {
+    let mut rest = said.to_lowercase().replace(job, " ");
+    let frame = text::strip(&sget(&user(memory), "job_frame")).to_lowercase();
+    if !frame.is_empty() {
+        rest = rest.replace(&frame, " ");
+    }
+    !LETTER_WORDS.findall_str(&rest).iter().any(|w| text::len(w) > 2 && !JOB_LINE_WORDS.contains(w))
 }
 
-/// Python: bot/memory/store_replies.py:5204 `_the_allergy_is_what_is_asked(text, memory)` (never called on the trace corpus)
-pub fn _the_allergy_is_what_is_asked(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_the_allergy_is_what_is_asked")
+/// Python: bot/memory/store_replies.py:5229 `_the_allergy_is_what_is_asked(text, memory)`
+///
+/// True when an ask for advice about what to avoid is a question about the allergy.
+pub fn _the_allergy_is_what_is_asked(text_: &str, memory: &Memory) -> bool {
+    let tail = match AVOID_REST.search(text_) {
+        Some(rest) => text::squash(rest.str(1)),
+        None => String::new(),
+    };
+    if !tail.is_empty() && !EATING.is_match(&tail) {
+        return false;
+    }
+    let said = text::squash(text_);
+    let before = last_turn_user(memory);
+    if ALLERGY_SAID.is_match(&said) || ALLERGY_SAID.is_match(&before) {
+        return true;
+    }
+    before.is_empty()
 }
 
 /// Python: bot/memory/store_replies.py:5229 `_general_recall(text, memory)`
-pub fn _general_recall(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_general_recall")
+///
+/// A recall ask in any words, answered with the reply the store already gives for that fact.
+/// Anything else is a real request: None.
+pub fn _general_recall(text_: &str, memory: &mut Memory) -> Option<String> {
+    let low = text::squash(&text_.to_lowercase());
+    // "what should i avoid": the allergy they told you, when that is what they are asking about.
+    if AVOID_ADVICE.is_match(text_) && user(memory).get("allergies").map(Value::truthy).unwrap_or(false) && _the_allergy_is_what_is_asked(text_, memory) {
+        let limit = _limit_reply(memory, &low);
+        return or_else_reply(limit, || _fact_reply(memory, &low, Some("allergy")));
+    }
+    // "i work as a nurse" then "what do i do": the job they have just told you.
+    if BARE_WHAT_I_DO.match_(&low).is_some() && user(memory).get("job").map(Value::truthy).unwrap_or(false) && _the_job_was_just_said(memory) {
+        return Some(_job_reply(memory, false));
+    }
+    // "how much have i spent": the sum is kept from the lines they typed.
+    if let Some(r) = some_str(crate::memory::spent::answer(text_, memory)) {
+        return Some(r);
+    }
+    // "how much have i got left": the same sums, against the money they said they had.
+    if let Some(r) = some_str(crate::memory::spent::what_is_left(text_, memory)) {
+        return Some(r);
+    }
+    let key = crate::memory::recall::ask(text_, false).unwrap_or_default();
+    if key.is_empty() {
+        return None;
+    }
+    if SAID_ABOUT.is_match(&low) && _names_its_thing(&low) && !_the_fact_is_kept(&key, memory) {
+        // "what was i saying about my job" asks for the line they said, not for the job as a fact.
+        return None;
+    }
+    match key.as_str() {
+        "name" => Some(_name_reply(memory, &low)),
+        "job" => {
+            // A part of the job they never described: the job said back answers nothing.
+            if let Some(part) = _a_part_of_the_job_never_said(memory, &low) {
+                return Some(part);
+            }
+            let r#where = WHERE_WORK.is_match(&low);
+            Some(_job_reply(memory, r#where))
+        }
+        "city" => _places_reply(memory, &low),
+        "birthday" | "weight" | "height" => _fact_reply(memory, &low, Some(&key)),
+        "diet" => _diet_reply(memory, &low),
+        "allergy" | "budget" | "pet" | "car" => _fact_reply(memory, &low, Some(&key)),
+        "limit" => _limit_reply(memory, &low),
+        "me" => _summary_reply(memory),
+        _ => None,
+    }
 }
 
-/// Python: bot/memory/store_replies.py:5312 `_pet_names(family)` (never called on the trace corpus)
-pub fn _pet_names(family: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_pet_names")
+rx!(NAME_ASK, POINTING);
+strs!(CAT_NAMES, DOG_NAMES, SMALL_NAMES, NAME_ADVICE, RESUME);
+strset!(POINTING_ANY);
+
+/// Python: bot/memory/store_replies.py:5311 `_pet_names(family)`
+pub fn _pet_names(family: &str) -> &'static [String] {
+    match family {
+        "cat" => &CAT_NAMES,
+        "rabbit" | "hamster" | "fish" | "parrot" => &SMALL_NAMES,
+        _ => &DOG_NAMES,
+    }
 }
 
-/// Python: bot/memory/store_replies.py:5326 `_points_at_something_else(low)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:5325 `_points_at_something_else(low)`
+///
+/// True when the line points at a thing that is not an animal ("this song", "my new business").
 pub fn _points_at_something_else(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_points_at_something_else")
+    POINTING.findall_str(low).iter().any(|w| !FACTS_ANIMALS.contains(w) && !POINTING_ANY.contains(w))
 }
 
-/// Python: bot/memory/store_replies.py:5340 `_the_pet_in_play(low, memory)` (never called on the trace corpus)
-pub fn _the_pet_in_play(low: &str, memory: &mut Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_pet_in_play")
+/// Python: bot/memory/store_replies.py:5339 `_the_pet_in_play(low, memory)`
+///
+/// The animal the naming question is about: the one in the line, or the one just mentioned.
+pub fn _the_pet_in_play(low: &str, memory: &mut Memory) -> Option<String> {
+    use crate::memory::relations::_animal_family;
+    if let Some(w) = LETTER_WORDS.findall_str(low).into_iter().find(|w| FACTS_ANIMALS.contains(w)) {
+        return Some(_animal_family(&w));
+    }
+    for turn in recent_turns(memory, 3).iter().rev() {
+        let line = turn.user.to_lowercase();
+        if let Some(w) = LETTER_WORDS.findall_str(&line).into_iter().find(|w| FACTS_ANIMALS.contains(w)) {
+            return Some(_animal_family(&w));
+        }
+    }
+    let pets = user(memory).get("pets").map(py_list).unwrap_or_default();
+    if let Some(first) = pets.first() {
+        if first.is_dict() && first.get("animal").map(Value::truthy).unwrap_or(false) {
+            return Some(_animal_family(&py_str(first.get("animal").unwrap())));
+        }
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:5355 `_a_pet_of_theirs_is_named(low, family, memory)` (never called on the trace corpus)
-pub fn _a_pet_of_theirs_is_named(low: &str, family: &Value, memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_pet_of_theirs_is_named")
+static POINTS_AT_THE_PET: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:it|him|her|them|this one|that one)\b", 0));
+
+/// Python: bot/memory/store_replies.py:5355 `_a_pet_of_theirs_is_named(low, family, memory)`
+///
+/// True when the animal the naming ask points at already carries a name in the store.
+pub fn _a_pet_of_theirs_is_named(low: &str, family: &str, memory: &mut Memory) -> bool {
+    use crate::memory::relations::_animal_family;
+    if !POINTS_AT_THE_PET.is_match(low) {
+        return false;
+    }
+    let pets = user(memory).get("pets").map(py_list).unwrap_or_default();
+    pets.iter().any(|pet| {
+        pet.is_dict() && pet.get("name").map(Value::truthy).unwrap_or(false) && _animal_family(&s_or(pet.get("animal"))) == _animal_family(family)
+    })
 }
 
 /// Python: bot/memory/store_replies.py:5365 `_a_name_for_the_pet(text, memory, low)`
-pub fn _a_name_for_the_pet(text: &str, memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_a_name_for_the_pet")
+///
+/// A short list of names for the pet in play, or None when the line is not about naming one.
+pub fn _a_name_for_the_pet(text_: &str, memory: &mut Memory, low: &str) -> Option<String> {
+    if !NAME_ASK.is_match(low) {
+        return None;
+    }
+    let family = _the_pet_in_play(low, memory)?;
+    if family.is_empty() || family == "pet" {
+        return None;
+    }
+    if _points_at_something_else(low) {
+        return None;
+    }
+    if _a_pet_of_theirs_is_named(low, &family, memory) {
+        // The pet in play has a name, and the store answers with it.
+        return None;
+    }
+    let pool: Vec<String> = _pet_names(&family).to_vec();
+    // A different three each time, so asking twice does not get the same list back.
+    let seed = memory.turns.len() as i128 * 7919 + crate::py::random::ord_sum(&text_.to_lowercase());
+    let shuffled = crate::py::random::Random::new(seed).sample(&pool, 3);
+    let advice = &NAME_ADVICE[(seed.rem_euclid(NAME_ADVICE.len() as i128)) as usize];
+    let animal = crate::memory::relations::_a(&family);
+    Some("For ".to_string() + &animal + ": " + &shuffled[..shuffled.len() - 1].join(", ") + " or " + &shuffled[shuffled.len() - 1] + ". " + advice)
 }
 
-/// Python: bot/memory/store_replies.py:5387 `_count_of_a_kind(pets)` (never called on the trace corpus)
-pub fn _count_of_a_kind(pets: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_count_of_a_kind")
+/// Python `int(v or default)` for a count in a record (raises on a bad value, as Python does).
+fn count_of(v: Option<&Value>, default: i64) -> i64 {
+    match v {
+        Some(v) if v.truthy() => py_int_value(v).expect("ValueError: invalid literal for int()"),
+        _ => default,
+    }
+}
+
+/// Python: bot/memory/store_replies.py:5387 `_count_of_a_kind(pets)`
+///
+/// How many animals are in this group, when one of them says how many there are.
+pub fn _count_of_a_kind(pets: &[Value]) -> i64 {
+    let said: Vec<i64> = pets.iter().map(|p| count_of(p.get("count"), 0)).filter(|c| *c > 1).collect();
+    if let Some(most) = said.iter().max() {
+        if *most >= pets.len() as i64 {
+            return *most;
+        }
+    }
+    pets.iter().map(|p| count_of(p.get("count"), 1)).sum()
 }
 
 /// Python: bot/memory/store_replies.py:5400 `_return_reply(text, memory)`
-pub fn _return_reply(text: &str, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_return_reply")
+///
+/// Greet a return to an earlier topic: "ok back to the boiler", "as I was saying, Rome".
+pub fn _return_reply(text_: &str, memory: &mut Memory) -> Option<String> {
+    let record = crate::memory::topics::resumed(memory).val();
+    if !record.truthy() || record.get("asks").map(Value::truthy).unwrap_or(false) {
+        return None;
+    }
+    let thing = text::strip(&s_or(record.get("asked"))).to_string();
+    if thing.is_empty() || text::split(&thing).len() > 4 {
+        return None;
+    }
+    let said = _same_case(&thing, text_);
+    let lines: Vec<String> = RESUME.iter().map(|line| fmt_named(line, &[("thing", &said)])).collect();
+    Some(pick(&lines, memory, ""))
 }
 
-/// Python: bot/memory/store_replies.py:5416 `_same_case(thing, text)` (never called on the trace corpus)
-pub fn _same_case(thing: &str, text: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_same_case")
+/// Python: bot/memory/store_replies.py:5414 `_same_case(thing, text)`
+///
+/// Keep a name a name: someone typing "as I was saying, Rome" gets "Back to Rome".
+pub fn _same_case(thing: &str, text_: &str) -> String {
+    for word in text::split(text_) {
+        let first_upper = word.chars().next().map(|c| crate::understanding::pyuni::ch_upper(c)).unwrap_or(false);
+        if text::strip_chars(&word, " ,.!?").to_lowercase() == thing.to_lowercase() && first_upper {
+            return text::upper_first(thing);
+        }
+    }
+    thing.to_string()
 }
 
-/// Python: bot/memory/store_replies.py:5423 `_name_reply(memory, low='')` (never called on the trace corpus)
+static PLAN_DOING: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bplan(?:ning|s)?\b|\bdoing\b|\bup to\b", 0));
+
+/// Python: bot/memory/store_replies.py:5423 `_name_reply(memory, low="")`
 pub fn _name_reply(memory: &mut Memory, low: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_name_reply")
+    let who = ret_str(crate::memory::name(memory));
+    let plan = s_or(user(memory).get("plan"));
+    if !who.is_empty() && !plan.is_empty() && PLAN_DOING.is_match(low) {
+        let rest = text::slice(&plan, 1, None);
+        let rest_upper = rest.chars().next().map(|c| crate::understanding::pyuni::ch_upper(c)).unwrap_or(false);
+        let clause = if !rest_upper { lower_first(&plan) } else { plan.clone() };
+        return "You're ".to_string() + &who + ", and you're planning " + text::rstrip_chars(&clause, ".") + ".";
+    }
+    if who.is_empty() {
+        // The store says which fact it asked for, so the answer is read as that fact.
+        memory.set("asked_for", "name");
+        return pick(&["You haven't told me your name yet.", "I don't know it yet \u{2014} you haven't said."], memory, "");
+    }
+    pick(&["You're ".to_string() + &who + ".", who.clone() + " \u{2014} you told me.", "Your name's ".to_string() + &who + "."], memory, "")
 }
 
-/// Python: bot/memory/store_replies.py:5439 `_the_day_of(plan)` (never called on the trace corpus)
+rx!(WEEKDAY_WORD, DAY_OF_MONTH, AT_TIME);
+
+/// Python: bot/memory/store_replies.py:5443 `_the_day_of(plan)`
+///
+/// The day the plan falls on, as somebody would answer "what day?": "on friday" -> "On Friday".
 pub fn _the_day_of(plan: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_the_day_of")
+    let said = plan.to_lowercase();
+    if let Some(found) = WEEKDAY_WORD.search(&said) {
+        return "On ".to_string() + &text::capitalize(found.as_str()) + ".";
+    }
+    if let Some(number) = DAY_OF_MONTH.search(&said) {
+        return "On the ".to_string() + number.str(1) + ".";
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:5455 `_at_the_clock(plan)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:5459 `_at_the_clock(plan)`
+///
+/// The hour the plan says, as somebody would answer "what time?": "at 6" -> "At 6".
 pub fn _at_the_clock(plan: &str) -> String {
-    crate::unported!("bot.memory.store_replies:_at_the_clock")
+    let Some(found) = AT_TIME.search(plan) else { return String::new() };
+    let said = text::squash(found.as_str());
+    if said.to_lowercase().starts_with("at ") {
+        "At ".to_string() + &text::slice(&said, 3, None) + "."
+    } else {
+        String::new()
+    }
 }
 
-/// Python: bot/memory/store_replies.py:5478 `_the_day_before(plan)` (never called on the trace corpus)
-pub fn _the_day_before(plan: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_day_before")
+rx!(POINTS_BACK_AT_IT, SETTING_OUT, STUDY_PLAN, MONTH_WORD, DATE_PHRASE);
+strs!(WEEK);
+static TAIL_WINDOW: LazyLock<i64> = LazyLock::new(|| g("TAIL_WINDOW").as_int().unwrap());
+
+/// Python: bot/memory/store_replies.py:5481 `_the_day_before(plan)`
+///
+/// The weekday the plan is on and the one before it, or None when it names no weekday.
+pub fn _the_day_before(plan: &str) -> Option<(String, String)> {
+    let low = fold(plan);
+    let found: Vec<&String> = WEEK.iter().filter(|day| Re::new(&format!(r"\b{day}\b"), 0).is_match(&low)).collect();
+    if found.len() != 1 {
+        return None;
+    }
+    if MONTH_WORD.is_match(&low) || DATE_PHRASE.is_match(&low) {
+        return None;
+    }
+    let day = found[0].clone();
+    let at = WEEK.iter().position(|d| *d == day).unwrap();
+    let before = WEEK[(at + WEEK.len() - 1) % WEEK.len()].clone();
+    Some((day, before))
+}
+
+/// The plans the store keeps as strs, with the latest plan last when it is not among them.
+fn _plans_with_the_latest(known: &Value) -> Vec<String> {
+    let mut plans: Vec<String> =
+        known.get("plans").map(py_list).unwrap_or_default().iter().filter_map(|p| p.as_str()).filter(|p| !text::strip(p).is_empty()).map(str::to_string).collect();
+    if let Some(Value::Str(latest)) = known.get("plan") {
+        if !text::strip(latest).is_empty() && !plans.iter().any(|p| **p == **latest) {
+            plans.push(latest.to_string());
+        }
+    }
+    plans
 }
 
 /// Python: bot/memory/store_replies.py:5494 `_the_prep_day(memory, low)`
+///
+/// The plan and the day the work for it goes on, or None when the store cannot say.
+/// (Contract change: the generated stub returned `()`.)
 pub fn _the_prep_day(memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_the_prep_day")
+    if !POINTS_BACK_AT_IT.is_match(low) || !_a_plan_answers(memory, low) {
+        return None;
+    }
+    let back = POINTS_BACK_AT_IT.search(low).unwrap();
+    let at = text::char_index(low, back.start()) as isize;
+    let window = text::slice(low, (at - *TAIL_WINDOW as isize).max(0), Some(at));
+    if SETTING_OUT.is_match(&window) {
+        return None; // "when is the best time to leave for it" is about setting out
+    }
+    let known = user(memory);
+    let plans = _plans_with_the_latest(&known);
+    for plan in plans.iter().rev() {
+        if STUDY_PLAN.is_match(plan) {
+            continue; // studying for an exam has an answer of its own
+        }
+        let Some((day, before)) = _the_day_before(plan) else { continue };
+        let line = crate::memory::plan_line(memory, plan);
+        let said = text::rstrip_chars(&crate::memory::plan_sentence(plan, &line), ".").to_string();
+        return Some(said + ", so " + &text::title(&before) + " is the day for the prep \u{2014} keep " + &day + " itself for the last bits.");
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:5526 `_a_plan_answers(memory, low)` (never called on the trace corpus)
+strs!(NO_PLANS_REPLY);
+
+/// Python: bot/memory/store_replies.py:5528 `_a_plan_answers(memory, low)`
+///
+/// True when a when or time ask that names nothing of its own is answered by a plan.
 pub fn _a_plan_answers(memory: &mut Memory, low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_plan_answers")
+    for pattern in [&*WHEN_ASKS, &*WHEN_THING, &*TIME_ASKS, &*TIME_THING] {
+        let Some(found) = pattern.search(low) else { continue };
+        if _names_something_of_its_own(low, text::char_index(low, found.end()) as i64) {
+            return false;
+        }
+        let reply = _plans_reply(memory, low);
+        return match reply {
+            Some(r) if !r.is_empty() => !NO_PLANS_REPLY.contains(&r),
+            _ => false,
+        };
+    }
+    false
 }
 
-/// Python: bot/memory/store_replies.py:5545 `_the_date_behind_that(memory, low, plans)`
-pub fn _the_date_behind_that(memory: &Memory, low: &str, plans: &[String]) {
-    crate::unported!("bot.memory.store_replies:_the_date_behind_that")
+rx!(THAT_DATE, CALENDAR_SAID);
+
+/// Python: bot/memory/store_replies.py:5546 `_the_date_behind_that(memory, low, plans)`
+///
+/// "And what date is that" after the calendar has been read out is a date, not the plan.
+pub fn _the_date_behind_that(memory: &mut Memory, low: &str, plans: &[String]) -> Option<String> {
+    if !THAT_DATE.is_match(low) || !CALENDAR_SAID.is_match(&last_turn_bot(memory)) {
+        return None;
+    }
+    for plan in plans.iter().rev() {
+        if let Some(day) = WEEKDAY_WORD.search(&plan.to_lowercase()) {
+            let ask = "what date is ".to_string() + day.as_str();
+            if let Some(worked) = crate::knowledge::maths::solve(&ask, &Understood::default(), memory).filter(|w| !w.is_empty()) {
+                return Some(worked);
+            }
+        }
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:5568 `_the_whole_word_in(text, word)` (never called on the trace corpus)
-pub fn _the_whole_word_in(text: &str, word: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_whole_word_in")
+static _A_DATE_AT_THE_END: LazyLock<&'static Re> = LazyLock::new(|| g("_A_DATE_AT_THE_END").as_re().unwrap());
+
+/// Python: bot/memory/store_replies.py:5569 `_the_whole_word_in(text, word)`
+///
+/// Where the word sits in the line as a word of its own (a character index), or -1.
+pub fn _the_whole_word_in(text_: &str, word: &str) -> i64 {
+    if word.is_empty() {
+        return -1;
+    }
+    match Re::new(&format!(r"(?<![\w']){}(?![\w'])", crate::py::re::escape(word)), 0).search(text_) {
+        Some(found) => text::char_index(text_, found.start()) as i64,
+        None => -1,
+    }
 }
 
-/// Python: bot/memory/store_replies.py:5582 `_third_person(word)` (never called on the trace corpus)
-pub fn _third_person(word: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_third_person")
+/// Python: bot/memory/store_replies.py:5585 `_third_person(word)`
+///
+/// The form a verb takes after "he": "start" -> "starts", "go" -> "goes", "try" -> "tries".
+pub fn _third_person(word: &str) -> String {
+    let word = text::strip_chars(word, ".,!?;:").to_string();
+    if word.is_empty() || !crate::understanding::pyuni::is_alpha(&word) {
+        return word;
+    }
+    if text::ends_with_any(&word, &["s", "x", "z", "ch", "sh"]) {
+        return word + "es";
+    }
+    let chars: Vec<char> = word.chars().collect();
+    let before_last = if chars.len() > 1 { Some(chars[chars.len() - 2]) } else { None };
+    let a_consonant = before_last.map(|c| !"aeiou".contains(c)).unwrap_or(false);
+    if word.ends_with('o') && chars.len() > 1 && a_consonant {
+        // "go" is "goes" and "do" is "does", not "gos" and "dos".
+        return word + "es";
+    }
+    if word.ends_with('y') && chars.len() > 1 && a_consonant {
+        return chars[..chars.len() - 1].iter().collect::<String>() + "ies";
+    }
+    word + "s"
 }
 
-/// Python: bot/memory/store_replies.py:5596 `_the_line_that_said(memory, plan)` (never called on the trace corpus)
-pub fn _the_line_that_said(memory: &Memory, plan: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_line_that_said")
+/// Python: bot/memory/store_replies.py:5601 `_the_line_that_said(memory, plan)`
+///
+/// The recent line that carries the plan, for a plan the log kept as one of several.
+pub fn _the_line_that_said(memory: &Memory, plan: &str) -> Option<String> {
+    let wanted = fold(plan);
+    if wanted.is_empty() {
+        return None;
+    }
+    recent_turns(memory, 6).iter().rev().map(|t| t.user.clone()).find(|line| fold(line).contains(&wanted))
 }
 
-/// Python: bot/memory/store_replies.py:5610 `_the_verb_from_the_line(plan, line)` (never called on the trace corpus)
-pub fn _the_verb_from_the_line(plan: &str, line: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_verb_from_the_line")
+static AND_OR_COMMA: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s+and\s+|,|;", 0));
+
+/// Python: bot/memory/store_replies.py:5614 `_the_verb_from_the_line(plan, line)`
+///
+/// The words the other half of the line carries, for a half that was left without a verb.
+pub fn _the_verb_from_the_line(plan: &str, line: &str) -> String {
+    let wanted = fold(plan);
+    let text_ = text::squash(line);
+    if wanted.is_empty() || text_.is_empty() {
+        return String::new();
+    }
+    for piece in AND_OR_COMMA.split(&text_) {
+        let clause = text::strip_chars(&text::squash(&piece), " ,.;:-!").to_string();
+        if clause.is_empty() || fold(&clause) == wanted {
+            continue;
+        }
+        let Some(m) = _A_DATE_AT_THE_END.match_(&clause) else { continue };
+        // The other half is "my niece turns 5": the determiner and the person, then the words that
+        // are left are what the half this ask names was never given ("turns 5").
+        let before = text::split(m.name_str("subject"));
+        if before.len() < 3 || !["my", "our", "the", "his", "her", "their"].contains(&before[0].to_lowercase().as_str()) {
+            continue;
+        }
+        let body = text::strip_chars(&before[2..].join(" "), " ,").to_string();
+        let words = text::split(&body);
+        if words.is_empty() || words.len() > 4 || !crate::understanding::pyuni::is_alpha(&words[0]) {
+            continue;
+        }
+        // A small count in the other half is said in words when the half is said whole.
+        let words: Vec<String> = words
+            .iter()
+            .map(|w| {
+                if crate::understanding::pyuni::is_digit(w) && text::len(w) < 3 {
+                    _a_number_word_v(&Value::from(w.as_str()))
+                } else {
+                    w.clone()
+                }
+            })
+            .collect();
+        let body = words.join(" ");
+        // a half it cannot stand on its own is not a verb: "is" alone says nothing about the day
+        if ["is", "are", "was", "were", "am"].contains(&words[0].to_lowercase().as_str()) {
+            continue;
+        }
+        return body;
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:5647 `_the_verb_they_asked(plan, low, line='')` (never called on the trace corpus)
-pub fn _the_verb_they_asked(plan: &str, low: &str, line: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_verb_they_asked")
+/// Python: bot/memory/store_replies.py:5647 `_the_verb_they_asked(plan, low, line="")`
+///
+/// The plan with the verb the ask named put back into it.
+pub fn _the_verb_they_asked(plan: &str, low: &str, line: &str) -> String {
+    let text_ = text::squash(plan);
+    let Some(m) = _A_DATE_AT_THE_END.match_(&text_) else { return plan.to_string() };
+    let date = m.name_str("date").to_string();
+    let mut subject = m.name_str("subject").to_string();
+    // "my daughters" is the thing, and "is" is the verb with its predicate left out.
+    let parts = text::split(&subject);
+    let last = parts.last().expect("IndexError: list index out of range");
+    if ["is", "are", "was", "were"].contains(&last.as_str()) {
+        subject = parts[..parts.len() - 1].join(" ");
+    }
+    let asked = text::strip_chars(&text::squash(low), "?.! ").to_string();
+    let at = _the_whole_word_in(&asked, &subject);
+    if at < 0 {
+        return plan.to_string();
+    }
+    let rest = text::strip(&text::slice(&asked, (at as usize + text::len(&subject)) as isize, None)).to_string();
+    if rest.is_empty() || ["again", "now", "this year", "next year"].contains(&rest.as_str()) {
+        // The ask names nothing the half left out, so the line it came from does.
+        let borrowed = _the_verb_from_the_line(plan, line);
+        if !borrowed.is_empty() {
+            return subject + " " + &borrowed + " " + &date;
+        }
+        return plan.to_string();
+    }
+    let mut words = text::split(&rest);
+    if words.len() > 4 {
+        return plan.to_string();
+    }
+    let first = words[0].to_lowercase();
+    // A word that is not a doing word is the predicate left out of the plan, said as it is.
+    if ["birthday", "bday", "dob", "date of birth", "name"].contains(&first.as_str()) {
+        return subject + " " + &rest + " is " + &date;
+    }
+    if first.ends_with("ing") && text::len(&words[0]) > 4 {
+        // "when is my nephew turning 5" is the doing word as it is, with the "is" it needs.
+        return subject + " is " + &words.join(" ") + " " + &date;
+    }
+    if ["is", "are", "was", "were", "will", "would", "can", "could", "has", "had", "does", "did"].contains(&first.as_str()) {
+        return subject + " " + &words.join(" ") + " " + &date;
+    }
+    if first.ends_with('s') && !first.ends_with("ss") {
+        // A word already said in the plural after the thing is more of the thing, not the verb.
+        return plan.to_string();
+    }
+    words[0] = _third_person(&words[0]);
+    subject + " " + &words.join(" ") + " " + &date
 }
 
 /// Python: bot/memory/store_replies.py:5702 `_plans_reply(memory, low)`
