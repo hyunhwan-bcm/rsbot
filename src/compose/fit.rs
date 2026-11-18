@@ -1,5 +1,5 @@
 //! Port of `bot/compose/fit.py`: the shape of answer a line wants (`wants` and every function it
-//! reaches). The rest of fit.py (how a reply fits the shape) belongs to the reply side.
+//! reaches), and whether a reply gives that shape (`gives` and every reader it reaches).
 
 #![allow(non_upper_case_globals)]
 
@@ -796,559 +796,2112 @@ pub fn line_text_fields() -> &'static [String] {
 #[allow(dead_code)]
 fn _unused(_: &Re, _: &IndexMap<String, String>) {}
 
-
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
-
-    /// Python: bot/compose/fit.py:117 `_the_rule_settles_it(opening, line, reply=None)`
-    pub fn _the_rule_settles_it(opening: &str, line: &str, reply: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_rule_settles_it")
-    }
-
-    /// Python: bot/compose/fit.py:1671 `wanted(memory)`
-    pub fn wanted(memory: &Memory) -> Option<String> {
-        crate::unported!("bot.compose.fit:wanted")
-    }
-
-    /// Python: bot/compose/fit.py:2328 `_an_amount_with_a_unit(opening)`
-    pub fn _an_amount_with_a_unit(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_amount_with_a_unit")
-    }
-
-    /// Python: bot/compose/fit.py:2355 `_about_the_thing_the_line_named(opening, said)`
-    pub fn _about_the_thing_the_line_named(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_about_the_thing_the_line_named")
-    }
-
-    /// Python: bot/compose/fit.py:2440 `_do_with_ask(said)`
-    pub fn _do_with_ask(said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_do_with_ask")
-    }
-
-    /// Python: bot/compose/fit.py:2544 `asks_for_words(understood)`
-    pub fn asks_for_words(understood: &Understood) -> bool {
-        crate::unported!("bot.compose.fit:asks_for_words")
-    }
-
-    /// Python: bot/compose/fit.py:2589 `_the_shape_a_reply_gives(reply, want, line=None)`
-    pub fn _the_shape_a_reply_gives(reply: &str, want: &str, line: &str) -> Option<bool> {
-        crate::unported!("bot.compose.fit:_the_shape_a_reply_gives")
-    }
-
-    /// Python: bot/compose/fit.py:3034 `_a_sign_answers(want, line, reply)`
-    pub fn _a_sign_answers(want: &str, line: &str, reply: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_sign_answers")
-    }
-
-    /// Python: bot/compose/fit.py:3054 `gives(reply, wants_, line=None)`
-    pub fn gives(reply: &str, wants_: &str, line: &str) -> Option<bool> {
-        crate::unported!("bot.compose.fit:gives")
-    }
-
-    /// Python: bot/compose/fit.py:3062 `missing(reply, wants_, line=None)` (never called on the trace corpus)
-    pub fn missing(reply: &str, wants_: &Value, line: &str) -> Value {
-        crate::unported!("bot.compose.fit:missing")
-    }
-
-    /// Python: bot/compose/fit.py:3073 `second_sentence(reply)`
-    pub fn second_sentence(reply: &str) -> String {
-        crate::unported!("bot.compose.fit:second_sentence")
-    }
-
-    /// Python: bot/compose/fit.py:3182 `_a_time_a_sentence_on(reply)`
-    pub fn _a_time_a_sentence_on(reply: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_time_a_sentence_on")
-    }
-
-    /// Python: bot/compose/fit.py:3200 `first_sentence(reply)`
-    pub fn first_sentence(reply: &str) -> String {
-        crate::unported!("bot.compose.fit:first_sentence")
-    }
-
-    /// Python: bot/compose/fit.py:3218 `_opening_two(reply)`
-    pub fn _opening_two(reply: &str) -> String {
-        crate::unported!("bot.compose.fit:_opening_two")
-    }
-
-    /// Python: bot/compose/fit.py:3253 `_three_names(text)`
-    pub fn _three_names(text: &str) -> bool {
-        crate::unported!("bot.compose.fit:_three_names")
-    }
-
-    /// Python: bot/compose/fit.py:3474 `_a_figure(opening)` (never called on the trace corpus)
-    pub fn _a_figure(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_figure")
-    }
-
-    /// Python: bot/compose/fit.py:3597 `_a_time(opening)`
-    pub fn _a_time(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_time")
-    }
-
-    /// Python: bot/compose/fit.py:3632 `_a_clear_time(opening)`
-    pub fn _a_clear_time(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_clear_time")
-    }
-
-    /// Python: bot/compose/fit.py:3684 `_an_age_is_given(opening)` (never called on the trace corpus)
-    pub fn _an_age_is_given(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_age_is_given")
-    }
-
-    /// Python: bot/compose/fit.py:3690 `_an_amount(opening)`
-    pub fn _an_amount(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_amount")
-    }
-
-    /// Python: bot/compose/fit.py:3714 `_a_price_asked(line)`
-    pub fn _a_price_asked(line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_price_asked")
-    }
-
-    /// Python: bot/compose/fit.py:3738 `_a_figure_that_counts(opening)`
-    pub fn _a_figure_that_counts(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_figure_that_counts")
-    }
-
-    /// Python: bot/compose/fit.py:3744 `_an_amount_to_read(opening)`
-    pub fn _an_amount_to_read(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_amount_to_read")
-    }
-
-    /// Python: bot/compose/fit.py:3767 `_figure_at_the_head(opening, pattern)`
-    pub fn _figure_at_the_head(opening: &str, pattern: &Value) -> bool {
-        crate::unported!("bot.compose.fit:_figure_at_the_head")
-    }
-
-    /// Python: bot/compose/fit.py:3773 `_a_clear_time_at_the_head(opening)`
-    pub fn _a_clear_time_at_the_head(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_clear_time_at_the_head")
-    }
-
-    /// Python: bot/compose/fit.py:3792 `_an_amount_at_the_head(opening)`
-    pub fn _an_amount_at_the_head(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_amount_at_the_head")
-    }
-
-    /// Python: bot/compose/fit.py:3993 `_a_party(opening)`
-    pub fn _a_party(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_party")
-    }
-
-    /// Python: bot/compose/fit.py:4082 `_the_spot_a_thing_has(found)` (never called on the trace corpus)
-    pub fn _the_spot_a_thing_has(found: &Value) -> Option<String> {
-        crate::unported!("bot.compose.fit:_the_spot_a_thing_has")
-    }
-
-    /// Python: bot/compose/fit.py:4089 `_names_a_spot(opening)`
-    pub fn _names_a_spot(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_names_a_spot")
-    }
-
-    /// Python: bot/compose/fit.py:4099 `_a_place(opening)`
-    pub fn _a_place(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_place")
-    }
-
-    /// Python: bot/compose/fit.py:4107 `_a_person(opening)`
-    pub fn _a_person(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_person")
-    }
-
-    /// Python: bot/compose/fit.py:4214 `_an_origin(opening)`
-    pub fn _an_origin(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_origin")
-    }
-
-    /// Python: bot/compose/fit.py:4247 `_a_past_definition(opening)`
-    pub fn _a_past_definition(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_past_definition")
-    }
-
-    /// Python: bot/compose/fit.py:4260 `_a_meaning(opening)`
-    pub fn _a_meaning(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_meaning")
-    }
-
-    /// Python: bot/compose/fit.py:4419 `_the_quality_is_about_the_thing(clause, line)`
-    pub fn _the_quality_is_about_the_thing(clause: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_quality_is_about_the_thing")
-    }
-
-    /// Python: bot/compose/fit.py:4444 `_the_tail_says_what_it_is_about(clause, line)`
-    pub fn _the_tail_says_what_it_is_about(clause: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_tail_says_what_it_is_about")
-    }
-
-    /// Python: bot/compose/fit.py:4493 `_the_quality_it_was_asked_about(opening, said)`
-    pub fn _the_quality_it_was_asked_about(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_quality_it_was_asked_about")
-    }
-
-    /// Python: bot/compose/fit.py:4531 `_the_quality_is_said_of_the_thing(head, at, said)` (never called on the trace corpus)
-    pub fn _the_quality_is_said_of_the_thing(head: &str, at: i64, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_quality_is_said_of_the_thing")
-    }
-
-    /// Python: bot/compose/fit.py:4568 `_the_verdict_is_inside(clause, line)`
-    pub fn _the_verdict_is_inside(clause: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_verdict_is_inside")
-    }
-
-    /// Python: bot/compose/fit.py:4580 `_the_quality_answers(clause, line)`
-    pub fn _the_quality_answers(clause: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_quality_answers")
-    }
-
-    /// Python: bot/compose/fit.py:4682 `is_a_punt(opening)`
-    pub fn is_a_punt(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:is_a_punt")
-    }
-
-    /// Python: bot/compose/fit.py:4723 `is_directed(opening)`
-    pub fn is_directed(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:is_directed")
-    }
-
-    /// Python: bot/compose/fit.py:4750 `_the_first_sentence(reply)`
-    pub fn _the_first_sentence(reply: &str) -> String {
-        crate::unported!("bot.compose.fit:_the_first_sentence")
-    }
-
-    /// Python: bot/compose/fit.py:4772 `_the_echo_question(opening, line)`
-    pub fn _the_echo_question(opening: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_echo_question")
-    }
-
-    /// Python: bot/compose/fit.py:4782 `is_a_question_back(reply, line=None)`
-    pub fn is_a_question_back(reply: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:is_a_question_back")
-    }
-
-    /// Python: bot/compose/fit.py:4808 `_an_outcome_of_their_own_doing(line)`
-    pub fn _an_outcome_of_their_own_doing(line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_outcome_of_their_own_doing")
-    }
-
-    /// Python: bot/compose/fit.py:4844 `_names_the_lines_thing(opening, said)`
-    pub fn _names_the_lines_thing(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_names_the_lines_thing")
-    }
-
-    /// Python: bot/compose/fit.py:4859 `_says_no_about_the_asked_thing(opening, line)`
-    pub fn _says_no_about_the_asked_thing(opening: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_says_no_about_the_asked_thing")
-    }
-
-    /// Python: bot/compose/fit.py:4950 `_the_job_is_split(opening)`
-    pub fn _the_job_is_split(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_job_is_split")
-    }
-
-    /// Python: bot/compose/fit.py:5060 `_the_same_word(word, text)`
-    pub fn _the_same_word(word: &str, text: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_same_word")
-    }
-
-    /// Python: bot/compose/fit.py:5066 `_names_what_the_line_named(opening, said)`
-    pub fn _names_what_the_line_named(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_names_what_the_line_named")
-    }
-
-    /// Python: bot/compose/fit.py:5083 `_the_rule_names_both_sides(reply)`
-    pub fn _the_rule_names_both_sides(reply: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_rule_names_both_sides")
-    }
-
-    /// Python: bot/compose/fit.py:5123 `_a_sign_off(opening)`
-    pub fn _a_sign_off(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_sign_off")
-    }
-
-    /// Python: bot/compose/fit.py:5159 `_a_yesno(opening, line=None)`
-    pub fn _a_yesno(opening: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_yesno")
-    }
-
-    /// Python: bot/compose/fit.py:5249 `_a_rule_of_its_use(opening, line)`
-    pub fn _a_rule_of_its_use(opening: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_rule_of_its_use")
-    }
-
-    /// Python: bot/compose/fit.py:5294 `_the_thing_is_named_as_what_it_usually_is(opening, line)`
-    pub fn _the_thing_is_named_as_what_it_usually_is(opening: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_thing_is_named_as_what_it_usually_is")
-    }
-
-    /// Python: bot/compose/fit.py:5320 `_an_echoed_no(opening, line)`
-    pub fn _an_echoed_no(opening: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_echoed_no")
-    }
-
-    /// Python: bot/compose/fit.py:5335 `_the_job_answers(opening, line)`
-    pub fn _the_job_answers(opening: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_job_answers")
-    }
-
-    /// Python: bot/compose/fit.py:5422 `_undecorated(head)`
-    pub fn _undecorated(head: &str) -> String {
-        crate::unported!("bot.compose.fit:_undecorated")
-    }
-
-    /// Python: bot/compose/fit.py:5528 `_listed_after(label_lead)`
-    pub fn _listed_after(label_lead: &str) -> bool {
-        crate::unported!("bot.compose.fit:_listed_after")
-    }
-
-    /// Python: bot/compose/fit.py:5537 `_marked_things(opening)`
-    pub fn _marked_things(opening: &str) -> i64 {
-        crate::unported!("bot.compose.fit:_marked_things")
-    }
-
-    /// Python: bot/compose/fit.py:5555 `_a_pick(opening)`
-    pub fn _a_pick(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_pick")
-    }
-
-    /// Python: bot/compose/fit.py:5732 `_asks_the_person(said)`
-    pub fn _asks_the_person(said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_asks_the_person")
-    }
-
-    /// Python: bot/compose/fit.py:5777 `_an_instruction(sentence)`
-    pub fn _an_instruction(sentence: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_instruction")
-    }
-
-    /// Python: bot/compose/fit.py:5782 `_imperative(sentence)`
-    pub fn _imperative(sentence: &str) -> bool {
-        crate::unported!("bot.compose.fit:_imperative")
-    }
-
-    /// Python: bot/compose/fit.py:5792 `_opens_on_a_job(sentence)`
-    pub fn _opens_on_a_job(sentence: &str) -> bool {
-        crate::unported!("bot.compose.fit:_opens_on_a_job")
-    }
-
-    /// Python: bot/compose/fit.py:5820 `_stem(word)`
-    pub fn _stem(word: &str) -> String {
-        crate::unported!("bot.compose.fit:_stem")
-    }
-
-    /// Python: bot/compose/fit.py:5828 `_subject_words(text)`
-    pub fn _subject_words(text: &str) -> Vec<String> {
-        crate::unported!("bot.compose.fit:_subject_words")
-    }
-
-    /// Python: bot/compose/fit.py:5847 `_the_same_subject(opening, line)`
-    pub fn _the_same_subject(opening: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_same_subject")
-    }
-
-    /// Python: bot/compose/fit.py:5888 `_instruction_after_a_clause(text)`
-    pub fn _instruction_after_a_clause(text: &str) -> bool {
-        crate::unported!("bot.compose.fit:_instruction_after_a_clause")
-    }
-
-    /// Python: bot/compose/fit.py:5971 `_a_comparison(opening)`
-    pub fn _a_comparison(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_comparison")
-    }
-
-    /// Python: bot/compose/fit.py:5987 `_a_list_of_things(opening)`
-    pub fn _a_list_of_things(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_list_of_things")
-    }
-
-    /// Python: bot/compose/fit.py:5996 `_options(opening)`
-    pub fn _options(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_options")
-    }
-
-    /// Python: bot/compose/fit.py:6036 `_two_things_to_do(opening)`
-    pub fn _two_things_to_do(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_two_things_to_do")
-    }
-
-    /// Python: bot/compose/fit.py:6052 `_three_things_after_the_colon(opening)`
-    pub fn _three_things_after_the_colon(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_three_things_after_the_colon")
-    }
-
-    /// Python: bot/compose/fit.py:6227 `_a_reason(opening, line=None)`
-    pub fn _a_reason(opening: &str, line: Option<&str>) -> bool {
-        crate::unported!("bot.compose.fit:_a_reason")
-    }
-
-    /// Python: bot/compose/fit.py:6312 `_head_explains(opening)`
-    pub fn _head_explains(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_head_explains")
-    }
-
-    /// Python: bot/compose/fit.py:6372 `_a_meaning_or_a_statement(opening)`
-    pub fn _a_meaning_or_a_statement(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_meaning_or_a_statement")
-    }
-
-    /// Python: bot/compose/fit.py:6391 `_a_statement_answers_it(opening)`
-    pub fn _a_statement_answers_it(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_statement_answers_it")
-    }
-
-    /// Python: bot/compose/fit.py:6503 `_an_opening_job(opening)`
-    pub fn _an_opening_job(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_an_opening_job")
-    }
-
-    /// Python: bot/compose/fit.py:6532 `fits(reply, want, line=None)` (never called on the trace corpus)
-    pub fn fits(reply: &str, want: &Value, line: &str) -> Value {
-        crate::unported!("bot.compose.fit:fits")
-    }
-
-    /// Python: bot/compose/fit.py:6635 `_words(text)`
-    pub fn _words(text: &str) -> Vec<String> {
-        crate::unported!("bot.compose.fit:_words")
-    }
-
-    /// Python: bot/compose/fit.py:6667 `_the_thing_asked(said)`
-    pub fn _the_thing_asked(said: &str) -> String {
-        crate::unported!("bot.compose.fit:_the_thing_asked")
-    }
-
-    /// Python: bot/compose/fit.py:6734 `_uses_the_thing(opening, thing)`
-    pub fn _uses_the_thing(opening: &str, thing: &str) -> bool {
-        crate::unported!("bot.compose.fit:_uses_the_thing")
-    }
-
-    /// Python: bot/compose/fit.py:6745 `_defines_the_thing(opening, said)`
-    pub fn _defines_the_thing(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_defines_the_thing")
-    }
-
-    /// Python: bot/compose/fit.py:6772 `_name_words(text)`
-    pub fn _name_words(text: &str) -> Vec<String> {
-        crate::unported!("bot.compose.fit:_name_words")
-    }
-
-    /// Python: bot/compose/fit.py:6778 `_long_enough_a_name(word, least=3)`
-    pub fn _long_enough_a_name(word: &str, least: i64) -> bool {
-        crate::unported!("bot.compose.fit:_long_enough_a_name")
-    }
-
-    /// Python: bot/compose/fit.py:6784 `_names(opening, said)`
-    pub fn _names(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_names")
-    }
-
-    /// Python: bot/compose/fit.py:6797 `_names_the_subject(opening, said)`
-    pub fn _names_the_subject(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_names_the_subject")
-    }
-
-    /// Python: bot/compose/fit.py:6828 `_opens_on_the_lines_verb(opening, said)`
-    pub fn _opens_on_the_lines_verb(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_opens_on_the_lines_verb")
-    }
-
-    /// Python: bot/compose/fit.py:6846 `_trimmed(words)` (never called on the trace corpus)
-    pub fn _trimmed(words: &[String]) -> Value {
-        crate::unported!("bot.compose.fit:_trimmed")
-    }
-
-    /// Python: bot/compose/fit.py:6856 `_the_pair_up(text)`
-    pub fn _the_pair_up(text: &str) {
-        crate::unported!("bot.compose.fit:_the_pair_up")
-    }
-
-    /// Python: bot/compose/fit.py:6887 `_a_side_said_in_the_reply(side, ordered, words)`
-    pub fn _a_side_said_in_the_reply(side: &[String], ordered: &[String], words: &[String]) -> bool {
-        crate::unported!("bot.compose.fit:_a_side_said_in_the_reply")
-    }
-
-    /// Python: bot/compose/fit.py:6905 `_the_side_wins(opening, line)`
-    pub fn _the_side_wins(opening: &str, line: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_side_wins")
-    }
-
-    /// Python: bot/compose/fit.py:6928 `_names_a_side(opening, said)`
-    pub fn _names_a_side(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_names_a_side")
-    }
-
-    /// Python: bot/compose/fit.py:6951 `_a_side_word_is_named(word, ordered, words)`
-    pub fn _a_side_word_is_named(word: &str, ordered: &[String], words: &[String]) -> bool {
-        crate::unported!("bot.compose.fit:_a_side_word_is_named")
-    }
-
-    /// Python: bot/compose/fit.py:6975 `_initials_named(word, reply_words)`
-    pub fn _initials_named(word: &str, reply_words: &[String]) -> bool {
-        crate::unported!("bot.compose.fit:_initials_named")
-    }
-
-    /// Python: bot/compose/fit.py:6990 `_names_both_sides(reply, said)`
-    pub fn _names_both_sides(reply: &str, said: &str) -> Option<bool> {
-        crate::unported!("bot.compose.fit:_names_both_sides")
-    }
-
-    /// Python: bot/compose/fit.py:7044 `_the_job_named(opening, said)`
-    pub fn _the_job_named(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_job_named")
-    }
-
-    /// Python: bot/compose/fit.py:7116 `_a_step_told_as_what_not_to_do(text)`
-    pub fn _a_step_told_as_what_not_to_do(text: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_step_told_as_what_not_to_do")
-    }
-
-    /// Python: bot/compose/fit.py:7134 `_steps_in(reply)`
-    pub fn _steps_in(reply: &str) -> bool {
-        crate::unported!("bot.compose.fit:_steps_in")
-    }
-
-    /// Python: bot/compose/fit.py:7166 `_words_handed_over(text)`
-    pub fn _words_handed_over(text: &str) -> bool {
-        crate::unported!("bot.compose.fit:_words_handed_over")
-    }
-
-    /// Python: bot/compose/fit.py:7181 `_a_money_rate(opening)`
-    pub fn _a_money_rate(opening: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_money_rate")
-    }
-
-    /// Python: bot/compose/fit.py:7186 `_without_a_money_rate(opening)`
-    pub fn _without_a_money_rate(opening: &str) -> String {
-        crate::unported!("bot.compose.fit:_without_a_money_rate")
-    }
-
-    /// Python: bot/compose/fit.py:7229 `_the_figure_against_the_standard(opening, said)`
-    pub fn _the_figure_against_the_standard(opening: &str, said: &str) -> bool {
-        crate::unported!("bot.compose.fit:_the_figure_against_the_standard")
-    }
-
-    /// Python: bot/compose/fit.py:7257 `_a_figure_then_the_verdict(opening, reply)`
-    pub fn _a_figure_then_the_verdict(opening: &str, reply: &str) -> bool {
-        crate::unported!("bot.compose.fit:_a_figure_then_the_verdict")
-    }
-
-    /// Python: bot/compose/fit.py:7354 `_opens_on_a_job_to_do(sentence)`
-    pub fn _opens_on_a_job_to_do(sentence: &str) -> bool {
-        crate::unported!("bot.compose.fit:_opens_on_a_job_to_do")
-    }
-
-    /// Python: bot/compose/fit.py:7383 `_steps(opening, after='')`
-    pub fn _steps(opening: &str, after: &str) -> bool {
-        crate::unported!("bot.compose.fit:_steps")
-    }
-
+// The tables the reply side reads.
+static ABBREVIATION_END: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ABBREVIATION_END"));
+static ANY_DO_WITH: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ANY_DO_WITH"));
+static AN_INSTRUCTION: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "AN_INSTRUCTION"));
+static AN_OFFER_NOT_A_TEST: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "AN_OFFER_NOT_A_TEST"));
+static AN_ORDINAL_OPENING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "AN_ORDINAL_OPENING"));
+static ASKS_ABOUT_A_QUALITY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASKS_ABOUT_A_QUALITY"));
+static ASKS_AN_AGE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASKS_AN_AGE"));
+static ASKS_HEAD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASKS_HEAD"));
+static ASKS_IF_SERIOUS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASKS_IF_SERIOUS"));
+static ASKS_THE_BOT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASKS_THE_BOT"));
+static ASKS_WHEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ASKS_WHEN"));
+static A_BARE_NUMBER: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_BARE_NUMBER"));
+static A_BOUND_THAT_IS_THE_ANSWER: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_BOUND_THAT_IS_THE_ANSWER"));
+static A_CALCULATION: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_CALCULATION"));
+static A_COUNT_OF_THINGS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_COUNT_OF_THINGS"));
+static A_COVER_LETTER: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_COVER_LETTER"));
+static A_HARM_IS_WHAT_IT_IS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_HARM_IS_WHAT_IT_IS"));
+static A_HOLDER: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_HOLDER"));
+static A_JOB_LANDS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_JOB_LANDS"));
+static A_JUDGEMENT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_JUDGEMENT"));
+static A_LIMIT_ON_ITS_USE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_LIMIT_ON_ITS_USE"));
+static A_QUANTITY_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_QUANTITY_ASK"));
+static A_RULE_THAT_SETTLES_IT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_RULE_THAT_SETTLES_IT"));
+static A_SIDE_WINS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_SIDE_WINS"));
+static A_STANDING_AFTER_THE_TEST: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_STANDING_AFTER_THE_TEST"));
+static A_SUBORDINATE_FRAGMENT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_SUBORDINATE_FRAGMENT"));
+static A_TIME_COUNT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_TIME_COUNT"));
+static A_TRADE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_TRADE"));
+static A_UNIT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_UNIT"));
+static A_VERB_THEN_THE_THING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_VERB_THEN_THE_THING"));
+static A_WELL_WISHING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "A_WELL_WISHING"));
+static BACK_HEAD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "BACK_HEAD"));
+static BALD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "BALD"));
+static BALD_VERB: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "BALD_VERB"));
+static BARE_RANGE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "BARE_RANGE"));
+static CALENDAR_WORD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CALENDAR_WORD"));
+static CAUSE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CAUSE"));
+static CAUSE_IS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CAUSE_IS"));
+static CAUSE_WHEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CAUSE_WHEN"));
+static CHOICE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CHOICE"));
+static CLOCK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CLOCK"));
+static CLOCK_SURE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CLOCK_SURE"));
+static COMPARATIVE_THAN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "COMPARATIVE_THAN"));
+static CONTRACTION_OPENER: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CONTRACTION_OPENER"));
+static CONTRAST: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "CONTRAST"));
+static COPULA: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "COPULA"));
+static COUNTED_LIST: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "COUNTED_LIST"));
+static DATE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DATE"));
+static DAY_NAME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DAY_NAME"));
+static DEFINES: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DEFINES"));
+static DIRECTED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DIRECTED"));
+static DOES: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DOES"));
+static DOES_NOT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DOES_NOT"));
+static DOES_NOT_ANYWHERE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DOES_NOT_ANYWHERE"));
+static DURATION: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "DURATION"));
+static ECHO_HEAD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ECHO_HEAD"));
+static ECHO_VERDICT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "ECHO_VERDICT"));
+static EDGED_PART_OF_DAY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "EDGED_PART_OF_DAY"));
+static EVIDENCE_SAYS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "EVIDENCE_SAYS"));
+static EXPLAINS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "EXPLAINS"));
+static EXTENT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "EXTENT"));
+static FIGURE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "FIGURE"));
+static FIGURE_HEAD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "FIGURE_HEAD"));
+static FIRST_PERSON_VERDICT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "FIRST_PERSON_VERDICT"));
+static FOR_A_LIST: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "FOR_A_LIST"));
+static FOR_A_TIME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "FOR_A_TIME"));
+static FRAME_HEAD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "FRAME_HEAD"));
+static GARDEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "GARDEN"));
+static HALF_A_UNIT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "HALF_A_UNIT"));
+static HANDOFF: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "HANDOFF"));
+static HYPOTHETICAL: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "HYPOTHETICAL"));
+static IMPERATIVE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "IMPERATIVE"));
+static INSTRUCTS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "INSTRUCTS"));
+static INSTRUCTS_CLAUSE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "INSTRUCTS_CLAUSE"));
+static IS_IT_DONE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "IS_IT_DONE"));
+static IT_HELPS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "IT_HELPS"));
+static I_OFFER: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "I_OFFER"));
+static JOB: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "JOB"));
+static JOB_ANY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "JOB_ANY"));
+static LABEL: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "LABEL"));
+static LENGTH_ASKED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "LENGTH_ASKED"));
+static LIST_AFTER_COLON: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "LIST_AFTER_COLON"));
+static MEANS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MEANS"));
+static MEANS_ARTICLE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MEANS_ARTICLE"));
+static MEANS_BY_DOING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MEANS_BY_DOING"));
+static MEANS_INFINITIVE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MEANS_INFINITIVE"));
+static MEANS_NAMED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MEANS_NAMED"));
+static MEANS_OF: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MEANS_OF"));
+static MEASURED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MEASURED"));
+static MECHANISM: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MECHANISM"));
+static MERIT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MERIT"));
+static MINUTES_AS_A_LENGTH: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MINUTES_AS_A_LENGTH"));
+static MONEY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MONEY"));
+static MONEY_RATE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MONEY_RATE"));
+static MUST_BE_A_TRADE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "MUST_BE_A_TRADE"));
+static NAMED_CLOCK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NAMED_CLOCK"));
+static NAMED_HEAD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NAMED_HEAD"));
+static NAMED_TIME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NAMED_TIME"));
+static NAMED_WORDS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NAMED_WORDS"));
+static NAMES_IN_EMPHASIS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NAMES_IN_EMPHASIS"));
+static NAME_STOP: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NAME_STOP"));
+static NAMING_STOP: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "NAMING_STOP"));
+static NEGATED_AUX: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NEGATED_AUX"));
+static NEVER: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NEVER"));
+static NEXT_IDEA: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NEXT_IDEA"));
+static NOTHING_TO_GO_ON: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NOTHING_TO_GO_ON"));
+static NOT_AN_OPENER: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "NOT_AN_OPENER"));
+static NOT_A_LABEL: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NOT_A_LABEL"));
+static NOT_A_STEP_BUT_REASSURANCE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NOT_A_STEP_BUT_REASSURANCE"));
+static NOT_A_SUBJECT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NOT_A_SUBJECT"));
+static NOT_A_THING: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "NOT_A_THING"));
+static NOT_A_VERB: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "NOT_A_VERB"));
+static NOT_WORDS_ANYWAY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NOT_WORDS_ANYWAY"));
+static NOT_WORDS_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NOT_WORDS_ASK"));
+static NO_FIXED_TIME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NO_FIXED_TIME"));
+static NO_JOB: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "NO_JOB"));
+static OPTIONS_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "OPTIONS_ASK"));
+static OUTCOME_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "OUTCOME_ASK"));
+static PAST_DEFINES: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PAST_DEFINES"));
+static PATH_THEN_VERB: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PATH_THEN_VERB"));
+static PERMISSION: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PERMISSION"));
+static PERMISSION_RULE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PERMISSION_RULE"));
+static PERSON_FULL_NAME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PERSON_FULL_NAME"));
+static PERSON_NAME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PERSON_NAME"));
+static PERSON_NAMED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PERSON_NAMED"));
+static PERSON_RELATION: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PERSON_RELATION"));
+static PERSON_WORD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PERSON_WORD"));
+static PICKS_BY_COMPARISON: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PICKS_BY_COMPARISON"));
+static PICK_BY_CASE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PICK_BY_CASE"));
+static PLACE_AS_EVIDENCE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PLACE_AS_EVIDENCE"));
+static PLACE_AT_HOME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PLACE_AT_HOME"));
+static PLACE_KIND: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PLACE_KIND"));
+static PLACE_NAME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PLACE_NAME"));
+static PLACE_NAME_ANY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PLACE_NAME_ANY"));
+static PLACE_WORD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PLACE_WORD"));
+static PLAN_VERB: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PLAN_VERB"));
+static POINTS_BACK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "POINTS_BACK"));
+static PREFERS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PREFERS"));
+static PRICE_ASKED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PRICE_ASKED"));
+static PRICE_GIVEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PRICE_GIVEN"));
+static PUNT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PUNT"));
+static PURPOSE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PURPOSE"));
+static PURPOSE_TO: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "PURPOSE_TO"));
+static QUALITY_IS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "QUALITY_IS"));
+static QUOTED_NAME: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "QUOTED_NAME"));
+static RATE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "RATE"));
+static RATE_OF_A_COUNT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "RATE_OF_A_COUNT"));
+static RATE_PHRASE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "RATE_PHRASE"));
+static REASON_OPENS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "REASON_OPENS"));
+static REFERS_BACK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "REFERS_BACK"));
+static REPEAT_LEAD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "REPEAT_LEAD"));
+static RULE_CONDITION: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "RULE_CONDITION"));
+static RULE_DROP_IT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "RULE_DROP_IT"));
+static RULE_GO_NEW: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "RULE_GO_NEW"));
+static RULE_KEEP_IT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "RULE_KEEP_IT"));
+static SAID_WORDS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SAID_WORDS"));
+static SAYS_NO: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SAYS_NO"));
+static SAYS_NOTHING_ABOUT_IT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SAYS_NOTHING_ABOUT_IT"));
+static SAYS_WHAT_IT_DOES: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "SAYS_WHAT_IT_DOES"));
+static SEASON_WHEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SEASON_WHEN"));
+static SEEKS_HELP: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SEEKS_HELP"));
+static SENDS_THEM_ON: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SENDS_THEM_ON"));
+static SENTENCE_END: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SENTENCE_END"));
+static SEQUENCES: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SEQUENCES"));
+static SETTLED_ON: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SETTLED_ON"));
+static SET_LABEL: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SET_LABEL"));
+static SIDES: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SIDES"));
+static SIDES_VS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SIDES_VS"));
+static SIDE_FILLER: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "SIDE_FILLER"));
+static SIGN_OFF_LEAD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SIGN_OFF_LEAD"));
+static SOFT: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "SOFT"));
+static SOURCE_COLON: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SOURCE_COLON"));
+static SOURCE_DOES: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SOURCE_DOES"));
+static SOURCE_LIST: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SOURCE_LIST"));
+static SOURCE_MADE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SOURCE_MADE"));
+static SOURCE_MAKES: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SOURCE_MAKES"));
+static SPOT_OF_THE_THING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SPOT_OF_THE_THING"));
+static SPOT_ON_THE_THING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "SPOT_ON_THE_THING"));
+static SPOT_PART: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "SPOT_PART"));
+static STAGE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "STAGE"));
+static STAGE_WHEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "STAGE_WHEN"));
+static STATES_HEAD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "STATES_HEAD"));
+static STEPS_INSIDE_A_LIST: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "STEPS_INSIDE_A_LIST"));
+static TELLS_A_TEST: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "TELLS_A_TEST"));
+static TELL_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "TELL_ASK"));
+static TEST_IS_THE_VERDICT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "TEST_IS_THE_VERDICT"));
+static THEIR_OWN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "THEIR_OWN"));
+static THE_SIGN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "THE_SIGN"));
+static THE_THING_ASKED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "THE_THING_ASKED"));
+static THE_WINNER_NAMED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "THE_WINNER_NAMED"));
+static THINGS_VERB: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "THINGS_VERB"));
+static TIME_LEAD_IN: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "TIME_LEAD_IN"));
+static TRAILING_VERDICT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "TRAILING_VERDICT"));
+static UNSETTLED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "UNSETTLED"));
+static USUALLY_IS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "USUALLY_IS"));
+static VERDICT_ABOUT_IT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_ABOUT_IT"));
+static VERDICT_AFTER_A_CASE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_AFTER_A_CASE"));
+static VERDICT_AFTER_A_FIGURE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_AFTER_A_FIGURE"));
+static VERDICT_BAND: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_BAND"));
+static VERDICT_ECHO: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_ECHO"));
+static VERDICT_INSIDE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_INSIDE"));
+static VERDICT_INSIDE_QUALITY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_INSIDE_QUALITY"));
+static VERDICT_ON_A_SCALE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_ON_A_SCALE"));
+static VERDICT_OPEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_OPEN"));
+static VERDICT_RULE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "VERDICT_RULE"));
+static WANTS: LazyLock<Vec<String>> = LazyLock::new(|| t::strs(M, "WANTS"));
+static WANTS_INFO: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "WANTS_INFO"));
+static WANTS_OF_THE_PERSON: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "WANTS_OF_THE_PERSON"));
+static WANTS_THE_CAUSE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "WANTS_THE_CAUSE"));
+static WORDS_ASK: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "WORDS_ASK"));
+static WOULD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "WOULD"));
+static WRITES_IN_A_DOCUMENT: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "WRITES_IN_A_DOCUMENT"));
+static WRITES_TO_A_MESSAGE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "WRITES_TO_A_MESSAGE"));
+static _ADVISES_THE_THING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_ADVISES_THE_THING"));
+static _AN_AGE_BARE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_AN_AGE_BARE"));
+static _AN_AGE_BIRTHDAY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_AN_AGE_BIRTHDAY"));
+static _AN_AGE_MONTHS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_AN_AGE_MONTHS"));
+static _AN_AGE_NAMED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_AN_AGE_NAMED"));
+static _AN_AGE_SPELLED_OPENS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_AN_AGE_SPELLED_OPENS"));
+static _AN_AGE_YEARS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_AN_AGE_YEARS"));
+static _ARTICLE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_ARTICLE"));
+static _A_DOING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_A_DOING"));
+static _A_FIGURE_AGAINST_THE_STANDARD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_A_FIGURE_AGAINST_THE_STANDARD"));
+static _A_QUOTE: LazyLock<&'static str> = LazyLock::new(|| t::string(M, "_A_QUOTE"));
+static _A_SOCIAL_OPEN: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_A_SOCIAL_OPEN"));
+static _COPULA: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_COPULA"));
+static _EMPTY: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_EMPTY"));
+static _ENDS_THE_THING: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_ENDS_THE_THING"));
+static _FIGURES: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_FIGURES"));
+static _FIGURE_HEAD: LazyLock<usize> = LazyLock::new(|| t::int(M, "_FIGURE_HEAD") as usize);
+static _JUDGES_THE_THING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_JUDGES_THE_THING"));
+static _LIST_OF_THINGS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_LIST_OF_THINGS"));
+static _MEASURE_AFTER: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_MEASURE_AFTER"));
+static _NAMING_WORD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_NAMING_WORD"));
+static _NOT_A_ROLE: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_NOT_A_ROLE"));
+static _NOT_A_THING: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_NOT_A_THING"));
+static _NOT_A_WORD: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_NOT_A_WORD"));
+static _NOT_THE_SUBJECT: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_NOT_THE_SUBJECT"));
+static _NO_WAY_TO_KNOW: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_NO_WAY_TO_KNOW"));
+static _OPINION_OF_THE_THING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_OPINION_OF_THE_THING"));
+static _PARTY: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_PARTY"));
+static _PREFERS_STATED: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_PREFERS_STATED"));
+static _PRONOUN_SUBJECT: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_PRONOUN_SUBJECT"));
+static _PUTS_THE_THING_TO_USE: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_PUTS_THE_THING_TO_USE"));
+static _QUALITIES: LazyLock<Vec<String>> = LazyLock::new(|| t::strs(M, "_QUALITIES"));
+static _QUALITY_OF_A_THING: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_QUALITY_OF_A_THING"));
+static _SAYS_WHAT_IT_IS: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_SAYS_WHAT_IT_IS"));
+static _SIDE_EMPTY: LazyLock<HashSet<String>> = LazyLock::new(|| t::set(M, "_SIDE_EMPTY"));
+static _THE_VERDICT_IS_EARLY: LazyLock<usize> = LazyLock::new(|| t::int(M, "_THE_VERDICT_IS_EARLY") as usize);
+static _WORD: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_WORD"));
+static _WORKING: LazyLock<&'static Re> = LazyLock::new(|| t::re(M, "_WORKING"));
+/// `_QUALITY_SAID`: {quality: how it is said}.
+static _QUALITY_SAID: LazyLock<IndexMap<String, &'static Re>> = LazyLock::new(|| t::map_re(M, "_QUALITY_SAID"));
+
+// =============================================================================================
+// fit.py, the reply side: whether a reply gives the shape the line wants (`gives`) and every
+// reader it reaches. Python defines `gives`, `_steps`, `_steps_in` and `_an_instruction` twice;
+// the later definition is the module's (the earlier `gives`, `_steps` and `_steps_in` live on
+// as `_gives_as_read`, `_steps_by_the_verb_list` and `_STEPS_IN`; the earlier
+// `_an_instruction` is shadowed and never reached).
+
+/// `text[:-k]` over characters ("" when the text is shorter).
+fn cut(word: &str, k: usize) -> &str {
+    let n = word.chars().count();
+    if n <= k {
+        return "";
+    }
+    let end = word.char_indices().nth(n - k).map(|(i, _)| i).unwrap_or(word.len());
+    &word[..end]
 }
 
+/// `re.split('[,;:]', text, maxsplit=1)[0]`.
+fn first_clause(s: &str) -> &str {
+    match s.find([',', ';', ':']) {
+        Some(at) => &s[..at],
+        None => s,
+    }
+}
+
+/// `" ".join(str(x).split())`.
+fn squeeze(s: &str) -> String {
+    text::split(s).join(" ")
+}
+
+/// `_the_rule_settles_it(opening, line, reply=None)`: the reply's rule settles the ask.
+pub fn _the_rule_settles_it(opening: &str, _line: &str, reply: &str) -> bool {
+    let said = squeeze(if reply.is_empty() { opening } else { reply });
+    if said.contains('?') {
+        return false;
+    }
+    if AN_OFFER_NOT_A_TEST.is_match(opening) {
+        return false;
+    }
+    let Some(found) = A_RULE_THAT_SETTLES_IT.search(opening) else { return false };
+    let word = found.as_str().to_lowercase();
+    if matches!(word.as_str(), "once" | "until" | "unless") && rx("[:;]").is_match(&opening[..found.start()]) {
+        return false;
+    }
+    if text::strip(&opening[..found.start()]).is_empty() && matches!(word.as_str(), "if" | "when" | "whenever" | "whether") {
+        return false;
+    }
+    A_STANDING_AFTER_THE_TEST.is_match(&opening[found.end()..])
+}
+
+/// `wanted(memory)`: the shape this turn's line wants, as the reading or the intent observer
+/// left it.
+pub fn wanted(memory: &crate::state::Memory) -> Option<String> {
+    if let Some(read) = &memory.understood {
+        if let Some(want) = &read.wants {
+            if WANTS.contains(want) {
+                return Some(want.clone());
+            }
+        }
+    }
+    memory.intent_wants.clone().filter(|w| WANTS.contains(w))
+}
+
+/// `_an_amount_with_a_unit(opening)`.
+pub fn _an_amount_with_a_unit(opening: &str) -> bool {
+    _an_amount(opening) && A_UNIT.is_match(opening)
+}
+
+/// `_about_the_thing_the_line_named(opening, said)`: the reply's head names a word of the line.
+pub fn _about_the_thing_the_line_named(opening: &str, said: &str) -> bool {
+    let words = _words(opening);
+    let wide = POINTS_BACK.match_(opening).is_some() || _an_instruction(opening);
+    let head: HashSet<&String> = if wide { words.iter().collect() } else { words.iter().take(5).collect() };
+    let said_words: HashSet<String> = _words(said).into_iter().collect();
+    for word in &said_words {
+        if text::len(word) < 3 || _EMPTY.contains(word) || NOT_A_THING.contains(word) {
+            continue;
+        }
+        if head.contains(word) {
+            return true;
+        }
+        for stem in [cut(word, 1), cut(word, 2)] {
+            if text::len(stem) < 3 || _EMPTY.contains(stem) || NOT_A_THING.contains(stem) {
+                continue;
+            }
+            if head.iter().any(|h| h.as_str() == stem) {
+                return true;
+            }
+        }
+    }
+    let digits = |s: &str| -> HashSet<String> { rx("\\d+").findall_str(s).into_iter().collect() };
+    !digits(opening).is_disjoint(&digits(said))
+}
+
+/// `_do_with_ask(said)`.
+pub fn _do_with_ask(said: &str) -> bool {
+    ANY_DO_WITH.is_match(said)
+}
+
+/// `asks_for_words(understood)`: the line asks for words to say or write.
+pub fn asks_for_words(understood: &Understood) -> bool {
+    let plain = text::strip(&understood.plain).to_lowercase();
+    let said = if plain.is_empty() { _said(understood) } else { plain };
+    if said.is_empty() || !WORDS_ASK.is_match(&said) {
+        return false;
+    }
+    if NAMED_WORDS.is_match(&said) {
+        return !(TELLS_A_TEST.is_match(&said) || NOT_WORDS_ANYWAY.is_match(&said));
+    }
+    if understood.subject.as_deref().unwrap_or("").is_empty() && understood.followup {
+        return false;
+    }
+    if WRITES_IN_A_DOCUMENT.is_match(&said) && !(WRITES_TO_A_MESSAGE.is_match(&said) && !A_COVER_LETTER.is_match(&said)) {
+        return false;
+    }
+    !NOT_WORDS_ASK.is_match(&said)
+}
+
+/// `_CHECKS[want](opening)`: the reader that says a reply gives the shape.
+fn check_for(want: &str, opening: &str) -> Option<bool> {
+    Some(match want {
+        "time" => _a_time(opening),
+        "compare" => _a_comparison(opening),
+        "amount" => _an_amount(opening),
+        "place" => _a_place(opening),
+        "person" => _a_person(opening),
+        "meaning" => _a_meaning_or_a_statement(opening),
+        "yesno" => _a_yesno(opening, ""),
+        "pick" => _a_pick(opening),
+        "steps" => _steps(opening, ""),
+        "options" => _options(opening),
+        "reason" => _a_reason(opening, None),
+        _ => return None,
+    })
+}
+
+/// `_CLEAR`: the shapes a reply clearly gives, each with its reader, in order.
+fn clear_says(want: &str, opening: &str) -> bool {
+    match want {
+        "time" => _a_clear_time_at_the_head(opening),
+        "amount" => _an_amount_at_the_head(opening),
+        "steps" => _steps(opening, ""),
+        "place" => PLACE_AS_EVIDENCE.is_match(opening),
+        "person" => PERSON_WORD.is_match(opening),
+        "meaning" => MEANS.is_match(opening),
+        "yesno" => VERDICT_OPEN.match_(opening).is_some(),
+        "pick" => _PREFERS_STATED.is_match(opening),
+        "reason" => REASON_OPENS.match_(opening).is_some(),
+        _ => false,
+    }
+}
+
+const CLEAR_ORDER: [&str; 9] = ["time", "amount", "steps", "place", "person", "meaning", "yesno", "pick", "reason"];
+
+/// The first `n` characters of a text (`text[:n]`).
+fn chars_head(s: &str, n: usize) -> &str {
+    match s.char_indices().nth(n) {
+        Some((i, _)) => &s[..i],
+        None => s,
+    }
+}
+
+/// `_the_shape_a_reply_gives(reply, want, line=None)`: True when the reply gives the shape the
+/// line wants, False when it clearly gives another, None when it cannot tell. `line` is the
+/// line's text (a reading is read by its text, clean or plain first); None is no line.
+pub fn _the_shape_a_reply_gives(reply: &str, want: &str, line: Option<&str>) -> Option<bool> {
+    if !WANTS.iter().any(|w| w == want) || SOFT.contains(want) {
+        return None;
+    }
+    let has_line = line.is_some_and(|l| !l.is_empty());
+    let said = || _line_text(line.unwrap_or(""));
+    let mut opening = first_sentence(reply);
+    if opening.is_empty() {
+        return None;
+    }
+    let mut repeated = false;
+    if want == *YESNO {
+        if let Some(repeat) = REPEAT_LEAD.match_(&opening) {
+            let rest = text::strip(&opening[repeat.end()..]).to_string();
+            if !rest.is_empty() {
+                opening = rest;
+                repeated = true;
+            }
+        }
+    }
+    let opening = opening.as_str();
+    if is_a_punt(opening) {
+        let head = chars_head(reply, 400);
+        return if DIRECTED.is_match(head) || A_HOLDER.is_match(head) { None } else { Some(false) };
+    }
+    if want == *YESNO && _a_sign_off(opening) {
+        return if _A_SOCIAL_OPEN.match_(&said()).is_some() { None } else { Some(false) };
+    }
+    if want == *TIME && _a_money_rate(opening) {
+        let stripped = _without_a_money_rate(opening);
+        if stripped != opening {
+            return Some(_a_time(&stripped));
+        }
+    }
+    if want == *STEPS {
+        if _steps_in(reply) {
+            return Some(true);
+        }
+        if _imperative(opening) {
+            return Some(true);
+        }
+    } else if want == *TIME && has_line && (STAGE_WHEN.is_match(opening) || SEASON_WHEN.is_match(opening)) && ASKS_WHEN.is_match(&said()) {
+        return Some(true);
+    } else if want == *REASON {
+        if _a_reason(opening, line) {
+            return Some(true);
+        }
+        if has_line && _names(&_opening_two(reply), &said()) && _a_reason(&_opening_two(reply), line) {
+            return Some(true);
+        }
+    } else if want == *YESNO {
+        if _the_rule_settles_it(opening, line.unwrap_or(""), reply) {
+            return Some(true);
+        }
+        if _a_yesno(opening, line.unwrap_or("")) {
+            return Some(true);
+        }
+    } else if want == *AMOUNT && has_line && ASKS_AN_AGE.is_match(&said()) {
+        if _an_age_is_given(opening) {
+            return Some(true);
+        }
+    } else if check_for(want, opening) == Some(true) {
+        if want == *AMOUNT && has_line && _a_price_asked(line.unwrap_or("")) && _a_time(opening) && !PRICE_GIVEN.is_match(opening) {
+            return Some(false);
+        }
+        return Some(true);
+    } else if want == *TIME && _a_time_a_sentence_on(reply) {
+        return Some(true);
+    }
+    let l = line.unwrap_or("");
+    if want == *YESNO && has_line && ASKS_THE_BOT.is_match(&said()) && I_OFFER.is_match(opening) && _about_the_thing_the_line_named(opening, &said()) {
+        return Some(true);
+    }
+    if want == *YESNO
+        && has_line
+        && !_an_outcome_of_their_own_doing(&said())
+        && _about_the_thing_the_line_named(opening, &said())
+        && (_a_meaning(opening) || _a_reason(opening, None) || _a_time(opening) || _an_amount_with_a_unit(opening))
+    {
+        return Some(true);
+    }
+    if want == *YESNO && has_line && _the_quality_it_was_asked_about(opening, &said()) {
+        return Some(true);
+    }
+    if want == *YESNO && !repeated && _the_job_answers(opening, l) {
+        return Some(true);
+    }
+    if want == *YESNO && !repeated && has_line && ASKS_IF_SERIOUS.is_match(&said()) && SEEKS_HELP.is_match(reply) {
+        return Some(true);
+    }
+    if want == *YESNO && has_line && _the_thing_is_named_as_what_it_usually_is(opening, l) {
+        return Some(true);
+    }
+    if want == *YESNO && has_line && VERDICT_ABOUT_IT.is_match(opening) && _names_what_the_line_named(opening, &said()) {
+        return Some(true);
+    }
+    if want == *YESNO && VERDICT_RULE.is_match(reply) {
+        return Some(true);
+    }
+    if want == *YESNO && _says_no_about_the_asked_thing(opening, l) {
+        return Some(true);
+    }
+    if want == *YESNO && has_line && _the_side_wins(opening, l) {
+        return Some(true);
+    }
+    if want == *YESNO && _an_echoed_no(opening, l) {
+        return Some(true);
+    }
+    if want == *YESNO && has_line && _the_figure_against_the_standard(opening, &said()) {
+        return Some(true);
+    }
+    if want == *YESNO && _a_figure_then_the_verdict(opening, reply) {
+        return Some(true);
+    }
+    if want == *TIME && has_line && EXTENT.is_match(opening) && LENGTH_ASKED.is_match(&said()) {
+        return Some(true);
+    }
+    if want == *PICK && has_line && _names_a_side(opening, &said()) {
+        return Some(true);
+    }
+    if want == *PICK && has_line && _an_instruction(opening) && _names(opening, l) {
+        return Some(true);
+    }
+    if want == *OPTIONS && has_line && OPTIONS_ASK.is_match(&said()) && (INSTRUCTS.match_(opening).is_some() || JOB.match_(opening).is_some()) {
+        return Some(true);
+    }
+    let both = if want == *COMPARE && has_line { _names_both_sides(reply, &said()) } else { None };
+    if both == Some(true) {
+        return Some(true);
+    }
+    if want == *COMPARE && both.is_none() {
+        return None;
+    }
+    if want == *REASON && _head_explains(opening) {
+        return Some(true);
+    }
+    if want == *MEANING && has_line && _defines_the_thing(opening, &said()) {
+        return Some(true);
+    }
+    if want == *MEANING && has_line && _a_past_definition(opening) && _names_what_the_line_named(opening, &said()) {
+        return Some(true);
+    }
+    if want == *MEANING && has_line && (ORIGIN_ASK.is_match(&said()) || MADE_OF.is_match(&said())) && _an_origin(opening) {
+        return Some(true);
+    }
+    if want == *OPTIONS
+        && !_imperative(opening)
+        && VERDICT_OPEN.match_(opening).is_none()
+        && !LIST_AFTER_COLON.is_match(opening)
+        && (_a_pick(opening) || CHOICE.is_match(opening) || _marked_things(opening) >= 2)
+    {
+        return Some(true);
+    }
+    if want == *OPTIONS && COUNTED_LIST.is_match(opening) && !A_TIME_COUNT.is_match(opening) && !_an_instruction(opening) && _a_list_of_things(opening) {
+        return Some(true);
+    }
+    if want == *STEPS && has_line && _options(opening) && _names_what_the_line_named(opening, &said()) {
+        return Some(true);
+    }
+    if (want == *OPTIONS || want == *STEPS) && has_line && _do_with_ask(&said()) && (_options(opening) || _steps_in(reply) || _an_instruction(opening)) {
+        return Some(true);
+    }
+    if (want == *YESNO || want == *PICK) && _the_rule_names_both_sides(reply) {
+        return Some(true);
+    }
+    if want == *OPTIONS && !_an_instruction(opening) && VERDICT_OPEN.match_(opening).is_none() && _three_names(&_opening_two(reply)) {
+        return Some(true);
+    }
+    if want == *YESNO && _the_same_subject(opening, l) {
+        return None;
+    }
+    for other in CLEAR_ORDER {
+        if other == want || (want == *STEPS && _FIGURES.contains(other)) {
+            continue;
+        }
+        if other == *MEANING && (want == *PICK || want == *OPTIONS) {
+            continue;
+        }
+        if other == *MEANING && FIGURE_HEAD.match_(opening).is_some() {
+            continue;
+        }
+        if other == *AMOUNT && want == *YESNO {
+            continue;
+        }
+        if other == *REASON && (want == *STEPS || want == *YESNO) {
+            continue;
+        }
+        if clear_says(other, opening) {
+            if is_directed(opening) {
+                return None;
+            }
+            return Some(false);
+        }
+    }
+    None
+}
+
+/// `_gives_as_read` (the first `gives`): the shape, but a reply that asks the person back gives
+/// nothing.
+fn _gives_as_read(reply: &str, want: &str, line: Option<&str>) -> Option<bool> {
+    let answer = _the_shape_a_reply_gives(reply, want, line);
+    if answer == Some(true) && is_a_question_back(reply, line.unwrap_or("")) {
+        return Some(false);
+    }
+    answer
+}
+
+/// `_a_sign_answers(want, line, reply)`: the sign that settles a how-do-I-know or is-it-done ask.
+pub fn _a_sign_answers(want: &str, line: &str, reply: &str) -> bool {
+    let said = line;
+    if want == *STEPS {
+        if !TELL_ASK.is_match(said) {
+            return false;
+        }
+    } else if want == *YESNO {
+        if !IS_IT_DONE.is_match(said) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+    let opening = first_sentence(reply);
+    if opening.is_empty() || is_a_punt(&opening) {
+        return false;
+    }
+    THE_SIGN.is_match(&opening)
+}
+
+/// `gives(reply, wants_, line=None)`: `gives`, plus the sign that settles a how-do-I-know or
+/// is-it-done ask. (Contract fix: `line` is optional, as in Python - None is not "".)
+pub fn gives(reply: &str, wants_: &str, line: Option<&str>) -> Option<bool> {
+    let read = _gives_as_read(reply, wants_, line);
+    if read == Some(false) && _a_sign_answers(wants_, line.unwrap_or(""), reply) {
+        return Some(true);
+    }
+    read
+}
+
+/// `missing(reply, wants_, line=None)`: the wants (one label or a list) the reply clearly does
+/// not give.
+pub fn missing(reply: &str, wants_: &crate::data::Value, line: Option<&str>) -> crate::data::Value {
+    use crate::data::Value;
+    let wants: Vec<String> = match wants_ {
+        Value::Str(s) => vec![s.to_string()],
+        other => other.strs(),
+    };
+    let gone: Vec<Value> = wants.iter().filter(|w| gives(reply, w, line) == Some(false)).map(|w| Value::from(w.as_str())).collect();
+    Value::List(std::sync::Arc::new(gone))
+}
+
+/// `second_sentence(reply)`: the sentence after the opening one, or "".
+pub fn second_sentence(reply: &str) -> String {
+    let said = squeeze(reply);
+    let parts = rx("(?<=[.!?])\\s+").split(&said);
+    // maxsplit=2: the second piece is whole up to the next break
+    if parts.len() > 1 {
+        text::strip(&parts[1]).to_string()
+    } else {
+        String::new()
+    }
+}
+
+/// `_a_time_a_sentence_on(reply)`: the time is given in the sentence after the opening.
+pub fn _a_time_a_sentence_on(reply: &str) -> bool {
+    let said = squeeze(reply);
+    let opening = first_sentence(&said);
+    if opening.is_empty() {
+        return false;
+    }
+    let rest = said.get(opening.len()..).unwrap_or("").trim_start_matches([' ', '.', '!', '?']);
+    let following = if rest.is_empty() { String::new() } else { first_sentence(rest) };
+    if following.is_empty() {
+        return false;
+    }
+    for pattern in [&*DURATION, &*CLOCK, &*STAGE, &*NAMED_CLOCK] {
+        for found in pattern.finditer(&following) {
+            let before = text::split(&following[..found.start()]);
+            let lead_in = &before[before.len().saturating_sub(4)..];
+            if lead_in.iter().any(|w| TIME_LEAD_IN.contains(&rx("[^a-z]").sub("", &w.to_lowercase()))) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// `first_sentence(reply)`: the reply's opening sentence, tidied.
+pub fn first_sentence(reply: &str) -> String {
+    let said = squeeze(reply);
+    if said.is_empty() {
+        return String::new();
+    }
+    for end in SENTENCE_END.finditer(&said) {
+        let before = &said[..end.start()];
+        if ABBREVIATION_END.is_match(before) {
+            continue;
+        }
+        return text::strip(before).to_string();
+    }
+    said
+}
+
+/// `_opening_two(reply)`: the first two sentences.
+pub fn _opening_two(reply: &str) -> String {
+    let said = squeeze(reply);
+    if said.is_empty() {
+        return String::new();
+    }
+    let mut seen = 0;
+    for end in SENTENCE_END.finditer(&said) {
+        if ABBREVIATION_END.is_match(&said[..end.start()]) {
+            continue;
+        }
+        seen += 1;
+        if seen == 2 {
+            return text::strip(&said[..end.start()]).to_string();
+        }
+    }
+    said
+}
+
+/// `_three_names(text)`: a clause that lists three short names.
+pub fn _three_names(said: &str) -> bool {
+    let plain = squeeze(said);
+    if plain.is_empty() {
+        return false;
+    }
+    for clause in rx("(?<=[.!?;:])\\s+").split(&plain) {
+        if clause.matches(',').count() < 2 {
+            continue;
+        }
+        let opened = rx_flags("^[\\W]*(?:then|next|after that|afterwards|finally|lastly)\\b", crate::py::re::I).sub("", &clause);
+        if STEPS_INSIDE_A_LIST.is_match(&opened) {
+            continue;
+        }
+        for run in NAME_STOP.split(&opened) {
+            let items: Vec<String> = rx("\\s*,\\s*|\\s+(?:and|or|plus)\\s+").split(&run).iter().map(|i| text::strip(i).to_string()).collect();
+            let items: Vec<String> = items.into_iter().filter(|i| !i.is_empty()).map(|i| rx("^(?:and|or|plus)\\s+").sub("", &i)).filter(|i| !i.is_empty()).collect();
+            if run.contains('(') {
+                continue;
+            }
+            let short: Vec<&String> = items.iter().filter(|i| text::split(i).len() <= 4).collect();
+            let trailing = items.len() - short.len() == 1 && text::split(&items[items.len() - 1]).len() > 4;
+            if short.len() >= 3 && (short.len() == items.len() || trailing) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// `_a_figure(opening)`.
+pub fn _a_figure(opening: &str) -> bool {
+    FIGURE.is_match(opening)
+}
+
+/// `_a_time(opening)`: the reply gives a time, a length of time or a date.
+pub fn _a_time(opening: &str) -> bool {
+    if NAMED_CLOCK.is_match(opening) || EDGED_PART_OF_DAY.is_match(opening) {
+        return true;
+    }
+    let mut said = if RATE_PHRASE.match_(opening).is_some() { RATE_PHRASE.subn("", opening, 1) } else { opening.to_string() };
+    if RATE_OF_A_COUNT.is_match(&said) {
+        said = RATE_OF_A_COUNT.sub(" ", &said);
+    }
+    if NO_FIXED_TIME.match_(&said).is_some() {
+        return true;
+    }
+    if DURATION.is_match(&said)
+        || CLOCK.is_match(&said)
+        || BARE_RANGE.match_(&said).is_some()
+        || STAGE.is_match(&said)
+        || NEVER.is_match(&said)
+        || NO_FIXED_TIME.match_(&said).is_some()
+        || MINUTES_AS_A_LENGTH.is_match(&said)
+    {
+        return true;
+    }
+    if INSTRUCTS.match_(opening).is_some() {
+        return false;
+    }
+    let first = first_clause(&said);
+    NAMED_TIME.is_match(first) || DAY_NAME.is_match(first) || DATE.is_match(first)
+}
+
+/// `_a_clear_time(opening)`.
+pub fn _a_clear_time(opening: &str) -> bool {
+    DURATION.is_match(opening) || CLOCK_SURE.is_match(opening) || BARE_RANGE.match_(opening).is_some()
+}
+
+/// `_an_age_is_given(opening)`.
+pub fn _an_age_is_given(opening: &str) -> bool {
+    _AN_AGE_YEARS.is_match(opening)
+        || _AN_AGE_MONTHS.is_match(opening)
+        || _AN_AGE_BIRTHDAY.is_match(opening)
+        || _AN_AGE_NAMED.is_match(opening)
+        || _AN_AGE_BARE.is_match(opening)
+        || _AN_AGE_SPELLED_OPENS.match_(opening).is_some()
+}
+
+/// `_an_amount(opening)`.
+pub fn _an_amount(opening: &str) -> bool {
+    FIGURE.is_match(opening) || MONEY.is_match(opening) || RATE.is_match(opening)
+}
+
+/// `_a_price_asked(line)`.
+pub fn _a_price_asked(line: &str) -> bool {
+    PRICE_ASKED.is_match(&_line_text(line))
+}
+
+/// `_a_figure_that_counts(opening)`.
+pub fn _a_figure_that_counts(opening: &str) -> bool {
+    _an_amount_to_read(opening) || A_BARE_NUMBER.match_(text::strip(opening)).is_some()
+}
+
+/// `_an_amount_to_read(opening)`.
+pub fn _an_amount_to_read(opening: &str) -> bool {
+    if rx("\\d").is_match(opening) || MONEY.is_match(opening) || RATE.is_match(opening) {
+        return true;
+    }
+    MEASURED.is_match(opening)
+}
+
+/// `_figure_at_the_head(opening, pattern)`: the pattern is found within the first few words.
+pub fn _figure_at_the_head(opening: &str, pattern: &Re) -> bool {
+    match pattern.search(opening) {
+        Some(m) => text::split(&opening[..m.start()]).len() < *_FIGURE_HEAD,
+        None => false,
+    }
+}
+
+/// `_a_clear_time_at_the_head(opening)`.
+pub fn _a_clear_time_at_the_head(opening: &str) -> bool {
+    _figure_at_the_head(opening, &DURATION) || _figure_at_the_head(opening, &CLOCK_SURE) || BARE_RANGE.match_(opening).is_some()
+}
+
+/// `_an_amount_at_the_head(opening)`.
+pub fn _an_amount_at_the_head(opening: &str) -> bool {
+    if _figure_at_the_head(opening, &MONEY) || _figure_at_the_head(opening, &RATE) {
+        return true;
+    }
+    let Some(m) = FIGURE.search(opening) else { return false };
+    if text::split(&opening[..m.start()]).len() >= *_FIGURE_HEAD {
+        return false;
+    }
+    if m.as_str().chars().next().is_some_and(crate::understanding::pyuni::ch_digit) {
+        return true;
+    }
+    crate::understanding::match_at(&_MEASURE_AFTER, opening, m.end()).is_some()
+}
+
+/// `_a_party(opening)`: a role or body the reply sends them to.
+pub fn _a_party(opening: &str) -> bool {
+    for found in _PARTY.finditer(opening) {
+        let last = text::split(found.as_str()).last().map(|w| w.to_lowercase()).unwrap_or_default();
+        if !_NOT_A_ROLE.contains(&last) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_the_spot_a_thing_has(found)`: the part of the thing a spot is on.
+pub fn _the_spot_a_thing_has(found: Option<&crate::py::re::Match>) -> Option<String> {
+    let found = found?;
+    Some(found.str(1).to_lowercase().trim_matches(['\'', '-']).to_string())
+}
+
+/// `_names_a_spot(opening)`.
+pub fn _names_a_spot(opening: &str) -> bool {
+    if SPOT_OF_THE_THING.is_match(opening) {
+        return true;
+    }
+    for found in SPOT_ON_THE_THING.finditer(opening) {
+        if _the_spot_a_thing_has(Some(&found)).is_some_and(|s| SPOT_PART.contains(&s)) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_a_place(opening)`.
+pub fn _a_place(opening: &str) -> bool {
+    let opening = CALENDAR_WORD.sub(" ", opening);
+    PLACE_WORD.is_match(&opening)
+        || PLACE_NAME.is_match(&opening)
+        || PLACE_NAME_ANY.finditer(&opening).len() >= 2
+        || SETTLED_ON.is_match(&opening)
+        || _names_a_spot(&opening)
+        || PLACE_KIND.is_match(&opening)
+        || PLACE_AT_HOME.is_match(&opening)
+}
+
+/// `_a_person(opening)`.
+pub fn _a_person(opening: &str) -> bool {
+    let opening = CALENDAR_WORD.sub(" ", opening);
+    if PERSON_RELATION.is_match(&opening) {
+        return true;
+    }
+    if _a_party(&opening) || PERSON_NAMED.is_match(&opening) || PERSON_FULL_NAME.match_(&opening).is_some() {
+        return true;
+    }
+    PERSON_WORD.is_match(&opening) || PERSON_NAME.is_match(&opening)
+}
+
+/// `_an_origin(opening)`.
+pub fn _an_origin(opening: &str) -> bool {
+    SOURCE_MAKES.match_(opening).is_some()
+        || SOURCE_COLON.match_(opening).is_some()
+        || SOURCE_MADE.match_(opening).is_some()
+        || SOURCE_DOES.match_(opening).is_some()
+        || SOURCE_LIST.match_(opening).is_some()
+}
+
+/// `_a_past_definition(opening)`.
+pub fn _a_past_definition(opening: &str) -> bool {
+    let Some(found) = PAST_DEFINES.search(opening) else { return false };
+    let pieces = rx("[.;:!?,()\\u2014]").split(&opening[..found.start()]);
+    let subject = text::strip(pieces.last().map(|s| s.as_str()).unwrap_or("")).to_string();
+    if NOT_A_SUBJECT.is_match(&subject) {
+        return false;
+    }
+    rx_flags("(?:my|your|his|her|its|our|their|mine|yours|theirs)\\b", crate::py::re::I).match_(&subject).is_none()
+}
+
+/// `_a_meaning(opening)`.
+pub fn _a_meaning(opening: &str) -> bool {
+    if _OPINION_OF_THE_THING.match_(text::strip(opening)).is_some() {
+        return false;
+    }
+    if MECHANISM.is_match(opening) {
+        return true;
+    }
+    if MEANS_BY_DOING.match_(opening).is_some() || MEANS_INFINITIVE.match_(opening).is_some() {
+        return true;
+    }
+    if DEFINES.match_(opening).is_some() {
+        return true;
+    }
+    let Some(hit) = MEANS.search(opening) else { return false };
+    !(MEANS_ARTICLE.match_(hit.as_str()).is_some() && A_JUDGEMENT.match_(opening).is_some())
+}
+
+/// `_the_quality_is_about_the_thing(clause, line)`.
+pub fn _the_quality_is_about_the_thing(clause: &str, line: &str) -> bool {
+    let Some(found) = QUALITY_IS.search(clause) else { return false };
+    let subject = text::strip(&clause[..found.start()]);
+    if subject.is_empty() {
+        return true;
+    }
+    let words = _words(subject);
+    if words.last().is_some_and(|w| _PRONOUN_SUBJECT.contains(w)) {
+        return true;
+    }
+    let said = _line_text(line);
+    if said.is_empty() {
+        return true;
+    }
+    let named: HashSet<&String> = words.iter().filter(|w| text::len(w) >= 4 && !_EMPTY.contains(*w)).collect();
+    named.is_empty() || named.iter().any(|w| said.contains(w.as_str()))
+}
+
+/// `_the_tail_says_what_it_is_about(clause, line)`.
+pub fn _the_tail_says_what_it_is_about(clause: &str, line: &str) -> bool {
+    let Some(found) = VERDICT_INSIDE.search(clause) else { return false };
+    let subject = text::strip(&clause[..found.start()]);
+    if subject.is_empty() {
+        return false;
+    }
+    let words = _words(subject);
+    if words.last().is_some_and(|w| _PRONOUN_SUBJECT.contains(w)) {
+        return true;
+    }
+    let said = _line_text(line);
+    if said.is_empty() {
+        return true;
+    }
+    let named: HashSet<&String> = words.iter().filter(|w| text::len(w) >= 3 && !_EMPTY.contains(*w)).collect();
+    !named.is_empty() && named.iter().any(|w| _the_same_word(w, &said))
+}
+
+/// `_the_quality_it_was_asked_about(opening, said)`: "is it normal" answered with "it is normal".
+pub fn _the_quality_it_was_asked_about(opening: &str, said: &str) -> bool {
+    let quality_words: HashSet<String> = _QUALITIES.iter().flat_map(|q| text::split(q)).collect();
+    let named: HashSet<String> = _words(said)
+        .into_iter()
+        .filter(|w| text::len(w) >= 4 && !_EMPTY.contains(w) && !NOT_A_THING.contains(w) && !quality_words.contains(w))
+        .collect();
+    let early = |s: &str| _words(s).into_iter().take(*_THE_VERDICT_IS_EARLY).collect::<Vec<_>>().join(" ");
+    if named.is_empty() && !said.is_empty() && ASKS_ABOUT_A_QUALITY.is_match(said) {
+        let asked = early(opening);
+        return _QUALITIES.iter().any(|q| _QUALITY_SAID.get(q).is_some_and(|r| r.is_match(&asked)));
+    }
+    if said.is_empty() || !ASKS_ABOUT_A_QUALITY.is_match(said) {
+        return false;
+    }
+    let head = early(opening);
+    for quality in _QUALITIES.iter() {
+        let Some(pattern) = _QUALITY_SAID.get(quality) else { continue };
+        let Some(found) = pattern.search(&head) else { continue };
+        if !pattern.is_match(said) {
+            continue;
+        }
+        if _QUALITY_OF_A_THING.contains(quality) && !_the_quality_is_said_of_the_thing(&head, found.start() as i64, said) {
+            continue;
+        }
+        return true;
+    }
+    false
+}
+
+/// `_the_quality_is_said_of_the_thing(head, at, said)`: the quality at `at` (a byte offset in
+/// `head`, where Python has the match's start) is said of the line's thing.
+pub fn _the_quality_is_said_of_the_thing(head: &str, at: i64, said: &str) -> bool {
+    let words = text::split(&head[..at as usize]);
+    let Some(last) = words.last() else { return true };
+    if !_COPULA.contains(last) {
+        return true;
+    }
+    let subject: Vec<&String> = words[..words.len() - 1].iter().filter(|w| crate::understanding::pyuni::is_alpha(w)).collect();
+    let Some(last_subject) = subject.last() else { return true };
+    if _PRONOUN_SUBJECT.contains(*last_subject) {
+        return !said.is_empty() && _about_the_thing_the_line_named(head, said);
+    }
+    if said.is_empty() {
+        return true;
+    }
+    subject[subject.len().saturating_sub(2)..].iter().any(|w| said.contains(w.as_str()))
+}
+
+/// `_the_verdict_is_inside(clause, line)`.
+pub fn _the_verdict_is_inside(clause: &str, line: &str) -> bool {
+    let Some(found) = VERDICT_INSIDE_QUALITY.search(clause) else { return VERDICT_INSIDE.is_match(clause) };
+    let q = found.name_str("q");
+    let at = clause[found.start()..].find(q).map(|i| i + found.start()).expect("ValueError: substring not found");
+    if _the_quality_is_said_of_the_thing(clause, at as i64, line) {
+        return true;
+    }
+    let rest = format!("{} {}", &clause[..found.start()], &clause[found.end()..]);
+    VERDICT_INSIDE.is_match(&rest)
+}
+
+/// `_the_quality_answers(clause, line)`.
+pub fn _the_quality_answers(clause: &str, line: &str) -> bool {
+    if _the_quality_is_about_the_thing(clause, line) {
+        return true;
+    }
+    IT_HELPS.is_match(clause) && _WORKING.is_match(&_line_text(line))
+}
+
+/// `is_a_punt(opening)`: the reply hands the question on.
+pub fn is_a_punt(opening: &str) -> bool {
+    PUNT.match_(opening).is_some() || HANDOFF.match_(opening).is_some() || REFERS_BACK.match_(opening).is_some()
+}
+
+/// `is_directed(opening)`.
+pub fn is_directed(opening: &str) -> bool {
+    DIRECTED.is_match(opening)
+}
+
+/// `_the_first_sentence(reply)`: up to the first stop outside quotes.
+pub fn _the_first_sentence(reply: &str) -> String {
+    let mut quoted = false;
+    for (index, ch) in reply.char_indices() {
+        if _A_QUOTE.contains(ch) {
+            quoted = !quoted;
+        } else if !quoted && ".!?".contains(ch) {
+            let end = index + ch.len_utf8();
+            let after = reply[end..].chars().next();
+            if after.is_none_or(crate::py::text::is_space) {
+                return reply[..end].to_string();
+            }
+        }
+    }
+    reply.to_string()
+}
+
+/// `_the_echo_question(opening, line)`: the reply only asks the line's own words back.
+pub fn _the_echo_question(opening: &str, line: &str) -> bool {
+    let said = _WORD.findall_str(&line.to_lowercase());
+    if said.is_empty() {
+        return false;
+    }
+    let mine: Vec<String> = _WORD.findall_str(&opening.to_lowercase()).into_iter().filter(|w| text::len(w) > 3 && !_NOT_A_WORD.contains(w)).collect();
+    !mine.is_empty() && mine.iter().all(|w| said.contains(w))
+}
+
+/// `is_a_question_back(reply, line=None)`: the reply opens by asking the person.
+pub fn is_a_question_back(reply: &str, line: &str) -> bool {
+    let body = text::strip(reply);
+    if body.is_empty() {
+        return false;
+    }
+    let opening = _the_first_sentence(body);
+    if !text::rstrip(&opening).ends_with('?') {
+        return false;
+    }
+    if !_the_echo_question(&opening, line) {
+        return true;
+    }
+    let rest = text::strip(&body[opening.len()..]);
+    if rest.is_empty() {
+        return true;
+    }
+    is_a_punt(&first_sentence(rest)) || _NO_WAY_TO_KNOW.is_match(rest)
+}
+
+/// `_an_outcome_of_their_own_doing(line)`.
+pub fn _an_outcome_of_their_own_doing(line: &str) -> bool {
+    HYPOTHETICAL.is_match(line) && OUTCOME_ASK.is_match(line)
+}
+
+/// `_names_the_lines_thing(opening, said)`.
+pub fn _names_the_lines_thing(opening: &str, said: &str) -> bool {
+    let reply: HashSet<String> = _words(opening).into_iter().collect();
+    let said_words: HashSet<String> = _words(said).into_iter().collect();
+    for word in &said_words {
+        if text::len(word) < 3 || _EMPTY.contains(word) || NOT_A_THING.contains(word) {
+            continue;
+        }
+        if reply.contains(word) || (text::len(word) > 4 && reply.contains(cut(word, 1))) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_says_no_about_the_asked_thing(opening, line)`.
+pub fn _says_no_about_the_asked_thing(opening: &str, line: &str) -> bool {
+    let said = _line_text(line);
+    if said.is_empty() {
+        return false;
+    }
+    if opening.trim_end_matches(['"', '\u{201d}', ' ']).ends_with('?') {
+        return false;
+    }
+    for m in SAYS_NO.finditer(opening) {
+        if _names_the_lines_thing(m.name_str("subject"), &said) {
+            return true;
+        }
+    }
+    let asked: HashSet<String> = _words(&said).into_iter().collect();
+    for m in NO_JOB.finditer(opening) {
+        let verb = m.str(1);
+        if asked.contains(verb) || (text::len(verb) > 4 && asked.contains(cut(verb, 1))) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_the_job_is_split(opening)`.
+pub fn _the_job_is_split(opening: &str) -> bool {
+    if MUST_BE_A_TRADE.is_match(opening) {
+        return true;
+    }
+    THEIR_OWN.is_match(opening) && A_TRADE.is_match(opening)
+}
+
+/// `_the_same_word(word, text)`: the word, or its plural, as a whole word.
+pub fn _the_same_word(word: &str, said: &str) -> bool {
+    if word.is_empty() {
+        return false;
+    }
+    rx(&format!("\\b{}(?:s|es)?\\b", crate::py::re::escape(word))).is_match(said)
+}
+
+/// `_names_what_the_line_named(opening, said)`.
+pub fn _names_what_the_line_named(opening: &str, said: &str) -> bool {
+    let words: HashSet<String> = _NAMING_WORD.findall_str(&said.to_lowercase()).into_iter().filter(|w| !NAMING_STOP.contains(w)).collect();
+    if words.is_empty() {
+        return false;
+    }
+    let first = first_clause(opening).to_lowercase();
+    words.iter().any(|w| _the_same_word(w, &first))
+}
+
+/// `_the_rule_names_both_sides(reply)`.
+pub fn _the_rule_names_both_sides(reply: &str) -> bool {
+    if reply.is_empty() || !RULE_CONDITION.is_match(reply) {
+        return false;
+    }
+    let drop = RULE_DROP_IT.is_match(reply) || RULE_GO_NEW.is_match(reply);
+    RULE_KEEP_IT.is_match(reply) && drop
+}
+
+/// `_a_sign_off(opening)`: the reply opens on a sign-off with no verdict after it.
+pub fn _a_sign_off(opening: &str) -> bool {
+    let Some(m) = SIGN_OFF_LEAD.match_(opening) else { return false };
+    let rest = opening[m.end()..].trim_matches([' ', '\t', '.', ',', ';', ':', '!', '?', '-', '\u{2014}']);
+    let rest = rx_flags("^(?:but|and|so|though|however|yet|although|still)\\b[\\s,]*", crate::py::re::I).sub("", rest);
+    if rest.is_empty() {
+        return true;
+    }
+    !(_a_yesno(&rest, "")
+        || VERDICT_INSIDE.is_match(&rest)
+        || VERDICT_ECHO.match_(&rest).is_some()
+        || VERDICT_RULE.is_match(&rest)
+        || TEST_IS_THE_VERDICT.is_match(&rest)
+        || TRAILING_VERDICT.is_match(&rest)
+        || PERMISSION_RULE.is_match(&rest))
+}
+
+/// `_a_yesno(opening, line=None)`: the reply gives a yes or a no (`line` "" is no line).
+pub fn _a_yesno(opening: &str, line: &str) -> bool {
+    if is_a_punt(opening) {
+        return false;
+    }
+    if FIRST_PERSON_VERDICT.match_(opening).is_some()
+        || VERDICT_OPEN.match_(opening).is_some()
+        || ECHO_VERDICT.match_(opening).is_some()
+        || VERDICT_AFTER_A_CASE.match_(opening).is_some()
+    {
+        return true;
+    }
+    if PERMISSION_RULE.is_match(opening) {
+        return true;
+    }
+    if _the_job_is_split(opening) {
+        return true;
+    }
+    if VERDICT_ECHO.match_(opening).is_some() || VERDICT_RULE.is_match(opening) {
+        return true;
+    }
+    let first = first_clause(opening);
+    if _the_verdict_is_inside(first, line)
+        || TEST_IS_THE_VERDICT.is_match(opening)
+        || TRAILING_VERDICT.is_match(opening)
+        || THE_WINNER_NAMED.is_match(first)
+        || A_HARM_IS_WHAT_IT_IS.is_match(first)
+        || VERDICT_ON_A_SCALE.is_match(first)
+    {
+        return true;
+    }
+    if _the_quality_answers(first, line) {
+        return true;
+    }
+    if _a_rule_of_its_use(opening, line) {
+        return true;
+    }
+    let mut tail = "";
+    if let Some((_, after)) = opening.split_once(':') {
+        tail = after;
+    } else if let Some(found) = rx(",?\\s+so\\b").search(opening) {
+        tail = &opening[found.end()..];
+    }
+    let tail = if tail.is_empty() {
+        ""
+    } else {
+        match tail.find([',', ';']) {
+            Some(at) => &tail[..at],
+            None => tail,
+        }
+    };
+    !tail.is_empty() && (_the_tail_says_what_it_is_about(tail, line) || _the_quality_answers(tail, line))
+}
+
+/// `_a_rule_of_its_use(opening, line)`.
+pub fn _a_rule_of_its_use(opening: &str, line: &str) -> bool {
+    if A_BOUND_THAT_IS_THE_ANSWER.is_match(opening) {
+        return true;
+    }
+    let Some(found) = A_LIMIT_ON_ITS_USE.search(opening) else { return false };
+    let said = _line_text(line);
+    if said.is_empty() {
+        return true;
+    }
+    if _names(found.as_str(), &said) || _names(opening, &said) {
+        return true;
+    }
+    let words: HashSet<String> = _words(&said).into_iter().collect();
+    !words.iter().any(|w| _long_enough_a_name(w, 4) && !_EMPTY.contains(w))
+}
+
+/// `_the_thing_is_named_as_what_it_usually_is(opening, line)`.
+pub fn _the_thing_is_named_as_what_it_usually_is(opening: &str, line: &str) -> bool {
+    let said = _line_text(line);
+    if said.is_empty() {
+        return false;
+    }
+    let Some(found) = USUALLY_IS.search(opening) else { return false };
+    let rest = &opening[found.end()..];
+    let words: HashSet<String> = rx("[a-z][a-z']*").findall_str(&said).into_iter().collect();
+    for word in words {
+        if text::len(&word) < 4 || _EMPTY.contains(&word) || NOT_A_THING.contains(&word) {
+            continue;
+        }
+        if rx(&format!("\\b{}", crate::py::re::escape(&word))).is_match(rest) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_an_echoed_no(opening, line)`.
+pub fn _an_echoed_no(opening: &str, line: &str) -> bool {
+    let said = _line_text(line);
+    if said.is_empty() || !NEGATED_AUX.is_match(opening) {
+        return false;
+    }
+    let words: HashSet<String> = rx("[a-z][a-z']*").findall_str(&said).into_iter().collect();
+    words.iter().any(|w| text::len(w) >= 4 && !_EMPTY.contains(w) && opening.contains(w.as_str()))
+}
+
+/// `_the_job_answers(opening, line)`.
+pub fn _the_job_answers(opening: &str, line: &str) -> bool {
+    if line.is_empty() || _an_outcome_of_their_own_doing(line) {
+        return false;
+    }
+    if JOB.match_(opening).is_some() {
+        return true;
+    }
+    if _imperative(opening) {
+        return true;
+    }
+    _the_job_named(opening, &_line_text(line))
+}
+
+/// `_undecorated(head)`.
+pub fn _undecorated(head: &str) -> String {
+    text::strip(text::strip(head).trim_matches(['*', '_', '"', '\u{201c}', '\u{201d}', '\''])).to_string()
+}
+
+/// `_listed_after(label_lead)`.
+pub fn _listed_after(label_lead: &str) -> bool {
+    if rx_flags("\\bor\\b", crate::py::re::I).is_match(label_lead) || label_lead.contains(';') {
+        return true;
+    }
+    rx(",\\s+\\S").finditer(label_lead).len() >= 2
+}
+
+/// `_marked_things(opening)`: how many things are marked out with stars or quotes.
+pub fn _marked_things(opening: &str) -> i64 {
+    (rx("\\*[^*\\n]{2,60}\\*").finditer(opening).len() + rx("\\u201c[^\\u201d\\n]{2,60}\\u201d|\\B\\\"[^\\\"\\n]{2,60}\\\"").finditer(opening).len()) as i64
+}
+
+/// `_a_pick(opening)`: the reply picks one.
+pub fn _a_pick(opening: &str) -> bool {
+    if PREFERS.is_match(opening) || PICKS_BY_COMPARISON.is_match(opening) || WOULD.is_match(opening) {
+        return true;
+    }
+    if let Some(lead) = LABEL.match_(opening) {
+        if !NOT_A_LABEL.is_match(lead.str(1)) && SET_LABEL.match_(text::strip(lead.str(1))).is_none() && _listed_after(lead.str(2)) {
+            return true;
+        }
+    }
+    static SUPERLATIVE: LazyLock<&'static Re> = LazyLock::new(|| {
+        rx_flags(
+            "\\b(?:is|are|was|were) (?:almost |nearly |usually |often |always |generally |probably |still |quite |about )?(?:the )?(?:(?!(?:request|interest|honest|guest|test|rest|nest|west|east|forest|harvest|protest|suggest|arrest|contest|digest|invest|earnest|chest|crest|tempest|midwest|northwest|southwest|northeast|southeast)\\b)[a-z]{3,}est|most [a-z]+|least [a-z]+)\\b|\\bis the (?:cheapest|dearest|worst|easiest|quickest|safest|hardest|cheaper|better)\\b|\\bwins?\\b(?: on| over| for| by)\\b|\\b(?:has|have|holds|gets) (?:the )?(?:most|highest|lowest|fewest|best)\\b",
+            crate::py::re::I,
+        )
+    });
+    if SUPERLATIVE.is_match(opening) {
+        return true;
+    }
+    if NAMES_IN_EMPHASIS.match_(opening).is_some() {
+        return true;
+    }
+    if QUOTED_NAME.finditer(opening).len() >= 2 && PICK_BY_CASE.is_match(opening) {
+        return true;
+    }
+    if is_a_punt(opening) || VERDICT_OPEN.match_(opening).is_some() {
+        return false;
+    }
+    let head = NAMED_HEAD.match_(opening);
+    if let Some(h) = &head {
+        let named = _undecorated(text::strip(h.str(1)));
+        if ECHO_HEAD.match_(&named).is_some()
+            || BACK_HEAD.match_(&named).is_some()
+            || STATES_HEAD.is_match(&named)
+            || FRAME_HEAD.match_(&named).is_some()
+            || (rx("\\d").is_match(&named) && (_a_time(&named) || _an_amount(&named)))
+        {
+            return false;
+        }
+        let bare = _undecorated(h.str(1));
+        if INSTRUCTS.match_(&bare).is_none() && ASKS_HEAD.match_(&bare).is_none() && SET_LABEL.match_(text::strip(&bare)).is_none() {
+            return true;
+        }
+    }
+    let words = text::split(opening.trim_end_matches(['.', '!']));
+    words.len() <= 6
+        && BALD.match_(opening).is_some()
+        && !BALD_VERB.is_match(opening)
+        && INSTRUCTS.match_(opening).is_none()
+        && REASON_OPENS.match_(opening).is_none()
+        && A_VERB_THEN_THE_THING.match_(opening).is_none()
+        && !_a_clear_time(opening)
+        && !_a_figure_that_counts(opening)
+}
+
+/// `_asks_the_person(said)`: the text asks the person something.
+pub fn _asks_the_person(said: &str) -> bool {
+    let said = squeeze(said);
+    if said.is_empty() {
+        return false;
+    }
+    if WANTS_INFO.match_(&said).is_some() {
+        return true;
+    }
+    let first = match rx("(?<=[.?!])\\s").search(&said) {
+        Some(m) => &said[..m.start()],
+        None => said.as_str(),
+    };
+    first.contains('?')
+}
+
+/// `_an_instruction(sentence)`: the sentence tells the person to do something that is not
+/// fetching things.
+pub fn _an_instruction(sentence: &str) -> bool {
+    _imperative(sentence) && THINGS_VERB.match_(sentence).is_none()
+}
+
+/// `_imperative(sentence)`: shaped like an instruction, a verb and the thing it acts on.
+pub fn _imperative(sentence: &str) -> bool {
+    let Some(m) = IMPERATIVE.match_(sentence) else { return false };
+    let word = m.str(1).to_lowercase();
+    let word = word.trim_matches('\'');
+    !NOT_A_VERB.contains(word) && !word.ends_with("ing")
+}
+
+/// `_opens_on_a_job(sentence)`.
+pub fn _opens_on_a_job(sentence: &str) -> bool {
+    let Some(m) = JOB.match_(sentence) else { return false };
+    let first = first_clause(&sentence[m.end()..]);
+    let words: Vec<String> = rx("[A-Za-z']+").findall_str(first).into_iter().take(3).collect();
+    if words.is_empty() {
+        return false;
+    }
+    !words.iter().any(|w| SAYS_WHAT_IT_DOES.contains(&w.to_lowercase()))
+}
+
+/// `_stem(word)`.
+pub fn _stem(word: &str) -> String {
+    for end in ["ing", "ed", "es", "s"] {
+        if word.ends_with(end) && text::len(word) >= text::len(end) + 4 {
+            return word[..word.len() - end.len()].to_string();
+        }
+    }
+    word.to_string()
+}
+
+/// `_subject_words(text)`: the stems of the words that can be a subject (a set, sorted here).
+pub fn _subject_words(said: &str) -> Vec<String> {
+    let mut words: HashSet<String> = HashSet::new();
+    for m in rx("[A-Za-z']+").finditer(said) {
+        let word = m.as_str();
+        let low = word.to_lowercase();
+        let low = low.trim_matches('\'');
+        if text::len(low) < 4 || _NOT_THE_SUBJECT.contains(low) {
+            continue;
+        }
+        let capital = word.chars().next().is_some_and(|c| crate::understanding::pyuni::ch_upper(c));
+        if capital && m.start() > 0 && !said[..m.start()].chars().last().is_some_and(|c| ".!?".contains(c)) {
+            continue;
+        }
+        words.insert(_stem(low));
+    }
+    let mut out: Vec<String> = words.into_iter().collect();
+    out.sort();
+    out
+}
+
+/// `_the_same_subject(opening, line)`.
+pub fn _the_same_subject(opening: &str, line: &str) -> bool {
+    if line.is_empty() {
+        return false;
+    }
+    let mine: HashSet<String> = _subject_words(opening).into_iter().collect();
+    _subject_words(line).iter().any(|w| mine.contains(w))
+}
+
+/// `_steps_by_the_verb_list(opening, after="")` (the first `_steps`): the reply is a method.
+fn _steps_by_the_verb_list(opening: &str, after: &str) -> bool {
+    if DOES_NOT.match_(opening).is_some()
+        || DOES.is_match(opening)
+        || MEANS_OF.is_match(opening)
+        || MEANS_NAMED.match_(opening).is_some()
+        || _opens_on_a_job(opening)
+        || A_CALCULATION.match_(opening).is_some()
+    {
+        return true;
+    }
+    for part in rx("[:;]").split(opening).iter().skip(1) {
+        let part = text::strip(part);
+        if !part.is_empty() && (INSTRUCTS.match_(part).is_some() || DOES.is_match(part) || _imperative(part)) {
+            return true;
+        }
+    }
+    if !after.is_empty() && !_asks_the_person(after) && (INSTRUCTS.match_(after).is_some() || DOES.is_match(after) || _imperative(after)) {
+        return true;
+    }
+    false
+}
+
+/// `_instruction_after_a_clause(text)`.
+pub fn _instruction_after_a_clause(said: &str) -> bool {
+    for m in INSTRUCTS_CLAUSE.finditer(said) {
+        let verb_at = m.name_span("verb").map(|s| s.0).unwrap_or(0);
+        if _asks_the_person(&said[verb_at..]) {
+            continue;
+        }
+        if m.start() == 0 && !_opens_on_a_job(said) {
+            continue;
+        }
+        return true;
+    }
+    false
+}
+
+/// `_STEPS_IN` (the first `_steps_in`).
+fn _steps_in_first(reply: &str) -> bool {
+    let said = squeeze(reply);
+    if said.is_empty() {
+        return false;
+    }
+    if _steps(&first_sentence(&said), &second_sentence(&said)) {
+        return true;
+    }
+    _instruction_after_a_clause(&said)
+}
+
+/// `_a_comparison(opening)`.
+pub fn _a_comparison(opening: &str) -> bool {
+    CONTRAST.is_match(opening)
+}
+
+/// `_a_list_of_things(opening)`.
+pub fn _a_list_of_things(opening: &str) -> bool {
+    let Some(found) = _LIST_OF_THINGS.search(opening) else { return false };
+    let after = found.as_str().split_once(':').map(|(_, a)| a).unwrap_or("");
+    let commas = after.matches(',').count();
+    commas >= 2 || (commas >= 1 && rx_flags("\\band\\b", crate::py::re::I).is_match(after))
+}
+
+/// `_options(opening)`: the reply gives more than one way.
+pub fn _options(opening: &str) -> bool {
+    if rx_flags("\\b(?:1\\.|1\\)|first option|option one|one idea)\\b", crate::py::re::I).is_match(opening) {
+        return true;
+    }
+    if rx_flags("\\bor\\b", crate::py::re::I).is_match(opening) {
+        return true;
+    }
+    if opening.contains(';') {
+        return true;
+    }
+    if NEXT_IDEA.is_match(opening) {
+        return true;
+    }
+    if FOR_A_LIST.is_match(opening) && !FOR_A_TIME.is_match(opening) && !SEQUENCES.is_match(opening) {
+        return true;
+    }
+    if LIST_AFTER_COLON.is_match(opening) && !SEQUENCES.is_match(opening) {
+        return true;
+    }
+    if LIST_AFTER_COLON.is_match(opening) && _three_things_after_the_colon(opening) {
+        return true;
+    }
+    _two_things_to_do(opening)
+}
+
+/// `_two_things_to_do(opening)`.
+pub fn _two_things_to_do(opening: &str) -> bool {
+    let head = match rx("\\.\\s").search(opening) {
+        Some(m) => &opening[..m.start()],
+        None => opening,
+    };
+    let head = head.trim_end_matches('.');
+    if SEQUENCES.is_match(head) {
+        return false;
+    }
+    let mut found = 0;
+    for part in rx(",?\\s+and\\s+").split(head) {
+        let part = text::strip(&part);
+        if text::split(part).len() < 2 || !(INSTRUCTS.match_(part).is_some() || PLAN_VERB.match_(part).is_some()) {
+            break;
+        }
+        found += 1;
+    }
+    found >= 2
+}
+
+/// `_three_things_after_the_colon(opening)`.
+pub fn _three_things_after_the_colon(opening: &str) -> bool {
+    let Some((_, after_raw)) = opening.split_once(':') else { return false };
+    let after = text::strip(after_raw);
+    if INSTRUCTS.match_(after).is_some() || SEQUENCES.is_match(after_raw) {
+        return false;
+    }
+    rx(",\\s+\\S").finditer(after_raw).len() >= 2
+}
+
+/// `_a_reason(opening, line=None)`: the reply gives a reason.
+pub fn _a_reason(opening: &str, line: Option<&str>) -> bool {
+    if CAUSE.is_match(opening) {
+        return true;
+    }
+    if PURPOSE.is_match(opening) || PURPOSE_TO.match_(opening).is_some() || MERIT.is_match(opening) || (UNSETTLED.is_match(opening) && EVIDENCE_SAYS.is_match(opening)) {
+        return true;
+    }
+    if INSTRUCTS.match_(opening).is_some() || DOES_NOT.match_(opening).is_some() {
+        return false;
+    }
+    if SENDS_THEM_ON.is_match(opening) {
+        return false;
+    }
+    if CAUSE_WHEN.is_match(opening) {
+        return true;
+    }
+    if let Some(l) = line {
+        if WANTS_THE_CAUSE.is_match(opening) && WANTS_OF_THE_PERSON.match_(opening).is_none() && _names(opening, l) {
+            return true;
+        }
+    }
+    if A_COUNT_OF_THINGS.is_match(opening) {
+        return true;
+    }
+    CAUSE_IS.is_match(opening) && line.is_none_or(|l| _names_the_subject(opening, l))
+}
+
+/// `_head_explains(opening)`.
+pub fn _head_explains(opening: &str) -> bool {
+    let Some((head, _)) = opening.split_once(':') else { return false };
+    if SENDS_THEM_ON.is_match(head) {
+        return false;
+    }
+    EXPLAINS.is_match(head) && !_imperative(head)
+}
+
+/// `_a_meaning_or_a_statement(opening)`.
+pub fn _a_meaning_or_a_statement(opening: &str) -> bool {
+    if SAYS_NOTHING_ABOUT_IT.match_(opening).is_some() {
+        return false;
+    }
+    if _a_meaning(opening) {
+        return true;
+    }
+    _a_statement_answers_it(opening)
+}
+
+/// `_a_statement_answers_it(opening)`.
+pub fn _a_statement_answers_it(opening: &str) -> bool {
+    if opening.is_empty() || text::rstrip(opening).ends_with('?') {
+        return false;
+    }
+    if is_a_punt(opening) || NOTHING_TO_GO_ON.match_(opening).is_some() || SAYS_NOTHING_ABOUT_IT.match_(opening).is_some() || _an_opening_job(opening) {
+        return false;
+    }
+    if _an_origin(opening) {
+        return false;
+    }
+    let words = rx("[A-Za-z0-9'\\u2019-]+").findall_str(opening);
+    if words.len() <= 10 && _a_figure(opening) && !COPULA.is_match(opening) {
+        return false;
+    }
+    words.len() >= 5
+}
+
+/// `_an_opening_job(opening)`.
+pub fn _an_opening_job(opening: &str) -> bool {
+    if _an_instruction(opening) {
+        return true;
+    }
+    let rest = AN_ORDINAL_OPENING.sub("", opening);
+    if rest != opening && _an_instruction(&rest) {
+        return true;
+    }
+    let Some(m) = A_JOB_LANDS.match_(&rest) else { return false };
+    let word = m.str(1).to_lowercase();
+    let word = word.trim_matches('\'');
+    !NOT_A_VERB.contains(word) && !word.ends_with("ing")
+}
+
+/// `fits(reply, want, line=None)`: `gives`.
+pub fn fits(reply: &str, want: &str, line: Option<&str>) -> Option<bool> {
+    gives(reply, want, line)
+}
+
+/// `_words(text)`: the lower-cased words of a text.
+pub fn _words(said: &str) -> Vec<String> {
+    rx("[a-z']+").findall_str(&said.to_lowercase().replace('\u{2019}', "'"))
+}
+
+/// `_the_thing_asked(said)`: the thing "what is ..." asks about, up to three words.
+pub fn _the_thing_asked(said: &str) -> String {
+    let Some(m) = THE_THING_ASKED.match_(said) else { return String::new() };
+    let mut words: Vec<String> = Vec::new();
+    for word in rx("[a-z0-9']+").findall_str(&m.str(1).to_lowercase().replace('\u{2019}', "'")) {
+        if _ENDS_THE_THING.contains(&word) || _EMPTY.contains(&word) {
+            break;
+        }
+        words.push(word);
+        if words.len() == 3 {
+            break;
+        }
+    }
+    if words.is_empty() || _NOT_A_THING.contains(&words[0]) {
+        return String::new();
+    }
+    if words.iter().map(|w| text::len(w)).max().unwrap_or(0) < 2 {
+        return String::new();
+    }
+    words.join(" ")
+}
+
+/// `_uses_the_thing(opening, thing)`.
+pub fn _uses_the_thing(opening: &str, thing: &str) -> bool {
+    if thing.is_empty() || _PUTS_THE_THING_TO_USE.match_(opening).is_none() {
+        return false;
+    }
+    let low = opening.to_lowercase();
+    let Some(at) = low.find(thing) else { return false };
+    rx("\\b(?:to|for|so)\\b").is_match(&low[at..])
+}
+
+/// `_defines_the_thing(opening, said)`: the reply opens on the thing asked, defined.
+pub fn _defines_the_thing(opening: &str, said: &str) -> bool {
+    let thing = _the_thing_asked(said);
+    if thing.is_empty() {
+        return false;
+    }
+    if _uses_the_thing(opening, &thing) {
+        return true;
+    }
+    let head = _ARTICLE.sub("", text::strip(opening)).to_lowercase();
+    if !head.starts_with(&format!("{thing} ")) && !head.starts_with(&format!("{thing}'")) {
+        return false;
+    }
+    let rest = text::strip(&head[thing.len()..]);
+    if _JUDGES_THE_THING.match_(rest).is_some() || _ADVISES_THE_THING.match_(rest).is_some() {
+        return false;
+    }
+    if !thing.contains(' ') && !(_SAYS_WHAT_IT_IS.match_(rest).is_some() || _A_DOING.match_(rest).is_some()) {
+        return false;
+    }
+    text::split(rest).len() >= 3
+}
+
+/// `_name_words(text)`.
+pub fn _name_words(said: &str) -> Vec<String> {
+    rx("[a-z0-9']+").findall_str(&said.to_lowercase().replace('\u{2019}', "'"))
+}
+
+/// `_long_enough_a_name(word, least=3)`.
+pub fn _long_enough_a_name(word: &str, least: i64) -> bool {
+    text::len(word) as i64 >= least || word.chars().any(crate::understanding::pyuni::ch_digit)
+}
+
+/// `_names(opening, said)`: the reply says a word of the line.
+pub fn _names(opening: &str, said: &str) -> bool {
+    let reply: HashSet<String> = _words(opening).into_iter().collect();
+    let said_words: HashSet<String> = _words(said).into_iter().collect();
+    for word in &said_words {
+        if !_long_enough_a_name(word, 4) || _EMPTY.contains(word) {
+            continue;
+        }
+        if reply.contains(word) || reply.contains(cut(word, 1)) || reply.contains(cut(word, 2)) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_names_the_subject(opening, said)`.
+pub fn _names_the_subject(opening: &str, said: &str) -> bool {
+    let reply: HashSet<String> = _words(opening).into_iter().collect();
+    let said_words: HashSet<String> = _words(said).into_iter().collect();
+    for word in &said_words {
+        if !_long_enough_a_name(word, 3) || _EMPTY.contains(word) {
+            continue;
+        }
+        if text::len(word) == 3 {
+            if reply.contains(word) {
+                return true;
+            }
+            continue;
+        }
+        if reply.contains(word) || reply.contains(cut(word, 1)) || reply.contains(cut(word, 2)) {
+            return true;
+        }
+        if reply.iter().any(|r| r.starts_with(word.as_str())) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_opens_on_the_lines_verb(opening, said)`.
+pub fn _opens_on_the_lines_verb(opening: &str, said: &str) -> bool {
+    let words = text::split(opening);
+    if words.is_empty() || words.len() > 5 {
+        return false;
+    }
+    let first = _words(opening);
+    if first.is_empty() || text::len(&first[0]) < 3 {
+        return false;
+    }
+    let stem = &first[0];
+    for m in rx_flags("\\b(?:should|must|need to|have to)\\b\\s+(?:i\\s+)?([a-z]{3,})", crate::py::re::I).finditer(said) {
+        let verb = m.str(1).to_lowercase();
+        if verb == *stem || (verb.starts_with(cut(stem, 1)) && text::len(stem) > 3) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_trimmed(words)`: the words without the filler at either end.
+pub fn _trimmed(words: &[String]) -> Vec<String> {
+    let (mut start, mut end) = (0, words.len());
+    while start < end && SIDE_FILLER.contains(&words[start]) {
+        start += 1;
+    }
+    while end > start && SIDE_FILLER.contains(&words[end - 1]) {
+        end -= 1;
+    }
+    words[start..end].to_vec()
+}
+
+/// `_the_pair_up(text)`: the two sides a comparison names, as word lists.
+pub fn _the_pair_up(said: &str) -> Option<(Vec<String>, Vec<String>)> {
+    let clean = squeeze(said);
+    if let Some(found) = COMPARATIVE_THAN.search(&clean) {
+        let mut left = _trimmed(&_words(found.str(1)));
+        let right = _trimmed(&_words(found.str(3)));
+        let spent: HashSet<String> = _words(found.str(2)).into_iter().collect();
+        while left.last().is_some_and(|w| spent.contains(w)) {
+            left.pop();
+        }
+        if left.is_empty() || right.is_empty() {
+            return None;
+        }
+        let l = left[left.len().saturating_sub(2)..].to_vec();
+        let r = right[..right.len().min(2)].to_vec();
+        return Some((l, r));
+    }
+    let found = SIDES.search(&clean).or_else(|| SIDES_VS.search(&clean))?;
+    Some((_words(found.str(1)), _words(found.str(2))))
+}
+
+/// `_a_side_said_in_the_reply(side, ordered, words)`.
+pub fn _a_side_said_in_the_reply(side: &[String], ordered: &[String], words: &[String]) -> bool {
+    for word in side {
+        if !_long_enough_a_name(word, 3) || _EMPTY.contains(word) {
+            continue;
+        }
+        if _a_side_word_is_named(word, ordered, words) {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_the_side_wins(opening, line)`: the reply says which side of the line's comparison wins.
+pub fn _the_side_wins(opening: &str, line: &str) -> bool {
+    let Some(pair) = _the_pair_up(&_line_text(line)) else { return false };
+    let sides: Vec<&Vec<String>> = [&pair.0, &pair.1].into_iter().filter(|s| !s.is_empty()).collect();
+    if sides.is_empty() {
+        return false;
+    }
+    let ordered = _words(opening);
+    let words: Vec<String> = ordered.iter().cloned().collect::<HashSet<_>>().into_iter().collect();
+    let named = sides.iter().any(|side| _a_side_said_in_the_reply(side, &ordered, &words));
+    if !(named || rx_flags("^both\\b", crate::py::re::I).match_(opening).is_some()) {
+        return false;
+    }
+    A_SIDE_WINS.is_match(opening)
+}
+
+/// `_names_a_side(opening, said)`.
+pub fn _names_a_side(opening: &str, said: &str) -> bool {
+    let Some(sides) = SIDES.search(said) else { return false };
+    let reply: Vec<String> = _name_words(opening).into_iter().take(3).collect();
+    let side_words: Vec<String> = sides.groups().into_iter().flatten().filter(|s| !s.is_empty()).flat_map(_name_words).collect();
+    let set: Vec<String> = reply.iter().cloned().collect::<HashSet<_>>().into_iter().collect();
+    _a_side_said_in_the_reply(&side_words, &reply, &set)
+}
+
+/// `_a_side_word_is_named(word, ordered, words)`.
+pub fn _a_side_word_is_named(word: &str, ordered: &[String], words: &[String]) -> bool {
+    for reply_word in words {
+        if reply_word == word {
+            return true;
+        }
+        let (shorter, longer) = if text::len(reply_word) <= text::len(word) { (reply_word.as_str(), word) } else { (word, reply_word.as_str()) };
+        if text::len(longer) > 4 && longer.starts_with(shorter) && !shorter.ends_with('s') {
+            return true;
+        }
+        if text::len(shorter) >= 3 && shorter.trim_end_matches('s') == longer.trim_end_matches('s') {
+            return true;
+        }
+    }
+    for index in 0..ordered.len().saturating_sub(1) {
+        if format!("{}{}", ordered[index], ordered[index + 1]) == word {
+            return true;
+        }
+    }
+    _initials_named(word, ordered)
+}
+
+/// `_initials_named(word, reply_words)`: "bbc" said as "british broadcasting corporation".
+pub fn _initials_named(word: &str, reply_words: &[String]) -> bool {
+    let w: Vec<char> = word.chars().collect();
+    if !(2..=4).contains(&w.len()) || !crate::understanding::pyuni::is_alpha(word) {
+        return false;
+    }
+    for start in 0..reply_words.len() {
+        let mut pos = 0;
+        for spoken in &reply_words[start..(start + w.len()).min(reply_words.len())] {
+            if pos < w.len() && spoken.chars().next() == Some(w[pos]) {
+                pos += 1;
+            }
+        }
+        if pos == w.len() {
+            return true;
+        }
+    }
+    false
+}
+
+/// `_names_both_sides(reply, said)`: True when the reply names both sides of the comparison,
+/// False when it misses one it could have named, None when the line names no two sides.
+pub fn _names_both_sides(reply: &str, said: &str) -> Option<bool> {
+    let said = said.to_lowercase().replace('\u{2019}', "'");
+    let mut pairs: Vec<Vec<String>> = Vec::new();
+    for pattern in SIDE_PAIRS.iter() {
+        if let Some(sides) = pattern.search(&said) {
+            pairs.push(vec![sides.get(1).unwrap_or("").to_string(), sides.get(2).unwrap_or("").to_string()]);
+            break;
+        }
+    }
+    if pairs.is_empty() {
+        if let Some((a, b)) = _the_pair_up(&said) {
+            if !a.is_empty() && !b.is_empty() {
+                pairs.push(vec![a.join(" "), b.join(" ")]);
+            }
+        }
+    }
+    if pairs.is_empty() {
+        return None;
+    }
+    let ordered = _words(reply);
+    let words: Vec<String> = ordered.iter().cloned().collect::<HashSet<_>>().into_iter().collect();
+    let mut named = 0;
+    let mut missing: Vec<String> = Vec::new();
+    for side in &pairs[0] {
+        let side_words: Vec<String> = {
+            let mut s: Vec<String> = _words(side).into_iter().filter(|w| text::len(w) >= 3 && !_SIDE_EMPTY.contains(w)).collect::<HashSet<_>>().into_iter().collect();
+            s.sort();
+            s
+        };
+        if side_words.is_empty() {
+            continue;
+        }
+        if side_words.iter().any(|w| _a_side_word_is_named(w, &ordered, &words)) {
+            named += 1;
+        } else {
+            // min(side_words, key=len): only its length is read below
+            let shortest = side_words.iter().min_by_key(|w| text::len(w)).unwrap().clone();
+            missing.push(shortest);
+        }
+    }
+    if named + missing.len() < 2 {
+        return None;
+    }
+    if named >= 2 {
+        return Some(true);
+    }
+    if missing.iter().any(|w| text::len(w) <= 3) {
+        return None;
+    }
+    Some(false)
+}
+
+/// `_the_job_named(opening, said)`: the reply opens on the job the line asks permission for.
+pub fn _the_job_named(opening: &str, said: &str) -> bool {
+    if !PERMISSION.is_match(said) {
+        return false;
+    }
+    if !_names(opening, said) {
+        return _opens_on_the_lines_verb(opening, said);
+    }
+    if _steps(opening, "") {
+        return true;
+    }
+    let head: Vec<String> = text::split(opening).into_iter().take(12).collect();
+    if JOB_ANY.is_match(&head.join(" ")) {
+        return true;
+    }
+    if text::split(opening).len() > 9 {
+        return false;
+    }
+    let first = _words(opening);
+    if first.is_empty() || text::len(&first[0]) < 4 {
+        return false;
+    }
+    let stem = &first[0];
+    _words(said).iter().any(|w| text::len(w) >= 4 && (w == stem || w.starts_with(stem.as_str()) || stem.starts_with(w.as_str())))
+}
+
+/// `_a_step_told_as_what_not_to_do(text)`.
+pub fn _a_step_told_as_what_not_to_do(said: &str) -> bool {
+    for m in DOES_NOT_ANYWHERE.finditer(said) {
+        let after = text::strip(m.name_str("after"));
+        if after.is_empty() {
+            continue;
+        }
+        if NOT_A_STEP_BUT_REASSURANCE.match_(after).is_some() {
+            continue;
+        }
+        return true;
+    }
+    false
+}
+
+/// `_steps_in(reply)`: `_STEPS_IN`, and the methods a verb list cannot see.
+pub fn _steps_in(reply: &str) -> bool {
+    if _steps_in_first(reply) {
+        return true;
+    }
+    let said = squeeze(reply);
+    if _a_step_told_as_what_not_to_do(&said) {
+        return true;
+    }
+    for sentence in rx("(?<=[.!?])\\s+").split(&said) {
+        if GARDEN.match_(&sentence).is_some() || PATH_THEN_VERB.is_match(&sentence) {
+            return true;
+        }
+    }
+    _words_handed_over(&said)
+}
+
+/// `_words_handed_over(text)`: the reply opens by handing over the words to say.
+pub fn _words_handed_over(said: &str) -> bool {
+    SAID_WORDS.match_(said).is_some()
+}
+
+/// `_a_money_rate(opening)`.
+pub fn _a_money_rate(opening: &str) -> bool {
+    MONEY_RATE.is_match(opening)
+}
+
+/// `_without_a_money_rate(opening)`.
+pub fn _without_a_money_rate(opening: &str) -> String {
+    MONEY_RATE.sub(" ", opening)
+}
+
+/// `_the_figure_against_the_standard(opening, said)`.
+pub fn _the_figure_against_the_standard(opening: &str, said: &str) -> bool {
+    if !A_QUANTITY_ASK.is_match(said) {
+        return false;
+    }
+    _A_FIGURE_AGAINST_THE_STANDARD.match_(opening).is_some()
+}
+
+/// `_a_figure_then_the_verdict(opening, reply)`.
+pub fn _a_figure_then_the_verdict(opening: &str, reply: &str) -> bool {
+    if opening.is_empty() || !(_a_time(opening) || _an_amount_with_a_unit(opening)) {
+        return false;
+    }
+    let two = _opening_two(reply);
+    let Some(rest) = two.strip_prefix(opening) else { return false };
+    let second = text::strip(rest);
+    !second.is_empty() && (VERDICT_AFTER_A_FIGURE.is_match(second) || VERDICT_BAND.is_match(second))
+}
+
+/// `_opens_on_a_job_to_do(sentence)`: shaped like an instruction, whatever verb it uses.
+pub fn _opens_on_a_job_to_do(sentence: &str) -> bool {
+    if AN_INSTRUCTION.match_(sentence).is_none() || WANTS_INFO.match_(sentence).is_some() {
+        return false;
+    }
+    if CONTRACTION_OPENER.match_(sentence).is_some() || A_WELL_WISHING.match_(text::strip(sentence)).is_some() {
+        return false;
+    }
+    if A_SUBORDINATE_FRAGMENT.match_(sentence).is_some() && !sentence.contains(',') {
+        return false;
+    }
+    if HALF_A_UNIT.match_(sentence).is_some() {
+        return false;
+    }
+    let word = rx("[A-Za-z']+").match_(sentence).map(|m| m.as_str().to_lowercase()).expect("AttributeError: no word");
+    let word = word.trim_matches('\'');
+    !NOT_A_VERB.contains(word) && !NOT_AN_OPENER.contains(word) && !word.ends_with("ing")
+}
+
+/// `_steps(opening, after="")`: by the verb list, and then by its shape.
+pub fn _steps(opening: &str, after: &str) -> bool {
+    _steps_by_the_verb_list(opening, after) || _opens_on_a_job_to_do(opening)
+}
