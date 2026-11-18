@@ -52,14 +52,6 @@ macro_rules! strings {
     };
 }
 
-/// Any other value of this module's namespace (dicts, tuples of tuples).
-macro_rules! values {
-    ($($name:ident),* $(,)?) => {
-        $(static $name: LazyLock<&'static Value> =
-            LazyLock::new(|| data::get(concat!("bot.compose.fallback.", stringify!($name))));)*
-    };
-}
-
 /// `re.findall(r"[a-z']+", s)`: the runs of lowercase ASCII letters and apostrophes.
 fn az_words(s: &str) -> Vec<String> {
     let mut out = Vec::new();
@@ -115,11 +107,6 @@ fn look_back_of(v: &Value, default: i64) -> i64 {
 /// `str(x or "").lower()`.
 fn lower(s: &str) -> String {
     text::lower(s)
-}
-
-/// `any(word in s for word in set)` written as `set(words) & other`.
-fn meets(words: &HashSet<String>, other: &HashSet<String>) -> bool {
-    if words.len() <= other.len() { words.iter().any(|w| other.contains(w)) } else { other.iter().any(|w| words.contains(w)) }
 }
 
 /// `random.Random(seed).choice(...)`-free pick: `_choose` with no seed text.
@@ -4601,11 +4588,10 @@ static LIVE_KINDS: LazyLock<Vec<(String, Vec<String>, Vec<String>)>> = LazyLock:
         .collect()
 });
 static VENUE_RE: LazyLock<Re> = LazyLock::new(|| {
-    let mut words: Vec<String> = LIVE_VENUE.iter().map(|w| crate::py::re::escape(w)).collect();
     // sorted(LIVE_VENUE, key=len, reverse=True): longest first, ties in the tuple's order
     let mut order: Vec<(usize, usize)> = LIVE_VENUE.iter().enumerate().map(|(i, w)| (i, text::len(w))).collect();
     order.sort_by(|a, b| b.1.cmp(&a.1));
-    words = order.iter().map(|(i, _)| crate::py::re::escape(&LIVE_VENUE[*i])).collect();
+    let words: Vec<String> = order.iter().map(|(i, _)| crate::py::re::escape(&LIVE_VENUE[*i])).collect();
     Re::new(&format!("(?<![a-z])(?:{})(?:s|es)?(?![a-z])", words.join("|")), 0)
 });
 
@@ -4756,7 +4742,7 @@ pub fn what_no_eyes_already_says(clean: &str) -> Option<Vec<String>> {
     None
 }
 
-regexes!(BOT_CANNOT, BOT_CANNOT_DO, BOT_CANNOT_LOOK, CANNOT_ANYTHING_ASK, SO_NOTHING_LIVE, CANNOT_READ_YOURS, CANNOT_SEE_ANYTHING);
+regexes!(BOT_CANNOT, BOT_CANNOT_DO, BOT_CANNOT_LOOK, SO_NOTHING_LIVE);
 
 /// Python: bot/compose/fallback.py:10289 `_a_no_from_the_bot(clean)`
 /// True when the line only asks the bot to confirm it cannot do something.
@@ -5102,7 +5088,7 @@ pub fn _live(clean: &str, asking: bool, memory: &Memory) -> Option<Vec<String>> 
 
 // ---- fallback.py:10822-10960 and 12984-13013: the ask for words, greetings, an emergency named ----
 
-regexes!(WORDING_ASKS, WORDING_SAYS, WORDING_ASKS_WHO, WORDING_TELL, WORDING_SOMEONE, A_DOUBT_IN_FRONT, TELL_NOT_WORDS, WORDING_WHERE, GREETING_OPEN);
+regexes!(WORDING_ASKS, WORDING_SAYS, WORDING_TELL, WORDING_SOMEONE, A_DOUBT_IN_FRONT, TELL_NOT_WORDS, WORDING_WHERE, GREETING_OPEN);
 static THE_SAME_ASK_AS_A_STATEMENT: LazyLock<Vec<(&'static Re, String)>> = LazyLock::new(|| {
     data::get("bot.compose.fallback.THE_SAME_ASK_AS_A_STATEMENT")
         .items()
@@ -5974,7 +5960,7 @@ pub fn _an_echo_of(question: &str, sentence: &str) -> bool {
 
 pools!(PRAISE, NEUTRAL, BARE_FOLLOW_UP_REPLIES);
 word_sets!(VIEW_ONLY_WORDS);
-regexes!(VIEW_ASKS, VIEW_NOT_AN_ANSWER, VIEW_NAMES_SOMEBODY);
+regexes!(VIEW_ASKS, VIEW_NOT_AN_ANSWER);
 
 /// Python: bot/compose/fallback.py:11959 `_only_a_reaction(module, said)` (never called on the trace corpus)
 pub fn _only_a_reaction(module: &Value, said: &str) -> bool {
