@@ -69,9 +69,14 @@ pub fn _a_route_is_named(reply: &str) -> bool {
 /// Python: bot/modules/talkto.py `_the_composer_says_a_route(text, memory)`
 ///
 /// True when the composer's own reply to this line names somebody to ask.
-pub fn _the_composer_says_a_route(text: &str, memory: &Memory) -> bool {
-    // a composer that raises names no route; `dict(memory)` is a copy
-    let Ok(said) = py_try(|| super::greeting::respond(text, &mut memory.clone())) else { return false };
+pub fn _the_composer_says_a_route(text: &str, memory: &mut Memory) -> bool {
+    // `greeting.respond(text, dict(memory))`: a shallow copy, so what the composer writes inside a
+    // value the memory already holds (`compose`, say) is written to the memory too, raise or not.
+    let mut copy = memory.shallow();
+    let said = py_try(|| super::greeting::respond(text, &mut copy));
+    memory.absorb_shallow(&copy);
+    // a composer that raises names no route
+    let Ok(said) = said else { return false };
     _a_route_is_named(&said.unwrap_or_default())
 }
 
