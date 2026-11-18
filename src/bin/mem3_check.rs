@@ -509,6 +509,18 @@ fn call(name: &str, a: &Args) -> Option<(J, Option<J>)> {
                 return Some((r, Some(J::Object(m.to_plain()))));
             }
             "_a_step_back" => topics::_a_step_back(&a.s(0, "reply")).py(),
+            "_the_thing_the_chat_moved_to" => topics::_the_thing_the_chat_moved_to(&a.s(0, "whole"), &a.s(1, "line"), &a.mem(2, "memory"), a.int(3, "keep", 8)).py(),
+            "_hands_the_subject_back" => topics::_hands_the_subject_back(&a.s(0, "said"), &a.mem(1, "memory")).py(),
+            "_the_action_word" => topics::_the_action_word(&a.strs(0, "line")).py(),
+            "_a_length_of_the_job" => topics::_a_length_of_the_job(a.entry(0, "item")?).py(),
+            "_the_answer_covers_it" => {
+                let u = a.und_opt(2, "understood");
+                topics::_the_answer_covers_it(&a.s(0, "line"), &a.mem(1, "memory"), u.as_ref()).py()
+            }
+            "_an_elided_ask_situated" => {
+                let u = a.und_opt(2, "understood");
+                topics::_an_elided_ask_situated(&a.s(0, "line"), &a.s(1, "topic"), u.as_ref()).py()
+            }
             "_the_words_this_turn" => {
                 let mut m = a.mem(0, "memory");
                 let before: indexmap::IndexMap<String, Vec<String>> = a
@@ -576,6 +588,7 @@ fn call(name: &str, a: &Args) -> Option<(J, Option<J>)> {
                 }
             }
             "_only_a_detail" => thread::_only_a_detail(&a.s(0, "text")).py(),
+            "_turns" => J::Array(a.mem(0, "memory").turns.iter().map(|t| json!({"user": t.user, "bot": t.bot, "module": t.module})).collect()),
             "named" => thread::named(&a.mem(0, "memory"), a.int(1, "limit", 2)).py(),
             "checking_the_verdict" => thread::checking_the_verdict(&a.s(0, "text"), &a.mem(1, "memory")).py(),
             "checking_a_fact" => thread::checking_a_fact(&a.s(0, "text"), &a.mem(1, "memory")).py(),
@@ -611,6 +624,16 @@ fn call(name: &str, a: &Args) -> Option<(J, Option<J>)> {
             "_the_entry" => named::_the_entry(&a.s(0, "ask"), &a.mem(1, "memory")).py(),
             "_answers_a_length" => named::_answers_a_length(&a.s(0, "ask"), &a.mem(1, "memory")).py(),
             "_the_aim_and_its_length_question" => named::_the_aim_and_its_length_question(&a.s(0, "text"), &a.mem(1, "memory")).py(),
+            "_an_aim_before_the_side_question" => {
+                let m = a.mem(1, "memory");
+                let mut holder = Memory::new();
+                holder.turns = a
+                    .j(0, "turns")
+                    .as_array()
+                    .map(|x| x.iter().map(|t| rsbot::state::Turn { user: t["user"].as_str().unwrap_or("").into(), bot: t["bot"].as_str().unwrap_or("").into(), module: t["module"].as_str().map(str::to_string) }).collect())
+                    .unwrap_or_default();
+                named::_an_aim_before_the_side_question(&holder.turns, &m).py()
+            }
             "a_goal_measured" => named::a_goal_measured(&a.s(0, "text"), &a.mem(1, "memory")).py(),
             "a_length_about_an_aim_on_a_deadline" => named::a_length_about_an_aim_on_a_deadline(&a.s(0, "text"), &a.mem(1, "memory")).py(),
             "_no_thanks" => named::_no_thanks(&a.s(0, "text")).py(),
@@ -676,6 +699,8 @@ fn expected(fname: &str, result: &J) -> J {
         | "the_thing_a_detail_belongs_to" | "_carrying_on" | "_the_length_of_the_aim" | "the_advice_ask_with_its_doing" => {
             reading_view(result)
         }
+        // (None, None) is Python's "no action word"
+        "_the_action_word" if result == &json!([null, null]) => J::Null,
         // a str where Python's callers walk it as a list: compared as its letters
         "_thing_in_hand" => match result {
             J::String(s) => J::Array(s.chars().map(|c| J::String(c.to_string())).collect()),
