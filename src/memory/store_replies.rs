@@ -12529,29 +12529,346 @@ pub fn _summed_up(low: &str) -> bool {
     SUMMED_UP.match_(text::strip(low)).is_some()
 }
 
-/// Python: bot/memory/store_replies.py:11913 `_summary_reply(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:11913 `_summary_reply(memory)`
+///
+/// Everything the store holds about them, said in one sentence: "what do you know about me".
 pub fn _summary_reply(memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_summary_reply")
+    use crate::memory::relations::_called;
+    let known = user(memory);
+    let has = |k: &str| known.get(k).map(Value::truthy).unwrap_or(false);
+    let mut parts: Vec<String> = Vec::new();
+    if has("name") {
+        parts.push("you're ".to_string() + &py_str(known.get("name").unwrap()));
+    }
+    // Their age is a fact they gave, so it is in the summary.
+    if has("age") {
+        let age = py_str(known.get("age").unwrap());
+        if !parts.is_empty() && parts[0].starts_with("you're ") && !parts[0].contains(',') {
+            parts[0] += &(", ".to_string() + &age);
+        } else {
+            parts.push("you're ".to_string() + &age);
+        }
+    }
+    if has("job") {
+        // The summary says the job the way the job reply does, from its frame.
+        let mut said = _job_phrase(&known);
+        if has("city") {
+            said += &(" in ".to_string() + &py_str(known.get("city").unwrap()));
+        }
+        parts.push(said);
+    } else if has("city") {
+        parts.push("you live in ".to_string() + &py_str(known.get("city").unwrap()));
+    }
+    let shift = text::strip(&sget(&known, "shift")).to_string();
+    if !shift.is_empty() {
+        parts.push("you work ".to_string() + &shift);
+    }
+    let place = text::strip(&sget(&known, "workplace")).to_string();
+    if !place.is_empty() {
+        // Where they work is kept beside the role.
+        parts.push("you work ".to_string() + &_place_phrase(&place));
+    }
+    if let Some(origin) = known.get("from").filter(|o| o.truthy()) {
+        if py_str(origin).to_lowercase() != sget(&known, "city").to_lowercase() {
+            parts.push("you're from ".to_string() + &py_str(origin));
+        }
+    }
+    let mut said_things: HashSet<String> = HashSet::new();
+    for pet in known.get("pets").filter(|v| v.truthy()).map(py_list).unwrap_or_default() {
+        parts.push("you've got ".to_string() + &_a_pet(&pet));
+        for k in ["animal", "name"] {
+            said_things.insert(text::rstrip_chars(&sget(&pet, k).to_lowercase(), "s").to_string());
+        }
+    }
+    // A taste is a thing they told the bot about themselves.
+    for taste in known.get("tastes").filter(|v| v.truthy()).map(py_list).unwrap_or_default() {
+        let thing = text::strip(&sget(&taste, "thing")).to_string();
+        if thing.is_empty() {
+            continue;
+        }
+        // A taste about a thing the summary has already named is said once, in the fuller line.
+        let lowered = thing.to_lowercase();
+        let bare = if lowered.starts_with("your ") { text::slice(&lowered, 5, None) } else { lowered };
+        if said_things.contains(&bare) || said_things.contains(text::rstrip_chars(&bare, "s")) {
+            continue;
+        }
+        let how = taste.get("how").filter(|h| h.truthy()).map(py_str).unwrap_or_else(|| "yes".to_string());
+        parts.push(match how.as_str() {
+            "no" => "you're not keen on ".to_string() + &thing,
+            "unsure" => "you're not sure about ".to_string() + &thing,
+            _ => "you like ".to_string() + &thing,
+        });
+    }
+    if has("allergies") {
+        parts.push("you're allergic to ".to_string() + &py_list(known.get("allergies").unwrap()).iter().map(py_str).collect::<Vec<_>>().join(", "));
+    }
+    let mut named: HashSet<String> = HashSet::new();
+    for entry in others(memory).items() {
+        let who_v = entry.get("who").cloned().unwrap_or(Value::None);
+        let who = py_str(&who_v);
+        let has_who = who_v.truthy();
+        let p_allergic = entry.get("allergies").filter(|v| v.truthy()).map(py_list).unwrap_or_default();
+        if has_who && !p_allergic.is_empty() {
+            parts.push("your ".to_string() + &who + &_is_are(&who) + "allergic to " + &p_allergic.iter().map(py_str).collect::<Vec<_>>().join(", "));
+            named.insert(who.clone());
+        }
+        // A person they named, or told the age of, is a fact of theirs like the allergy is.
+        let p_name = s_or(entry.get("name"));
+        let p_age = s_or(entry.get("age"));
+        let p_ages: Vec<String> = entry.get("ages").filter(|v| v.truthy()).map(py_list).unwrap_or_default().iter().filter(|a| is_int(Some(*a))).map(py_str).collect();
+        let p_diet = s_or(entry.get("diet"));
+        let a_child = CHILD.contains(text::rstrip_chars(&who, "s"));
+        if has_who && !p_name.is_empty() && a_child && !p_age.is_empty() {
+            // A child given with a name and an age is said as the child.
+            parts.push(_called(&p_name) + " is " + &p_age);
+            named.insert(who.clone());
+        } else if has_who && !p_name.is_empty() {
+            let mut said = "your ".to_string() + &who + " is called " + &_called(&p_name);
+            if !p_age.is_empty() {
+                said += &(" and is ".to_string() + &p_age);
+            }
+            parts.push(said);
+            named.insert(who.clone());
+        } else if has_who && !p_ages.is_empty() {
+            let said_ages = if p_ages.len() > 1 {
+                p_ages[..p_ages.len() - 1].join(", ") + " and " + &p_ages[p_ages.len() - 1]
+            } else {
+                p_ages[0].clone()
+            };
+            parts.push("your ".to_string() + &who + &_is_are(&who) + &said_ages);
+            named.insert(who.clone());
+        } else if has_who && !p_age.is_empty() && a_child {
+            // One child, given as an age rather than a count.
+            parts.push("you've got a ".to_string() + &p_age + " year old");
+            named.insert(who.clone());
+        } else if has_who && !p_age.is_empty() {
+            parts.push("your ".to_string() + &who + " is " + &p_age);
+            named.insert(who.clone());
+        }
+        if has_who && !p_diet.is_empty() {
+            parts.push("your ".to_string() + &who + " " + &_a_diet_predicate(&who, &p_diet));
+            named.insert(who.clone());
+        }
+    }
+    // A count of children is a fact they gave.
+    let told_kids = _kids_told(memory);
+    if told_kids != 0 && !_a_child_is_described(memory) {
+        let count = _a_few_children(told_kids);
+        match parts.last_mut() {
+            Some(last) if last.starts_with("you've got ") => *last += &(" and ".to_string() + &count),
+            _ => parts.push("you've got ".to_string() + &count),
+        }
+    }
+    if has("diet") {
+        let diet = py_str(known.get("diet").unwrap());
+        parts.push(if diet.starts_with("no ") {
+            "you don't ".to_string() + &_diet_how(&diet) + " " + &text::slice(&diet, 3, None)
+        } else {
+            "you're ".to_string() + &diet
+        });
+    }
+    if has("condition") {
+        parts.push("you're ".to_string() + &py_list(known.get("condition").unwrap()).iter().map(py_str).collect::<Vec<_>>().join(", "));
+    }
+    if has("budget") {
+        parts.push("your budget is ".to_string() + &py_str(known.get("budget").unwrap()));
+    }
+    let mut plans: Vec<Value> = known.get("plans").filter(|v| v.truthy()).map(py_list).unwrap_or_default();
+    // A correction puts the plan itself under `user["plan"]`.
+    if let Some(plan) = known.get("plan").filter(|p| p.truthy()) {
+        if !plans.contains(plan) {
+            plans.push(plan.clone());
+        }
+    }
+    let last_plan = plans.last().map(py_str).unwrap_or_default();
+    // A plan often names what another part would say, so it is said once, in the fuller line.
+    let told = _last_told(memory);
+    let in_tastes = known.get("tastes").filter(|v| v.truthy()).map(py_list).unwrap_or_default().iter().map(|t| sget(t, "thing").to_lowercase()).collect::<Vec<_>>().join(" ");
+    let people: Vec<String> = known
+        .get("people")
+        .filter(|v| v.truthy())
+        .map(py_list)
+        .unwrap_or_default()
+        .iter()
+        .map(py_str)
+        .filter(|p| {
+            let low = p.to_lowercase();
+            !named.contains(p) && !last_plan.to_lowercase().contains(&low) && !told.to_lowercase().contains(&low) && !in_tastes.contains(&low)
+        })
+        .collect();
+    if !people.is_empty() {
+        parts.push("you mentioned your ".to_string() + &people[..people.len().min(3)].join(", "));
+    }
+    if let Some(last) = plans.last() {
+        // The plan is said in the shape it was given.
+        let last = py_str(last);
+        let line = crate::memory::plan_line(memory, &last);
+        let mut plan = lower_first(&crate::memory::plan_sentence(&last, &line));
+        if has("age") && AGE_SAID_IN_WORDS.is_match(&plan) {
+            // The age is already said first in the summary: it is said once.
+            plan = _without_the_age(&plan);
+        }
+        if !plan.is_empty() && !parts.join(" ").to_lowercase().contains(&plan.to_lowercase()) {
+            parts.push(plan);
+        }
+    }
+    // The chat itself, said back in their words, last and only when a fact above does not say it.
+    let subject = crate::memory::topics::subject(memory).to_lowercase();
+    let head = text::split(&subject).last().cloned().unwrap_or_default();
+    let facts_body = parts.join("; ");
+    let mut said_back = 0;
+    for (phrase, from_current) in _recent_told(memory, 4) {
+        let body_words = parts.join("; ");
+        // Every word of the line is already in the facts above.
+        let told_words = _summary_words(&phrase);
+        let mut covered = !told_words.is_empty() && _says_nothing_new(&phrase, &told_words, &body_words);
+        if !covered && told.starts_with("you work ") && body_words.contains("you work ") {
+            // Where they work is already in the summary, said from the store.
+            covered = true;
+        }
+        // "you grew up in Bolton" adds nothing to "you're from Bolton".
+        let mut anchor_word = String::new();
+        for word in text::split(&phrase) {
+            if text::len(&word) > 3 && !SAY_BACK_VAGUE.contains(&word.to_lowercase()) {
+                anchor_word = word.to_lowercase();
+            }
+        }
+        // The topic guard gives way to a fact the recap does not say.
+        let on_topic = from_current && !head.is_empty() && facts_body.to_lowercase().contains(&head) && !_a_fact_the_recap_does_not_say(memory, &phrase, &body_words);
+        let anchored = !anchor_word.is_empty() && {
+            let body = _summary_words(&body_words);
+            _summary_words(&anchor_word).iter().any(|w| body.contains(w))
+        };
+        if covered || _already_said(&told_words, &body_words) || anchored || on_topic {
+            continue;
+        }
+        // One "you said" and then the facts on their own.
+        parts.push((if said_back == 0 { "you said " } else { "" }).to_string() + &phrase);
+        said_back += 1;
+        if said_back >= 2 {
+            break;
+        }
+    }
+    if !people.is_empty() && said_back != 0 {
+        // Once a line says what happened to the person, the fuller line is the one to keep.
+        let said_lines = parts.iter().filter(|p| !p.starts_with("you mentioned your ")).cloned().collect::<Vec<_>>().join(" ").to_lowercase();
+        parts.retain(|p| !(p.starts_with("you mentioned your ") && text::split(p)[3..].iter().any(|w| said_lines.contains(w.as_str()))));
+    }
+    if parts.is_empty() {
+        if _a_judgement_was_said(memory) {
+            // A judgement about themselves is never filed as a fact.
+            return Some(pick(
+                &[
+                    "I've got that you're being hard on yourself, and no facts about you yet. What should I know?",
+                    "I have that you're being hard on yourself - and nothing about your life yet that I can say back.",
+                    "You've told me how you're feeling about yourself, and nothing about your life yet. What should I know?",
+                ],
+                memory,
+                "",
+            ));
+        }
+        // Nothing to quote is not the same as having heard nothing.
+        let about = _the_thing_the_chat_is_on(memory);
+        if !about.is_empty() {
+            return Some(pick(
+                &[
+                    "Nothing about you yet \u{2014} so far it's been ".to_string() + &about + ". What should I know?",
+                    "I've got no facts about you yet; we've been on ".to_string() + &about + ". What should I know?",
+                    "No notes about you so far \u{2014} you've had me on ".to_string() + &about + ". What should I know?",
+                ],
+                memory,
+                "",
+            ));
+        }
+        return Some("Not much yet \u{2014} you haven't told me about yourself. What should I know?".to_string());
+    }
+    let body = parts.join("; ");
+    // The same summary twice in a row reads like a machine: the lead-in moves instead.
+    Some(pick(
+        &["So far I know ".to_string() + &body + ".", "Here's what you've told me: ".to_string() + &body + ".", "You've told me ".to_string() + &body + "."],
+        memory,
+        "",
+    ))
 }
 
-/// Python: bot/memory/store_replies.py:12170 `_quote(text, limit=90)` (never called on the trace corpus)
-pub fn _quote(text: &str, limit: i64) -> String {
-    crate::unported!("bot.memory.store_replies:_quote")
+/// Python: bot/memory/store_replies.py:12162 `_quote(text, limit=90)`
+///
+/// The user's own words, without the full stop before the closing quote.
+pub fn _quote(text_: &str, limit: i64) -> String {
+    let mut said = text::squash(text_);
+    if text::len(&said) as i64 > limit {
+        let mut cut = text::slice(&said, 0, Some((limit - 1) as isize));
+        if !cut.ends_with(' ') && cut.contains(' ') {
+            cut = cut[..cut.rfind(' ').unwrap()].to_string();
+        }
+        said = text::rstrip_chars(&cut, " ,;:-").to_string() + "\u{2026}";
+    }
+    "\"".to_string() + text::rstrip_chars(&said, " .!?") + "\""
 }
 
-/// Python: bot/memory/store_replies.py:12192 `_heavy(line)` (never called on the trace corpus)
+rx!(HEAVY_TOPIC);
+
+/// Python: bot/memory/store_replies.py:12185 `_heavy(line)`
+///
+/// True when the line is about a death, a crisis or someone being hurt.
 pub fn _heavy(line: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_heavy")
+    HEAVY_TOPIC.is_match(&text::squash(line))
 }
 
-/// Python: bot/memory/store_replies.py:12196 `_topics_reply(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:12189 `_topics_reply(memory)`
+///
+/// The subjects the conversation has been on, most recent last.
 pub fn _topics_reply(memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_topics_reply")
+    let lines: Vec<String> = py_list(&crate::memory::history::topic_lines(memory, 3).val()).iter().map(py_str).collect();
+    let light: Vec<&String> = lines.iter().filter(|l| !_heavy(l)).collect();
+    if lines.is_empty() {
+        return Some(pick(&NOTHING_STARTED, memory, ""));
+    }
+    if light.is_empty() {
+        return Some(pick(
+            &[
+                "We've been on something heavy, and I won't read it back to you. It is still here if you want to talk about it.",
+                "What we've been on is heavy, so I'd rather not put it in quotation marks. Say more about it whenever you want.",
+            ],
+            memory,
+            "",
+        ));
+    }
+    let said = light.iter().map(|l| _quote(l, 60)).collect::<Vec<_>>().join("; ");
+    if light.len() < lines.len() {
+        return Some(pick(
+            &[
+                "We've been on ".to_string() + &said + ", and on something heavy I won't read back.",
+                "Mostly ".to_string() + &said + ". There was something heavier too, and I have not forgotten it.",
+            ],
+            memory,
+            "",
+        ));
+    }
+    Some(pick(&["We've been on ".to_string() + &said + ".", "Mostly ".to_string() + &said + ".", "Covered so far: ".to_string() + &said + "."], memory, ""))
 }
 
-/// Python: bot/memory/store_replies.py:12216 `_first_sentence(text, limit=70)` (never called on the trace corpus)
-pub fn _first_sentence(text: &str, limit: i64) -> String {
-    crate::unported!("bot.memory.store_replies:_first_sentence")
+/// Python: bot/memory/store_replies.py:12216 `_first_sentence(text, limit=70)`
+///
+/// The first sentence of `text`, cut to `limit`: what the bot opened with, not the whole paragraph.
+pub fn _first_sentence(text_: &str, limit: i64) -> String {
+    let said = text::squash(text_);
+    let mut end = text::len(&said) as isize;
+    for mark in [". ", "? ", "! "] {
+        let at = text::find(&said, mark);
+        if 0 < at && at < end {
+            end = at + 1;
+        }
+    }
+    let mut said = text::strip(&text::slice(&said, 0, Some(end))).to_string();
+    if text::len(&said) as i64 > limit {
+        let mut cut = text::slice(&said, 0, Some((limit - 1) as isize));
+        if cut.contains(' ') {
+            cut = cut[..cut.rfind(' ').unwrap()].to_string();
+        }
+        said = text::rstrip_chars(&cut, " ,;:-").to_string() + "\u{2026}";
+    }
+    text::rstrip_chars(&said, " .!?").to_string()
 }
 
 /// Python: bot/memory/store_replies.py:12295 `_sentences(answer)` (never called on the trace corpus)
