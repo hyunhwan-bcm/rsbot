@@ -1,34 +1,96 @@
-//! Port of `bot/compose/the_trouble_named.py`.
-//!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! Port of `bot/compose/the_trouble_named.py`: "it's the boiler that's the problem" names the
+//! trouble without saying which way it is wrong, so the reply asks which of the two it is.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
+use crate::compose::{fallback, fallback_chain};
+use crate::data;
 use crate::py::re::Re;
-use crate::runtime::Candidate;
-use crate::state::{Memory, Turn};
-use crate::understood::Understood;
+use crate::py::text;
+use crate::state::Memory;
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
-/// Python: bot/compose/the_trouble_named.py:49 `_has(text, words)` (never called on the trace corpus)
+const M: &str = "bot.compose.the_trouble_named.";
+static A_THE_TROUBLE: LazyLock<&'static Re> = LazyLock::new(|| data::re(&format!("{M}A_THE_TROUBLE")));
+static A_BROKEN_NOW: LazyLock<&'static Re> = LazyLock::new(|| data::re(&format!("{M}A_BROKEN_NOW")));
+static A_ASK: LazyLock<&'static Re> = LazyLock::new(|| data::re(&format!("{M}A_ASK")));
+static FILLER: LazyLock<HashSet<String>> = LazyLock::new(|| data::set(&format!("{M}FILLER")));
+macro_rules! words {
+    ($($name:ident),* $(,)?) => {
+        $(static $name: LazyLock<Vec<String>> =
+            LazyLock::new(|| data::strs(concat!("bot.compose.the_trouble_named.", stringify!($name))));)*
+    };
+}
+words!(SUPPLY, HEATING, WATER, VEHICLE, CONNECTION, BILL);
+static SAY: LazyLock<&'static crate::data::Value> = LazyLock::new(|| data::get(&format!("{M}SAY")));
+/// `re.findall(r"[a-z']+", ...)`, written inline.
+static AZ_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z']+", 0));
+
+/// Python: bot/compose/the_trouble_named.py:48 `_has(text, words)`
 pub fn _has(text: &str, words: &[String]) -> bool {
-    crate::unported!("bot.compose.the_trouble_named:_has")
+    AZ_WORDS.findall_str(text).iter().any(|w| words.contains(w))
 }
 
-/// Python: bot/compose/the_trouble_named.py:107 `_family(thing)` (never called on the trace corpus)
+/// Python: bot/compose/the_trouble_named.py:95 `_family(thing)`
+///
+/// The two-way family the named thing belongs to, or None.
 pub fn _family(thing: &str) -> Option<String> {
-    crate::unported!("bot.compose.the_trouble_named:_family")
+    let families: [(&str, &Vec<String>); 6] = [
+        ("vehicle", &VEHICLE),
+        ("connection", &CONNECTION),
+        ("bill", &BILL),
+        ("supply", &SUPPLY),
+        ("heating", &HEATING),
+        ("water", &WATER),
+    ];
+    families.iter().find(|(_, words)| _has(thing, words)).map(|(f, _)| f.to_string())
 }
 
-/// Python: bot/compose/the_trouble_named.py:124 `_the_wording(memory, family)` (never called on the trace corpus)
-pub fn _the_wording(memory: &Memory, family: &Value) -> Value {
-    crate::unported!("bot.compose.the_trouble_named:_the_wording")
+/// Python: bot/compose/the_trouble_named.py:112 `_the_wording(memory, family)`
+///
+/// The family's wording for this turn (a str; only this file calls it).
+pub fn _the_wording(memory: &Memory, family: &str) -> String {
+    let wordings = SAY.get(family).expect("KeyError").strs();
+    wordings[memory.turns.len() % wordings.len()].clone()
 }
 
-/// Python: bot/compose/the_trouble_named.py:133 `reply_for(text, memory=None)`
-pub fn reply_for(text: &str, memory: &Memory) {
-    crate::unported!("bot.compose.the_trouble_named:reply_for")
+/// Python: bot/compose/the_trouble_named.py:121 `reply_for(text, memory=None)`
+///
+/// A question about the thing they named as the trouble, or None. The contract takes the memory
+/// shared, so the composer is asked of a copy; `reply_for_mut` asks it of the memory itself, as
+/// the Python does (the composer may write to it).
+pub fn reply_for(text: &str, memory: &Memory) -> Option<String> {
+    reply_for_mut(text, &mut memory.clone())
 }
 
+/// `reply_for` on the module's own memory, which `fallback.reply_for` may write to.
+pub fn reply_for_mut(text: &str, memory: &mut Memory) -> Option<String> {
+    let clean = text::squash(&text::lower(text));
+    if clean.is_empty() || clean.contains('?') {
+        return None;
+    }
+    let found = A_THE_TROUBLE.search(&clean)?;
+    let thing = found.name("thing").filter(|t| !t.is_empty()).or_else(|| found.name("thing2")).unwrap_or("");
+    let thing = text::strip(thing).to_string();
+    if thing.is_empty() {
+        return None;
+    }
+    if A_ASK.is_match(&clean) {
+        return None;
+    }
+    let rest = format!("{} {}", &clean[..found.start()], &clean[found.end()..]);
+    if AZ_WORDS.findall_str(&rest).iter().any(|w| !FILLER.contains(w)) {
+        return None;
+    }
+    if !AZ_WORDS.findall_str(&thing).iter().any(|w| !FILLER.contains(w)) {
+        return None;
+    }
+    let family = _family(&thing)?;
+    if A_BROKEN_NOW.is_match(&clean) {
+        return None;
+    }
+    let said = fallback_chain::reply_for(text, memory, true);
+    if !said.is_empty() && !(fallback::_nothing_to_stand_behind(&said) || fallback::_is_a_hedge(&said)) {
+        return None; // the composer has an answer with something in it; it keeps the turn
+    }
+    Some(_the_wording(memory, &family))
+}
