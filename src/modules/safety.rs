@@ -6195,4 +6195,64 @@ mod tests {
         }
         eprintln!("safety against the reference: {ok} same, {bad} different");
     }
+
+    /// Branches the corpus does not reach, with the values `harness/pycall.py` gives.
+    #[test]
+    fn the_helpers_off_the_corpus() {
+        assert_eq!(_one("stop", "she"), "she stops");
+        assert_eq!(_one("have", "he"), "he has");
+        assert_eq!(_one("push", "she"), "she pushes");
+        assert_eq!(_dose_count("a couple"), Some(2));
+        assert_eq!(_dose_count("half a dozen"), Some(6));
+        assert_eq!(_dose_count("12"), Some(12));
+        assert_eq!(_dose_count("twenty-four"), None);
+        assert_eq!(_dose_count("lots"), None);
+        assert_eq!(
+            _day_dose_reply("i took 6 paracetamol today"),
+            "6 is inside the day's limit of eight 500mg paracetamol tablets a day. Four hours between doses, and count anything from a cold remedy as paracetamol too. Running at the full eight for more than a few days means the pain needs looking at rather than more tablets."
+        );
+        assert_eq!(
+            _day_dose_reply("i have had 7 ibuprofen today"),
+            "The day's limit is six of the 200mg tablets a day, so there is nothing more to take. Take it with food rather than on an empty stomach, and nothing else that contains it. Needing that many for more than a few days is the back to get looked at."
+        );
+        assert_eq!(
+            _stated_dose("i took 2 paracetamol an hour ago").as_deref(),
+            Some("That is done and inside the limit, so the only thing to keep is the gap: four hours before the next dose, and eight tablets of 500mg in a day at most. If you are still in pain at four hours, that is worth getting looked at rather than topping up early.")
+        );
+        assert_eq!(
+            _stated_dose("i accidentally took a double dose of ibuprofen").as_deref(),
+            Some("One extra dose is usually nothing to worry about: don't take any more for four hours, and skip that one if it lands in the night. If it was more than one extra, or you have liver trouble or drink heavily, ring 111 rather than guessing - and never make up a missed dose by doubling the next one.")
+        );
+        assert_eq!(_stated_dose("i took 20 paracetamol"), None);
+        let (ab, c, d, only) = (vec!["a".to_string(), "b".to_string()], vec!["c".to_string()], vec!["d".to_string()], vec!["only".to_string()]);
+        assert_eq!(_any_of(&[&ab, &c]), "(?:(?:a)|(?:b)|(?:c))");
+        assert_eq!(_any_of(&[&only]), "(?:only)");
+        assert_eq!(_both(&ab, &[&c, &d]), vec!["(?=.*(?:(?:a)|(?:b)))(?=.*(?:(?:c)|(?:d)))".to_string()]);
+        assert_eq!(
+            _nothing_left_clause(),
+            vec![r"\b(?:i\s+have\s+|i'?ve\s+got\s+|i\s+got\s+|there\s+is\s+|there'?s\s+)?nothing\s+left\s*(?:\?|$|[.!]*$)".to_string()]
+        );
+        assert_eq!(_letters_apart("sezure", "seizure"), 1);
+        assert!(_near_miss("unconcious", "unconscious"));
+        assert_eq!(_fold_critical("my son is having a seziure and hes unconcious"), "my son is having a seizure and hes unconscious");
+        assert_eq!(_fold_critical("i cant breth"), "i cant breath");
+        assert_eq!(
+            _for_the_person(
+                "You need to ring the midwife now. Keep your feet up and tell them how far along you are.",
+                "my wife is pregnant and bleeding",
+                "pregnancy_bleed"
+            ),
+            "She needs to ring the midwife now. Keep her feet up and tell them how far along she is."
+        );
+        let mut memory = Memory::new();
+        assert_eq!(
+            _resay("Get him to lie down and keep him warm; his breathing matters most.", "its my mum not my dad", &mut memory),
+            "Get him to lie down and keep him warm; his breathing matters most."
+        );
+        assert_eq!(
+            _name_the_person("Keep them warm and stay with them; they are scared.", "my nan fell", &Memory::new()),
+            "Keep her warm and stay with her; they are scared."
+        );
+        assert_eq!(_leet_made_whole("i want to k!ll myself"), "i want to kill myself");
+    }
 }

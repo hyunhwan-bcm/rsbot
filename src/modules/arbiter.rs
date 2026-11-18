@@ -4774,4 +4774,46 @@ mod tests {
         }
         eprintln!("_choose ran to the end on {ran} turns, {same} the same module as PyBot");
     }
+
+    fn labels_of(plain: J) -> Vec<String> {
+        let mut v: Vec<String> = _labels(&Value::from_plain(&plain)).into_iter().collect();
+        v.sort();
+        v
+    }
+
+    /// Branches the corpus does not reach, with the values `harness/pycall.py` gives.
+    #[test]
+    fn the_readings_off_the_corpus() {
+        assert_eq!(labels_of(json!({"label": "Small-Talk"})), ["small talk"]);
+        assert_eq!(labels_of(json!({"cooking": 3, "food-and-drink": 1})), ["cooking", "food and drink"]);
+        assert_eq!(labels_of(json!({"topics": ["Health", "sleep"]})), ["health", "sleep"]);
+        assert_eq!(labels_of(json!({"turn": 2, "words": ["boiler", "pressure"]})), ["home and diy"]);
+        assert_eq!(labels_of(json!(["home-and-diy", {"id": "cars"}, ["pets"]])), ["cars", "home and diy", "pets"]);
+        let foods = |list: &[&str]| -> Set { list.iter().map(|s| s.to_string()).collect() };
+        assert!(_offers_the_food("Half the plate vegetables and the berries on top.", &foods(&["berry", "leaf"])));
+        assert!(!_offers_the_food("No mushrooms then: leave them out.", &foods(&["mushroom"])));
+        assert!(_offers_the_food("Loaves of bread are fine.", &foods(&["loaf"])));
+        assert!(_one_word("shop", "shopping"));
+        assert!(!_one_word("care", "careers"));
+        assert!(_one_word("shine", "shining"));
+        assert!(_one_word("walk", "walking"));
+        assert!(_the_same_plain_word("boilers", "boiler"));
+        assert!(_the_same_plain_word("berry", "berries"));
+        assert!(_the_same_plain_word("boiler's", "boiler"));
+        assert!(_the_same_plain_word("tooth", "toothache"));
+        assert!(!_the_same_plain_word("care", "car"));
+        assert!(!_names_the_thing("blood", "A blood test is a small sting and a vial or two", &foods(&["blood", "pee", "bad"])));
+        assert!(_names_the_thing("blood", "Blood in your pee is worth a GP visit", &foods(&["blood", "pee"])));
+        assert_eq!(_the_quoted_repeat("Same as before: Top the pressure up to between 1 and 1.5 bar").as_deref(), Some("top the pressure up to between 1 and 1 5 bar"));
+        assert_eq!(_the_quoted_repeat("It is what I said a moment ago: bleed the radiators"), None);
+        assert!(_a_condolence("I'm so sorry to hear that."));
+        assert_eq!(_the_ask_after_the_facts("my sister is veggie and shes coming to dinner, what can i cook"), "what can i cook");
+        assert_eq!(_the_ask_clause("a funeral on tuesday and i need something dark"), ["need", "something", "dark"]);
+        assert_eq!(_the_word_the_line_added("also how do i stop it shrinking next time", "blot up as much as you can with kitchen paper"), "shrinking");
+        assert!(_a_line_asking_for_plainer_words("can you explain that again in plain english"));
+        assert!(!_a_line_asking_for_plainer_words("explain how a combi boiler works"));
+        let one = |module: &'static str, priority: f64| Candidate { module, priority, reply: "x".to_string() };
+        assert_eq!(_seed(&[one("nudge", -950.0), one("greeting", -1000.0)]), 0);
+        assert_eq!(_seed(&[one("nudge", -950.0), one("answers", 0.0)]), 1);
+    }
 }
