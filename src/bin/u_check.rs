@@ -348,6 +348,15 @@ fn main() {
             }
             println!("dream ok {ok} bad {bad}");
         }
+        "guards" => {
+            // u_check guards ONE.jsonl ID...: lookup.guard_passes for these entries on the record's reading
+            let v: serde_json::Value = serde_json::from_str(std::fs::read_to_string(&args[1]).unwrap().lines().next().unwrap()).unwrap();
+            let u: rsbot::understood::Understood = serde_json::from_value(v["understood"].clone()).unwrap();
+            for id in &args[2..] {
+                let e = rsbot::knowledge::entry::by_id(id).expect("no such entry");
+                println!("{id} guard_passes={}", lookup::guard_passes(e, &u));
+            }
+        }
         x => panic!("unknown check {x}"),
     }
 }
