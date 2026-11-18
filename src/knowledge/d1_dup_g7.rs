@@ -18,25 +18,9 @@ static JOINT_PORK: LazyLock<String> = LazyLock::new(|| data::string("bot.knowled
 // was DUP(bot.knowledge.cooking::_same): now the real port
 pub use crate::knowledge::cooking::_same;
 
-/// DUP(bot.knowledge.cooking::_roast_joint): the oven time for the joint the line names (both
-/// when it names none); None on a keeping or going-off line.
-pub fn _roast_joint(_memory: &Memory, understood: &Understood) -> Option<String> {
-    let line = text::squash(&understood.text).to_lowercase();
-    if GOING_OFF_ASK.iter().any(|p| line.contains(p.as_str())) {
-        return None;
-    }
-    if KEEPING_VERB.iter().any(|p| line.contains(p.as_str())) && !IN_THE_OVEN.iter().any(|w| line.contains(w.as_str())) {
-        return None;
-    }
-    let words: Vec<String> = understood.words.iter().map(|w| w.to_lowercase()).collect();
-    let names = |wanted: &[&str]| words.iter().any(|w| wanted.iter().any(|x| _same(w, x)));
-    if names(&["pork", "gammon", "ham"]) {
-        return Some(JOINT_PORK.clone());
-    }
-    if names(&["beef", "lamb", "mutton"]) {
-        return Some(JOINT_BEEF.clone());
-    }
-    Some(format!("{} {}", *JOINT_BEEF, *JOINT_PORK))
+/// `cooking._roast_joint(memory, understood)` (the real port; it writes nothing to memory).
+pub fn _roast_joint(memory: &Memory, understood: &Understood) -> Option<String> {
+    crate::knowledge::cooking::_roast_joint(&mut memory.clone(), understood)
 }
 
 static STARTING_OUT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.repeat.STARTING_OUT"));
@@ -54,12 +38,10 @@ static CONTAINERS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.k
 // was DUP(bot.knowledge.lookup::a_food_is_being_kept): now the real port
 pub use crate::knowledge::lookup::a_food_is_being_kept;
 
-/// DUP(bot.knowledge.lookup::only_a_container): every one of `names` the line holds is a
-/// container (a bag, a tub), and it holds at least one.
+/// `lookup.only_a_container(understood, names)` (the real port).
 pub fn only_a_container<S: AsRef<str>>(understood: &Understood, names: &[S]) -> bool {
-    let text = format!(" {} ", understood.words.iter().map(|w| w.to_lowercase()).collect::<Vec<_>>().join(" "));
-    let found: Vec<&str> = names.iter().map(|n| n.as_ref()).filter(|one| text.contains(&format!(" {one} "))).collect();
-    !found.is_empty() && found.iter().all(|one| CONTAINERS.contains(*one))
+    let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
+    crate::knowledge::lookup::only_a_container(understood, &names)
 }
 
 /// Python's `fmt % args` for `%s` (and `%%`) placeholders, in order.
@@ -226,22 +208,9 @@ static FREEZE_DISH_TIMES: LazyLock<Vec<(Vec<String>, String)>> = LazyLock::new(|
 });
 static FREEZE_COOKED_STEP: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.cooking_entries.FREEZE_COOKED_STEP"));
 
-/// DUP(bot.knowledge.cooking_entries::freeze_cooked_answer): how long the cooked dish the line
-/// names keeps frozen (`_freeze_cooked`).
-pub fn freeze_cooked_answer(_memory: &Memory, understood: &Understood) -> String {
-    let said = format!(" {} ", understood.words.iter().map(|w| w.to_lowercase()).collect::<Vec<_>>().join(" "));
-    for (names, keeps) in FREEZE_DISH_TIMES.iter() {
-        if names.iter().any(|n| said.contains(&format!(" {n} ")) || said.contains(&format!(" {n}s "))) {
-            return pct(
-                "Yes - it keeps %s in the freezer, so cool it within an hour, then pack it flat in bags or tubs so it freezes fast. %s",
-                &[keeps, &FREEZE_COOKED_STEP],
-            );
-        }
-    }
-    pct(
-        "Yes - cooked dishes keep about three months frozen, and a month for mash, so cool it within an hour, then pack it flat in bags or tubs so it freezes fast. %s",
-        &[&FREEZE_COOKED_STEP],
-    )
+/// `cooking_entries.freeze_cooked_answer(memory, understood)` (the real port).
+pub fn freeze_cooked_answer(memory: &Memory, understood: &Understood) -> String {
+    crate::knowledge::cooking_entries::freeze_cooked_answer(&mut memory.clone(), understood).unwrap_or_default()
 }
 
 // was DUP(bot.knowledge.lookup::said_in_this_line): now the real port

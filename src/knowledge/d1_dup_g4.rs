@@ -68,39 +68,9 @@ pub fn py_int(s: &str) -> Option<i64> {
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.health
 
-/// DUP(bot.knowledge.health::tablets_for_a_pregnancy): a reply's "paracetamol or ibuprofen"
-/// made paracetamol alone, with the pregnancy note, when the line says the person is pregnant.
+/// `health.tablets_for_a_pregnancy(reply, understood)` (the real port).
 pub fn health_tablets_for_a_pregnancy(reply: &str, understood: &Understood) -> String {
-    static PREGNANT_AT_ALL: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.health._PREGNANT_AT_ALL"));
-    static PREGNANT_DENIED: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.health._PREGNANT_DENIED"));
-    static TABLETS_SAFE: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
-        data::get("bot.knowledge.health.TABLETS_SAFE")
-            .items()
-            .iter()
-            .map(|p| (p.items()[0].str().to_string(), p.items()[1].str().to_string()))
-            .collect()
-    });
-    static NOTE: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.health.PREGNANT_TABLETS_NOTE"));
-    let text = sh::squash_lower(sh::clean_or_text(understood));
-    if !PREGNANT_AT_ALL.is_match(&text) || PREGNANT_DENIED.is_match(&text) {
-        return reply.to_string();
-    }
-    let mut said = reply.to_string();
-    let mut swapped = false;
-    for (from, to) in TABLETS_SAFE.iter() {
-        if said.contains(from.as_str()) {
-            said = said.replace(from.as_str(), to);
-            swapped = true;
-        }
-    }
-    let lowered = said.to_lowercase();
-    if ["ibuprofen", "nurofen"].iter().any(|w| lowered.contains(w)) {
-        swapped = true;
-    }
-    if swapped {
-        said.push_str(&NOTE);
-    }
-    said
+    crate::knowledge::health::tablets_for_a_pregnancy(Some(reply.to_string()), understood).unwrap_or_default()
 }
 
 // ---------------------------------------------------------------------------------------------

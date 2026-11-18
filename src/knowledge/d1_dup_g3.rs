@@ -22,16 +22,7 @@ pub use crate::knowledge::lookup::_one_edit;
 
 static ENDINGS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.ENDINGS"));
 
-/// DUP(bot.knowledge.lookup::_stem): the word a form belongs to (radiator/radiators are one).
-pub fn _stem(word: &str) -> &str {
-    let n = word.chars().count();
-    for ending in ENDINGS.iter() {
-        if word.ends_with(ending.as_str()) && n >= ending.chars().count() + 3 {
-            return &word[..word.len() - ending.len()];
-        }
-    }
-    word
-}
+
 
 static COMMON: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup._COMMON"));
 static COMMON_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.COMMON_WORDS"));
@@ -125,12 +116,9 @@ pub fn _means_something_else(norm: &[String], position: usize) -> bool {
     _sense_cue(norm, &[position], tiers)
 }
 
-/// DUP(bot.understanding.topics::names_another_thing): positions of two-life words a cue has
-/// taken to their other life.
+/// `understanding.topics.names_another_thing(norm)` (the real port), in order.
 pub fn names_another_thing(norm: &[String]) -> Vec<usize> {
-    (0..norm.len())
-        .filter(|&at| SENSE_ELSEWHERE_FORMS.contains_key(&norm[at]) && _means_something_else(norm, at))
-        .collect()
+    crate::understanding::topics::names_another_thing(norm).into_iter().collect()
 }
 
 // was DUP(bot.understanding.topics::says_another_thing): now the real port

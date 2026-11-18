@@ -212,35 +212,12 @@ pub use crate::knowledge::travel::_worth_a_visit;
 // was DUP(bot.knowledge.travel::_names_place): now the real port
 pub use crate::knowledge::travel::_names_place;
 
-/// DUP(bot.knowledge.travel::_find_in): the key of `table` the line names, longest first.
-pub fn _find_in(text: &str, table: &[String]) -> Option<String> {
-    let mut names: Vec<&String> = table.iter().collect();
-    names.sort_by(|a, b| b.chars().count().cmp(&a.chars().count()));
-    for name in names {
-        let pattern = format!(r"(?<![a-z]){}(?![a-z])", sh::escape(name));
-        if sh::re_search(&pattern, text, 0) && _names_place(text, name) {
-            return Some(name.clone());
-        }
-    }
-    None
-}
 
-/// The keys of `bot.knowledge.travel.CITY_DAYS`, in dict order.
-pub static CITY_DAYS: LazyLock<Vec<String>> = LazyLock::new(|| {
-    data::get("bot.knowledge.travel.CITY_DAYS").pairs().iter().filter_map(|(k, _)| k.as_str().map(str::to_string)).collect()
-});
 
-/// `_find_in(text, CITY_DAYS)` with the keys sorted and their patterns compiled once.
+
+/// `travel._find_in(text, CITY_DAYS)` (the real port): the city the line names.
 pub fn find_city(text: &str) -> Option<String> {
-    static SORTED: LazyLock<Vec<(String, Re)>> = LazyLock::new(|| {
-        let mut names: Vec<&String> = CITY_DAYS.iter().collect();
-        names.sort_by(|a, b| b.chars().count().cmp(&a.chars().count()));
-        names
-            .into_iter()
-            .map(|n| (n.clone(), Re::new(&format!(r"(?<![a-z]){}(?![a-z])", sh::escape(n)), 0)))
-            .collect()
-    });
-    SORTED.iter().find(|(name, re)| re.is_match(text) && _names_place(text, name)).map(|(name, _)| name.clone())
+    crate::knowledge::travel::_find_in(text, &crate::knowledge::travel::CITY_DAYS).map(str::to_string)
 }
 
 // ---------------------------------------------------------------------------------------------

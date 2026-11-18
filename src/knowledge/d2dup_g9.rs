@@ -23,30 +23,10 @@ static APPLIANCE_NAMES: LazyLock<Vec<(String, Re)>> = LazyLock::new(|| {
         .collect()
 });
 
-// DUP(bot.knowledge.lookup::the_appliance_swallows_the_name)
-/// True when a named appliance contains one of `names` in its own name ("heat pump" inside
-/// "heat pump dryer"), so the appliance's own row answers the line.
+/// `lookup.the_appliance_swallows_the_name(understood, names)` (the real port).
 pub fn the_appliance_swallows_the_name<S: AsRef<str>>(understood: &Understood, names: &[S]) -> bool {
-    let parts = [understood.clean.clone(), understood.text.clone(), list_or_empty(&understood.norm)];
-    let said = format!(" {} ", parts.join(" ").to_lowercase());
-    let names: Vec<String> = names
-        .iter()
-        .map(|n| n.as_ref())
-        .filter(|n| !crate::py::text::strip(n).is_empty())
-        .map(|n| n.to_lowercase())
-        .collect();
-    if names.is_empty() {
-        return false;
-    }
-    for (appliance, rx) in APPLIANCE_NAMES.iter() {
-        if !rx.is_match(&said) {
-            continue;
-        }
-        if names.iter().any(|n| appliance.contains(n.as_str()) && n.chars().count() < appliance.chars().count()) {
-            return true;
-        }
-    }
-    false
+    let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
+    crate::knowledge::lookup::the_appliance_swallows_the_name(understood, &names)
 }
 
 // ---------------------------------------------------------------------------------------------

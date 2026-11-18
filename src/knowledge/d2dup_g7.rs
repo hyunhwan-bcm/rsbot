@@ -536,49 +536,15 @@ static PEOPLE_MALE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.kno
 static PEOPLE_FEMALE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.PEOPLE_FEMALE"));
 static CONTAINERS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.CONTAINERS"));
 
-// DUP(bot.knowledge.lookup::about_them)
-/// `about_them(template)(memory, reading)` with the default people lists: the template with
-/// he, she or they filled in according to the line, first letter capitalised.
+/// `lookup.about_them(template)(memory, reading)` with the default people lists (the real port).
 pub fn about_them(template: &str, reading: &Understood) -> String {
-    let mut they = "they";
-    for word in &reading.words {
-        if PEOPLE_MALE.iter().any(|w| w == word) {
-            they = "he";
-            break;
-        }
-        if PEOPLE_FEMALE.iter().any(|w| w == word) {
-            they = "she";
-            break;
-        }
-    }
-    let plural = they == "they";
-    let he = they == "he";
-    let fills = [
-        ("{they}", they),
-        ("{them}", if plural { "them" } else if he { "him" } else { "her" }),
-        ("{their}", if plural { "their" } else if he { "his" } else { "her" }),
-        ("{self}", if plural { "themselves" } else if he { "himself" } else { "herself" }),
-        ("{has}", if plural { "have" } else { "has" }),
-        ("{is}", if plural { "are" } else { "is" }),
-        ("{likes}", if plural { "like" } else { "likes" }),
-        ("{loves}", if plural { "love" } else { "loves" }),
-    ];
-    let mut out = template.to_string();
-    for (token, word) in fills {
-        out = out.replace(token, word);
-    }
-    let first: String = out.chars().take(1).collect::<String>().to_uppercase();
-    let rest: String = out.chars().skip(1).collect();
-    first + &rest
+    crate::knowledge::lookup::about_them(template, &PEOPLE_MALE, &PEOPLE_FEMALE, reading)
 }
 
-// DUP(bot.knowledge.lookup::only_a_container)
-/// True when every word of `names` the line says is a container a thing is kept in.
+/// `lookup.only_a_container(understood, names)` (the real port).
 pub fn only_a_container<S: AsRef<str>>(understood: &Understood, names: &[S]) -> bool {
-    let text = format!(" {} ", understood.words.iter().map(|w| w.to_lowercase()).collect::<Vec<_>>().join(" "));
-    let found: Vec<&str> =
-        names.iter().map(|n| n.as_ref()).filter(|one| text.contains(&format!(" {one} "))).collect();
-    !found.is_empty() && found.iter().all(|one| CONTAINERS.contains(*one))
+    let names: Vec<String> = names.iter().map(|n| n.as_ref().to_string()).collect();
+    crate::knowledge::lookup::only_a_container(understood, &names)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -607,27 +573,7 @@ pub use crate::knowledge::wording::nerves_opening;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/home.py
 
-// DUP(bot.knowledge.home::_dryer_heat)
-/// A dryer that will not heat, said as cold air or as clothes that take three goes.
-pub fn _dryer_heat(_memory: &mut Memory, reading: &Understood) -> Option<String> {
-    const SLOW: [&str; 20] = [
-        "ages", "forever", "slow", "slower", "slowly", "long", "longer", "hours", "again", "twice", "ages.", "slowly.",
-        "goes", "go", "cycles", "cycle", "damp", "damp.", "wet", "wet.",
-    ];
-    if reading.words.iter().any(|w| SLOW.contains(&w.as_str())) {
-        return Some(
-            "Slow drying is nearly always the air: empty the fluff filter, rinse the condenser \
-if it has one, and check the vent hose is not kinked. A drum stuffed full will not \
-dry either, so try half a load. If the air still comes out cold, it is the fuse on \
-the element - an engineer's job, cheap part."
-                .to_string(),
-        );
-    }
-    Some(
-        "Nearly always the air or the setting, not a part: check the dial first, since most \
-machines finish on a cool-down phase that heats nothing, then empty the fluff filter \
-and check the vent hose is not kinked. If the drum turns and the air still comes out \
-cold, it is the thermal fuse on the element - an engineer's job, cheap part."
-            .to_string(),
-    )
+/// `home._dryer_heat(memory, reading)` (the real port).
+pub fn _dryer_heat(memory: &mut Memory, reading: &Understood) -> Option<String> {
+    Some(crate::knowledge::home::_dryer_heat(memory, reading))
 }

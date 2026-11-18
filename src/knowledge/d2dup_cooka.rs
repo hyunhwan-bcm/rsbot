@@ -136,48 +136,9 @@ fn no_have_match(cue: &str, shape: &str, plain: &str) -> bool {
     re.is_match(plain)
 }
 
-// DUP(bot.knowledge.meals::_ruled_out)
-/// The ingredients a line rules out ("no onion", "don't have any eggs").
+/// `meals._ruled_out(text)` (the real port).
 pub fn meals_ruled_out(text_: &str) -> HashSet<String> {
-    let mut plain = format!(" {} ", MEALS_WORD.findall_str(&text_.replace('\'', "")).join(" "));
-    for phrase in meals("DOUBLE_NO").strs() {
-        let padded = format!(" {phrase} ");
-        if plain.contains(&padded) {
-            plain = plain.replace(&padded, " ");
-        }
-    }
-    let no_cue = meals("NO_CUE").strs();
-    let no_gap = meals("NO_GAP").strs();
-    let no_have = meals("NO_HAVE").strs();
-    let mut out = HashSet::new();
-    for (ingredient, forms) in ingredient_forms() {
-        for form in &forms {
-            if !text::is_alpha(form) && !form.contains(' ') {
-                continue;
-            }
-            let shape = if !text::is_alpha(form) { form.replace('\'', "") } else { form.clone() };
-            if !plain.contains(&format!(" {shape} ")) {
-                continue;
-            }
-            let mut hit = false;
-            for cue in &no_cue {
-                if no_gap.iter().any(|gap| plain.contains(&format!(" {cue}{gap} {shape} "))) {
-                    out.insert(ingredient.clone());
-                    hit = true;
-                    break;
-                }
-            }
-            if !hit {
-                for cue in &no_have {
-                    if no_have_match(cue, &shape, &plain) {
-                        out.insert(ingredient.clone());
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    out
+    crate::knowledge::meals::_ruled_out(text_).into_iter().collect()
 }
 
 // was DUP(bot.knowledge.meals::_is_the_ruled_out_food): now the real port

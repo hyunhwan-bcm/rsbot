@@ -265,65 +265,9 @@ pub fn _the_food_named_by_a_slip(words: &[String], table: &[&str]) -> Option<(St
     None
 }
 
-/// DUP(bot.knowledge.cooking::_nutrient_food) with `FOOD_NUTRIENTS` as the table: the one food
-/// the line names a portion of, with the count, or None.
+/// `cooking._nutrient_food(clean)` (the real port, over its FOOD_NUTRIENTS table).
 pub fn _nutrient_food(clean: &str) -> Option<(String, f64)> {
-    static TABLE: LazyLock<Vec<(String, Re)>> = LazyLock::new(|| {
-        cooking("FOOD_NUTRIENTS")
-            .pairs()
-            .iter()
-            .map(|(k, _)| {
-                let food = k.str().to_string();
-                let rx = Re::new(&format!(r"(?<![a-z0-9]){}s?(?![a-z0-9])", crate::py::re::escape(&food)), 0);
-                (food, rx)
-            })
-            .collect()
-    });
-    static TOKEN: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z0-9']+", 0));
-    let names: Vec<&str> = TABLE.iter().map(|(f, _)| f.as_str()).collect();
-    let matches: Vec<&str> = TABLE.iter().filter(|(_, rx)| rx.is_match(clean)).map(|(f, _)| f.as_str()).collect();
-    let words = TOKEN.findall_str(clean);
-    if matches.is_empty() {
-        return _the_food_named_by_a_slip(&words, &names);
-    }
-    // max(matches, key=len): the first of the longest
-    let mut best = matches[0];
-    for m in &matches[1..] {
-        if m.chars().count() > best.chars().count() {
-            best = m;
-        }
-    }
-    if matches.iter().any(|food| {
-        !best.contains(food) && !best.contains(food.trim_end_matches('s')) && !best.contains(_plurals(food).as_str())
-    }) {
-        return None;
-    }
-    let dish = cooking("_NUTRIENT_DISH").strs();
-    let join = cooking("_NUTRIENT_JOIN").strs();
-    let parts: Vec<&str> = best.split_whitespace().collect();
-    if words.len() + 1 < parts.len() {
-        return None;
-    }
-    for index in 0..(words.len() + 1).saturating_sub(parts.len()) {
-        let chunk = &words[index..index + parts.len()];
-        if chunk[..chunk.len() - 1].iter().map(String::as_str).ne(parts[..parts.len() - 1].iter().copied()) {
-            continue;
-        }
-        let last = parts[parts.len() - 1];
-        if chunk[chunk.len() - 1] != last && chunk[chunk.len() - 1] != _plurals(last) {
-            continue;
-        }
-        let before = if index > 0 { words.get(index - 1) } else { None };
-        let after = words.get(index + parts.len());
-        if after.is_some_and(|a| dish.contains(a) || join.contains(a)) {
-            return None;
-        }
-        if before.is_some_and(|b| join.contains(b)) {
-            return None;
-        }
-        return Some((best.to_string(), _portion_count(&words, index)));
-    }
-    None
+    crate::knowledge::cooking_b::_nutrient_food(clean, &crate::knowledge::cooking_b::NUTRIENT_TABLE)
 }
 
 // --- bot.understanding.topics::the_bin_is_on_a_machine, bot.memory.topics::context ----------
