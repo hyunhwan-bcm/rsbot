@@ -630,33 +630,13 @@ static CLOCK_WORDS: LazyLock<HashMap<String, i64>> = LazyLock::new(|| int_map("b
 
 inline_re!(RE_AZ_WORDS, r"[a-z']+", 0);
 inline_re!(RE_AZ_CURLY_WORDS, "[a-z'\u{2019}]+", 0);
-inline_re!(RE_LIMIT_MOVE_WORD, r"\b(?:walk|stand|sit|climb|climbing|manage|stairs?|steps?|hills?|walking|standing)\b", 0);
 inline_re!(RE_CLOCK_TOKEN, r"\d{1,2}|[a-z]+", 0);
 inline_re!(RE_FIRST_SENTENCE, r"(?<=[.!?])\s+", 0);
 
 /// `facts.a_limit_on_the_plan(text)`: the limit a line puts on a plan - "move", "money",
 /// "other" - or None.
-///
-/// CONTRACT: `facts::a_limit_on_the_plan` is typed `()` in the generated contract, while Python
-/// returns the family or None, which these readers need. The reading is small, so it is made here
-/// with `facts`' own patterns (Python: bot/memory/facts.py:2642).
 pub(crate) fn facts_a_limit_on_the_plan(text_: &str) -> Option<String> {
-    let clean = flat(text_);
-    if clean.is_empty() || clean.contains('?') {
-        return None;
-    }
-    let a_limit = data::re("bot.memory.facts.A_LIMIT");
-    let found = a_limit.search(&clean)?;
-    // A limit whose reason is the person's own body is a symptom with a consequence.
-    let own_body = py_try(|| crate::compose::badnews::reads_like_a_symptom(&clean)).unwrap_or(false);
-    if own_body {
-        return None;
-    }
-    let hit = found.as_str();
-    if found.name("move").is_some() || RE_LIMIT_MOVE_WORD.is_match(hit) {
-        return Some("move".into());
-    }
-    if data::re("bot.memory.facts.MONEY_LIMIT").is_match(hit) { Some("money".into()) } else { Some("other".into()) }
+    facts::a_limit_on_the_plan(text_)
 }
 
 /// Python: bot/memory/ack.py:1085 `reads_as_a_trip(clean)`
@@ -1443,11 +1423,8 @@ static REMARK_KINDS: LazyLock<Vec<(&'static Re, String)>> = LazyLock::new(|| {
 
 inline_re!(RE_HAND_BACK_WORDS, r"[a-z0-9']+", 0);
 
-/// CONTRACT: `facts::_reported_clause` is typed `()`; Python returns the reported clause or
-/// None. The call is made and its value read as None until the contract carries one.
 fn facts_reported_clause(clean: &str) -> Option<String> {
-    facts::_reported_clause(clean);
-    None
+    facts::_reported_clause(clean)
 }
 
 /// CONTRACT: `trouble::reads_as_trouble` is typed `()`; Python returns a reading or None. The
@@ -3240,11 +3217,9 @@ fn loss_reply_for(text_: &str, memory: &Memory, clean: &str, topics_: &[String])
     None
 }
 
-/// CONTRACT: `facts::_kids_named_with_ages` is typed `Vec<String>`, while Python gives a list of
-/// {name, age} dicts. The call is made and read as no children until the contract carries them.
+/// `facts._kids_named_with_ages(text)`: the {name, age} dicts of the children a line names.
 fn facts_kids_named_with_ages(text_: &str) -> Vec<Value> {
-    let _ = facts::_kids_named_with_ages(text_);
-    Vec::new()
+    facts::_kids_named_with_ages(text_)
 }
 
 /// `topics.an_entry_for(text)` names `head`: the entry's own key words, read off the exported

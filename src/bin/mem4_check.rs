@@ -72,9 +72,16 @@ impl<'a> A<'a> {
         }
     }
     fn value(&self, i: usize) -> rsbot::data::Value {
+        fn bare(v: &J) -> J {
+            match v {
+                J::Object(o) if o.len() == 1 && o.contains_key("__dict__") => bare(&o["__dict__"]),
+                J::Object(o) => J::Object(o.iter().map(|(k, v)| (k.clone(), bare(v))).collect()),
+                J::Array(a) => J::Array(a.iter().map(bare).collect()),
+                other => other.clone(),
+            }
+        }
         match self.get(i) {
-            Some(J::Object(o)) if o.contains_key("__dict__") => rsbot::data::Value::from_plain(&o["__dict__"]),
-            Some(v) => rsbot::data::Value::from_plain(v),
+            Some(v) => rsbot::data::Value::from_plain(&bare(v)),
             None => rsbot::data::Value::None,
         }
     }
@@ -94,6 +101,9 @@ enum Out {
     Bool(bool),
     Text(Option<String>),
     Exact(J),
+    /// The lengths in order, and the same strings (Python sorts a set by length: ties fall in
+    /// hash order, which changes from run to run).
+    ByLength(Vec<String>),
 }
 
 fn text(s: String) -> Out {
@@ -400,6 +410,91 @@ fn call(fid: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out> {
             Out::Bool(repeat::_a_count_of_one_with_a_plural(&a.s(0), &a.s(1)))
         }
         ("repeat", "_the_thing_counted") => text(repeat::_the_thing_counted(&a.s(0), &a.s(1))),
+        ("callback", "_the_ask") => {
+            let mut m = a.mem(1);
+            match callback::_the_ask(&a.s(0), &mut m) {
+                Some((relation, name, age)) => Out::Exact(J::Array(vec![J::String(relation), J::String(name), age.to_plain()])),
+                None => Out::Text(None),
+            }
+        }
+        ("narrow", "_a_frequency") => {
+            let sentence = a.s(0);
+            let end = rsbot::py::text::byte_at(&sentence, a.n(1) as usize);
+            let start = a.get(2).and_then(|v| v.as_i64()).map(|n| rsbot::py::text::byte_at(&sentence, n as usize));
+            Out::Bool(narrow::_a_frequency(&sentence, end, start))
+        }
+        ("narrow", "_step_time") => {
+            let figure = match a.get(2) {
+                Some(J::Object(_)) => Some(a.re(2)),
+                _ => None,
+            };
+            opt(narrow::_step_time(&a.s(0), &a.s(1), figure.as_ref()))
+        }
+        ("repeat", "_a_city_guide_is_the_answer_in_front") => Out::Bool(repeat::_a_city_guide_is_the_answer_in_front(&a.mem(0))),
+        ("repeat", "_a_lead_for") => text(repeat::_a_lead_for(&a.strs(0), &a.s(1), &a.mem(2), &a.s(3))),
+        ("repeat", "_a_verb_after_a_leading_phrase") => Out::Bool(repeat::_a_verb_after_a_leading_phrase(&a.s(0), &a.set(1))),
+        ("repeat", "_the_first_instruction_in_a_long_piece") => {
+            opt(repeat::_the_first_instruction_in_a_long_piece(&a.s(0), &a.set(1)))
+        }
+        ("repeat", "_content") => strs_out(sorted(repeat::_content(&a.s(0)))),
+        ("repeat", "_the_keys_of") => strs_out(sorted(repeat::_the_keys_of(&a.s(0), &a.mem(1)))),
+        ("repeat", "_doings") => {
+            let mut found: Vec<usize> = repeat::_doings(&a.s(0)).into_iter().collect();
+            found.sort();
+            Out::Exact(J::Array(found.into_iter().map(|i| J::from(i as i64)).collect()))
+        }
+        ("repeat", "_frame_heads") => Out::ByLength(repeat::_frame_heads().to_vec()),
+        ("repeat", "_inside_a_bracket") => {
+            let line = a.s(0);
+            Out::Bool(repeat::_inside_a_bracket(&line, rsbot::py::text::byte_at(&line, a.n(1) as usize)))
+        }
+        ("repeat", "_places_to_cut") => {
+            let head = a.s(0);
+            Out::Exact(J::Array(
+                repeat::_places_to_cut(&head).into_iter().map(|b| J::from(rsbot::py::text::char_index(&head, b) as i64)).collect(),
+            ))
+        }
+        ("repeat", "_one_figure") => {
+            let found: Vec<repeat::Figure> = match a.get(0) {
+                Some(J::Array(fs)) => fs
+                    .iter()
+                    .map(|f| {
+                        let s = |i: usize| f[i].as_str().unwrap_or("").to_string();
+                        (s(0), s(1), s(2), f[3].as_bool().unwrap_or(false))
+                    })
+                    .collect(),
+                _ => Vec::new(),
+            };
+            match repeat::_one_figure(&found, a.opt_s(1).as_deref()) {
+                Some((k, w, n, c)) => Out::Exact(J::Array(vec![J::String(k), J::String(w), J::String(n), J::Bool(c)])),
+                None => Out::Exact(J::Array(Vec::new())),
+            }
+        }
+        ("repeat", "_the_answer_about_what_we_are_on") => {
+            let recent: Vec<(usize, String, String)> = match a.get(1) {
+                Some(J::Array(rs)) => rs
+                    .iter()
+                    .map(|r| (r[0].as_u64().unwrap_or(0) as usize, r[1].as_str().unwrap_or("").to_string(), r[2].as_str().unwrap_or("").to_string()))
+                    .collect(),
+                _ => Vec::new(),
+            };
+            Out::Exact(J::Array(
+                repeat::_the_answer_about_what_we_are_on(&a.mem(0), recent)
+                    .into_iter()
+                    .map(|(b, q, s)| J::Array(vec![J::from(b as i64), J::String(q), J::String(s)]))
+                    .collect(),
+            ))
+        }
+        ("repeat", "_where_the_rest_is") => {
+            let turn = a.value(2);
+            let field = |k: &str| turn.get(k).and_then(|v| v.as_str().map(str::to_string));
+            let turn = rsbot::state::Turn {
+                user: field("user").unwrap_or_default(),
+                bot: field("bot").unwrap_or_default(),
+                module: field("module"),
+            };
+            text(repeat::_where_the_rest_is(&a.s(0), &a.mem(1), &turn, &a.s(3)))
+        }
         ("repeat", "_figures_in") => Out::Exact(J::Array(
             repeat::_figures_in(&a.s(0))
                 .into_iter()
@@ -529,6 +624,32 @@ fn ack_call(name: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out>
         "the_job_they_had" => opt(ack::the_job_they_had_text(&a.s(0), &a.mem(1))),
         "a_job_to_do" => opt(ack::a_job_to_do(&a.s(0), &a.mem(1))),
         "_a_job_to_do" => opt(ack::_a_job_to_do(&a.s(0), &a.mem(1))),
+        "_a_loss" => Out::Bool(ack::_a_loss(&a.s(0), &a.mem(1), &a.s(2))),
+        "_about_a_body" => Out::Bool(ack::_about_a_body(&a.s(0), &a.mem(1))),
+        "_children_with_ages" => Out::Exact(J::Array(ack::_children_with_ages(&a.s(0)).iter().map(|v| v.to_plain()).collect())),
+        "_hours_family" => Out::Exact(ack::_hours_family(&a.s(0)).to_plain()),
+        "_pick_ending" => {
+            let fields: Vec<(String, String)> =
+                a.kwargs.iter().map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string())).collect();
+            let fields: Vec<(&str, &str)> = fields.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+            text(ack::_pick_ending(&a.strs(0), &a.mem(1), &fields))
+        }
+        "_the_opening_instead" => opt(ack::_the_opening_instead(a.opt_s(0).as_deref(), &a.s(1), &a.mem(2))),
+        "_without_a_frame" => {
+            let phrases: Vec<Option<Vec<String>>> = match a.get(1) {
+                Some(J::Array(ps)) => ps
+                    .iter()
+                    .map(|p| p.as_array().map(|ws| ws.iter().map(|w| w.as_str().unwrap_or("").to_string()).collect()))
+                    .collect(),
+                _ => Vec::new(),
+            };
+            let (words, took) = ack::_without_a_frame(&a.strs(0), &phrases, a.b(2));
+            Out::Exact(J::Array(vec![J::Array(words.into_iter().map(J::String).collect()), J::Bool(took)]))
+        }
+        "_without_a_not" => {
+            let (words, took) = ack::_without_a_not(&a.strs(0));
+            Out::Exact(J::Array(vec![J::Array(words.into_iter().map(J::String).collect()), J::Bool(took)]))
+        }
         "_somebody_was_being_hurt" => Out::Bool(ack::_somebody_was_being_hurt(&a.mem(0))),
         "_who_the_figure_is" => opt(with_mem!(1, m, ack::who_the_figure_is_text(&a.value(0), &mut m, &a.s(2)))),
         "_a_condition_they_wonder_about" => text(ack::_a_condition_they_wonder_about(&a.s(0), &a.mem(1))),
@@ -611,6 +732,15 @@ fn same(py: &J, out: &Out) -> bool {
             p == t.as_deref().filter(|s| !s.is_empty())
         }
         Out::Exact(j) => py == j,
+        Out::ByLength(v) => {
+            let theirs: Vec<String> =
+                py.as_array().map(|a| a.iter().map(|s| s.as_str().unwrap_or("").to_string()).collect()).unwrap_or_default();
+            let lens = |v: &[String]| v.iter().map(|s| s.chars().count()).collect::<Vec<_>>();
+            let (mut a, mut b) = (theirs.clone(), v.clone());
+            a.sort();
+            b.sort();
+            lens(&theirs) == lens(v) && a == b
+        }
     }
 }
 
@@ -619,6 +749,7 @@ fn show(out: &Out) -> String {
         Out::Bool(b) => b.to_string(),
         Out::Text(t) => format!("{t:?}"),
         Out::Exact(j) => j.to_string(),
+        Out::ByLength(v) => format!("{v:?}"),
     }
 }
 
