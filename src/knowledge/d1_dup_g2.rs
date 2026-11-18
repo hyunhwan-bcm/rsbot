@@ -239,6 +239,213 @@ pub fn subject_word(memory: &Memory) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------
+// bot.knowledge.clothing
+
+static A_CHILD_REFUSING_A_GARMENT: LazyLock<&'static Re> =
+    LazyLock::new(|| data::re("bot.knowledge.clothing.A_CHILD_REFUSING_A_GARMENT"));
+
+/// DUP(bot.knowledge.clothing::_the_line): clean, norm_text and text joined, lower-cased.
+fn clothing_the_line(understood: &Understood) -> String {
+    format!("{} {} {}", understood.clean, understood.norm_text, understood.text).to_lowercase()
+}
+
+/// DUP(bot.knowledge.clothing::not_a_fight_about_clothes): false when the line is a child
+/// fighting the clothes ("my son fights getting dressed"), so a buying or sibling row stands down.
+pub fn not_a_fight_about_clothes(understood: &Understood) -> bool {
+    !A_CHILD_REFUSING_A_GARMENT.is_match(&clothing_the_line(understood))
+}
+
+// ---------------------------------------------------------------------------------------------
+// bot.compose.repair
+
+fn repair_re(name: &str) -> &'static Re {
+    data::re(&format!("bot.compose.repair.{name}"))
+}
+fn repair_table(name: &str) -> Vec<(String, &'static Re)> {
+    data::get(&format!("bot.compose.repair.{name}"))
+        .items()
+        .iter()
+        .map(|p| (p.items()[0].str().to_string(), p.items()[1].as_re().expect("a regex")))
+        .collect()
+}
+
+static PET_OR_PROFESSIONAL: LazyLock<&'static Re> = LazyLock::new(|| repair_re("PET_OR_PROFESSIONAL"));
+static PHYSICAL_HARM: LazyLock<&'static Re> = LazyLock::new(|| repair_re("PHYSICAL_HARM"));
+static GRIEF: LazyLock<&'static Re> = LazyLock::new(|| repair_re("_GRIEF"));
+static A_BABY: LazyLock<&'static Re> = LazyLock::new(|| repair_re("_A_BABY"));
+static REGRET_FIRST: LazyLock<&'static Re> = LazyLock::new(|| repair_re("_REGRET_FIRST"));
+static NOT_A_DEED: LazyLock<&'static Re> = LazyLock::new(|| repair_re("NOT_A_DEED"));
+static NOBODY_TO_REPAIR: LazyLock<&'static Re> = LazyLock::new(|| repair_re("NOBODY_TO_REPAIR"));
+static AMENDS: LazyLock<&'static Re> = LazyLock::new(|| repair_re("AMENDS"));
+static ASKS_FOR_THE_WORDS: LazyLock<&'static Re> = LazyLock::new(|| repair_re("ASKS_FOR_THE_WORDS"));
+static ASKS_WHAT_TO_DO: LazyLock<&'static Re> = LazyLock::new(|| repair_re("ASKS_WHAT_TO_DO"));
+static LAPSES: LazyLock<Vec<(String, &'static Re)>> = LazyLock::new(|| repair_table("LAPSES"));
+static DEEDS: LazyLock<Vec<(String, &'static Re)>> = LazyLock::new(|| repair_table("DEEDS"));
+
+/// The line a repair test reads: lower-cased, curly apostrophes made plain, whitespace squashed.
+fn repair_text(clean: &str) -> String {
+    text::squash(&clean.to_lowercase().replace('\u{2019}', "'"))
+}
+
+/// DUP(bot.compose.repair::deed_of): the deed the person reports doing to somebody, or None.
+/// Takes the line (a reading's `clean or text`).
+pub fn deed_of(clean: &str) -> Option<String> {
+    let text_ = repair_text(clean);
+    if text_.is_empty() {
+        return None;
+    }
+    if PET_OR_PROFESSIONAL.is_match(&text_) || PHYSICAL_HARM.is_match(&text_) {
+        return None;
+    }
+    if GRIEF.is_match(&text_) || A_BABY.is_match(&text_) || REGRET_FIRST.is_match(&text_) {
+        return None;
+    }
+    if let Some((deed, _)) = LAPSES.iter().find(|(_, p)| p.is_match(&text_)) {
+        return Some(deed.clone());
+    }
+    if NOT_A_DEED.is_match(&text_) || NOBODY_TO_REPAIR.is_match(&text_) {
+        return None;
+    }
+    DEEDS.iter().find(|(_, p)| p.is_match(&text_)).map(|(deed, _)| deed.clone())
+}
+
+/// DUP(bot.compose.repair::owns_the_deed) for a reading: true when the line reports something
+/// the person did to somebody close.
+pub fn owns_the_deed(reading: &Understood) -> bool {
+    deed_of(crate::knowledge::d1_shared::clean_or_text(reading)).is_some()
+}
+
+/// DUP(bot.compose.repair::owns_the_deed) for a line of text.
+pub fn owns_the_deed_line(line: &str) -> bool {
+    deed_of(line).is_some()
+}
+
+/// DUP(bot.compose.repair::amends_to): the line asks how to make amends to somebody.
+pub fn amends_to(clean: &str) -> bool {
+    let text_ = repair_text(clean);
+    if text_.is_empty() || !AMENDS.is_match(&text_) {
+        return false;
+    }
+    !(PET_OR_PROFESSIONAL.is_match(&text_) || PHYSICAL_HARM.is_match(&text_))
+}
+
+/// DUP(bot.compose.repair::a_repair_is_open): the turns just said are one repair, with the asks
+/// in the middle of it.
+pub fn a_repair_is_open(memory: &Memory) -> bool {
+    let told: Vec<String> = memory.turns.iter().map(|t| t.user.to_lowercase()).collect();
+    for said in told[told.len().saturating_sub(3)..].iter().rev() {
+        let said = text::squash(said);
+        if said.is_empty() {
+            continue;
+        }
+        if owns_the_deed_line(&said) || amends_to(&said) {
+            return true;
+        }
+        if text::split_ref(&said).len() > 9 || !(ASKS_FOR_THE_WORDS.is_match(&said) || ASKS_WHAT_TO_DO.is_match(&said)) {
+            return false;
+        }
+    }
+    false
+}
+
+// ---------------------------------------------------------------------------------------------
+// bot.knowledge.lookup (more)
+
+static HOW_OFTEN_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.HOW_OFTEN_WORDS"));
+
+/// DUP(bot.knowledge.lookup::asks_how_often): the line asks the interval rather than the method.
+pub fn asks_how_often(understood: &Understood) -> bool {
+    let said = crate::knowledge::d1_shared::the_line(understood);
+    HOW_OFTEN_WORDS.iter().any(|w| said.contains(w.as_str()))
+}
+
+// ---------------------------------------------------------------------------------------------
+// bot.knowledge.cooking
+
+fn cooking(name: &str) -> &'static Value {
+    data::get(&format!("bot.knowledge.cooking.{name}"))
+}
+static INGREDIENT_WORDS: LazyLock<std::collections::HashMap<String, String>> =
+    LazyLock::new(|| cooking("_INGREDIENT_WORDS").str_map());
+static REFUSAL_CUES: LazyLock<HashSet<String>> = LazyLock::new(|| cooking("_REFUSAL_CUES").str_set());
+static REFUSAL_JOINERS: LazyLock<HashSet<String>> = LazyLock::new(|| cooking("_REFUSAL_JOINERS").str_set());
+static REFUSAL_FILLER: LazyLock<HashSet<String>> = LazyLock::new(|| cooking("_REFUSAL_FILLER").str_set());
+static BARE_NO_CUES: LazyLock<HashSet<String>> = LazyLock::new(|| cooking("_BARE_NO_CUES").str_set());
+static SHORTAGE_AFTER: LazyLock<HashSet<String>> = LazyLock::new(|| cooking("SHORTAGE_AFTER").str_set());
+static FAMILIES: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| {
+    cooking("FAMILIES").pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect()
+});
+static DAIRY: LazyLock<Vec<String>> = LazyLock::new(|| cooking("DAIRY").strs());
+static TIRED_OF: LazyLock<Re> =
+    LazyLock::new(|| Re::new(r"\b(?:tired|sick|bored)\s+of\b|\bfed\s+up\s+(?:of|with)\b", 0));
+
+/// DUP(bot.knowledge.cooking::_fold): a word with its plural undone (eggs/egg, tomatoes/tomato).
+pub fn cooking_fold(word: &str) -> String {
+    let lowered = word.to_lowercase().replace('\u{2019}', "'");
+    let w: Vec<char> = text::strip_chars(&lowered, ".,!?;:'\"").chars().collect();
+    let n = w.len();
+    let s: String = w.iter().collect();
+    if n > 4 && s.ends_with("ies") {
+        return format!("{}y", w[..n - 3].iter().collect::<String>());
+    }
+    if n > 4 && s.ends_with("oes") {
+        return w[..n - 2].iter().collect();
+    }
+    if n > 3 && s.ends_with("es") && "sxzh".contains(w[n - 3]) {
+        return w[..n - 2].iter().collect();
+    }
+    if n > 2 && s.ends_with('s') && !s.ends_with("ss") {
+        return w[..n - 1].iter().collect();
+    }
+    s
+}
+
+/// DUP(bot.knowledge.cooking::_refused_foods): the foods the line says somebody will not eat.
+pub fn cooking_refused_foods(text_: &str, families: bool) -> HashSet<String> {
+    let said = cooking_fold(text_);
+    let said = TIRED_OF.sub(" no ", &said);
+    let mut refused = HashSet::new();
+    let words: Vec<&str> =
+        said.split(|c: char| !(c.is_ascii_lowercase() || c == '\'')).filter(|w| !w.is_empty()).collect();
+    for (start, word) in words.iter().enumerate() {
+        if !REFUSAL_CUES.contains(*word) {
+            continue;
+        }
+        let mut index = start + 1;
+        while index < words.len() {
+            let here = words[index];
+            let name = INGREDIENT_WORDS
+                .get(here)
+                .filter(|n| !n.is_empty())
+                .or_else(|| INGREDIENT_WORDS.get(&cooking_fold(here)).filter(|n| !n.is_empty()));
+            if let Some(name) = name {
+                let after = &words[(index + 1).min(words.len())..(index + 3).min(words.len())];
+                if BARE_NO_CUES.contains(*word) && after.iter().any(|p| SHORTAGE_AFTER.contains(*p)) {
+                    break;
+                }
+                refused.insert(name.clone());
+                index += 1;
+                continue;
+            }
+            if let Some((_, members)) = FAMILIES.iter().find(|(k, _)| k == here) {
+                if families {
+                    let take = if here == "lactose" { &*DAIRY } else { members };
+                    refused.extend(take.iter().cloned());
+                }
+                index += 1;
+                continue;
+            }
+            if REFUSAL_FILLER.contains(here) || REFUSAL_JOINERS.contains(here) {
+                index += 1;
+                continue;
+            }
+            break;
+        }
+    }
+    refused
+}
+
+// ---------------------------------------------------------------------------------------------
 // Differential checks against PyBot's own functions (development aid; run with
 // `G2_DIFF_DIR=<dir> cargo test --release --lib <module>::difftest -- --ignored --nocapture`,
 // on cases written by the group's diff generator).
