@@ -44,13 +44,8 @@ use crate::state::Memory;
 // was DUP(bot.memory::last_bot): now the real port
 pub use crate::memory::last_bot;
 
-/// DUP(bot.knowledge.lookup::asks_how_often), for a line already flattened by `the_line`: true
-/// when it asks the interval rather than the method.
-pub fn asks_how_often_text(said: &str) -> bool {
-    static HOW_OFTEN_WORDS: std::sync::LazyLock<Vec<String>> =
-        std::sync::LazyLock::new(|| crate::data::strs("bot.knowledge.lookup.HOW_OFTEN_WORDS"));
-    HOW_OFTEN_WORDS.iter().any(|w| said.contains(w.as_str()))
-}
+// was DUP(bot.knowledge.lookup::asks_how_often) on a line already flattened: now the real port
+pub use crate::knowledge::lookup::asks_how_often_said as asks_how_often_text;
 
 // was DUP(bot.knowledge.lookup::asks_how_often): now the real port
 pub use crate::knowledge::lookup::asks_how_often;
@@ -191,9 +186,6 @@ pub use crate::knowledge::shopping::not_a_present;
 
 // --- bot.knowledge.cooking: the one food a line names a portion of --------------------------
 
-fn cooking(name: &str) -> &'static Value {
-    data::get(&format!("bot.knowledge.cooking.{name}"))
-}
 
 // was DUP(bot.knowledge.cooking::_plurals): now the real port
 pub use crate::knowledge::cooking_b::_plurals;
@@ -207,60 +199,9 @@ pub use crate::knowledge::cooking_b::_squashed;
 // was DUP(bot.knowledge.cooking::_one_letter_apart): now the real port
 pub use crate::knowledge::cooking_b::_one_letter_apart;
 
-/// DUP(bot.knowledge.cooking::_a_food_word_misspelt): the name this word is a slip of, or None.
-pub fn _a_food_word_misspelt<'a>(word: &str, names: &[&'a str]) -> Option<&'a str> {
-    let wlen = word.chars().count();
-    if wlen < 5 || !crate::py::text::is_alpha(word) {
-        return None;
-    }
-    if names.contains(&word) {
-        return None;
-    }
-    let squashed = _squashed(word);
-    let wchars: Vec<char> = word.chars().collect();
-    for &name in names {
-        let nchars: Vec<char> = name.chars().collect();
-        if name.contains(' ') || nchars.len() < 5 || nchars[0] != wchars[0] {
-            continue;
-        }
-        if nchars.len() == wlen {
-            if squashed == _squashed(name) {
-                return Some(name);
-            }
-            if nchars[nchars.len() - 1] == wchars[wlen - 1]
-                && wchars.iter().zip(nchars.iter()).filter(|(a, b)| a != b).count() == 1
-            {
-                return Some(name);
-            }
-        } else if nchars.len().abs_diff(wlen) == 1 && nchars[nchars.len() - 1] == wchars[wlen - 1] {
-            let (shorter, longer) = if wlen <= nchars.len() { (word, name) } else { (name, word) };
-            if _one_letter_apart(shorter, longer) {
-                return Some(name);
-            }
-        }
-    }
-    None
-}
 
-/// DUP(bot.knowledge.cooking::_the_food_named_by_a_slip): the one food a word of the line is a
-/// slip of, with the number of portions.
-pub fn _the_food_named_by_a_slip(words: &[String], table: &[&str]) -> Option<(String, f64)> {
-    let dish = cooking("_NUTRIENT_DISH").strs();
-    let join = cooking("_NUTRIENT_JOIN").strs();
-    for (index, word) in words.iter().enumerate() {
-        let Some(name) = _a_food_word_misspelt(word, table) else { continue };
-        let before = if index > 0 { words.get(index - 1) } else { None };
-        let after = words.get(index + 1);
-        if after.is_some_and(|a| dish.contains(a) || join.contains(a)) {
-            return None;
-        }
-        if before.is_some_and(|b| join.contains(b)) {
-            return None;
-        }
-        return Some((name.to_string(), _portion_count(words, index)));
-    }
-    None
-}
+
+
 
 /// `cooking._nutrient_food(clean)` (the real port, over its FOOD_NUTRIENTS table).
 pub fn _nutrient_food(clean: &str) -> Option<(String, f64)> {

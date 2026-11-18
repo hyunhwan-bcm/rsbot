@@ -24,7 +24,7 @@ pub use crate::knowledge::units::people_in_groups;
 // was DUP(bot.knowledge.garden::harvest_crops): now the real port
 pub use crate::knowledge::garden::harvest_crops as garden_harvest_crops;
 
-// DUP(bot.knowledge.garden::DONE_NOT)
+/// `garden.DONE_NOT`: the data itself, read from the bundle.
 pub fn garden_done_not() -> Vec<String> {
     data::strs("bot.knowledge.garden.DONE_NOT")
 }
