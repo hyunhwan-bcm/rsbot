@@ -465,3 +465,20 @@ pub fn py_float(text: &str) -> Option<f64> {
     }
     cleaned.parse::<f64>().ok()
 }
+
+/// A regex built at run time from words (`re.search(r"\b" + re.escape(word) + ..., text)`),
+/// compiled once per distinct pattern and kept for the life of the process, as CPython's own
+/// `re` cache keeps the patterns a function builds.
+pub fn cached_re(pattern: &str, flags: u32) -> &'static crate::py::re::Re {
+    use std::collections::HashMap;
+    use std::sync::Mutex;
+    static CACHE: std::sync::LazyLock<Mutex<HashMap<(String, u32), &'static crate::py::re::Re>>> =
+        std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
+    let mut cache = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(re) = cache.get(&(pattern.to_string(), flags)) {
+        return re;
+    }
+    let re: &'static crate::py::re::Re = Box::leak(Box::new(crate::py::re::Re::new(pattern, flags)));
+    cache.insert((pattern.to_string(), flags), re);
+    re
+}
