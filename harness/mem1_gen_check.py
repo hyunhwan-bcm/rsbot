@@ -338,6 +338,8 @@ fn replay(path: &str, show: usize, only: Option<String>, print: bool) -> [usize;
     // fn -> [same, falsy-same, differ, unported, panicked, raised-in-python, unknown, memory differs]
     let mut tally: BTreeMap<String, [usize; 8]> = BTreeMap::new();
     let mut shown: BTreeMap<String, usize> = BTreeMap::new();
+    // The UNPORTED panics by message: the dependencies in other files that block a check.
+    let mut blockers: BTreeMap<String, usize> = BTreeMap::new();
     for line in reader.lines() {
         let rec: J = serde_json::from_str(&line.unwrap()).unwrap();
         let name = rec["fn"].as_str().unwrap().to_string();
@@ -369,6 +371,7 @@ fn replay(path: &str, show: usize, only: Option<String>, print: bool) -> [usize;
                 let msg = e.downcast_ref::<String>().cloned().or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
                 if msg.starts_with("UNPORTED") {
                     t[3] += 1;
+                    *blockers.entry(msg).or_insert(0) += 1;
                 } else {
                     t[4] += 1;
                     let k = shown.entry(name.clone()).or_insert(0);
@@ -423,6 +426,11 @@ fn replay(path: &str, show: usize, only: Option<String>, print: bool) -> [usize;
     println!("{:<44} {:>6} {:>6} {:>6} {:>8} {:>6} {:>6} {:>6} {:>6}", "function", "same", "falsy", "DIFF", "unported", "PANIC", "pyraise", "skip", "MEMDIF");
     for (name, t) in &tally {
         println!("{:<44} {:>6} {:>6} {:>6} {:>8} {:>6} {:>6} {:>6} {:>6}", name, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
+    }
+    let mut by_count: Vec<_> = blockers.iter().collect();
+    by_count.sort_by(|a, b| b.1.cmp(a.1));
+    for (msg, n) in by_count.iter().take(12) {
+        println!("blocked {n:>5}  {}", msg.lines().next().unwrap_or(""));
     }
     println!("{:<44} {:>6} {:>6} {:>6} {:>8} {:>6} {:>6} {:>6} {:>6}", "TOTAL", total[0], total[1], total[2], total[3], total[4], total[5], total[6], total[7]);
     total

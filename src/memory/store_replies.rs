@@ -2904,7 +2904,23 @@ strset!(SHE, HE);
 /// Python `try: ... except Exception: fallback` around a call into another file: a panic there
 /// (Python's exception) gives the fallback.
 fn or_on_raise<T>(f: impl FnOnce() -> T, fallback: T) -> T {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(fallback)
+    py_try(f).unwrap_or(fallback)
+}
+
+/// Python `try:` around a call: `Err(())` where Python's `except Exception` would run. A call into
+/// a function not yet ported (`UNPORTED ...`) is not a Python exception, so it is not caught here:
+/// it goes on up, and the checkers count it as a gap instead of a quietly wrong answer.
+fn py_try<T>(f: impl FnOnce() -> T) -> Result<T, ()> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(v) => Ok(v),
+        Err(e) => {
+            let msg = e.downcast_ref::<String>().map(String::as_str).or_else(|| e.downcast_ref::<&str>().copied()).unwrap_or("");
+            if msg.starts_with("UNPORTED") {
+                std::panic::resume_unwind(e);
+            }
+            Err(())
+        }
+    }
 }
 
 /// Python: bot/memory/store_replies.py:2902 `_is_a_question(previous)`
@@ -3595,7 +3611,7 @@ pub fn _a_kept_thing_behind(memory: &Memory) -> bool {
             continue;
         }
         // A line that cannot be read keeps the old answer.
-        let found = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::memory::facts::extract(&said, false).val())) {
+        let found = match py_try(|| crate::memory::facts::extract(&said, false).val()) {
             Ok(v) => v,
             Err(_) => return false,
         };
@@ -6903,7 +6919,7 @@ pub fn _said_of_someone_else(line: &str, wanted: &Re) -> bool {
     for m in wanted.finditer(line) {
         let at = text::char_index(line, m.start()) as i64;
         // A ValueError or IndexError from the subject reader claims nothing.
-        let said = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::memory::facts::subject(line, at)));
+        let said = py_try(|| crate::memory::facts::subject(line, at));
         match said {
             Ok(v) if !v.is_empty() => kinds.push(v[0].clone()),
             _ => return false,
@@ -11188,7 +11204,7 @@ pub fn _says_where_they_live(text_: &str) -> bool {
         return false;
     }
     // A line this cannot read names no home.
-    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::memory::facts::extract(text_, false).val())) {
+    match py_try(|| crate::memory::facts::extract(text_, false).val()) {
         Ok(found) => found.get("home").map(Value::truthy).unwrap_or(false),
         Err(_) => false,
     }
