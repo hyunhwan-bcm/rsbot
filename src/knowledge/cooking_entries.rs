@@ -1123,38 +1123,92 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories, building what PyBot built at import (`knowledge::built`).
 
-    /// Python: bot/knowledge/cooking_entries.py:781 `_not_short_of()` (never called on the trace corpus)
-    pub fn _not_short_of(foods: &[Value]) -> Value {
-        crate::unported!("bot.knowledge.cooking_entries:_not_short_of")
-    }
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, KeyPart, Reply};
 
-    /// Python: bot/knowledge/cooking_entries.py:796 `_make_it(nouns, props)` (never called on the trace corpus)
-    pub fn _make_it(nouns: &Value, props: &Value) -> Value {
-        crate::unported!("bot.knowledge.cooking_entries:_make_it")
-    }
-
-    /// Python: bot/knowledge/cooking_entries.py:1165 `_swap(entry_id, key, reply)` (never called on the trace corpus)
-    pub fn _swap(entry_id: &Value, key: &str, reply: &str) -> Value {
-        crate::unported!("bot.knowledge.cooking_entries:_swap")
-    }
-
-    /// Python: bot/knowledge/cooking_entries.py:1202 `_leaves_out()` (never called on the trace corpus)
-    pub fn _leaves_out(ingredients: &[Value]) -> Value {
-        crate::unported!("bot.knowledge.cooking_entries:_leaves_out")
-    }
-
+/// `_not_short_of(*foods)`: a guard that stands the row down when the line says the house has
+/// none of these (`_not_short_of_guard`).
+pub fn _not_short_of(foods: &[String]) -> FnRef {
+    let template = data::get("bot.knowledge.cooking_entries.SHORT_OF_THE_HOUSE").as_re().expect("a regex");
+    let pattern = template.pattern().replacen("%s", &foods.join("|"), 1);
+    let re = Re::new(&pattern, template.flags());
+    built::closure("bot.knowledge.cooking_entries:_not_short_of.<locals>.guard:790", vec![("pattern", Value::Re(std::sync::Arc::new(re)))])
 }
 
+/// `_make_it(nouns, props)`: "make <noun> <prop>" and "make my <noun> <prop>" for each pair.
+pub fn _make_it(nouns: &[String], props: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    for noun in nouns {
+        for prop in props {
+            out.push(format!("make {noun} {prop}"));
+            out.push(format!("make my {noun} {prop}"));
+        }
+    }
+    out
+}
+
+/// `_swap(entry_id, key, reply, **rest)`: a swap entry that keeps out of the meals and out of the
+/// steps - `SWAP_NOT_A_MEAL` in front of its own avoid words, and `_a_swap_and_not_a_step`
+/// folded into its own guard.
+#[allow(clippy::too_many_arguments)]
+pub fn _swap(entry_id: &str, key: Vec<KeyPart>, reply: Reply, avoid: &[String], bias: i64, ask: Vec<KeyPart>, guard: Option<FnRef>) -> Entry {
+    let guard = match guard {
+        Some(g) => built::closure("bot.knowledge.cooking_entries:_swap.<locals>.<lambda>:1177", vec![("guard", Value::Fn(std::sync::Arc::new(g)))]),
+        None => built::function("bot.knowledge.cooking_entries:_a_swap_and_not_a_step:1143"),
+    };
+    let not_a_meal = data::get("bot.knowledge.cooking_entries.SWAP_NOT_A_MEAL").strs();
+    built::entry(entry_id, key, reply, &[built::words(&not_a_meal), built::words(avoid)], bias, ask, Some(guard))
+}
+
+/// `_swap(...).<locals>.<lambda>`: a swap and not a step, and the row's own guard.
+fn _swap_guard(f: &FnRef, understood: &Understood) -> bool {
+    _a_swap_and_not_a_step(understood) && f.cell("guard").and_then(Value::as_fn).is_some_and(|g| crate::knowledge::registry::guard(g, understood))
+}
+
+/// `_leaves_out(*ingredients)`: a dish card stands down when the line says an ingredient it
+/// needs is not there; the guard reads the stems (each word and its plural or singular).
+pub fn _leaves_out(ingredients: &[String]) -> FnRef {
+    let mut stems: Vec<Value> = Vec::new();
+    for one in ingredients {
+        let other = match one.strip_suffix('s') {
+            Some(stem) => stem.to_string(),
+            None => format!("{one}s"),
+        };
+        for word in [one.clone(), other] {
+            let v = Value::from(word.as_str());
+            if !stems.contains(&v) {
+                stems.push(v);
+            }
+        }
+    }
+    built::closure("bot.knowledge.cooking_entries:_leaves_out.<locals>.guard:1214", vec![("stems", Value::Set(std::sync::Arc::new(stems)))])
+}
+
+pub const FACTORY_GUARDS: &[(&str, GuardFn)] = &[("bot.knowledge.cooking_entries:_swap.<locals>.<lambda>:1177", _swap_guard)];
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    #[test]
+    fn guards_rebuild() {
+        data::load();
+        let mut n = 0;
+        for row in crate::knowledge::entries() {
+            let Some(g) = &row.guard else { continue };
+            if g.id.starts_with("bot.knowledge.cooking_entries:_leaves_out") {
+                let stems = g.cell("stems").unwrap().strs();
+                let singles: Vec<String> = stems.iter().filter(|s| !s.ends_with('s')).cloned().collect();
+                let built = _leaves_out(&singles);
+                assert_eq!(built.cell("stems"), g.cell("stems"), "{}", row.id);
+                n += 1;
+            }
+        }
+        assert!(n > 0);
+        let pattern = _not_short_of(&["eggs".to_string(), "egg".to_string()]);
+        assert!(pattern.cell("pattern").unwrap().as_re().unwrap().pattern().contains("(?:eggs|egg)"));
+    }
+}

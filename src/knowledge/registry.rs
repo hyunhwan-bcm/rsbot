@@ -116,6 +116,7 @@ fn guard_tables() -> Vec<&'static [(&'static str, GuardFn)]> {
         crate::knowledge::kit_lists::GUARDS,
         crate::knowledge::health::GUARDS,
         crate::knowledge::cooking_entries::GUARDS,
+        crate::knowledge::cooking_entries::FACTORY_GUARDS,
         crate::knowledge::containers_frost::GUARDS,
         crate::knowledge::coats::GUARDS,
         crate::knowledge::plans::GUARDS,
