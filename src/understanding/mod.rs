@@ -112,3 +112,25 @@ pub mod t {
         get(m, name)
     }
 }
+
+/// `pattern.match(text, pos)`: a match anchored at `pos` (a byte offset), with the text before
+/// `pos` still seen by lookbehind and `\b`, as Python's `match` with a start position.
+pub fn match_at<'t>(re: &Re, text: &'t str, pos: usize) -> Option<crate::py::re::Match<'t>> {
+    let p = re.pattern();
+    let mut lead_end = 0;
+    let b = p.as_bytes();
+    while b.len() > lead_end + 3 && b[lead_end] == b'(' && b[lead_end + 1] == b'?' {
+        let mut j = lead_end + 2;
+        while j < b.len() && b[j].is_ascii_alphabetic() {
+            j += 1;
+        }
+        if j < b.len() && b[j] == b')' && j > lead_end + 2 {
+            lead_end = j + 1;
+        } else {
+            break;
+        }
+    }
+    let sep = if re.flags() & crate::py::re::X != 0 { "\n" } else { "" };
+    let wrapped = format!("{}\\G(?:{}{})", &p[..lead_end], &p[lead_end..], sep);
+    rx_flags(&wrapped, re.flags()).search_at(text, pos)
+}

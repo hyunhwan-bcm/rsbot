@@ -164,6 +164,79 @@ fn main() {
             }
             println!("kindsfns ok {ok} bad {bad} {fields:?}");
         }
+        "topics" => {
+            use rsbot::understanding::{body, breeds, cars, confusion, attempts, kinds, normalize, references, senses, topics};
+            let show: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(5);
+            let (mut ok, mut bad, mut shown) = (0, 0, 0);
+            let mut fields: std::collections::BTreeMap<String, usize> = Default::default();
+            let tj = |x: serde_json::Value| x;
+            for line in std::io::BufReader::new(std::fs::File::open(&args[1]).unwrap()).lines() {
+                let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
+                let got: Option<Vec<(&str, serde_json::Value)>> = rsbot::runtime::guarded(|| {
+                    let l = normalize::normalise(v["pre"].as_str().unwrap());
+                    let read = kinds::classify(&l);
+                    let ents = topics::detect_entities(&l, None);
+                    let prev_line = v["prev_pre"].as_str().map(normalize::normalise);
+                    let prev_ents = prev_line.as_ref().map(|p| topics::detect_entities(p, None)).unwrap_or_default();
+                    let prev_topic = prev_line.as_ref().and_then(|p| topics::detect_topic(p, None, Some(&prev_ents), None).0);
+                    let r = references::resolve(&l, &read, prev_line.as_ref(), &prev_ents, prev_topic.as_deref());
+                    let topic = topics::detect_topic(&l, None, Some(&ents), Some(true)).0;
+                    let mut dog = rsbot::understood::Understood::default();
+                    dog.animal_in_hand = "dog".into();
+                    vec![
+                        ("entities", serde_json::to_value(&ents).unwrap()),
+                        ("numbers", serde_json::to_value(topics::detect_numbers(&l)).unwrap()),
+                        ("topic_t", serde_json::to_value(topics::detect_topic(&l, None, Some(&ents), Some(true))).unwrap()),
+                        ("topic_f", serde_json::to_value(topics::detect_topic(&l, None, Some(&ents), Some(false))).unwrap()),
+                        ("topic_n", serde_json::to_value(topics::detect_topic(&l, None, None, None)).unwrap()),
+                        ("topic_inh", serde_json::to_value(topics::detect_topic(&l, Some("health"), Some(&ents), Some(true))).unwrap()),
+                        ("rank", serde_json::to_value(topics::rank_topics(&l, None, Some(&ents), Some(true))).unwrap()),
+                        ("score", serde_json::to_value(topics::score_topics(&l)).unwrap()),
+                        ("subject", serde_json::to_value(topics::subject_topic(&l, Some(&ents))).unwrap()),
+                        ("said", serde_json::to_value(topics::the_words_that_said(&l, topic.as_deref(), Some(&ents))).unwrap()),
+                        ("warmth", serde_json::to_value(topics::the_warmth_said(&l.norm)).unwrap()),
+                        ("own_output", serde_json::to_value(topics::own_output_word(&l.norm)).unwrap()),
+                        ("person_names", serde_json::to_value(topics::person_names(&l)).unwrap()),
+                        ("purse", serde_json::to_value(topics::purse_till_at(&l.norm, &l.text)).unwrap()),
+                        ("tight", serde_json::to_value(topics::tight_on_money(&l.norm, Some(&read.kind), &l.text)).unwrap()),
+                        ("unclear", serde_json::to_value(topics::unclear_subject(&l.norm, None, prev_line.as_ref())).unwrap()),
+                        ("unclear_inh", serde_json::to_value(topics::unclear_subject(&l.norm, Some("money"), None)).unwrap()),
+                        ("unsure", serde_json::to_value(topics::unsure_words(&l.norm, topic.as_deref())).unwrap()),
+                        ("body", serde_json::to_value(body::read(&l.norm_text)).unwrap()),
+                        ("ref", serde_json::to_value(&r).unwrap()),
+                        ("target", match &prev_line { Some(p) => serde_json::to_value(references::_target(p, &prev_ents, prev_topic.as_deref())).unwrap(), None => serde_json::Value::Null }),
+                        ("new_person", serde_json::to_value(references::person_is_new(&l, &prev_ents)).unwrap()),
+                        ("in_hand", serde_json::to_value(references::the_animal_in_hand(&r, &l.words)).unwrap()),
+                        ("chat_animal", serde_json::to_value(references::the_animal_the_chat_is_on(&l.words, Some(&dog))).unwrap()),
+                        ("senses", serde_json::to_value(senses::senses(&l)).unwrap()),
+                        ("breeds", serde_json::to_value(breeds::the_animal_a_breed_is(&l.words)).unwrap()),
+                        ("car", serde_json::to_value(cars::a_broken_car_is_the_subject(&l.clean, &prev_line.as_ref().map(|p| vec![p.clean.clone()]).unwrap_or_default())).unwrap()),
+                        ("confusion", serde_json::to_value(confusion::confusion_of(&l)).unwrap()),
+                        ("tried", serde_json::to_value(attempts::things_tried(&l.text, Some(&l.norm))).unwrap()),
+                    ]
+                });
+                let mut same = true;
+                match got {
+                    Some(got) => {
+                        for (name, g) in got {
+                            let g = tj(g);
+                            if g != v[name] {
+                                same = false;
+                                *fields.entry(name.to_string()).or_default() += 1;
+                                if shown < show { println!("-- {name} {:?}\n   rust {}\n   py   {}", v["text"].as_str().unwrap(), g, v[name]); shown += 1; }
+                            }
+                        }
+                    }
+                    None => {
+                        same = false;
+                        *fields.entry("(panic)".into()).or_default() += 1;
+                        if shown < show { println!("-- panic {:?}", v["text"]); shown += 1; }
+                    }
+                }
+                if same { ok += 1 } else { bad += 1 }
+            }
+            println!("topics ok {ok} bad {bad} {fields:?}");
+        }
         x => panic!("unknown check {x}"),
     }
 }
