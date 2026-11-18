@@ -343,12 +343,12 @@ pub fn lookup_find_is_some(_u: &Understood) -> Option<bool> {
 
 pub mod cooking {
     #![allow(non_snake_case, unused_variables, dead_code)]
+    //! VERIFY ONLY: delegates to D2's port of bot.knowledge.cooking.
+    use crate::knowledge::cooking as c;
     use crate::state::Memory;
     use crate::understood::Understood;
     use std::collections::HashSet;
 
-    /// The optional arguments of `meal(understood, dishes_only=False, text=None, banned=None,
-    /// diet=None, memory=None, avoid=(), pointed_back=False)`.
     #[derive(Default, Clone, Copy)]
     pub struct MealArgs<'a> {
         pub dishes_only: bool,
@@ -359,102 +359,30 @@ pub mod cooking {
         pub avoid: &'a [String],
         pub pointed_back: bool,
     }
-
-    /// DUP(bot.knowledge.cooking::_a_brew_not_a_dinner)
-    pub fn _a_brew_not_a_dinner(line: &str) -> bool {
-        false
+    pub fn _a_brew_not_a_dinner(line: &str) -> bool { c::_a_brew_not_a_dinner(line) }
+    pub fn _bans_for(understood: &Understood, memory: &Memory) -> HashSet<String> { c::_bans_for(understood, &mut memory.clone()) }
+    pub fn _bans_it(food: &str, banned: &HashSet<String>) -> bool { c::_bans_it(food, banned) }
+    pub fn _bans_said(banned: &HashSet<String>) -> Vec<String> { c::_bans_said(banned) }
+    pub fn _crowd(text: &str) -> i64 { c::_crowd(text) }
+    pub fn _crowd_or_any(text: &str, banned: &HashSet<String>) -> Option<String> { Some(c::_crowd_or_any(text, banned)) }
+    pub fn _excluded(text: &str) -> HashSet<String> { c::_excluded(text) }
+    pub fn _fold(word: &str) -> String { c::_fold(word) }
+    pub fn _foods_named(text: &str) -> Vec<String> { c::_foods_named(text) }
+    pub fn _mentions(text: &str, names: &[String]) -> bool { c::_mentions(text, names) }
+    pub fn _occasion(text: &str) -> bool { c::_occasion(text) }
+    pub fn _refused_foods(text: &str, families: bool) -> HashSet<String> { c::_refused_foods(text, families) }
+    pub fn _sides(memory: &Memory, understood: &Understood) -> Option<String> { c::_sides(&mut memory.clone(), understood) }
+    pub fn _table_text(text: &str) -> bool { c::_table_text(text) }
+    pub fn dish(understood: &Understood, avoid: &[String], memory: Option<&Memory>) -> Option<String> { c::dish(understood, avoid, memory) }
+    pub fn ingredients(understood: &Understood) -> Vec<String> { c::ingredients(understood) }
+    pub fn meal(understood: &Understood, a: MealArgs) -> Option<String> {
+        c::meal(understood, c::MealArgs { dishes_only: a.dishes_only, text: a.text, banned: a.banned.cloned(), diet: a.diet.map(String::from), memory: a.memory, avoid: a.avoid.to_vec(), pointed_back: a.pointed_back })
     }
-    /// DUP(bot.knowledge.cooking::_bans_for)
-    pub fn _bans_for(understood: &Understood, memory: &Memory) -> HashSet<String> {
-        HashSet::new()
-    }
-    /// DUP(bot.knowledge.cooking::_bans_it)
-    pub fn _bans_it(food: &str, banned: &HashSet<String>) -> bool {
-        false
-    }
-    /// DUP(bot.knowledge.cooking::_bans_said)
-    pub fn _bans_said(banned: &HashSet<String>) -> Vec<String> {
-        Vec::new()
-    }
-    /// DUP(bot.knowledge.cooking::_crowd)
-    pub fn _crowd(text: &str) -> i64 {
-        0
-    }
-    /// DUP(bot.knowledge.cooking::_crowd_or_any)
-    pub fn _crowd_or_any(text: &str, banned: &HashSet<String>) -> Option<String> {
-        None
-    }
-    /// DUP(bot.knowledge.cooking::_excluded)
-    pub fn _excluded(text: &str) -> HashSet<String> {
-        HashSet::new()
-    }
-    /// DUP(bot.knowledge.cooking::_fold)
-    pub fn _fold(word: &str) -> String {
-        word.to_string()
-    }
-    /// DUP(bot.knowledge.cooking::_foods_named)
-    pub fn _foods_named(text: &str) -> Vec<String> {
-        Vec::new()
-    }
-    /// DUP(bot.knowledge.cooking::_mentions)
-    pub fn _mentions(text: &str, names: &[String]) -> bool {
-        false
-    }
-    /// DUP(bot.knowledge.cooking::_occasion)
-    pub fn _occasion(text: &str) -> bool {
-        false
-    }
-    /// DUP(bot.knowledge.cooking::_refused_foods)
-    pub fn _refused_foods(text: &str, families: bool) -> HashSet<String> {
-        HashSet::new()
-    }
-    /// DUP(bot.knowledge.cooking::_sides)
-    pub fn _sides(memory: &Memory, understood: &Understood) -> Option<String> {
-        None
-    }
-    /// DUP(bot.knowledge.cooking::_table_text)
-    pub fn _table_text(text: &str) -> bool {
-        false
-    }
-    /// DUP(bot.knowledge.cooking::dish)
-    pub fn dish(understood: &Understood, avoid: &[String], memory: Option<&Memory>) -> Option<String> {
-        None
-    }
-    /// DUP(bot.knowledge.cooking::ingredients)
-    pub fn ingredients(understood: &Understood) -> Vec<String> {
-        Vec::new()
-    }
-    /// DUP(bot.knowledge.cooking::meal)
-    pub fn meal(understood: &Understood, args: MealArgs) -> Option<String> {
-        None
-    }
-    /// DUP(bot.knowledge.cooking::negated_ingredients)
-    pub fn negated_ingredients(understood: &Understood) -> Vec<String> {
-        Vec::new()
-    }
-    /// DUP(bot.knowledge.cooking::pantry_idea)
-    pub fn pantry_idea(name: &str) -> Option<String> {
-        None
-    }
-    /// DUP(bot.knowledge.cooking::pointed): the reading the line means, and its
-    /// `new_dish_only` flag.
-    pub fn pointed(memory: &Memory, understood: &Understood) -> Option<(Understood, bool)> {
-        None
-    }
-    /// DUP(bot.knowledge.cooking::pointed_at_a_food)
-    pub fn pointed_at_a_food(understood: &Understood, memory: &Memory) -> Option<String> {
-        None
-    }
-    /// DUP(bot.knowledge.cooking::side_for)
-    pub fn side_for(memory: &Memory, text: &str) -> Option<String> {
-        None
-    }
-    /// DUP(bot.knowledge.cooking::without)
-    pub fn without(understood: &Understood) -> Option<String> {
-        None
-    }
-    /// DUP(bot.knowledge.cooking::missing)
-    pub fn missing(understood: &Understood) -> HashSet<String> {
-        HashSet::new()
-    }
+    pub fn negated_ingredients(understood: &Understood) -> Vec<String> { c::negated_ingredients(understood) }
+    pub fn pantry_idea(name: &str) -> Option<String> { c::pantry_idea(name) }
+    pub fn pointed(memory: &Memory, understood: &Understood) -> Option<(Understood, bool)> { c::pointed(memory, understood) }
+    pub fn pointed_at_a_food(understood: &Understood, memory: &Memory) -> Option<String> { c::pointed_at_a_food(understood, &mut memory.clone()) }
+    pub fn side_for(memory: &Memory, text: &str) -> Option<String> { c::side_for(memory, text) }
+    pub fn without(understood: &Understood) -> Option<String> { c::without(understood) }
+    pub fn missing(understood: &Understood) -> HashSet<String> { c::missing(understood) }
 }
