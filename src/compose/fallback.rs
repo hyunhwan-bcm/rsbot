@@ -6080,6 +6080,7 @@ regexes!(THE_OUTCOME_ASK, WHO_IS_ILL);
 pools!(SAFETY_WORDS, OUTCOME_LINES);
 
 /// The memory as the plain Python dict `compose.pick` takes in its contract.
+#[allow(dead_code)]
 pub(crate) fn memory_value(memory: &Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
 }
@@ -6112,7 +6113,7 @@ pub fn an_outcome_asked_about_someone(text_: &str, memory: &Memory) -> Option<St
     if !WHO_IS_ILL.is_match(&parts.join(" ")) {
         return None;
     }
-    Some(crate::compose::pick(&OUTCOME_LINES, &memory_value(memory), &clean))
+    Some(crate::compose::pick(&OUTCOME_LINES, memory, &clean))
 }
 
 /// Python: bot/compose/fallback.py:12174 `is_a_hedge(said)`

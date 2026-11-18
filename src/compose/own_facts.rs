@@ -5,7 +5,7 @@
 //! Every table and compiled regex comes from the data bundle under its Python name.
 #![allow(non_upper_case_globals, clippy::all)]
 
-use crate::compose::fallback::{format_named, memory_value};
+use crate::compose::fallback::format_named;
 use crate::data::{self, Value};
 use crate::py::re::Re;
 use crate::py::text;
@@ -44,7 +44,7 @@ static _THE_PLACE: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| {
 
 /// `from . import pick`: one of the options, never the reply just given.
 fn pick(options: &[String], memory: &Memory, seed_text: &str) -> String {
-    crate::compose::pick(options, &memory_value(memory), seed_text)
+    crate::compose::pick(options, memory, seed_text)
 }
 
 /// `" ".join(text.lower().replace("’", "'").split()).strip(" ?.!,")`.
