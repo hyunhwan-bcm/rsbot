@@ -20,25 +20,14 @@ pub static MIN_TYPO_LENGTH: LazyLock<usize> =
 // was DUP(bot.knowledge.lookup::_one_edit): now the real port
 pub use crate::knowledge::lookup::_one_edit;
 
-static ENDINGS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.ENDINGS"));
 
 
 
-static COMMON: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup._COMMON"));
-static COMMON_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.COMMON_WORDS"));
-static STEMS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup._STEMS"));
-static COLOUR_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.COLOUR_WORDS"));
-static LEX_CHAT: LazyLock<HashSet<String>> = LazyLock::new(|| dict_keys("bot.understanding.lexicon.CHAT"));
-static LEX_EXPAND: LazyLock<HashSet<String>> = LazyLock::new(|| dict_keys("bot.understanding.lexicon.EXPAND"));
 
-fn dict_keys(name: &str) -> HashSet<String> {
-    data::get(name).pairs().iter().filter_map(|(k, _)| k.as_str().map(str::to_string)).collect()
-}
 
 // was DUP(bot.knowledge.lookup::_engine_reads): now the real port
 pub use crate::knowledge::lookup::_engine_reads;
 
-static GONE_OFF_SIGNS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.GONE_OFF_SIGNS"));
 
 // was DUP(bot.knowledge.lookup::says_it_has_gone_off): now the real port
 pub use crate::knowledge::lookup::says_it_has_gone_off;
@@ -127,8 +116,6 @@ pub use crate::understanding::topics::says_another_thing;
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.cleaning and bot.compose.fit
 
-static LANDED_ON: LazyLock<&'static crate::py::re::Re> = LazyLock::new(|| data::re("bot.knowledge.cleaning.LANDED_ON"));
-static LANDED_ON_THINGS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.cleaning.LANDED_ON_THINGS"));
 
 // was DUP(bot.knowledge.cleaning::landed_on_a_thing): now the real port
 pub use crate::knowledge::cleaning::landed_on_a_thing;
@@ -136,7 +123,6 @@ pub use crate::knowledge::cleaning::landed_on_a_thing;
 // was DUP(bot.knowledge.cleaning::not_a_mark_on_a_thing): now the real port
 pub use crate::knowledge::cleaning::not_a_mark_on_a_thing;
 
-static FIT_WANTS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.fit.WANTS"));
 
 // was DUP(bot.compose.fit::wanted): now the real port
 pub use crate::compose::fit::wanted as fit_wanted;
@@ -144,15 +130,6 @@ pub use crate::compose::fit::wanted as fit_wanted;
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.lookup: the kinds ask, and the engine's `find`
 
-static KINDS_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KINDS_WORDS"));
-static KINDS_SHAPE: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.lookup.KINDS_SHAPE"));
-static KINDS_ASKS_ME: LazyLock<&'static crate::py::re::Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_ASKS_ME"));
-static KINDS_ASKS_WITH_A_VERB: LazyLock<&'static crate::py::re::Re> =
-    LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_ASKS_WITH_A_VERB"));
-static KINDS_SAYS_HOW_IT_IS: LazyLock<&'static crate::py::re::Re> =
-    LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_SAYS_HOW_IT_IS"));
-static KINDS_NAMED_A_USE: LazyLock<&'static crate::py::re::Re> =
-    LazyLock::new(|| data::re("bot.knowledge.lookup.KINDS_NAMED_A_USE"));
 
 // was DUP(bot.knowledge.lookup::asks_the_kinds): now the real port
 pub use crate::knowledge::lookup::asks_the_kinds;

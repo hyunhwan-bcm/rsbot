@@ -57,8 +57,6 @@ static _PERSON_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.comp
 static OPENS_ON_A_FRAGMENT_QUESTION: LazyLock<&'static Re> =
     LazyLock::new(|| data::re("bot.compose.OPENS_ON_A_FRAGMENT_QUESTION"));
 static _NOT_A_FRAGMENT: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.compose._NOT_A_FRAGMENT"));
-static CLAIMS_A_PAST: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.history.CLAIMS_A_PAST"));
-static GREETS_A_RETURN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.history.GREETS_A_RETURN"));
 static A_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z']+", 0));
 
 /// DUP(bot.compose::said_again): the sentence with whoever it is about blanked, so two sayings
@@ -168,10 +166,6 @@ pub fn pick_strs(options: &[&str], memory: &Memory) -> String {
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.lookup
 
-static HAS_GONE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.HAS_GONE"));
-static GONE_INTENSIFIER: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.GONE_INTENSIFIER"));
-static GONE_STATE: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.GONE_STATE"));
-static WHERE_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.WHERE_PHRASES"));
 
 // was DUP(bot.knowledge.lookup::the_thing_has_gone): now the real port
 pub use crate::knowledge::lookup::the_thing_has_gone;
@@ -182,8 +176,6 @@ pub use crate::knowledge::lookup::asks_where;
 // ---------------------------------------------------------------------------------------------
 // bot.understanding.topics
 
-static MACHINE_BIN_WORDS: LazyLock<HashSet<String>> =
-    LazyLock::new(|| data::set("bot.understanding.topics.MACHINE_BIN_WORDS"));
 
 // was DUP(bot.understanding.topics::the_bin_is_on_a_machine): now the real port
 pub use crate::understanding::topics::the_bin_is_on_a_machine;
@@ -203,7 +195,6 @@ static _COOK_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.k
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.travel
 
-static AMBIGUOUS_PLACES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.travel.AMBIGUOUS_PLACES"));
 static _PLACE_SHAPE: LazyLock<String> = LazyLock::new(|| data::string("bot.knowledge.travel._PLACE_SHAPE"));
 
 // was DUP(bot.knowledge.travel::_worth_a_visit): now the real port

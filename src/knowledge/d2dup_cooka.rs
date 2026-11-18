@@ -15,7 +15,6 @@ use std::sync::LazyLock;
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.units
 
-static TABLE_GROUPS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.units._TABLE_GROUPS"));
 
 pub use crate::knowledge::units::people_in_groups;
 
@@ -42,11 +41,7 @@ pub use crate::knowledge::dishes::_phrase_in as dishes_phrase_in;
 // was DUP(bot.knowledge.dishes::recent_texts): now the real port
 pub use crate::knowledge::dishes::recent_texts as dishes_recent_texts;
 
-static GOES_WITH_SHAPE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.dishes.GOES_WITH_SHAPE"));
 
-fn dishes_names_any(text_: &str, words_name: &str) -> bool {
-    data::strs(words_name).iter().any(|w| dishes_phrase_in(text_, w))
-}
 
 // was DUP(bot.knowledge.dishes::asks_for_a_side_of_a_food): now the real port
 pub use crate::knowledge::dishes::asks_for_a_side_of_a_food as dishes_asks_for_a_side_of_a_food;
@@ -54,7 +49,6 @@ pub use crate::knowledge::dishes::asks_for_a_side_of_a_food as dishes_asks_for_a
 // was DUP(bot.knowledge.dishes::general_sides): now the real port
 pub use crate::knowledge::dishes::general_sides as dishes_general_sides;
 
-static OVEN_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.dishes.OVEN_WORD"));
 
 // was DUP(bot.knowledge.dishes::_names_an_appliance_and_a_cut): now the real port
 pub use crate::knowledge::dishes::_names_an_appliance_and_a_cut as dishes_names_an_appliance_and_a_cut;
@@ -104,9 +98,6 @@ pub fn lookup_find_in_garden(line: &str) -> bool {
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.meals (D1)
 
-fn meals(name: &str) -> &'static Value {
-    data::get(&format!("bot.knowledge.meals.{name}"))
-}
 
 // was DUP(bot.knowledge.meals::says_a_diet): now the real port
 pub use crate::knowledge::meals::says_a_diet as meals_says_a_diet;
@@ -114,27 +105,9 @@ pub use crate::knowledge::meals::says_a_diet as meals_says_a_diet;
 // was DUP(bot.knowledge.meals::_diet_said): now the real port
 pub use crate::knowledge::meals::_diet_said as meals_diet_said;
 
-static MEALS_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.meals.WORD"));
 
-fn ingredient_forms() -> Vec<(String, Vec<String>)> {
-    meals("INGREDIENTS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect()
-}
 
-static NO_HAVE_PATTERNS: LazyLock<std::sync::Mutex<std::collections::HashMap<(String, String), Re>>> =
-    LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
-fn no_have_match(cue: &str, shape: &str, plain: &str) -> bool {
-    let mut cache = NO_HAVE_PATTERNS.lock().unwrap();
-    let key = (cue.to_string(), shape.to_string());
-    let re = cache.entry(key).or_insert_with(|| {
-        let gap = meals("NO_HAVE_GAP").str().to_string();
-        Re::new(
-            &format!("(?<![a-z]){}{} {}(?![a-z])", crate::py::re::escape(cue), gap, crate::py::re::escape(shape)),
-            0,
-        )
-    });
-    re.is_match(plain)
-}
 
 /// `meals._ruled_out(text)` (the real port).
 pub fn meals_ruled_out(text_: &str) -> HashSet<String> {
@@ -144,13 +117,7 @@ pub fn meals_ruled_out(text_: &str) -> HashSet<String> {
 // was DUP(bot.knowledge.meals::_is_the_ruled_out_food): now the real port
 pub use crate::knowledge::meals::_is_the_ruled_out_food as meals_is_the_ruled_out_food;
 
-fn strip_set<'a>(word: &'a str, chars: &str) -> &'a str {
-    word.trim_end_matches(|c| chars.contains(c))
-}
 
-fn known_word(word: &str, known: &HashSet<String>) -> bool {
-    known.contains(word) || known.contains(strip_set(word, "s")) || known.contains(strip_set(word, "es"))
-}
 
 // was DUP(bot.knowledge.meals::unknown_food): now the real port
 pub use crate::knowledge::meals::unknown_food as meals_unknown_food;

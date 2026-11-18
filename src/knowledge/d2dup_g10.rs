@@ -135,22 +135,3 @@ pub fn last_user(memory: &Memory) -> String {
     crate::memory::last_user(memory, 1).str().to_string()
 }
 
-/// TYPE(leans_on): on a follow-up Python's `reading["leans_on"]` is a dict ("text", "subject",
-/// "topic", "words", ...); the shared typed reading holds `leans_on: Option<String>`, which
-/// Python's `isinstance(leans, dict)` tests would turn away. Until the shared type carries the
-/// dict, every field of it reads as absent here; the logic that reads it is ported in full.
-pub fn leans_on_field<'a>(understood: &'a Understood, key: &str) -> Option<&'a str> {
-    let l = understood.leans_on.as_ref()?;
-    match key {
-        "text" => Some(l.text.as_str()),
-        "subject" => l.subject.as_deref(),
-        "subject_type" => l.subject_type.as_deref(),
-        "topic" => l.topic.as_deref(),
-        _ => None,
-    }
-}
-
-/// `leans_on["words"]` (see `leans_on_field`): absent until the shared type carries the dict.
-pub fn leans_on_words(understood: &Understood) -> Option<Vec<String>> {
-    understood.leans_on.as_ref().map(|l| l.words.clone())
-}

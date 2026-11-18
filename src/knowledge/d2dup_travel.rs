@@ -35,7 +35,6 @@ pub use crate::memory::when::the_plan;
 
 // DUP(bot.memory.topics::LIVES_THERE)
 pub static LIVES_THERE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.LIVES_THERE"));
-static TRIP_FRAME: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.TRIP_FRAME"));
 
 // was DUP(bot.memory.topics::going_there): now the real port
 pub use crate::memory::topics::going_there;
@@ -43,13 +42,6 @@ pub use crate::memory::topics::going_there;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/geography.py (D1)
 
-static G_CROSSING_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.geography._CROSSING_WORD"));
-static G_DIRECTION: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.geography._DIRECTION"));
-static G_DESTINATION: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.geography._DESTINATION"));
-static G_ARTICLE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.geography._ARTICLE"));
-static G_NOT_A_PLACE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.geography._NOT_A_PLACE"));
-static G_EVERYDAY_PLACE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.geography._EVERYDAY_PLACE"));
-static G_BRITAIN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.geography._BRITAIN"));
 
 // was DUP(bot.knowledge.geography::_bare_place): now the real port
 pub use crate::knowledge::geography::_bare_place;

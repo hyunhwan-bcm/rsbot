@@ -63,9 +63,6 @@ use crate::understood::Understood;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
-fn lookup_set(name: &str) -> HashSet<String> {
-    data::set(&format!("bot.knowledge.lookup.{name}"))
-}
 
 // was DUP(bot.knowledge.lookup::tokens): now the real port
 pub use crate::knowledge::lookup::tokens;

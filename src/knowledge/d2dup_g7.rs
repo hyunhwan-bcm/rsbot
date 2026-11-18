@@ -172,8 +172,6 @@ pub fn user_lines(memory: &Memory) -> Vec<String> {
 // ---------------------------------------------------------------------------------------------
 // bot/memory/topics.py
 
-static TOPICS_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.WORD"));
-static WHO_SAID: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.topics.WHO_SAID"));
 
 // was DUP(bot.memory.topics::words): now the real port
 pub use crate::memory::topics::words;
@@ -387,13 +385,6 @@ pub fn the_age_of_the_person_they_mean(memory: &mut Memory, understood: Option<&
 // ---------------------------------------------------------------------------------------------
 // bot/memory/newborn.py
 
-static BABY_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.newborn.BABY_WORDS"));
-static A_BIRTH: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.A_BIRTH"));
-static JUST_BORN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.JUST_BORN"));
-static A_YEAR: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.A_YEAR"));
-static A_BIRTH_WEIGHT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.A_BIRTH_WEIGHT"));
-static NOT_THE_BABY: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.newborn.NOT_THE_BABY"));
-static LETTER_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new("[a-z']+", 0));
 
 // was DUP(bot.memory.newborn::_the_lines): now the real port
 pub use crate::memory::newborn::_the_lines;
@@ -534,7 +525,6 @@ pub fn _gift_still_to_get(words: &HashSet<&str>, norm: &[String]) -> bool {
 
 static PEOPLE_MALE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.PEOPLE_MALE"));
 static PEOPLE_FEMALE: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.PEOPLE_FEMALE"));
-static CONTAINERS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.CONTAINERS"));
 
 /// `lookup.about_them(template)(memory, reading)` with the default people lists (the real port).
 pub fn about_them(template: &str, reading: &Understood) -> String {
@@ -550,19 +540,7 @@ pub fn only_a_container<S: AsRef<str>>(understood: &Understood, names: &[S]) -> 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/wording.py
 
-struct Sign {
-    phrases: Vec<String>,
-    label: String,
-}
 
-static SIGNS: LazyLock<Vec<Sign>> = LazyLock::new(|| {
-    data::get("bot.knowledge.wording.SIGNS")
-        .items()
-        .iter()
-        .map(|row| Sign { phrases: row.items()[0].strs(), label: row.items()[1].str().to_string() })
-        .collect()
-});
-static SIGN_PLURAL: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.wording._SIGN_PLURAL"));
 
 // was DUP(bot.knowledge.wording::sign_said): now the real port
 pub use crate::knowledge::wording::sign_said;

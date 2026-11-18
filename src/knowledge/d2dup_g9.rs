@@ -8,20 +8,7 @@ use crate::py::re::{escape, Re};
 use crate::understood::Understood;
 use std::sync::LazyLock;
 
-/// Python `str(list_of_str)`, or "" for an empty list (`str(x or "")`).
-fn list_or_empty(items: &[String]) -> String {
-    if items.is_empty() { String::new() } else { crate::knowledge::d2_shared::py_repr_list(items) }
-}
 
-static APPLIANCE_NAMES: LazyLock<Vec<(String, Re)>> = LazyLock::new(|| {
-    data::strs("bot.knowledge.lookup.APPLIANCE_NAMES")
-        .into_iter()
-        .map(|a| {
-            let rx = Re::new(&format!("(?<![a-z0-9]){}(?![a-z0-9])", escape(&a)), 0);
-            (a, rx)
-        })
-        .collect()
-});
 
 /// `lookup.the_appliance_swallows_the_name(understood, names)` (the real port).
 pub fn the_appliance_swallows_the_name<S: AsRef<str>>(understood: &Understood, names: &[S]) -> bool {
@@ -40,8 +27,6 @@ pub fn recent(memory: &crate::state::Memory, n: usize) -> &[crate::state::Turn] 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/family.py
 
-static A_BOY: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.family._A_BOY"));
-static A_GIRL: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.family._A_GIRL"));
 
 // was DUP(bot.knowledge.family::_the_child_pronouns): now the real port
 pub use crate::knowledge::family::_the_child_pronouns;
@@ -49,16 +34,8 @@ pub use crate::knowledge::family::_the_child_pronouns;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/units.py
 
-static TABLE_GROUPS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.units._TABLE_GROUPS"));
-static GROUP_VALUE: LazyLock<Vec<(String, i64)>> = LazyLock::new(|| int_dict("bot.knowledge.units._GROUP_VALUE"));
 
-fn int_dict(name: &str) -> Vec<(String, i64)> {
-    data::get(name).pairs().iter().map(|(k, v)| (k.str().to_string(), v.as_int().unwrap_or(0))).collect()
-}
 
-fn lookup_int(table: &[(String, i64)], key: &str) -> Option<i64> {
-    table.iter().find(|(k, _)| k == key).map(|(_, v)| *v)
-}
 
 pub use crate::knowledge::units::people_in_groups;
 
@@ -85,32 +62,6 @@ pub use crate::knowledge::cooking::_occasion;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/dishes.py
 
-static INGREDIENT_AFTER: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes._INGREDIENT_AFTER"));
-static RULE_OUT_FILLER: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes._RULE_OUT_FILLER"));
-static RULE_OUT: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes._RULE_OUT"));
-/// `dishes.PLANS`: each plan key with the token lists of its names.
-static PLAN_NAMES: LazyLock<Vec<(String, Vec<Vec<String>>)>> = LazyLock::new(|| {
-    data::get("bot.knowledge.dishes.PLANS")
-        .pairs()
-        .iter()
-        .map(|(k, plan)| {
-            let mut names = Vec::new();
-            if let Some(groups) = plan.get("names") {
-                for group in groups.items() {
-                    match group {
-                        crate::data::Value::Tuple(_) => {
-                            for name in group.items() {
-                                names.push(crate::knowledge::d2_shared::tokens(name.str()));
-                            }
-                        }
-                        other => names.push(crate::knowledge::d2_shared::tokens(other.str())),
-                    }
-                }
-            }
-            (k.str().to_string(), names)
-        })
-        .collect()
-});
 
 // was DUP(bot.knowledge.dishes::_same_word): now the real port
 pub use crate::knowledge::dishes::_same_word;

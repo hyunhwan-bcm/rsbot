@@ -897,7 +897,7 @@ pub fn something_to_bake_in_the_oven(understood: &Understood) -> bool {
     if t.is_empty() {
         return false;
     }
-    dup::dish_in(t).is_some_and(|d| !d.is_empty()) // NEEDS(bot.knowledge.dishes::dish_in)
+    dup::dish_in(t).is_some_and(|d| !d.is_empty())
 }
 
 /// True unless the line asks how long a roast joint takes (that is the joint-timing row's).

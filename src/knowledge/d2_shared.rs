@@ -124,37 +124,6 @@ pub fn call_guard(id: &str, u: &Understood) -> bool {
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/lookup.py
 
-static WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.WORD"));
-static WHERE_PHRASES: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.WHERE_PHRASES"));
-static STOPPED_WORKING: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.STOPPED_WORKING"));
-static HAS_GONE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup.HAS_GONE"));
-static FOOD_NAMED: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.FOOD_NAMED"));
-static BEFORE_OFF: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.BEFORE_OFF"));
-static BORROWING_IN_THE_LINE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._BORROWING_IN_THE_LINE"));
-static OFF_A_PERSON: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._OFF_A_PERSON"));
-static THE_HEAT_OF_AN_ARGUMENT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._THE_HEAT_OF_AN_ARGUMENT"));
-static FLAT_YOU_LIVE_IN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._FLAT_YOU_LIVE_IN"));
-static KEEPING_AN_EYE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._KEEPING_AN_EYE"));
-static SAVING_VERB: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._SAVING_VERB"));
-static SAVING_FOR_A_TRIP: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._SAVING_FOR_A_TRIP"));
-static KEEPING_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEEPING_WORDS"));
-static GONE_OFF_SIGNS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.GONE_OFF_SIGNS"));
-static WHERE_PART_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.WHERE_PART_WORDS"));
-static PRICE_COMPARED: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.PRICE_COMPARED"));
-static GONE_INTENSIFIER: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.GONE_INTENSIFIER"));
-static GONE_STATE: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.GONE_STATE"));
-static OFF_STATE_ASKS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.OFF_STATE_ASKS"));
-static BAD_IS_A_STATE: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup._BAD_IS_A_STATE"));
-static OFF_SAID_OF_FOOD: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.OFF_SAID_OF_FOOD"));
-static SMELL_VERBS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.SMELL_VERBS"));
-static A_GOOD_SMELL: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.A_GOOD_SMELL"));
-static A_BAKE_OR_A_PAN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._A_BAKE_OR_A_PAN"));
-static CAME_OUT_FLAT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._CAME_OUT_FLAT"));
-static THE_GROUND_UNDERFOOT: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._THE_GROUND_UNDERFOOT"));
-static AFFORD_THE_TRIP: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.lookup._AFFORD_THE_TRIP"));
-static KEPT_FOODS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.lookup.KEPT_FOODS"));
-static WEIGHT_UNITS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.lookup.WEIGHT_UNITS"));
-static FLAT_WORD: LazyLock<Re> = LazyLock::new(|| Re::new("\\bflat\\b", crate::py::re::I));
 
 // was DUP(bot.knowledge.lookup::the_line): now the real port
 pub use crate::knowledge::lookup::the_line;
@@ -182,11 +151,6 @@ pub use crate::knowledge::lookup::the_thing_has_gone;
 // was DUP(bot.knowledge.lookup::food_has_gone_off): now the real port
 pub use crate::knowledge::lookup::food_has_gone_off;
 
-/// `text or clean`, else the words joined: the line the flat/heat/eye guards read.
-fn text_or_words(u: &Understood) -> String {
-    let said = or(&u.text, &u.clean);
-    if said.is_empty() { u.words.join(" ") } else { said.to_string() }
-}
 
 // was DUP(bot.knowledge.lookup::a_price_not_a_loan): now the real port
 pub use crate::knowledge::lookup::a_price_not_a_loan;
@@ -223,12 +187,6 @@ static OPENS_ON_A_FRAGMENT_QUESTION: LazyLock<&'static Re> =
 static NOT_A_FRAGMENT: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.compose._NOT_A_FRAGMENT"));
 static PERSON_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose._PERSON_WORD"));
 static LETTERS: LazyLock<Re> = LazyLock::new(|| Re::new("[a-z']+", 0));
-static LETTERS_DIGITS: LazyLock<Re> = LazyLock::new(|| Re::new("[a-z0-9']+", 0));
-static CLAIMS_A_PAST: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.history.CLAIMS_A_PAST"));
-static GREETS_A_RETURN: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.history.GREETS_A_RETURN"));
-static NO_CONTENT_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.history.NO_CONTENT_WORDS"));
-static ANSWERS_AN_EARLIER_TURN: LazyLock<Vec<String>> =
-    LazyLock::new(|| data::strs("bot.memory.history.ANSWERS_AN_EARLIER_TURN"));
 
 // DUP(bot.compose::_asks_about_a_thing_nobody_said)
 fn asks_about_a_thing_nobody_said(option: &str, last: Option<&str>, said: &str) -> bool {

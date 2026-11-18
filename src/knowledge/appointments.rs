@@ -2,7 +2,7 @@
 //! blood test, a scan, the dentist, the optician), read from the line and the one before it.
 
 use crate::data::FnRef;
-use crate::knowledge::d2dup_g10::{globals, last_user, leans_on_field};
+use crate::knowledge::d2dup_g10::{globals, last_user};
 use crate::knowledge::registry::{GuardFn, ReplyFn};
 use crate::py::text;
 use crate::state::Memory;
@@ -58,7 +58,7 @@ pub fn _the_line_wants_a_length(line: &str, reading: &Understood) -> bool {
 pub fn _before_an_appointment(memory: &mut Memory, reading: &Understood) -> Option<String> {
     let mut line = text::squash(&reading.text).to_lowercase();
     let mut before = String::new();
-    if let Some(leaned) = leans_on_field(reading, "text").filter(|t| !t.is_empty()) {
+    if let Some(leaned) = reading.leans_on.as_ref().map(|l| l.text.as_str()).filter(|t| !t.is_empty()) {
         // The kind is often in the line before: "i have a dentist appointment tomorrow" then
         // "do i need to do anything before I go".
         before = text::squash(leaned).to_lowercase();
@@ -104,13 +104,8 @@ pub fn _before_an_appointment(memory: &mut Memory, reading: &Understood) -> Opti
 
 /// Whether this line is a question about an appointment the line before it named.
 pub fn _follows_an_appointment(understood: &Understood) -> bool {
-    if leans_on_field(understood, "text").is_none()
-        && leans_on_field(understood, "subject").is_none()
-        && leans_on_field(understood, "topic").is_none()
-    {
-        return false; // `leans_on` is not a dict
-    }
-    let before = ["text", "subject", "topic"].iter().map(|k| leans_on_field(understood, k).unwrap_or("")).collect::<Vec<_>>().join(" ");
+    let Some(leans) = &understood.leans_on else { return false }; // `leans_on` is not a dict
+    let before = [leans.text.as_str(), leans.subject.as_deref().unwrap_or(""), leans.topic.as_deref().unwrap_or("")].join(" ");
     let before = text::squash(&before).to_lowercase();
     if before.is_empty() {
         return false;

@@ -58,10 +58,8 @@ pub use crate::knowledge::cooking::without as cooking_without;
 // ---------------------------------------------------------------------------------------------
 // DUP(bot.knowledge.dishes::a_dish_is_already_the_plan)
 
-static PLAN_MARKER: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes._PLAN_MARKER"));
-static IDEA_ASK: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes._IDEA_ASK"));
 
-// NEEDS(bot.knowledge.dishes::dish_in)
+// `dishes.dish_in` (the real port), owned as a String.
 /// The plan key a piece of text names, or None. Needs D1's `dishes._named` (the dish-name
 /// matcher, with `understanding.topics.says_another_thing` and lookup's typo rules); until that
 /// is merged it names nothing.

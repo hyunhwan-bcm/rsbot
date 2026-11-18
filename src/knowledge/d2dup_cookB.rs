@@ -50,14 +50,6 @@ pub fn user(memory: &mut Memory) -> Value {
     crate::memory::user(memory).clone()
 }
 
-static TABLE_GROUPS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.units._TABLE_GROUPS"));
-static GROUP_VALUE: LazyLock<HashMap<String, i64>> = LazyLock::new(|| {
-    data::get("bot.knowledge.units._GROUP_VALUE")
-        .pairs()
-        .iter()
-        .filter_map(|(k, v)| Some((k.as_str()?.to_string(), v.as_int()?)))
-        .collect()
-});
 
 pub use crate::knowledge::units::people_in_groups;
 
@@ -73,28 +65,7 @@ pub use crate::knowledge::cooking_more::_said_words;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/meals.py
 
-static MEALS_INGREDIENTS: LazyLock<Vec<(String, Vec<String>)>> = LazyLock::new(|| {
-    data::get("bot.knowledge.meals.INGREDIENTS")
-        .pairs()
-        .iter()
-        .filter_map(|(k, v)| Some((k.as_str()?.to_string(), v.strs())))
-        .collect()
-});
-static UP_FOOD_SET: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.meals._UP_FOOD_SET"));
-static MEALS_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.meals.WORD"));
-static USE_DISH_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.meals.USE_DISH_WORDS"));
-static UP_CLASSES: LazyLock<Vec<(Vec<String>, String)>> = LazyLock::new(|| {
-    data::get("bot.knowledge.meals.UP_CLASSES")
-        .items()
-        .iter()
-        .map(|row| (row.items()[0].strs(), row.items()[1].str().to_string()))
-        .collect()
-});
-static ASK_IN_NEWS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.meals.ASK_IN_NEWS"));
 
-fn is_alpha_word(s: &str) -> bool {
-    text::is_alpha(s)
-}
 
 // was DUP(bot.knowledge.meals::_up_food): now the real port
 pub use crate::knowledge::meals::_up_food;

@@ -36,9 +36,6 @@ pub fn user_facts(memory: &Memory) -> Option<&Value> {
     mem(memory, "user").filter(|v| matches!(v, Value::Dict(_)))
 }
 
-fn set_of(name: &str) -> HashSet<String> {
-    data::set(name)
-}
 
 
 /// `str(understood.get(key) or "")` for "norm": its Python list repr when it has words.
@@ -66,22 +63,12 @@ pub use crate::memory::last_bot;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/units.py
 
-static UNITS_TABLE_GROUPS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.units._TABLE_GROUPS"));
-static UNITS_GROUP_VALUE: LazyLock<IndexMap<String, i64>> = LazyLock::new(|| {
-    data::get("bot.knowledge.units._GROUP_VALUE")
-        .pairs()
-        .iter()
-        .map(|(k, v)| (k.str().to_string(), v.as_int().unwrap_or(0)))
-        .collect()
-});
 
 pub use crate::knowledge::units::people_in_groups;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/freshness.py
 
-static FRESHNESS_A_PERIOD_OF_TIME: LazyLock<&'static Re> =
-    LazyLock::new(|| data::re("bot.knowledge.freshness._A_PERIOD_OF_TIME"));
 
 // was DUP(bot.knowledge.freshness::a_cooling_question_not_a_keeping_one): now the real port
 pub use crate::knowledge::freshness::a_cooling_question_not_a_keeping_one;
@@ -89,13 +76,6 @@ pub use crate::knowledge::freshness::a_cooling_question_not_a_keeping_one;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/body.py
 
-static BODY_TEMPERATURE_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| set_of("bot.knowledge.body.TEMPERATURE_WORDS"));
-static BODY_THING_AFTER_THE_WORD: LazyLock<HashSet<String>> =
-    LazyLock::new(|| set_of("bot.knowledge.body.THING_AFTER_THE_WORD"));
-static BODY_OTHER_PEOPLE: LazyLock<HashSet<String>> = LazyLock::new(|| set_of("bot.knowledge.body.OTHER_PEOPLE"));
-static BODY_WE_OUR_OURS: LazyLock<HashSet<String>> = LazyLock::new(|| set_of("bot.knowledge.body.WE_OUR_OURS"));
-static BODY_POSSESSIVE_OF_A_PERSON: LazyLock<HashSet<String>> =
-    LazyLock::new(|| set_of("bot.knowledge.body.POSSESSIVE_OF_A_PERSON"));
 
 /// Python's `string.punctuation`.
 pub const PUNCTUATION: &str = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
@@ -106,8 +86,6 @@ pub use crate::knowledge::body::a_persons_temperature;
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/dishes.py
 
-static DISHES_GOES_WITH_SHAPE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.dishes.GOES_WITH_SHAPE"));
-static DISHES_PAIRING_FOODS: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.knowledge.dishes.PAIRING_FOODS"));
 
 // was DUP(bot.knowledge.dishes::_same_word): now the real port
 pub use crate::knowledge::dishes::_same_word;
@@ -118,7 +96,7 @@ pub use crate::knowledge::dishes::_phrase_in;
 // was DUP(bot.knowledge.dishes::asks_for_a_side_of_a_food): now the real port
 pub use crate::knowledge::dishes::asks_for_a_side_of_a_food;
 
-// NEEDS(bot.knowledge.dishes::dish_in)
+// `dishes.dish_in` (the real port), owned as a String.
 /// The dish the text names (D1 ports the dish matcher, `dishes._named`); until it is merged this
 /// stand-in names none.
 pub fn dish_in(text: &str) -> Option<String> {
