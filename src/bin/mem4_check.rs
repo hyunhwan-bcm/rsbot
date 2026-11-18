@@ -372,6 +372,21 @@ fn call(fid: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out> {
         ("repeat", "the_advice_was_to_get_seen") => Out::Bool(repeat::the_advice_was_to_get_seen(&a.mem(0))),
         ("repeat", "the_part_asked") => opt(repeat::the_part_asked_text(&a.s(0), &a.mem(1))),
         ("repeat", "_whether_to") => text(repeat::_whether_to(&a.s(0))),
+        ("repeat", "_the_steps_done") => {
+            let mut acts: Vec<J> = repeat::_the_steps_done(&a.s(0))
+                .into_iter()
+                .map(|(act, thing)| {
+                    let thing = match thing {
+                        Some(t) => J::Array(sorted(t).into_iter().map(J::String).collect()),
+                        None => J::Null,
+                    };
+                    J::Array(vec![J::String(act), thing])
+                })
+                .collect();
+            acts.sort_by_key(|j| j.to_string());
+            Out::Exact(J::Array(acts))
+        }
+        ("repeat", "_the_stems") => strs_out(sorted(repeat::_the_stems(&a.s(0)).into_iter().collect())),
         ("repeat", "_a_stem") => text(repeat::_a_stem(&a.s(0))),
         ("repeat", "_the_chat_is_still_on") => Out::Bool(repeat::_the_chat_is_still_on(&a.s(0), &a.mem(1))),
         ("repeat", "what_it_knows") => opt(repeat::what_it_knows_text(&a.s(0), &a.mem(1))),
@@ -560,9 +575,18 @@ fn ack_call(name: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out>
         "_a_value" => Out::Bool(ack::_a_value(&a.s(0))),
         "_cut" => text(ack::_cut(&a.s(0))),
         "_tidy" => text(ack::_tidy(&a.s(0))),
+        "_a_thing_the_line_named" => strs_out(sorted(ack::_a_thing_the_line_named(&a.s(0)))),
+        "_the_units_measure" => strs_out(sorted(ack::_the_units_measure(&a.s(0)))),
+        "_the_values_measures" => strs_out(sorted(ack::_the_values_measures(&a.s(0)))),
         _ => return None,
     };
     Some(out)
+}
+
+fn sorted(set: std::collections::HashSet<String>) -> Vec<String> {
+    let mut v: Vec<String> = set.into_iter().collect();
+    v.sort();
+    v
 }
 
 fn truthy(v: &J) -> bool {
