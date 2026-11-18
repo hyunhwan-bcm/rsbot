@@ -116,3 +116,27 @@ pub fn attempt<T>(f: impl FnOnce() -> T) -> Option<T> {
         }
     }
 }
+
+pub(crate) use crate::compose::fallback::format_named;
+
+static WS_RUN: std::sync::LazyLock<crate::py::re::Re> = std::sync::LazyLock::new(|| crate::py::re::Re::new(r"\s+", 0));
+
+/// `re.sub(r"\s+", " ", text).strip()`.
+pub fn ws_one(text: &str) -> String {
+    text::strip(&WS_RUN.sub(" ", text)).to_string()
+}
+
+/// `re.sub(r"\s+", " ", text)` (no strip).
+pub fn ws_sub(text: &str) -> String {
+    WS_RUN.sub(" ", text)
+}
+
+/// `text.replace("’", "'")`.
+pub fn straight(text: &str) -> String {
+    text.replace('\u{2019}', "'")
+}
+
+/// `(memory.get("understood") or {}).get("clean") or ""`.
+pub fn understood_clean(memory: &Memory) -> &str {
+    memory.understood.as_ref().map(|u| u.clean.as_str()).unwrap_or("")
+}
