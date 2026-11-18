@@ -35,8 +35,13 @@ static _PET_WORDS_FOR_AVOID: LazyLock<Vec<String>> = LazyLock::new(|| strs("_PET
 
 /// The line (text and clean) as one lower-cased string.
 pub fn _words_of(reading: &Understood) -> String {
-    // LEANS_ON: Python adds the earlier reading's text, subject and topic when it leans on one.
-    text::squash(&format!("{} {}", reading.text, reading.clean)).to_lowercase()
+    let mut said = vec![reading.text.clone(), reading.clean.clone()];
+    if let Some(leans) = &reading.leans_on {
+        said.push(leans.text.clone());
+        said.push(leans.subject.clone().unwrap_or_default());
+        said.push(leans.topic.clone().unwrap_or_default());
+    }
+    text::squash(&said.join(" ")).to_lowercase()
 }
 
 /// The person's previous line, lower-cased.

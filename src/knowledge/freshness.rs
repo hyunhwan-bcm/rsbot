@@ -119,16 +119,18 @@ pub fn _asks_if_it_is_still_all_right(text: &str) -> bool {
 
 /// The line, with the leaving line before it in front when the line asks about that food; the
 /// flag says whether the earlier line was borrowed.
-pub fn _the_line_it_leans_on(memory: &Memory, _reading: &Understood, text: &str) -> (String, bool) {
+pub fn _the_line_it_leans_on(memory: &Memory, reading: &Understood, text: &str) -> (String, bool) {
     if _leaving_out(text) {
         return (text.to_string(), false); // this line says the leaving itself
     }
     if !_asks_if_it_is_still_all_right(text) {
         return (text.to_string(), false);
     }
-    // LEANS_ON: Python reads `reading["leans_on"]["text"]` first when it is a dict (multi-turn);
-    // the typed reading holds no such dict, so the earlier line is the last user line.
-    let earlier = format!(" {} ", sh::last_user(memory).to_lowercase());
+    let mut earlier = reading.leans_on.as_ref().map(|l| l.text.to_lowercase()).unwrap_or_default();
+    if earlier.is_empty() {
+        earlier = sh::last_user(memory).to_lowercase();
+    }
+    let earlier = format!(" {earlier} ");
     if earlier.trim().is_empty() {
         return (text.to_string(), false);
     }

@@ -1196,8 +1196,9 @@ pub fn _medium_named(text_: &str) -> Option<String> {
 /// The medium the line, the last turn or the last answer is about.
 pub fn _the_medium(understood: &Understood, memory: &Memory) -> Option<String> {
     let mut order = vec![format!("{} {}", understood.clean, understood.norm_text)];
-    // TYPE(understood.leans_on): Python reads leans_on["text"] when it is a dict; the typed
-    // reading keeps it as a string, so there is no leaned-on text to add here.
+    if let Some(lean) = understood.leans_on.as_ref().filter(|l| !l.text.is_empty()) {
+        order.push(lean.text.clone());
+    }
     if let Some(last) = memory.turns.last() {
         order.push(last.user.clone());
         order.push(last.bot.clone());
@@ -1245,8 +1246,10 @@ pub fn _title_medium(text_: &str) -> Option<String> {
 /// Whether the chat is about picking something to watch, read or hear.
 pub fn _chat_is_about_a_pick(understood: &Understood, memory: &Memory) -> bool {
     let domain = dict_text(mem_dict(memory, "last_answer"), "domain");
-    // TYPE(understood.leans_on): the leaned-on topic is only read when it is a dict.
-    let topic = understood.topic.clone().unwrap_or_default();
+    let mut topic = understood.topic.clone().unwrap_or_default();
+    if topic.is_empty() {
+        topic = understood.leans_on.as_ref().and_then(|l| l.topic.clone()).unwrap_or_default();
+    }
     if domain == "entertainment" || topic == "entertainment" {
         return true;
     }
@@ -4111,10 +4114,19 @@ pub fn _not_a_crowd(understood: &Understood) -> bool {
     if understood.topic.as_deref() == Some("family-and-parenting") {
         return false;
     }
-    // TYPE(understood.leans_on): Python reads the leaned-on line's words, subject and text for
-    // crowd words when leans_on is a dict; the typed reading keeps it as a string, so nothing here.
+    if let Some(leaning) = &understood.leans_on {
+        let mut words: Vec<String> = leaning.words.iter().map(|w| w.to_lowercase()).collect();
+        words.push(leaning.subject.as_deref().unwrap_or("").to_lowercase());
+        words.push(leaning.text.to_lowercase());
+        let flat = words.join(" ");
+        if _A_CROWD.iter().any(|w| flat.contains(w.as_str())) {
+            return false;
+        }
+    }
     true
 }
+
+strs!(_A_CROWD);
 
 strs!(_CHILD_WORDS);
 lazy_re!(CHAT_AGES, "\\b(\\d{1,2})\\s*(?:years? old|year old|yo)\\b");

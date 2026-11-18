@@ -155,9 +155,7 @@ pub fn _an_animal_struck(line: &str) -> bool {
 
 /// False when the conversation is on a bicycle and this line is a follow-up to it.
 pub fn _not_a_bike_chat(understood: &Understood) -> bool {
-    // LEANS_ON: Python reads `understood["leans_on"]["text"]`; the typed reading carries no
-    // such dict on a single-turn call, so the line before is "".
-    let above = String::new();
+    let above = understood.leans_on.as_ref().map(|l| l.text.to_lowercase()).unwrap_or_default();
     if !above.contains("cable") {
         return true;
     }
@@ -300,8 +298,7 @@ pub fn _the_trade_is_named(understood: &Understood) -> bool {
     if _words_name_the_trade(&said) {
         return true;
     }
-    // LEANS_ON: Python also reads `understood["leans_on"]["text"]`; absent on a single-turn call.
-    let leaned = "";
+    let leaned = understood.leans_on.as_ref().map(|l| l.text.as_str()).unwrap_or("");
     if !leaned.is_empty() && _words_name_the_trade(leaned) {
         return true;
     }
@@ -386,8 +383,8 @@ pub fn _a_seat_is_what_it_is_about(understood: &Understood) -> bool {
     if _A_SEAT_OR_A_CHILD.is_match(&line) {
         return true;
     }
-    // LEANS_ON: Python reads the words of `understood["leans_on"]`; absent on a single-turn call.
-    _A_SEAT_OR_A_CHILD.is_match("")
+    let lean = understood.leans_on.as_ref().map(|l| l.words.join(" ")).unwrap_or_default();
+    _A_SEAT_OR_A_CHILD.is_match(&lean)
 }
 
 /// A lapsed MOT, answered from the half of it the person asked about.

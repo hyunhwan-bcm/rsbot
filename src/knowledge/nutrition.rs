@@ -528,8 +528,12 @@ pub fn _not_a_verdict_on_what_is_going_off(understood: &Understood) -> bool {
         }
         return false;
     }
-    // LEANS_ON: Python also stands down when the line it leans on (a dict) says the food is going
-    // off and this line asks whether it can be eaten; the typed reading has no such dict.
+    if let Some(leans) = &understood.leans_on {
+        let past = leans.text.to_lowercase();
+        if _GOING_OFF.is_match(&past) && _EDIBILITY_ASK.is_match(&clean) {
+            return false;
+        }
+    }
     true
 }
 

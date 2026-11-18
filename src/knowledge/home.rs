@@ -1823,8 +1823,15 @@ pub fn the_trade_to_call(memory: &Memory, understanding: &Understood) -> String 
             return String::new();
         }
     }
-    // LEANS_ON: Python reads the trade off the earlier line the reading leans on (a dict with
-    // "text"); the typed reading's `leans_on` is never that dict on a single-turn reply.
+    if let Some(leans_on) = understanding.leans_on.as_ref().filter(|l| !l.text.is_empty()) {
+        let leans_on_line = sh::squash_lower(&leans_on.text);
+        if !leans_on_line.is_empty() && !NOT_A_TRADE.is_match(&leans_on_line) {
+            let reply = _trade_for(&leans_on_line);
+            if !reply.is_empty() {
+                return reply;
+            }
+        }
+    }
     if turns.len() >= 2 {
         let prior = sh::squash_lower(&turns[turns.len() - 2].user);
         if !prior.is_empty() && !NOT_A_TRADE.is_match(&prior) {

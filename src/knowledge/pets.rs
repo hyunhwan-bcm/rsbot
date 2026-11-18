@@ -2652,8 +2652,8 @@ pub fn _eaten_thing_is_not_food(understood: &Understood) -> bool {
 
 /// False for a line that only says what happened, or that leans on the turn before.
 pub fn _it_asks_what_to_do(understood: &Understood) -> bool {
-    // LEANS_ON: Python reads `understood["leans_on"]` (an earlier reading) here; it is always
-    // None on a single-turn reading.
+    // "how old is he" after "we got a kitten" is a question about the age (a leaned-on line is a
+    // dict with five keys, so it is always truthy).
     if understood.leans_on.is_some() {
         return false;
     }

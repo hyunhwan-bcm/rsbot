@@ -1094,13 +1094,17 @@ pub fn _a_statin_and_the_day(_memory: &mut Memory, understood: &Understood) -> O
     Some(STATIN_FIRST_WEEKS.clone())
 }
 
-/// Whether the line the reading leans on named a statin.
-// TYPE(understood.leans_on): Python reads a dict (its "words" / "text"); the reading here holds
-// an Option<String>, which Python's `isinstance(lean, dict)` turns away, and None reads as {}.
+/// Whether the line the reading leans on named a statin (its words, else its text).
 pub fn _the_last_line_named_a_statin(understood: &Understood) -> bool {
-    // None reads as {} (nothing said), and a string is not a dict: either way no statin is named.
-    let _ = (&understood.leans_on, &*_STATIN_NAMES);
-    false
+    // None reads as {}: nothing said.
+    let said = match &understood.leans_on {
+        Some(lean) => {
+            let words = lean.words.join(" ").to_lowercase();
+            if words.is_empty() { lean.text.to_lowercase() } else { words }
+        }
+        None => String::new(),
+    };
+    _STATIN_NAMES.iter().any(|name| said.contains(name.as_str()))
 }
 
 /// What an MRI, a CT, an ultrasound or an X-ray is.

@@ -651,9 +651,11 @@ static FIND_LANGUAGE_HOURS: LazyLock<Vec<(String, Re)>> = LazyLock::new(|| find_
 /// True when the line names a language, or says what it is about without naming one.
 pub fn _names_a_language(understood: &Understood) -> bool {
     let clean = sh::clean_or_text(understood).to_lowercase();
-    // LEANS_ON: `leans_on` (a dict on a later turn) adds its text and words; absent here.
-    let (leaned_text, leaned_words) = ("", "");
-    let said = [clean.as_str(), &understood.words.join(" "), leaned_text, leaned_words].join(" ").to_lowercase();
+    let (leaned_text, leaned_words) = match &understood.leans_on {
+        Some(l) => (l.text.clone(), l.words.join(" ")),
+        None => (String::new(), String::new()),
+    };
+    let said = [clean.as_str(), &understood.words.join(" "), &leaned_text, &leaned_words].join(" ").to_lowercase();
     if find_in(&said, &FIND_LANGUAGE_HOURS).is_some() {
         return true;
     }

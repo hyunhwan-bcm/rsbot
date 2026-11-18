@@ -1916,9 +1916,16 @@ pub fn _frozen_from_the_bag(understood: &Understood) -> bool {
 /// Cooking from frozen: mince, a named cut, or small cuts in general.
 pub fn _frozen_cook_reply(understood: &Understood) -> String {
     let text_ = text::squash(&understood.clean.to_lowercase());
-    let words: Vec<String> = text::split(&text_);
-    // TYPE(leans_on): Python reads leans_on["subject"] when it is a dict; the typed reading keeps
-    // it as a string (None on a single turn), so there is no subject to add here.
+    let mut words: Vec<String> = text::split(&text_);
+    let cut_words = g("_FROZEN_CUT_WORDS").strs();
+    if !cut_words.iter().any(|cut| words.contains(cut)) {
+        // "can i just cook it from frozen" names no meat: the cut is in the turn before, and
+        // only the cut words are taken from the subject the line leans on.
+        if let Some(lean) = &understood.leans_on {
+            let subject = text::split(&lean.subject.as_deref().unwrap_or("").to_lowercase());
+            words.extend(subject.into_iter().filter(|w| cut_words.contains(w)));
+        }
+    }
     let led = if g("_FROZEN_CUTS").items()[0].strs().iter().any(|cut| words.contains(cut)) {
         "Mince can go straight into the pan from frozen: brown it over a high heat, break it up as it loosens and give it a few extra minutes before the sauce goes in.".to_string()
     } else {

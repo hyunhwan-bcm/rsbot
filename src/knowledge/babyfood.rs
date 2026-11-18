@@ -521,8 +521,6 @@ fn person_refs(understood: &Understood) -> Vec<&str> {
 /// True when the "he" or "she" of the line points at an animal the chat named.
 pub fn _the_pronoun_is_an_animal(understood: &Understood) -> bool {
     let mut places: Vec<String> = person_refs(understood).into_iter().map(str::to_string).collect();
-    // TYPE(understood.leans_on): Python reads leans_on["subject"] and ["text"]; the typed reading
-    // holds the leaned-on line as a string.
     if let Some(leans) = &understood.leans_on {
         places.push(leans.subject.clone().unwrap_or_default());
         places.push(leans.text.clone());
@@ -577,8 +575,13 @@ pub fn _verdict_answer(
     if _age_in_the_chat(memory, understood).is_some_and(|age| age <= *_A_BABY_TILL) {
         return reply.to_string();
     }
-    // TYPE(understood.leans_on): Python reads leans_on["words"] (a list) for a baby word; the
-    // typed reading holds no word list, so there is nothing to read here.
+    // A baby word in the line this one leans on (its words, as said: not lower-cased).
+    if let Some(leans) = &understood.leans_on {
+        let before = format!(" {} ", leans.words.join(" "));
+        if _BABY.iter().chain(_A_CHILD_PRONOUN.iter()).any(|word| before.contains(&format!(" {word} "))) {
+            return reply.to_string();
+        }
+    }
     String::new()
 }
 
@@ -653,9 +656,15 @@ pub fn _a_child_is_in_the_line(understood: &Understood) -> bool {
 /// Whether this line, or the line it leans on, names somebody being fed.
 pub fn _a_line_that_feeds_a_baby(understood: &Understood) -> bool {
     // Python passes an empty memory: no turns to read back.
-    _the_line_feeds_somebody(understood, &Memory::new())
-    // TYPE(understood.leans_on): Python also reads leans_on["words"] (a list) for an age or a
-    // baby word; the typed reading holds no word list.
+    if _the_line_feeds_somebody(understood, &Memory::new()) {
+        return true;
+    }
+    let Some(leans) = &understood.leans_on else { return false };
+    let carried = format!(" {} ", leans.words.iter().map(|w| w.to_lowercase()).collect::<Vec<_>>().join(" "));
+    if _AGE_FIGURE.is_match(&carried) {
+        return true;
+    }
+    _NAMES_A_BABY.iter().any(|word| carried.contains(&format!(" {word} ")))
 }
 
 pub const GUARDS: &[(&str, GuardFn)] = &[

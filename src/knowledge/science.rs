@@ -2050,8 +2050,18 @@ pub fn _names<S: AsRef<str>>(said: &str, words: &[S]) -> String {
 
 /// True when the line asks about mass or weight (or defines a unit of weight).
 pub fn asks_about_mass_or_weight(understood: &Understood) -> bool {
-    let said = sh::padded(&sh::text_or_clean(understood).to_lowercase());
-    // LEANS_ON: Python drops the earlier line's words tacked on the end of a follow-up; none here.
+    let mut said = sh::padded(&sh::text_or_clean(understood).to_lowercase());
+    if let Some(leans) = &understood.leans_on {
+        // The follow-up's line is the person's own words with the earlier line's words tacked on
+        // the end, so the tail is what the bot brought, not what they said.
+        static WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z0-9']+", 0));
+        let borrowed: HashSet<String> = leans.words.iter().map(|w| w.to_lowercase()).collect();
+        let mut words = WORD.findall_str(&said);
+        while words.last().is_some_and(|w| borrowed.contains(w)) {
+            words.pop();
+        }
+        said = format!(" {} ", words.join(" "));
+    }
     if !_names(&said, &MASS_OR_WEIGHT_WORDS).is_empty() {
         return true;
     }
