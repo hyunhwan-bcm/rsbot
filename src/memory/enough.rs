@@ -13,7 +13,7 @@ use crate::py::re::{self as pyre, Match, Re};
 use crate::py::text as pt;
 use crate::state::{Memory, Turn};
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 
 const I: u32 = pyre::I;
 
@@ -727,22 +727,6 @@ impl PyReply for Value {
     }
 }
 
-/// The turns as the Python list of dicts.
-fn turns_value(turns: &[Turn]) -> Value {
-    Value::List(Arc::new(
-        turns
-            .iter()
-            .map(|t| {
-                Value::Dict(Arc::new(vec![
-                    (Value::from("user"), Value::from(t.user.as_str())),
-                    (Value::from("bot"), Value::from(t.bot.as_str())),
-                    (Value::from("module"), t.module.as_deref().map(Value::from).unwrap_or(Value::None)),
-                ]))
-            })
-            .collect(),
-    ))
-}
-
 /// Python: bot/memory/enough.py:578 `enough_reply(text, memory)`
 ///
 /// Where the amount they gave stands against the figure the last answer named, or None.
@@ -758,7 +742,7 @@ pub fn enough_reply(text: &str, memory: &Memory) -> Option<String> {
     }
     let too_much = TOO_MUCH.is_match(text);
     // Money is read on its own, before the amounts (bot/memory/purse.py).
-    if let Some(purse_reply) = crate::memory::purse::against_the_bands(text, &turns_value(turns)).reply() {
+    if let Some(purse_reply) = crate::memory::purse::against_the_bands(text, turns).reply() {
         return Some(purse_reply);
     }
     // The figure they are asking about: the ask's own, or the last line they typed that gave one.
