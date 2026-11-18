@@ -584,7 +584,7 @@ pub fn _the_recall(text_: &str, memory: &mut Memory) -> Option<String> {
     }
     if PAY_ASK.search(&low).is_some()
         && _the_ask_names_something_new(&low, memory)
-        && said(crate::memory::repeat::the_figure_they_gave(text_, memory)).is_none()
+        && said(crate::memory::repeat::the_figure_they_gave_text(text_, memory)).is_none()
     {
         return None;
     }
