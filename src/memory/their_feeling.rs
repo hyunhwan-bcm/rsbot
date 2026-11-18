@@ -98,7 +98,7 @@ pub fn _an_earlier_turn(memory: &Memory, low: &str) -> bool {
 /// Python: bot/memory/their_feeling.py:185 `_fill(frame, person, thing)`
 pub fn _fill(frame: &str, person: &str, thing: &str) -> String {
     let pronouns = crate::compose::remark::person_pronouns(person);
-    let they = pronouns.items().first().map(|v| v.str().to_string()).unwrap_or_default();
+    let they = pronouns[0].clone();
     let mut said = frame.replace("{person}", person).replace("{they}", &they);
     if frame.contains("{thing") || frame.contains("{Thing}") {
         let cap = text::upper_first(thing);

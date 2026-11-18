@@ -216,7 +216,7 @@ pub fn pool(shape: &Value, clean: &str, memory: &Memory) -> Vec<String> {
     if shape == "vague" {
         // A setback with nothing behind it yet: what happened is the only question, and the
         // wording carries the person's own thing (bot/memory/setback.py).
-        return _said_already(&crate::memory::setback::pool(clean).strs(), memory);
+        return _said_already(&crate::memory::setback::pool(clean), memory);
     }
     let stated = DURATION.is_match(&text_);
     let mut lines: Vec<String> = if shape == "sore" {
@@ -520,7 +520,7 @@ pub fn _shape(clean: &str, words: Option<&[String]>) -> Option<String> {
     }
     // A setback said vaguely ("my cake was a disaster") is a thing of theirs too, and the
     // question is what happened rather than what it is doing.
-    if crate::compose::fallback_chain::truthy(crate::memory::setback::reading(&text_)) && !has_body_part {
+    if crate::memory::setback::reading(&text_).is_some() && !has_body_part {
         return Some("vague".to_string());
     }
     if let Some(thing) = THING.search(&mine) {
