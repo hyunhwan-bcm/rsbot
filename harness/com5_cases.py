@@ -57,6 +57,8 @@ def want(kind, res):
         return rs_str(res if res is not None else "") + ".to_string()"
     if kind == "opt_str":
         return "None" if res is None else "Some(%s.to_string())" % rs_str(res)
+    if kind == "set":
+        return "vec![%s] as Vec<String>" % ", ".join(rs_str(x) + ".to_string()" for x in sorted(res))
     if kind == "opt_pool":
         return "None" if res is None else "Some(vec![%s])" % ", ".join(rs_str(x) + ".to_string()" for x in res)
     raise ValueError(kind)
@@ -80,6 +82,8 @@ def main():
         except Exception as e:  # noqa: BLE001
             res, raised = None, type(e).__name__
         expr = c["rs"].replace("{mem}", rs_mem(c.get("mem")))
+        if c["k"] == "set":
+            expr = "{ let mut v: Vec<String> = %s.into_iter().collect(); v.sort(); v }" % expr
         if raised:
             body = "    assert!(raises(|| %s));" % expr
         else:
