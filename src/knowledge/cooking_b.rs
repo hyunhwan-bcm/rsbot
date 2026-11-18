@@ -9,11 +9,15 @@
 //! result; `_recipe_only_when_asked_for_this` and `_bread_rise_answer` build closures at import
 //! time, and their inner `answer` functions are ported below.
 
-use super::d2dup_cookB::{
+// cooking.py's functions before line 6000 (cooking.rs).
+use super::cooking::{
     _a_brew_not_a_dinner, _a_plant_not_a_dinner, _any_meal, _crowd, _crowd_ask, _crowd_meal, _excluded, _feeding_ask,
     _food_named, _foods_in_list, _is_plural, _leftover, _list_words, _named_as, _no_meat_also_means_fish, _occasion,
-    _pet_not_dinner, _pet_or_meat, _porridge, _reads_as_a_pet, _said_so_far, _same, a_dish_plan_has_a_heat, avoids,
-    chars_after, choosing, idea_is_a_dish, meets, named_food, recent, use_it_up,
+    _pet_not_dinner, _pet_or_meat, _porridge, _reads_as_a_pet, _said_so_far, _same, avoids,
+};
+// Helpers of other modules, until their owners' ports are merged.
+use super::d2dup_cookB::{
+    a_dish_plan_has_a_heat, chars_after, choosing, idea_is_a_dish, meets, named_food, recent, use_it_up,
 };
 use crate::data::{self, FnRef, Value};
 use crate::knowledge::d2_shared::{or, py_repr_list, py_repr_str, says_it_has_gone_off};
@@ -252,7 +256,7 @@ pub fn _rushed(banned: &HashSet<String>) -> String {
 /// Breakfast for someone who has just said what they cannot eat.
 pub fn _breakfast_ideas(memory: &mut Memory, understood: &Understood) -> Option<String> {
     let text = _said_so_far(understood, memory);
-    let banned = _no_meat_also_means_fish(_excluded(&text));
+    let banned = _no_meat_also_means_fish(&_excluded(&text));
     let short = _short_of_food(&text);
     if banned.is_empty() && short.is_empty() {
         return Some(ANY_BREAKFAST.clone());
@@ -293,7 +297,7 @@ pub fn _breakfast_ideas(memory: &mut Memory, understood: &Understood) -> Option<
 /// A packed lunch for someone who has just said what they cannot eat.
 pub fn _lunch_ideas(memory: &mut Memory, understood: &Understood) -> Option<String> {
     let text = _said_so_far(understood, memory);
-    let banned = _no_meat_also_means_fish(_excluded(&text));
+    let banned = _no_meat_also_means_fish(&_excluded(&text));
     if banned.is_empty() {
         return Some(ANY_LUNCH.clone());
     }

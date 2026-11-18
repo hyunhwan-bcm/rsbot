@@ -14,15 +14,16 @@ use crate::understood::{Num, Understood};
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;
 
-// The cooking functions defined after line 6000 (cooking_b.rs) and the helpers of other
-// modules, until they are merged in.
+// The cooking functions defined from line 6000 on are in cooking_b.rs; re-exported here, so
+// `crate::knowledge::cooking::X` reaches every function of cooking.py.
+pub use super::cooking_b::*;
+// Helpers of other modules, until their owners' ports are merged.
 use super::d2dup_cooka::{
-    _burnt_on_the_pan, _fold, _foods_said, _mentions, _recent_user_turns, _short_of_food,
-    _words_and_text, a_price_is_judged, dishes_ask_kind, dishes_asks_for_a_side_of_a_food,
-    dishes_dish_in, dishes_general_sides, dishes_names_an_appliance_and_a_cut, dishes_plan,
-    dishes_recent_texts, dishes_reply, garden_done_not, garden_harvest_crops, lookup_find_id,
-    meal, negated_ingredients, people_in_groups,
+    dishes_ask_kind, dishes_asks_for_a_side_of_a_food, dishes_dish_in, dishes_general_sides,
+    dishes_names_an_appliance_and_a_cut, dishes_plan, dishes_recent_texts, dishes_reply, garden_done_not,
+    garden_harvest_crops, lookup_find_id, people_in_groups,
 };
+use super::prices::a_price_is_judged;
 
 // ---------------------------------------------------------------------------------------------
 // Data access: every table is the bundle's, by its Python name.
@@ -1237,7 +1238,7 @@ re_lazy!(FREEZE_OR_BATCH = r"\bfreez|\bbatch");
 pub fn _meal_plan(memory: &mut Memory, understood: &Understood) -> Option<String> {
     let words = lower_words(understood);
     let mut parts = vec![understood.clean.to_lowercase()];
-    parts.extend(_recent_user_turns(memory, 4));
+    parts.extend(_recent_user_turns(Some(memory), 4));
     let text_ = parts.join(" ");
     let mut said: Vec<String> = words.iter().map(|w| _fold(w)).collect();
     said.extend(LETTER_WORDS.findall_str(&text_).iter().map(|w| _fold(w)));
@@ -3742,7 +3743,7 @@ pub fn _meal_ideas(memory: &mut Memory, understood: &Understood) -> Option<Strin
     }
     let asks_food = matches!(understood.topic.as_deref(), Some("cooking") | Some("food-and-drink")) || any_in(&low_line, &MEAL_ASK_PHRASES);
     if asks_food {
-        if let Some(from_pantry) = meal(understood, false, None, Some(&banned), None, Some(memory), &[], false) {
+        if let Some(from_pantry) = meal(understood, MealArgs { banned: Some(banned.clone()), memory: Some(memory), ..Default::default() }) {
             if !text::strip(&from_pantry).is_empty() && !_bans(&[], &from_pantry, &banned) {
                 return Some(from_pantry);
             }
