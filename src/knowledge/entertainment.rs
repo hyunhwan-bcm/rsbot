@@ -4334,53 +4334,104 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The factories PyBot ran at import (their results are in the bundle), ported as the objects they
+// build: the word tuples and title index they compute, and the closures they make, as the
+// `FnRef`s the registry runs (`knowledge::built`).
 
-    /// Python: bot/knowledge/entertainment.py:3259 `_mood_key_words(moods, drop=())` (never called on the trace corpus)
-    pub fn _mood_key_words(moods: &Value, drop: &Value) -> Value {
-        crate::unported!("bot.knowledge.entertainment:_mood_key_words")
+use crate::knowledge::built;
+
+/// `_mood_key_words(moods, drop=())`: the words an entry is keyed on, so a line naming a mood
+/// of this kind reaches it - only the words that carry the mood, each once.
+pub fn _mood_key_words(moods: &IndexMap<String, Vec<String>>, drop: &[String]) -> Vec<String> {
+    let shut: HashSet<&str> = drop.iter().flat_map(|phrase| text::split_ref(phrase)).collect();
+    let glue = set_of("MOOD_GLUE");
+    let mut found: Vec<String> = Vec::new();
+    for mood in strs_of("MOOD_ORDER") {
+        let Some(phrases) = moods.get(&mood) else { continue };
+        for phrase in phrases {
+            for word in text::split_ref(phrase) {
+                if glue.contains(word) || found.iter().any(|f| f == word) || shut.contains(word) {
+                    continue;
+                }
+                found.push(word.to_string());
+            }
+        }
     }
-
-    /// Python: bot/knowledge/entertainment.py:3291 `_mood_signals(words)` (never called on the trace corpus)
-    pub fn _mood_signals(words: &[String]) -> Value {
-        crate::unported!("bot.knowledge.entertainment:_mood_signals")
-    }
-
-    /// Python: bot/knowledge/entertainment.py:3525 `_mood_pick(picks)` (never called on the trace corpus)
-    pub fn _mood_pick(picks: &Value) -> Value {
-        crate::unported!("bot.knowledge.entertainment:_mood_pick")
-    }
-
-    /// Python: bot/knowledge/entertainment.py:3586 `_picks_by_title()` (never called on the trace corpus)
-    pub fn _picks_by_title() -> Value {
-        crate::unported!("bot.knowledge.entertainment:_picks_by_title")
-    }
-
-    /// Python: bot/knowledge/entertainment.py:5336 `_with_the_detail_asked_for(build, form)` (never called on the trace corpus)
-    pub fn _with_the_detail_asked_for(build: &Value, form: &Value) -> Value {
-        crate::unported!("bot.knowledge.entertainment:_with_the_detail_asked_for")
-    }
-
-    /// Python: bot/knowledge/entertainment.py:5358 `_a_second_one_read_first(writer, form)` (never called on the trace corpus)
-    pub fn _a_second_one_read_first(writer: &Value, form: &Value) -> Value {
-        crate::unported!("bot.knowledge.entertainment:_a_second_one_read_first")
-    }
-
-    /// Python: bot/knowledge/entertainment.py:9526 `_film_list(text)` (never called on the trace corpus)
-    pub fn _film_list(text: &str) -> Value {
-        crate::unported!("bot.knowledge.entertainment:_film_list")
-    }
-
+    found
 }
 
+/// `_mood_signals(words)`: the words that name a mood on their own.
+pub fn _mood_signals(words: &[String]) -> Vec<String> {
+    words
+        .iter()
+        .filter(|word| _mood_of(word).is_some() || _mood_of(&format!("not too {word}")).is_some() || _mood_of(&format!("nothing {word}")).is_some())
+        .cloned()
+        .collect()
+}
+
+/// `_mood_pick(picks)`: an entry reply that answers the mood the line names from one table.
+pub fn _mood_pick(picks: &IndexMap<String, String>) -> FnRef {
+    let table = Value::Dict(std::sync::Arc::new(picks.iter().map(|(k, v)| (Value::from(k.as_str()), Value::from(v.as_str()))).collect()));
+    built::closure("bot.knowledge.entertainment:_mood_pick.<locals>.pick:3527", vec![("picks", table)])
+}
+
+lazy_re!(A_TITLE, r"\*([^*]{2,60})\*");
+
+/// `_picks_by_title()`: {a pick's title, in plain words: its medium}, the first table to name
+/// a title keeping it.
+pub fn _picks_by_title() -> IndexMap<String, String> {
+    let mut found: IndexMap<String, String> = IndexMap::new();
+    for (medium, table) in MOOD_TABLES.iter() {
+        for moods in table.values() {
+            for title in A_TITLE.findall_str(moods) {
+                if text::len(&title) >= 6 {
+                    found.entry(_plain_words(&title)).or_insert_with(|| medium.clone());
+                }
+            }
+        }
+    }
+    found
+}
+
+/// `_with_the_detail_asked_for(build, form)`: the verse, then the one thing the template cannot
+/// know, asked for by name.
+pub fn _with_the_detail_asked_for(build: FnRef, form: &str) -> FnRef {
+    let names = _THE_FORM_NAMED.get(form).cloned().unwrap_or_else(|| vec![form.to_string(), format!("{form}s")]);
+    built::closure(
+        "bot.knowledge.entertainment:_with_the_detail_asked_for.<locals>.answer:5340",
+        vec![("build", Value::Fn(std::sync::Arc::new(build))), ("form", Value::from(form)), ("names", built::words(&names))],
+    )
+}
+
+/// `_a_second_one_read_first(writer, form)`: the form's own writer, with a second-one ask read
+/// first.
+pub fn _a_second_one_read_first(writer: FnRef, form: &str) -> FnRef {
+    built::closure(
+        "bot.knowledge.entertainment:_a_second_one_read_first.<locals>.write:5367",
+        vec![("form", Value::from(form)), ("writer", Value::Fn(std::sync::Arc::new(writer)))],
+    )
+}
+
+/// `_film_list(text)`: an entry reply that keeps a list of films to a length the line states.
+pub fn _film_list(text_: &str) -> FnRef {
+    built::closure("bot.knowledge.entertainment:_film_list.<locals>.said:9533", vec![("text", Value::from(text_))])
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    /// The tables the factories computed at import are the bundle's.
+    #[test]
+    fn the_factories_give_the_exported_tables() {
+        data::load();
+        let moods: IndexMap<String, Vec<String>> = g("MOODS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect();
+        let words = _mood_key_words(&moods, &[]);
+        assert_eq!(words, strs_of("MOOD_WORDS"));
+        assert_eq!(_mood_signals(&words), strs_of("MOOD_SIGNALS"));
+        let titles: Vec<(String, String)> = _picks_by_title().into_iter().collect();
+        let exported: Vec<(String, String)> = g("PICK_TITLES").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str().to_string())).collect();
+        assert_eq!(titles, exported);
+    }
+}

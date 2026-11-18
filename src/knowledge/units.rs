@@ -3104,9 +3104,7 @@ mod tests {
     fn the_unit_table_builds_as_python_built_it() {
         data::load();
         let (names, re) = _build();
-        // py::re::escape escapes every ASCII punctuation mark, Python only its special ones
-        // ("km/h" is "km\\/h" here): the same regex, written differently.
-        assert_eq!(re.pattern().replace("\\/", "/"), _UNIT_WORD.pattern());
+        assert_eq!(re.pattern(), _UNIT_WORD.pattern());
         let exported: Vec<(String, (String, String))> = g("_NAMES")
             .pairs()
             .iter()
