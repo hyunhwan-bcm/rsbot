@@ -303,5 +303,12 @@ mod tests {
         assert!(_more_than_one("two"));
         assert!(_more_than_one("10"));
         assert!(!_more_than_one("1"));
+        assert_eq!(_a_fact_about_their_life("we live near the park").as_deref(), Some("place"));
+        assert_eq!(_a_fact_about_their_life("ive got two cats"), None);
+        assert_eq!(_a_fact_about_their_life("im 34").as_deref(), Some("age:34"));
+        assert_eq!(_a_fact_about_their_life("my mum is 71").as_deref(), Some("someone:mum:age:71"));
+        assert_eq!(_a_fact_about_their_life("my wife works nights").as_deref(), Some("someone:wife:hours:nights"));
+        assert_eq!(_a_fact_about_their_life("my sister has three kids").as_deref(), Some("someone:sister:kids:three"));
+        assert_eq!(_a_fact_about_their_life("i have a brother and a sister").as_deref(), Some("siblings:a brother and a sister"));
     }
 }

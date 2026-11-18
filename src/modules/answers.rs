@@ -962,6 +962,64 @@ fn at_py(raw: &[String], i: isize) -> &str {
     &raw[j as usize]
 }
 
+/// A memory argument for another file's function, whichever its signature takes today: `&Memory`
+/// (a ported function) or `&Value` (the generated contract's plain dict). The type is inferred
+/// from the callee, so a call compiles against the stub and against the port alike; the plain
+/// dict is only built when the callee wants one.
+pub struct MemView<'a> {
+    memory: &'a Memory,
+    plain: std::cell::OnceCell<Value>,
+}
+impl<'a> MemView<'a> {
+    pub fn new(memory: &'a Memory) -> MemView<'a> {
+        MemView { memory, plain: std::cell::OnceCell::new() }
+    }
+    pub fn arg<'b, T: MemArg<'b>>(&'b self) -> T {
+        T::of(self)
+    }
+}
+pub trait MemArg<'b> {
+    fn of(view: &'b MemView<'_>) -> Self;
+}
+impl<'b> MemArg<'b> for &'b Memory {
+    fn of(view: &'b MemView<'_>) -> Self {
+        view.memory
+    }
+}
+impl<'b> MemArg<'b> for &'b Value {
+    fn of(view: &'b MemView<'_>) -> Self {
+        view.plain.get_or_init(|| memory_value(view.memory))
+    }
+}
+
+/// A string argument for another file's function, whichever of `&str` or `&Value` its signature
+/// takes (see [`MemView`]).
+pub struct StrView<'a> {
+    text: &'a str,
+    value: std::cell::OnceCell<Value>,
+}
+impl<'a> StrView<'a> {
+    pub fn new(text: &'a str) -> StrView<'a> {
+        StrView { text, value: std::cell::OnceCell::new() }
+    }
+    pub fn arg<'b, T: StrArg<'b>>(&'b self) -> T {
+        T::of(self)
+    }
+}
+pub trait StrArg<'b> {
+    fn of(view: &'b StrView<'_>) -> Self;
+}
+impl<'b> StrArg<'b> for &'b str {
+    fn of(view: &'b StrView<'_>) -> Self {
+        view.text
+    }
+}
+impl<'b> StrArg<'b> for &'b Value {
+    fn of(view: &'b StrView<'_>) -> Self {
+        view.value.get_or_init(|| Value::from(view.text))
+    }
+}
+
 /// The memory as the plain dict a `memory: Value` contract takes.
 pub fn memory_value(memory: &Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
@@ -2500,7 +2558,7 @@ pub fn _topic_words(line: &str, memory: &Memory) -> Vec<String> {
 pub fn _lent_words(reading: &Understood, memory: &Memory) -> Vec<String> {
     let line = if !reading.clean.is_empty() { reading.clean.clone() } else { reading.text.clone() };
     let said: HashSet<String> = memory::topics::content(&line).into_iter().collect();
-    let wider = memory::topics::followup_reading(reading, &memory_value(memory));
+    let wider = memory::topics::followup_reading(reading, MemView::new(&*memory).arg());
     let added = if !wider.clean.is_empty() { wider.clean.clone() } else { wider.text.clone() };
     let words: Vec<String> = memory::topics::content(&added).into_iter().filter(|w| !said.contains(w)).collect();
     if words.is_empty() {
@@ -2584,7 +2642,7 @@ pub fn _leans_on(reading: &Understood, item: &Entry, memory: &Memory) -> bool {
     if !own.iter().any(|w| says.iter().any(|said| _same_word(w, said))) && !_a_money_question(&own, &keyed) {
         return false;
     }
-    if hits.is_empty() && !_writes_its_own_reply(item) && memory::topics::next_slot_reading(reading, &memory_value(memory)).is_py_none() {
+    if hits.is_empty() && !_writes_its_own_reply(item) && memory::topics::next_slot_reading(reading, MemView::new(&*memory).arg()).is_py_none() {
         return false;
     }
     let line_low = line.to_lowercase();
@@ -3454,7 +3512,7 @@ pub fn _part_asked(text_: &str, memory: &mut Memory) -> Option<String> {
             return None;
         }
     }
-    if memory::topics::left_for_a_blank(&memory_value(memory), text_) {
+    if memory::topics::left_for_a_blank(MemView::new(&*memory).arg(), text_) {
         return None;
     }
     if RATE.is_match(text_) {
@@ -6464,7 +6522,7 @@ pub fn _the_same_answer_again(answer: &str, memory: &Memory) -> bool {
 /// The answer the thing we are on gives this length ask, when it holds the time asked for.
 pub fn _the_figure_the_thing_we_are_on_holds(text_: &str, memory: &mut Memory) -> String {
     let Some(understood) = memory.understood.clone() else { return String::new() };
-    let wider = memory::topics::followup_reading(&understood, &memory_value(memory));
+    let wider = memory::topics::followup_reading(&understood, MemView::new(&*memory).arg());
     // `wider is understood`: the reading handed back unchanged
     if wider == understood {
         return String::new();
@@ -6845,7 +6903,7 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
     }
     let mut answer = _respond(text_, memory);
     if let Some(animal) = animal.as_ref() {
-        let other_creature = |a: &str| memory::topics::answers_about_another_creature(a, &Value::from(animal.clean.as_str()));
+        let other_creature = |a: &str| memory::topics::answers_about_another_creature(a, StrView::new(&animal.clean).arg());
         if answer.as_deref().is_none_or(|a| a.is_empty() || other_creature(a)) {
             if let Some(filled) = _ask_a_rewritten_line(&animal.clean, memory).filter(|f| !f.is_empty()) {
                 if !_the_same_answer_again(&filled, memory) {
@@ -6922,10 +6980,10 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
             return Some(told);
         }
     }
-    let mut carried = memory::named::follow_up(text_, &memory_value(memory));
+    let mut carried = memory::named::follow_up(text_, MemView::new(&*memory).arg());
     let mut from_a_taste = false;
     if carried.is_empty() {
-        carried = memory::prefer::follow_up(text_, &memory_value(memory));
+        carried = memory::prefer::follow_up(text_, MemView::new(&*memory).arg());
         from_a_taste = !carried.is_empty();
     }
     if !carried.is_empty() {
@@ -6940,7 +6998,7 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
             return answer;
         }
     }
-    for in_hand in memory::named::reported_states(text_, &memory_value(memory)) {
+    for in_hand in memory::named::reported_states(text_, MemView::new(&*memory).arg()) {
         let reached = find_plain(&understanding::understand(&in_hand, Some(&*memory)));
         if !_the_report_is_answered(text_, reached) {
             continue;
@@ -6951,7 +7009,7 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
             }
         }
     }
-    for stated in memory::named::stated_about_the_person(text_, &memory_value(memory)) {
+    for stated in memory::named::stated_about_the_person(text_, MemView::new(&*memory).arg()) {
         let reached = find_plain(&understanding::understand(&stated, Some(&*memory)));
         if !_the_fact_is_what_is_answered(text_, &stated, reached, Some(memory)) {
             continue;
@@ -6966,7 +7024,7 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
             }
         }
     }
-    for practice in memory::named::care_reports(text_, &memory_value(memory)) {
+    for practice in memory::named::care_reports(text_, MemView::new(&*memory).arg()) {
         let reached = find_plain(&understanding::understand(&practice, Some(&*memory)));
         if !_the_practice_is_answered(&practice, reached) {
             continue;
@@ -6977,7 +7035,7 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
             }
         }
     }
-    let bare = memory::named::about_it(text_, &memory_value(memory));
+    let bare = memory::named::about_it(text_, MemView::new(&*memory).arg());
     if !bare.is_empty() {
         if let Some(answer) = _ask_a_rewritten_line(&bare, memory).filter(|a| !a.is_empty()) {
             let short = _the_sentence_about(text_, memory).filter(|s| !s.is_empty()).or_else(|| _the_sentence_about(&bare, memory));
@@ -6991,7 +7049,7 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
             }
         }
     }
-    let part = memory::named::about_the_thing(text_, &memory_value(memory), "");
+    let part = memory::named::about_the_thing(text_, MemView::new(&*memory).arg(), "");
     if !part.is_empty() && _the_part_is_what_answers(&part, memory) {
         if let Some(answer) = _ask_a_rewritten_line(&part, memory).filter(|a| !a.is_empty()) {
             if !_said_before(&answer, memory, 3) {
@@ -6999,7 +7057,7 @@ pub fn _answer(text_: &str, memory: &mut Memory) -> Option<String> {
             }
         }
     }
-    let person = memory::matters::about_them(text_, &memory_value(memory));
+    let person = memory::matters::about_them(text_, MemView::new(&*memory).arg());
     if !person.is_empty() {
         if let Some(answer) = _ask_a_rewritten_line(&person, memory).filter(|a| !a.is_empty()) {
             if !_said_before(&answer, memory, 3) {
@@ -7057,7 +7115,7 @@ pub fn _a_measure_about_the_subject(measure: &str, text_: &str, memory: &mut Mem
     {
         return Some(String::new());
     }
-    let word = memory::named::subject_word(&memory_value(memory));
+    let word = memory::named::subject_word(MemView::new(&*memory).arg());
     if word.is_empty() {
         return Some(String::new());
     }
@@ -7214,8 +7272,8 @@ pub fn _the_part_of_the_thing_they_named(text_: &str, memory: &mut Memory) -> Op
     if owner.is_empty() {
         return Some(String::new());
     }
-    let part = memory::named::about_the_thing(text_, &memory_value(memory), &owner);
-    let on_its_own = memory::named::about_the_thing(text_, &memory_value(memory), "");
+    let part = memory::named::about_the_thing(text_, MemView::new(&*memory).arg(), &owner);
+    let on_its_own = memory::named::about_the_thing(text_, MemView::new(&*memory).arg(), "");
     if part.is_empty() || on_its_own.is_empty() || part == on_its_own {
         return Some(String::new());
     }
@@ -7871,7 +7929,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
     {
         let u = memory.understood.clone().unwrap();
         let signal = |k: &str, s: &str| SIGNALS.iter().find(|(n, _)| n == k).is_some_and(|(_, rx)| rx.is_match(s));
-        let stated = memory::topics::same_as_before(&u, &memory_value(memory)).py();
+        let stated = memory::topics::same_as_before(&u, MemView::new(&*memory).arg()).py();
         let last = memory::last_bot(memory);
         if let Some(mut stated) = stated.filter(|s| !s.is_empty()) {
             if inline_re!(r"\d").is_match(&stated)
@@ -8210,7 +8268,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
                 if !_asks_only_the_length(&text) {
                     return None;
                 }
-                if let Some(part) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|p| !p.is_empty()) {
+                if let Some(part) = memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py().filter(|p| !p.is_empty()) {
                     return Some(part);
                 }
                 return _figure_missing(&record_str(earlier_rec, "reply"), &text);
@@ -8228,7 +8286,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
                     if !_asks_only_the_length(&text) {
                         return None;
                     }
-                    if let Some(part) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|p| !p.is_empty()) {
+                    if let Some(part) = memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py().filter(|p| !p.is_empty()) {
                         return Some(part);
                     }
                     return _figure_missing(&record_str(earlier_rec, "reply"), &text);
@@ -8342,7 +8400,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
     }
     let mut follow_up = false;
     if item.is_none() {
-        if let Some(resized) = memory::resize::rewritten(&text, &memory_value(memory)).py() {
+        if let Some(resized) = memory::resize::rewritten(&text, MemView::new(&*memory).arg()).py() {
             let again = understanding::understand(&resized, Some(&*memory));
             if let Some(calculated) = knowledge::maths::solve(&resized, &again, memory) {
                 if !text::strip(&calculated).is_empty() && memory::narrow::flat(&calculated) != memory::narrow::flat(&memory::last_bot(memory)) {
@@ -8379,7 +8437,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
             }
         }
         if item.is_none() {
-            let older = memory::swap::rewritten(&text, &memory_value(memory)).tuple();
+            let older = memory::swap::rewritten(&text, MemView::new(&*memory).arg()).tuple();
             let mut readings: Vec<Vec<Value>> = if memory::swap::is_repair(&text) {
                 memory::swap::candidates(&text, memory, &Value::Int(3)).items().iter().filter_map(|c| c.clone().tuple()).collect()
             } else {
@@ -8446,7 +8504,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
             }
         }
         if item.is_none() {
-            if let Some(about_someone) = memory::swap::rewritten_person(&text, &memory_value(memory)).tuple() {
+            if let Some(about_someone) = memory::swap::rewritten_person(&text, MemView::new(&*memory).arg()).tuple() {
                 let question = py_str(&about_someone[0]);
                 let again = understanding::understand(&question, Some(&*memory));
                 let (other, said) =
@@ -8475,7 +8533,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
             let other_food = _names_another_food(&understood, &memory::topics::subject(memory).to_lowercase());
             let last = memory::last_bot(memory);
             if memory::topics::has_time(&last) && !other_food {
-                if let Some(said) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|s| !s.is_empty()) {
+                if let Some(said) = memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py().filter(|s| !s.is_empty()) {
                     if said != last {
                         return Some(said);
                     }
@@ -8533,7 +8591,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         }
         if let Some(found) = item {
             if _said_before(reply.as_deref().unwrap_or(""), memory, 3) {
-                let wider = memory::topics::followup_reading(&understood, &memory_value(memory));
+                let wider = memory::topics::followup_reading(&understood, MemView::new(&*memory).arg());
                 if wider != understood {
                     let (wider_item, wider_reply) = _offer_with(
                         &mut |_: &mut Memory, reject: Reject| {
@@ -8601,7 +8659,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
     }
     let mut bare = false;
     if item.is_none() && !care {
-        let wider = memory::topics::followup_reading(&understood, &memory_value(memory));
+        let wider = memory::topics::followup_reading(&understood, MemView::new(&*memory).arg());
         if wider != understood {
             reading = wider;
             let (i, r) = _offer_with(
@@ -8629,7 +8687,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
                 }
             }
             let written_out = reading != understood
-                && !memory::topics::the_prognosis_the_line_asks(&understood, &memory_value(memory)).is_py_none();
+                && !memory::topics::the_prognosis_the_line_asks(&understood, MemView::new(&*memory).arg()).is_py_none();
             if let Some(found) = item {
                 if !written_out && !_leans_on(&understood, found, memory) && understood.kind == "question" {
                     if let Some(someone) = _the_person_to_call(&text, memory) {
@@ -8664,7 +8722,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
     if item.is_none()
         && !care
         && memory::topics::written_out(&text, memory).py_truth()
-        && !memory::topics::same_as_before(&understood, &memory_value(memory)).py_truth()
+        && !memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py_truth()
     {
         return None;
     }
@@ -8677,7 +8735,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         }
         let low = text.to_lowercase();
         let use_up = USE_UP_PHRASES.iter().any(|p| low.contains(p.as_str()));
-        let followed = if use_up || bare { None } else { memory::topics::same_as_before(&understood, &memory_value(memory)).py() };
+        let followed = if use_up || bare { None } else { memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py() };
         if let Some(followed) = followed.filter(|f| !text::strip(f).is_empty()) {
             if !_new_thing(&own, &followed) {
                 return Some(_the_part_said_again(&followed, &text, Some(&understood), memory));
@@ -8696,7 +8754,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
                 return Some(meal);
             }
         }
-        if let Some(pointed) = memory::topics::the_ask_about_the_thing_it_points_at(&understood, &memory_value(memory)).reading() {
+        if let Some(pointed) = memory::topics::the_ask_about_the_thing_it_points_at(&understood, MemView::new(&*memory).arg()).reading() {
             let (i, r) = _offer_with(&mut |_: &mut Memory, reject: Reject| reader_entry(find(&pointed, None, reject, false)), memory, &pointed);
             if let (Some(_), Some(r)) = (i, r.filter(|r| !text::strip(r).is_empty())) {
                 return Some(r);
@@ -8758,15 +8816,15 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         && same_line == 0
         && _said_before(&reply, memory, 3)
         && !_names_another_food(&understood, &memory::topics::subject(memory).to_lowercase())
-        && (!memory::topics::written_out(&text, memory).py_truth() || memory::topics::same_as_before(&understood, &memory_value(memory)).py_truth())
+        && (!memory::topics::written_out(&text, memory).py_truth() || memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py_truth())
     {
-        if let Some(part) = memory::topics::same_as_before(&understood, &memory_value(memory)).py() {
+        if let Some(part) = memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py() {
             if !text::strip(&part).is_empty() && memory::narrow::flat(&part) != memory::narrow::flat(&memory::last_bot(memory)) {
                 return Some(part);
             }
         }
     }
-    if said > 0 && memory::topics::written_out(&text, memory).py_truth() && !memory::topics::same_as_before(&understood, &memory_value(memory)).py_truth() {
+    if said > 0 && memory::topics::written_out(&text, memory).py_truth() && !memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py_truth() {
         return None;
     }
     let asked = same_line.max(said);
@@ -8806,7 +8864,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
                 return Some(chosen);
             }
         }
-        if let Some(same) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|s| !s.is_empty()) {
+        if let Some(same) = memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py().filter(|s| !s.is_empty()) {
             return Some(same);
         }
         if let Some(sentence) = _the_sentence_about(&text, memory) {
@@ -8830,7 +8888,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         if !figure.is_empty() {
             return Some(figure);
         }
-        if let Some(same) = memory::topics::same_as_before(&understood, &memory_value(memory)).py().filter(|s| !s.is_empty()) {
+        if let Some(same) = memory::topics::same_as_before(&understood, MemView::new(&*memory).arg()).py().filter(|s| !s.is_empty()) {
             return Some(same);
         }
         if understood.kind == "question" && !_asks_of_another_subject(&text, Some(&understood)) {
@@ -8866,3 +8924,141 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
 
 // ==== ported code ends; the stubs below are the functions not yet ported ====
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn set(words: &[&str]) -> HashSet<String> {
+        words.iter().map(|w| w.to_string()).collect()
+    }
+
+    // Expected values from CPython (`harness/pycall.py bot.modules.answers ...`, clock pinned,
+    // random.seed(0)) for readers the turn corpus reaches rarely or never.
+    #[test]
+    fn readers_match_python() {
+        assert_eq!(_without_the_verdict("Usually, yes. Boil it for ten minutes."), "Boil it for ten minutes.");
+        assert_eq!(_without_the_verdict("Paris is lovely. Go in May."), "Paris is lovely. Go in May.");
+        assert_eq!(
+            _first_step("Then switch the printer off and on at the wall, then check the queue and clear any stuck job, and if that fails reinstall the driver from the maker's site and restart the laptop twice."),
+            "Switch the printer off and on at the wall."
+        );
+        assert_eq!(_first_step("and turn it off."), "Turn it off.");
+        assert_eq!(
+            _small_letter("Sand a wooden floor back to bare wood, then sand it again."),
+            "sand a wooden floor back to bare wood, then sand it again."
+        );
+        assert_eq!(_small_letter("Paris is the one, and it is hot."), "Paris is the one, and it is hot.");
+        assert_eq!(_small_letter("Use a mid-sheen."), "use a mid-sheen.");
+        assert_eq!(_refused("anything but a horror"), "horror");
+        assert_eq!(_refused("no internet on my laptop"), "");
+        assert_eq!(_refused("i dont want a scary film"), "scary");
+        assert_eq!(_refused("i dont like mushrooms what can i cook"), "mushrooms");
+        assert!(!_says_it_leaves_it_out("Wipe rather than wash them, and fry hot.", "mushrooms"));
+        assert!(_says_it_leaves_it_out("Skip horror and gore: Knives Out.", "scary"));
+        assert_eq!(_price_limit("something for my dad under 40 quid"), (Some(40), false));
+        assert_eq!(_price_limit("over 20 quid then"), (None, false));
+        assert_eq!(_price_limit("nothing over a tenner please"), (Some(10), false));
+        assert_eq!(_price_limit("anything cheaper"), (None, true));
+        assert_eq!(_the_option_that_decides("should we go to spain or italy", "Italy. The food alone is worth it."), "Italy");
+        assert!(_a_lead_time("how long before the wedding should we order the cake").unwrap().starts_with("Order a decorated one"));
+        assert!(_a_lead_time("how early should i book a table").unwrap().starts_with("Two to four weeks ahead for a Friday"));
+        assert!(_a_lead_time("how far in advance should we book it").unwrap().starts_with("Sooner than you would think"));
+        assert_eq!(
+            _the_sentence_around(
+                "The limit for an adult is 6g of salt a day",
+                "Salt matters. The limit for an adult is 6g of salt a day, about a level teaspoon, and most people eat 8g. Cut bread first."
+            ),
+            "The limit for an adult is 6g of salt a day, about a level teaspoon, and most people eat 8g."
+        );
+        assert_eq!(_reword_ask("make this sound less angry: i want my deposit back now").as_deref(), Some("i want my deposit back now"));
+        assert_eq!(_reword_ask("make it shorter and less angry").as_deref(), Some(""));
+        assert_eq!(
+            _reword_ask("rewrite this email so it sounds professional i need you to send the invoice today").as_deref(),
+            Some("")
+        );
+        assert_eq!(_tone_of("make this sound more formal please"), set(&["formal"]));
+        assert_eq!(
+            _softened("i want my deposit back now! you never reply, its monday", &set(&["formal"])),
+            "I would like my deposit back . it sometimes feels like you do not reply, its Monday."
+        );
+        assert_eq!(_softened("hi sarah i cant make it on friday", &set(&["casual"])), "Hi Sarah I can't make it on Friday.");
+        assert_eq!(
+            _rewritten("i need to tell my boss i quit", &set(&["warm"]), false),
+            "Softer, same point: \"I've decided to move on, and I'd like to agree a leaving date.\" Say it out loud first and keep to that one line: the date and a thank you are the parts they remember, and the reasons are for the exit interview."
+        );
+        assert_eq!(
+            _rewritten("i want my deposit back now", &set(&["formal"]), false),
+            "Softer, same point: \"I would like my deposit back, please.\" Formal but human works best: the request, the date, and one line of reason, with no apology for asking."
+        );
+        assert_eq!(
+            _rewritten("you need to fix the boiler really soon", &set(&["short"]), false),
+            "Softer, same point: \"Could you fix the boiler soon.\" Cut everything that is not the request: the ask and the date are the whole message."
+        );
+        assert_eq!(_something_for("i need something for a headache fast please"), "a headache");
+        assert_eq!(_something_for("get my dad something for his 60th"), "");
+        assert_eq!(_something_for("something for my mum"), "");
+        assert_eq!(
+            _reason_again("A sore knee is usually a strain from doing too much.", "A sore knee is usually a strain from doing too much."),
+            "Usually a strain from doing too much."
+        );
+        assert_eq!(_reason_again("Restart it, so the memory clears.", "Restart it, so the memory clears."), "Restart it.");
+        assert_eq!(
+            _cause_part("One heavy thing is the usual cause: a duvet balls up on one side."),
+            "One heavy thing is the usual cause: a duvet balls up on one side."
+        );
+        assert_eq!(_minutes_in("About 1 hour 40 minutes, or 20 to 25 mins rest."), vec![(100, 100), (20, 25)]);
+        assert!(_a_figure_apart(Some("40 minutes."), "20 minutes per 500g plus 20, so 1 hour 40 minutes"));
+        assert_eq!(
+            _the_thing_that_picks("Get 16GB of RAM and a 512GB SSD: that is what decides it for a laptop that lasts.").as_deref(),
+            Some("16GB of RAM and a 512GB SSD")
+        );
+        assert_eq!(
+            _the_thing_that_picks("Make something she uses every week a bit nicer: a proper thermos, a voucher for the place she likes, a photo book of the family.").as_deref(),
+            Some("a proper thermos")
+        );
+        assert!(_a_price_and_nothing_else("About 100 pounds"));
+        assert!(_a_price_and_nothing_else("About 50 pounds is the usual gift"));
+        assert!(!_a_price_and_nothing_else("16GB of RAM"));
+        assert_eq!(
+            _the_clause_that_says_who("Banging or rumbling in the pipes is usually air or a pump that is struggling, so bleed the radiators, check the pressure is between one and two bar, and if it carries on get a heating engineer to look at the pump."),
+            "If it carries on get a heating engineer to look at the pump."
+        );
+        assert!(!_amount_for_the_name("Weigh the eggs and use the same weight of soft butter", &set(&["eggs"])));
+        assert!(_amount_for_the_name("three eggs fills two tins", &set(&["eggs"])));
+        assert!(_one_total("give or take", true));
+        assert!(!_one_total("per 500g plus 20", false));
+        assert!(_one_total("at 200C from frozen; an air fryer does them in 12", false));
+        assert_eq!(
+            _mid_sentence("The usual hiding places are the door seal and the usual drawer"),
+            "the usual hiding places are the door seal and the usual drawer"
+        );
+        assert!(_the_same_sentences("one. two.", "two. one."));
+        assert_eq!(_without_lead_in("Same as before: Boil it."), "Boil it.");
+        assert!(_asks_only_the_length("how long does it last"));
+        assert!(_a_list_of_things("a proper thermos, a voucher for the place she likes, a photo book of the family"));
+        assert!(_only_the_tone("and less jokey please"));
+    }
+
+    // difflib.SequenceMatcher(None, a, b).ratio() from CPython 3.12.
+    #[test]
+    fn sequence_ratio_matches_difflib() {
+        assert!((sequence_ratio("abcd", "bcde") - 0.75).abs() < 1e-12);
+        assert!((sequence_ratio("", "") - 1.0).abs() < 1e-12);
+        assert!((sequence_ratio("tuna pasta in 15", "tuna pasta in 20") - 0.875).abs() < 1e-12);
+        // a `b` of 200 characters or more: CPython's autojunk drops the popular characters
+        let a = "quick: tuna pasta in 15 macaroni cheese in 25 or a chicken traybake if you have 40 minutes ".repeat(4);
+        let b = "quick: tuna pasta in 15 a frittata in 20 or a chicken traybake if you have 40 minutes ".repeat(4);
+        assert_eq!(sequence_ratio(&a, &b), 0.7062146892655368);
+    }
+
+    #[test]
+    fn python_helpers() {
+        assert_eq!(py_format("Same as before: {reply}", &[("reply", "x")]), "Same as before: x");
+        assert_eq!(py_format("{{literal}} {a}", &[("a", "b")]), "{literal} b");
+        assert_eq!(py_int(" 42 "), Some(42));
+        assert_eq!(py_int("\u{0663}\u{0664}"), Some(34));
+        assert_eq!(py_int("1_000"), Some(1000));
+        assert_eq!(py_int("4.5"), None);
+    }
+}

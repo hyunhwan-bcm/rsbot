@@ -772,5 +772,7 @@ mod tests {
         );
         assert!(_a_plan_for_later("im taking it back tomorrow"));
         assert!(!_a_plan_for_later("i called them on monday"));
+        assert!(_a_step_of_this_answer("ive turned it off and on", "Switch the printer off and on at the wall, then check the queue."));
+        assert!(!_a_step_of_this_answer("i checked the football scores", "Check the boiler pressure, then bleed the radiators."));
     }
 }
