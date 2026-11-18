@@ -63,7 +63,7 @@ static WHO_TO_ASK: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.comp
 
 /// `fallback._choose(options, memory, clean)` (seed_text=None).
 fn choose(options: &[String], memory: &Memory, clean: &str) -> Option<String> {
-    fallback_chain::_choose(options, memory, clean, "").py()
+    fallback_chain::_choose(options, memory, clean, None)
 }
 
 /// `fallback._in_a_pool(text, (POOL, ...))`
