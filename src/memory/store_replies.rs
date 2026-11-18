@@ -6963,64 +6963,557 @@ pub fn _a_diet_put_back(shown: &str) -> Option<String> {
     Some(thing)
 }
 
-/// Python: bot/memory/store_replies.py:6847 `_diet_reply(memory, low='')`
-pub fn _diet_reply(memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_diet_reply")
+/// `user(memory)[key] = value`: a write into the user's facts, as Python's shared dict takes it.
+fn user_set(memory: &mut Memory, key: &str, value: Value) {
+    user(memory);
+    memory.get_mut("user").unwrap().set_key(key, value);
 }
 
-/// Python: bot/memory/store_replies.py:6970 `_about_people(low)` (never called on the trace corpus)
-pub fn _about_people(low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_about_people")
+/// The reading's `kind`, as `(memory.get("understood") or {}).get("kind")` gives it.
+fn reading_kind(memory: &Memory) -> Option<String> {
+    memory.understood.as_ref().map(|u| u.kind.clone())
 }
+
+/// Python: bot/memory/store_replies.py:6847 `_diet_reply(memory, low="")`
+///
+/// How they eat, said back when they ask: "You told me you're vegetarian."
+pub fn _diet_reply(memory: &mut Memory, low: &str) -> Option<String> {
+    // A line that reports a change to the diet, or asks for one, is not a request for the fact.
+    let said = ret_str(crate::memory::change::reported(low, "diet"));
+    if !said.is_empty() {
+        let was = user(memory).get("diet").cloned().unwrap_or(Value::None);
+        if said == "changed" && was.truthy() {
+            // The reply says what it is doing with the old value, so the store has to do it.
+            crate::memory::forget(memory, "diet", &[py_str(&was)], "");
+            user_set(memory, "diet_changed", was.clone());
+        }
+        return ret_opt(crate::memory::change::reply(&said, "diet", &s_or(Some(&was))));
+    }
+    let diet = user(memory).get("diet").cloned().unwrap_or(Value::None);
+    if !diet.truthy() {
+        if !low.is_empty() && !DIET_FACT_ASK.is_match(low) && !_food_facts(memory).is_empty() {
+            // A meal ask after they have told the store what they cannot eat is a question about the food.
+            let (left_out, said_so) = _what_a_dinner_has_to_leave_out(memory);
+            if !left_out.is_empty() {
+                return Some(
+                    "Nothing with ".to_string()
+                        + &_say_a_list(&left_out)
+                        + " in it \u{2014} "
+                        + &said_so.join(" and ")
+                        + ". Tell me what is in the fridge and I'll pick a dinner around it.",
+                );
+            }
+        }
+        let kept = _food_facts(memory);
+        if !kept.is_empty() {
+            // The store holds what they cannot eat, so a denial would be false.
+            return Some("You told me you're ".to_string() + &_say_a_list(&kept) + ".");
+        }
+        if DIET_FACT_ASK.is_match(low) {
+            let kept = _food_facts(memory);
+            if !kept.is_empty() {
+                return Some("You told me you're ".to_string() + &_say_a_list(&kept) + ".");
+            }
+        }
+        let (who, theirs) = _other_fact(memory, "diet");
+        if !theirs.is_empty() && !who.is_empty() {
+            return Some("You haven't told me about yours \u{2014} the diet you mentioned is your ".to_string() + &who + "'s.");
+        }
+        let changed_from = user(memory).get("diet_changed").cloned().unwrap_or(Value::None);
+        if changed_from.truthy() && DIET_FACT_ASK.is_match(low) {
+            // The change was said and the value it named was dropped.
+            let was = text::strip(&py_str(&changed_from)).to_string();
+            let was = if was.to_lowercase().starts_with("no ") {
+                "not eating ".to_string() + &text::slice(&was, 3, None)
+            } else {
+                "being ".to_string() + &_diet_words(&was)
+            };
+            return Some("You told me your diet had changed from ".to_string() + &was + ". What is it now?");
+        }
+        let (take_back, gone) = _the_take_back(memory, "diet");
+        if !gone.is_empty() {
+            // They took a diet back: their own take-back said back.
+            return Some(_a_take_back_said_back(&take_back, &gone));
+        }
+        return Some(_deny(memory, "diet", "You haven't told me about your diet.", Some(_their_own_diet)));
+    }
+    let diet = py_str(&diet);
+    if MEAL_WANTED.is_match(low) && !DIET_FACT_ASK.is_match(low) {
+        // A dinner is the kitchen's to answer.
+        let (left_out, said_so) = _what_a_dinner_has_to_leave_out(memory);
+        if !left_out.is_empty() {
+            return Some(
+                "Nothing with ".to_string()
+                    + &_say_a_list(&left_out)
+                    + " in it \u{2014} "
+                    + &said_so.join(" and ")
+                    + ". Tell me what is in the fridge and I'll pick a dinner around it.",
+            );
+        }
+        return None;
+    }
+    if diet.starts_with("no ") {
+        return Some("You told me you don't ".to_string() + &_diet_how(&diet) + " " + &text::slice(&diet, 3, None) + ".");
+    }
+    if WAY_OF_EATING.contains(&diet) {
+        return Some("You told me you're ".to_string() + &_diet_words(&diet) + ".");
+    }
+    if PLAN_DIETS.contains(&diet) {
+        // A plan is something they are doing, not something they are.
+        return Some("You told me you're doing ".to_string() + &_diet_words(&diet) + ".");
+    }
+    Some("You told me you're ".to_string() + &diet + ".")
+}
+
+rx!(AGE_COMPARE, BARE_AGE_WHO, THE_AGE_GAP, WHICH_ONE_AGE_WHO, PEOPLE_WORDS, SOMEONE_ELSE);
+static THAN: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bthan\b", 0));
+
+/// Python: bot/memory/store_replies.py:6967 `_about_people(low)`
+///
+/// Whether a comparison with nobody named is about people at all.
+pub fn _about_people(low: &str) -> bool {
+    if !(BARE_AGE_WHO.match_(low).is_some() || PEOPLE_WORDS.is_match(low)) {
+        return false;
+    }
+    if THAN.is_match(low) {
+        return SOMEONE_ELSE.is_match(low);
+    }
+    true
+}
+
+static FACTS_KIN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.memory.facts.KIN"));
+static MY_KIN: LazyLock<Re> = LazyLock::new(|| Re::new(&format!(r"\b(?:my|our)\s+({})(?:'s|s)?\b", FACTS_KIN.join("|")), 0));
+static MY_WORD: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bmy\s+([a-z']+)", 0));
+static ME_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:me|myself|mine|i|im)\b", 0));
+static ME_ONLY: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:me|myself|mine)\b", 0));
+static YOUNGER: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:younger|youngest)\b", 0));
+static HOW_MUCH_OLDER: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bhow (?:much|many years)\s+(?:older|younger)\b", 0));
+static THE_EST: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(youngest|eldest|oldest)\b", 0));
 
 /// Python: bot/memory/store_replies.py:6982 `_age_compare(memory, low)`
+///
+/// Two ages the store holds, compared out loud: "You are - 34 to your wife's 32."
 pub fn _age_compare(memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_age_compare")
+    if !AGE_COMPARE.is_match(low) {
+        return None;
+    }
+    match reading_kind(memory).as_deref() {
+        None | Some("question") => {}
+        // "my wife is older than me" states the comparison instead of asking it.
+        _ => return None,
+    }
+    let aged: Vec<Value> = others(memory)
+        .items()
+        .iter()
+        .filter(|e| e.get("age").map(|a| !a.is_none()).unwrap_or(false) && e.get("who").map(Value::truthy).unwrap_or(false))
+        .cloned()
+        .collect();
+    let mut by_who: Vec<(String, Value)> = Vec::new();
+    for entry in &aged {
+        let key = s_or(entry.get("who")).to_lowercase();
+        if !by_who.iter().any(|(k, _)| *k == key) {
+            by_who.push((key, entry.clone()));
+        }
+    }
+    let find = |w: &str| by_who.iter().find(|(k, _)| k == w).map(|(_, v)| v.clone());
+    // The people the line names decide the comparison.
+    let words: Vec<String> = MY_KIN.findall_str(low).into_iter().map(|w| w.to_lowercase()).collect();
+    if words.iter().any(|w| find(w).is_none()) {
+        return None;
+    }
+    // "is my car older than my wife's" compares two cars.
+    if MY_WORD.findall_str(low).iter().any(|w| !FACTS_KIN.contains(w)) {
+        return None;
+    }
+    let mut named: Vec<Value> = Vec::new();
+    for word in &words {
+        let entry = find(word).unwrap();
+        if !named.contains(&entry) {
+            named.push(entry);
+        }
+    }
+    let mine = user(memory).get("age").cloned().unwrap_or(Value::None);
+    let me = if !mine.is_none() { Some(dict_of(vec![("who", Value::from("")), ("age", mine.clone())])) } else { None };
+    let sides: Vec<Value> = if named.len() >= 2 {
+        named[..2].to_vec()
+    } else if !named.is_empty() && me.is_some() {
+        vec![me.clone().unwrap(), named[0].clone()]
+    } else if named.is_empty() && me.is_some() && !aged.is_empty() && _about_people(low) {
+        let pointed = _pointed_at(&aged, low)?;
+        vec![me.clone().unwrap(), pointed]
+    } else if named.is_empty()
+        && me.is_none()
+        && by_who.len() == 2
+        && !ME_WORDS.is_match(low)
+        && (BARE_AGE_WHO.match_(low).is_some() || WHICH_ONE_AGE_WHO.match_(low).is_some())
+    {
+        // "who is older" names nobody: the comparison is the two people the store holds.
+        by_who.iter().map(|(_, v)| v.clone()).collect()
+    } else if named.is_empty() && me.is_none() && by_who.len() == 2 && THE_AGE_GAP.is_match(low) && !ME_ONLY.is_match(low) && _the_pronoun_is_one_of_the_two(&by_who, low) {
+        // "how much older is he" asks for the gap between the two people the store holds.
+        by_who.iter().map(|(_, v)| v.clone()).collect()
+    } else {
+        return None;
+    };
+    let mut ages: Vec<i64> = Vec::new();
+    for s in &sides {
+        ages.push(py_int_value(s.get("age").unwrap_or(&Value::None))?);
+    }
+    let (first, second) = (&sides[0], &sides[1]);
+    let who_of = |v: &Value| py_str(v.get("who").unwrap_or(&Value::None));
+    if ages[0] == ages[1] {
+        if !first.get("who").map(Value::truthy).unwrap_or(false) {
+            return Some(format!("Neither of you - you're both {}.", ages[0]));
+        }
+        return Some(format!("Neither of them - your {} and your {} are both {}.", who_of(first), who_of(second), ages[0]));
+    }
+    let younger = YOUNGER.is_match(low);
+    let (winner, other) = if (ages[0] > ages[1]) != younger { (0, 1) } else { (1, 0) };
+    let (win, lose) = (&sides[winner], &sides[other]);
+    let gap = (ages[0] - ages[1]).abs();
+    let years = if gap == 1 { "year" } else { "years" };
+    if HOW_MUCH_OLDER.is_match(low) {
+        if !first.get("who").map(Value::truthy).unwrap_or(false) {
+            return Some(format!("{gap} {years}: you're {} and your {} is {}.", ages[0], who_of(second), ages[1]));
+        }
+        return Some(format!("{gap} {years}: your {} is {} and your {} is {}.", who_of(first), ages[0], who_of(second), ages[1]));
+    }
+    let theirs = if !lose.get("who").map(Value::truthy).unwrap_or(false) { "your".to_string() } else { "your ".to_string() + &who_of(lose) + "'s" };
+    let word = match THE_EST.search(low) {
+        Some(said) => "the ".to_string() + said.str(1),
+        None => if ages[winner] > ages[other] { "older" } else { "younger" }.to_string(),
+    };
+    if !win.get("who").map(Value::truthy).unwrap_or(false) {
+        return Some(format!("You're {word} - {} to {theirs} {}.", ages[winner], ages[other]));
+    }
+    Some(format!("Your {}'s {word} - {} to {theirs} {}.", who_of(win), ages[winner], ages[other]))
 }
 
-/// Python: bot/memory/store_replies.py:7091 `_the_day_a_plan_names(plan)` (never called on the trace corpus)
-pub fn _the_day_a_plan_names(plan: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_day_a_plan_names")
+rx!(WHICH_FIRST_ASK, MONTH_SAID);
+strset!(WHICH_FIRST_WORDS);
+strs!(MONTH_ORDER);
+
+/// Python: bot/memory/store_replies.py:7088 `_the_day_a_plan_names(plan)`
+///
+/// How many days away the day a plan names is, or None when it names no day.
+pub fn _the_day_a_plan_names(plan: &str) -> Option<i64> {
+    use chrono::Datelike;
+    let low = fold(plan);
+    let today = crate::py::clock::today();
+    if let Some(found) = MONTH_SAID.search(&low) {
+        let short = MONTH_WORD.search(found.as_str());
+        let name: Vec<&String> = match &short {
+            Some(s) => {
+                let head = text::slice(s.as_str(), 0, Some(3));
+                MONTH_ORDER.iter().filter(|m| m.starts_with(&head)).collect()
+            }
+            None => Vec::new(),
+        };
+        let name = (*name.first()?).clone();
+        let index = MONTH_ORDER.iter().position(|m| *m == name).unwrap() as u32 + 1;
+        let mut day = 1u32;
+        let escaped = crate::py::re::escape(&name);
+        let near = Re::new(&format!(r"\b(\d{{1,2}})(?:st|nd|rd|th)?\b[^.?!]{{0,12}}{escaped}"), 0)
+            .search(&low)
+            .map(|m| m.str(1).to_string())
+            .or_else(|| Re::new(&format!(r"{escaped}\b[^.?!]{{0,12}}?\b(\d{{1,2}})(?:st|nd|rd|th)?\b"), 0).search(&low).map(|m| m.str(1).to_string()));
+        if let Some(n) = near.and_then(|n| py_int(&n)) {
+            if (1..=31).contains(&n) {
+                day = n as u32;
+            }
+        }
+        for year in [today.year(), today.year() + 1] {
+            let Some(when) = chrono::NaiveDate::from_ymd_opt(year, index, day) else { continue };
+            if when >= today {
+                return Some((when - today).num_days());
+            }
+        }
+        return None;
+    }
+    if let Some(day) = WEEKDAY_WORD.search(&low) {
+        if !DATE_PHRASE.is_match(&low) {
+            let at = WEEK.iter().position(|d| d == day.as_str()).expect("ValueError: not in list") as i64;
+            return Some((at - today.weekday().num_days_from_monday() as i64).rem_euclid(7));
+        }
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:7128 `_the_plans_in_date_order(memory)` (never called on the trace corpus)
-pub fn _the_plans_in_date_order(memory: &mut Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_plans_in_date_order")
+/// Python: bot/memory/store_replies.py:7130 `_the_plans_in_date_order(memory)`
+///
+/// The things the store holds a day for, earliest first, each said the way it was kept.
+pub fn _the_plans_in_date_order(memory: &mut Memory) -> Vec<(i64, String)> {
+    let known = user(memory);
+    let mut held = _plans_with_the_latest(&known);
+    for entry in others(memory).items() {
+        let who = text::strip(&sget(entry, "who")).to_string();
+        let day = text::strip(&sget(entry, "birthday")).to_string();
+        if who.is_empty() || day.is_empty() {
+            continue;
+        }
+        // A birthday that is also a plan is in the store twice, and the plan is the way they said it.
+        let whose = Re::new(&format!(r"\b{}s?\b", crate::py::re::escape(&who)), 0);
+        if held.iter().any(|p| p.to_lowercase().contains("birthday") && whose.is_match(&p.to_lowercase())) {
+            continue;
+        }
+        // "3 may" takes "on", a month on its own takes "in".
+        let link = if A_DIGIT.is_match(&day) { "on " } else { "in " };
+        held.push("my ".to_string() + &who + "s birthday is " + link + &day);
+    }
+    let mut dated: Vec<(i64, String)> = Vec::new();
+    let mut seen: HashSet<(i64, String)> = HashSet::new();
+    for plan in &held {
+        let Some(days) = _the_day_a_plan_names(plan) else { continue };
+        let line = crate::memory::plan_line(memory, plan);
+        let said = text::rstrip_chars(&crate::memory::plan_sentence(plan, &line), " .!?").to_string();
+        if said.is_empty() {
+            continue;
+        }
+        // The same day said twice is one day in the order.
+        let key = (days, said.to_lowercase());
+        if seen.contains(&key) {
+            continue;
+        }
+        seen.insert(key);
+        dated.push((days, said));
+    }
+    dated.sort_by_key(|pair| pair.0);
+    dated
 }
 
 /// Python: bot/memory/store_replies.py:7175 `_which_comes_first(memory, low)`
+///
+/// Two dated plans in the order the calendar puts them: "May comes first, then June".
 pub fn _which_comes_first(memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_which_comes_first")
+    let found = WHICH_FIRST_ASK.search(low)?;
+    match reading_kind(memory).as_deref() {
+        None | Some("question") => {}
+        _ => return None,
+    }
+    let rest = low[..found.start()].to_string() + " " + &low[found.end()..];
+    if LETTER_WORDS.findall_str(&rest).iter().any(|w| !WHICH_FIRST_WORDS.contains(w)) {
+        return None;
+    }
+    let dated = _the_plans_in_date_order(memory);
+    if dated.len() < 2 {
+        return None;
+    }
+    let first = dated[0].1.clone();
+    let later: Vec<String> = dated[1..dated.len().min(4)].iter().map(|(_, s)| lower_first(s)).collect();
+    if dated[1].0 == dated[0].0 {
+        return Some("Both land on the same day: ".to_string() + &lower_first(&first) + " and " + &later[0] + ".");
+    }
+    Some(first + ", so that one is first \u{2014} then " + &later.join(", then ") + ".")
 }
 
-/// Python: bot/memory/store_replies.py:7201 `_the_pronoun_is_one_of_the_two(by_who, low)` (never called on the trace corpus)
-pub fn _the_pronoun_is_one_of_the_two(by_who: &Value, low: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_the_pronoun_is_one_of_the_two")
+static SHE_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:she|her|hers)\b", 0));
+static HE_WORDS: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:he|him|his)\b", 0));
+
+/// Python: bot/memory/store_replies.py:7206 `_the_pronoun_is_one_of_the_two(by_who, low)`
+///
+/// Whether a pronoun in the line fits one of the two people the store holds an age for.
+pub fn _the_pronoun_is_one_of_the_two(by_who: &[(String, Value)], low: &str) -> bool {
+    let fits: &HashSet<String> = if SHE_WORDS.is_match(low) {
+        &FACTS_SHE
+    } else if HE_WORDS.is_match(low) {
+        &FACTS_HE
+    } else {
+        return true;
+    };
+    by_who.iter().any(|(_, e)| fits.contains(&s_or(e.get("who")).to_lowercase()))
 }
 
-/// Python: bot/memory/store_replies.py:7217 `_pointed_at(aged, low)` (never called on the trace corpus)
-pub fn _pointed_at(aged: &Value, low: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_pointed_at")
+/// Python: bot/memory/store_replies.py:7223 `_pointed_at(aged, low)`
+///
+/// The person an age comparison points at with a pronoun, or the last one heard of.
+pub fn _pointed_at(aged: &[Value], low: &str) -> Option<Value> {
+    let fits: Option<&HashSet<String>> = if SHE_WORDS.is_match(low) {
+        Some(&FACTS_SHE)
+    } else if HE_WORDS.is_match(low) {
+        Some(&FACTS_HE)
+    } else {
+        None
+    };
+    if let Some(fits) = fits {
+        return aged.iter().rev().find(|e| fits.contains(&s_or(e.get("who")).to_lowercase())).cloned();
+    }
+    Some(aged.last().expect("IndexError: list index out of range").clone())
 }
 
-/// Python: bot/memory/store_replies.py:7249 `_a_food(value)` (never called on the trace corpus)
-pub fn _a_food(value: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_food")
+rx!(LIMIT_LIKE);
+strset!(MORE_FOODS);
+static COOKING_FAMILIES: LazyLock<Vec<(String, Vec<String>)>> =
+    LazyLock::new(|| data::get("bot.knowledge.cooking.FAMILIES").pairs().iter().map(|(k, v)| (k.str().to_string(), v.strs())).collect());
+static COOKING_CHEESES: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.knowledge.cooking.CHEESES"));
+static COOKING_FOOD: LazyLock<Re> = LazyLock::new(|| Re::new(&format!(r"\b{}\b", data::string("bot.knowledge.cooking.FOOD")), 0));
+
+/// Python: bot/memory/store_replies.py:7251 `_a_food(value)`
+///
+/// Whether the thing they can't have is food: "nuts" is, "penicillin" is not.
+pub fn _a_food(value: &str) -> bool {
+    let word = text::strip(value).to_lowercase();
+    if word.is_empty() {
+        return false;
+    }
+    if MORE_FOODS.contains(&word) {
+        return true;
+    }
+    if COOKING_FAMILIES.iter().any(|(_, family)| family.contains(&word)) {
+        return true;
+    }
+    COOKING_CHEESES.contains(&word) || COOKING_FOOD.is_match(&word)
 }
 
-/// Python: bot/memory/store_replies.py:7262 `_diet_food(diet)` (never called on the trace corpus)
-pub fn _diet_food(diet: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_diet_food")
+static DIET_FOOD: LazyLock<HashMap<String, Vec<String>>> = LazyLock::new(|| g("DIET_FOOD").str_list_map());
+
+/// Python: bot/memory/store_replies.py:7265 `_diet_food(diet)`
+///
+/// The food a diet rules out, or () for a diet the table does not know.
+pub fn _diet_food(diet: &str) -> Vec<String> {
+    let low = text::strip(diet).to_lowercase();
+    if let Some(food) = DIET_FOOD.get(&low) {
+        return food.clone();
+    }
+    if low.starts_with("no ") {
+        // "no meat" is the limit said as the food already.
+        let rest = text::strip(&text::slice(&low, 3, None)).to_string();
+        return if rest.is_empty() { Vec::new() } else { vec![rest] };
+    }
+    if low.ends_with(" free") {
+        let rest = text::strip(&text::slice(&low, 0, Some(-5))).to_string();
+        return if rest.is_empty() { Vec::new() } else { vec![rest] };
+    }
+    Vec::new()
 }
 
-/// Python: bot/memory/store_replies.py:7274 `_said_a_limit(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:7277 `_said_a_limit(memory)`
 pub fn _said_a_limit(memory: &mut Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_said_a_limit")
+    let known = user(memory);
+    if ["allergies", "condition", "diet"].iter().any(|k| known.get(k).map(Value::truthy).unwrap_or(false)) {
+        return true;
+    }
+    recent_turns(memory, 12).iter().any(|t| !t.user.is_empty() && LIMIT_LIKE.is_match(&t.user))
 }
 
-/// Python: bot/memory/store_replies.py:7284 `_said_list(items)` (never called on the trace corpus)
-pub fn _said_list(items: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_said_list")
+/// Python: bot/memory/store_replies.py:7287 `_said_list(items)`
+///
+/// Two things are joined with "and"; three or more take commas and a final "and".
+pub fn _said_list(items: &[String]) -> String {
+    match items.len() {
+        0 => String::new(),
+        1 => items[0].clone(),
+        2 => items[0].clone() + " and " + &items[1],
+        n => items[..n - 1].join(", ") + " and " + &items[n - 1],
+    }
+}
+
+strset!(FOOD_CONDITION);
+
+/// A str or a list of them, as the store keeps a fact that can be either.
+fn str_or_list(v: Option<&Value>) -> Option<Vec<Value>> {
+    match v {
+        Some(Value::Str(s)) => Some(vec![Value::Str(s.clone())]),
+        Some(Value::List(items)) | Some(Value::Tuple(items)) => Some(items.to_vec()),
+        _ => None,
+    }
+}
+
+/// Python: bot/memory/store_replies.py:12751 `_food_facts(memory)`
+///
+/// The food restrictions the store holds, in the words they can be said back in.
+pub fn _food_facts(memory: &mut Memory) -> Vec<String> {
+    let mine = user(memory);
+    let mut kept = Vec::new();
+    if let Some(allergies) = str_or_list(mine.get("allergies")) {
+        for item in allergies {
+            let item = text::strip(&py_str(&item)).to_string();
+            if !item.is_empty() {
+                kept.push("allergic to ".to_string() + &item);
+            }
+        }
+    }
+    if let Some(condition) = str_or_list(mine.get("condition")) {
+        for item in condition {
+            let item = text::strip(&py_str(&item)).to_string();
+            if !item.is_empty() && FOOD_CONDITION.contains(&item.to_lowercase()) {
+                kept.push(item);
+            }
+        }
+    }
+    kept
+}
+
+static CONDITION_BANS: LazyLock<HashMap<String, HashSet<String>>> = LazyLock::new(|| {
+    data::get("bot.knowledge.cooking.CONDITION_BANS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.str_set())).collect()
+});
+
+/// Python: bot/memory/store_replies.py:12773 `_the_food_a_condition_rules_out(condition)`
+///
+/// The one food word a condition rules out ("coeliac" -> "gluten"), or "".
+pub fn _the_food_a_condition_rules_out(condition: &str) -> String {
+    let Some(wanted) = CONDITION_BANS.get(text::strip(&condition.to_lowercase())).filter(|w| !w.is_empty()) else { return String::new() };
+    for (name, family) in COOKING_FAMILIES.iter() {
+        let family: HashSet<String> = family.iter().cloned().collect();
+        if family == *wanted {
+            return name.clone();
+        }
+    }
+    String::new()
+}
+
+/// Python: bot/memory/store_replies.py:12788 `_what_a_dinner_has_to_leave_out(memory)`
+///
+/// The foods a dinner has to leave out, and the fact that rules each one out.
+pub fn _what_a_dinner_has_to_leave_out(memory: &mut Memory) -> (Vec<String>, Vec<String>) {
+    let mine = user(memory);
+    let (mut left_out, mut said_so): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
+    if let Some(allergies) = str_or_list(mine.get("allergies")) {
+        let kept: Vec<String> = allergies.iter().map(|n| text::strip(&py_str(n)).to_string()).filter(|n| !n.is_empty()).collect();
+        if !kept.is_empty() {
+            said_so.push("you're allergic to ".to_string() + &_all_of_them(kept.len() as i64));
+            left_out.extend(kept);
+        }
+    }
+    if let Some(condition) = str_or_list(mine.get("condition")) {
+        for item in condition {
+            let named = text::strip(&py_str(&item)).to_string();
+            if named.is_empty() || !FOOD_CONDITION.contains(&named.to_lowercase()) {
+                continue;
+            }
+            let food = _the_food_a_condition_rules_out(&named);
+            said_so.push("you're ".to_string() + &named);
+            if !food.is_empty() && !left_out.contains(&food) {
+                left_out.push(food);
+            }
+        }
+    }
+    (left_out, said_so)
+}
+
+/// Python: bot/memory/store_replies.py:12820 `_all_of_them(count)`
+///
+/// How a person says the whole list back: one thing, two things, or three and more.
+pub fn _all_of_them(count: i64) -> String {
+    match count {
+        1 => "them",
+        2 => "both",
+        _ => "all of them",
+    }
+    .to_string()
+}
+
+/// Python: bot/memory/store_replies.py:12834 `_say_a_list(items)`
+///
+/// One thing named, or several as people say them: "a, b and c".
+pub fn _say_a_list(items: &[String]) -> String {
+    match items.len() {
+        1 => items[0].clone(),
+        2 => items[0].clone() + " and " + &items[1],
+        n => {
+            let last = items.last().expect("IndexError: list index out of range");
+            items[..n - 1].join(", ") + " and " + last
+        }
+    }
 }
 
 /// Python: bot/memory/store_replies.py:7299 `_limit_reply(memory, low='')` (never called on the trace corpus)
@@ -8001,31 +8494,6 @@ pub fn _the_call_from_the_advice(text: &str, memory: &Memory) -> Option<String> 
 /// Python: bot/memory/store_replies.py:12743 `_trim(text, limit=90)` (never called on the trace corpus)
 pub fn _trim(text: &str, limit: i64) -> Value {
     crate::unported!("bot.memory.store_replies:_trim")
-}
-
-/// Python: bot/memory/store_replies.py:12751 `_food_facts(memory)`
-pub fn _food_facts(memory: &mut Memory) -> Vec<String> {
-    crate::unported!("bot.memory.store_replies:_food_facts")
-}
-
-/// Python: bot/memory/store_replies.py:12773 `_the_food_a_condition_rules_out(condition)` (never called on the trace corpus)
-pub fn _the_food_a_condition_rules_out(condition: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_food_a_condition_rules_out")
-}
-
-/// Python: bot/memory/store_replies.py:12788 `_what_a_dinner_has_to_leave_out(memory)` (never called on the trace corpus)
-pub fn _what_a_dinner_has_to_leave_out(memory: &mut Memory) -> Value {
-    crate::unported!("bot.memory.store_replies:_what_a_dinner_has_to_leave_out")
-}
-
-/// Python: bot/memory/store_replies.py:12820 `_all_of_them(count)` (never called on the trace corpus)
-pub fn _all_of_them(count: i64) -> String {
-    crate::unported!("bot.memory.store_replies:_all_of_them")
-}
-
-/// Python: bot/memory/store_replies.py:12834 `_say_a_list(items)` (never called on the trace corpus)
-pub fn _say_a_list(items: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_say_a_list")
 }
 
 /// Python: bot/memory/store_replies.py:12943 `_reads_as_the_invitation(text, memory)`
