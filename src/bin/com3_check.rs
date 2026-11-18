@@ -7,7 +7,7 @@
 //! Per function: calls that give PyBot's result (and, for a function that writes memory, PyBot's
 //! memory after it), calls that differ, and calls that reached a stub not ported yet.
 use flate2::read::GzDecoder;
-use rsbot::compose::{goodnews as gn, check_with_you as cwy, checking as ck, fallback_pools as fp, finding_out as fo, loss, onsubject as os, quantity as qt, ruledout as ro, trouble as tr, what_i_do_know as wk};
+use rsbot::compose::{remark as rm, goodnews as gn, check_with_you as cwy, checking as ck, fallback_pools as fp, finding_out as fo, loss, onsubject as os, quantity as qt, ruledout as ro, trouble as tr, what_i_do_know as wk};
 use rsbot::runtime::{guarded, quiet_panics, take_last_panic};
 use rsbot::state::{Memory, Turn};
 use rsbot::understood::Understood;
@@ -180,6 +180,30 @@ fn run(name: &str, c: &Call) -> Option<Out> {
         "bot.compose.goodnews:_a_hand_over" => r(json!(gn::_a_hand_over(&c.strs(0)))),
         "bot.compose.goodnews:worry_on_the_table" => r(json!(gn::worry_on_the_table(&c.mem(0), &rsbot::data::Value::Int(c.n(1, 4))))),
         "bot.compose.goodnews:a_year_behind" => r(json!(gn::a_year_behind(&c.s(0), None))),
+        // ---- remark ----
+        "bot.compose.remark:reads_as_regret" => r(json!(rm::reads_as_regret(&c.s(0), &c.strs(1)))),
+        "bot.compose.remark:regret_reply_for" => r(optj(rm::regret_reply_for(&c.s(0), &c.strs(1), &c.mem(2), &c.s(3)))),
+        "bot.compose.remark:reads_as_report" => r(optj(rm::reads_as_report(&c.s(0), &c.strs(1)))),
+        "bot.compose.remark:report_reply_for" => r(optj(rm::report_reply_for(&c.s(0), &c.strs(1), &c.mem(2)))),
+        "bot.compose.remark:break_in_reply_for" => r(optj(rm::break_in_reply_for(&c.s(0), &c.strs(1), &c.mem(2)))),
+        "bot.compose.remark:reply_for" => r(optj(rm::reply_for(&c.s(0), &c.strs(1), &c.mem(2), &c.strs(3)))),
+        "bot.compose.remark:arranged_reply_for" => r(optj(rm::arranged_reply_for(&c.s(0), &c.strs(1), &c.mem(2)))),
+        "bot.compose.remark:reads_as_arranged" => r(json!(rm::reads_as_arranged(&c.s(0)))),
+        "bot.compose.remark:reads_as_plan" => r(json!(rm::reads_as_plan(&c.s(0)))),
+        "bot.compose.remark:the_two_of_them" => r(optj(rm::the_two_of_them(&c.s(0), &c.mem(1)))),
+        "bot.compose.remark:their_people_reply_for" => r(optj(rm::their_people_reply_for(&c.s(0), &c.strs(1), &c.mem(2)))),
+        "bot.compose.remark:their_mood_going_on_reply_for" => r(optj(rm::their_mood_going_on_reply_for(&c.s(0), &c.mem(1)))),
+        "bot.compose.remark:their_mood_with_you_reply_for" => {
+            let mut m = c.mem(2);
+            let out = rm::their_mood_with_you_reply_for(&c.s(0), &c.strs(1), &mut m);
+            Some((optj(out), Some(m)))
+        }
+        "bot.compose.remark:a_want_said_back" => r(json!(rm::a_want_said_back(c.os(0).as_deref(), &c.s(1)))),
+        "bot.compose.remark:dependant_want_reply_for" => r(optj(rm::dependant_want_reply_for(&c.s(0), &c.strs(1), &c.mem(2)))),
+        "bot.compose.remark:a_thing_of_theirs_reply_for" => r(optj(rm::a_thing_of_theirs_reply_for(&c.s(0), &c.strs(1), &c.mem(2)))),
+        "bot.compose.remark:done_to_me" => r(json!(rm::done_to_me(&c.s(0)))),
+        "bot.compose.remark:_has_phrase" => r(json!(rm::_has_phrase(&c.s(0), &c.strs(1)))),
+        "bot.compose.remark:interest_reply_for" => r(optj(rm::interest_reply_for(&c.get(0).map(rsbot::data::Value::from_plain).unwrap_or(rsbot::data::Value::None), &c.mem(1)))),
         // ---- loss ----
         "bot.compose.loss:reads_as_loss" => { let w = words_arg(c, 1); r(json!(loss::reads_as_loss(&c.s(0), w.as_deref(), c.b(2, false)))) }
         "bot.compose.loss:reply_for" => r(opt_pool(loss::reply_for(&c.s(0), &c.mem(1), &c.s(2), &c.strs(3), c.os(4).as_deref()))),
