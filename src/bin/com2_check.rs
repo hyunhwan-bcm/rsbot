@@ -405,6 +405,66 @@ fn run(name: &str, c: &Call) -> Option<Out> {
             let got = fc::_reply_for(&c.s(0), &mut m, if c.has_und(2) { Some(&u) } else { None }, c.b(3, true));
             Some((opt(got), Some(m)))
         }
+        "bot.compose.fallback_chain:_a_betrayal" => r(json!(fc::_a_betrayal(&c.s(0)))),
+        "bot.compose.fallback_chain:_a_thing_they_regret" => r(json!(fc::_a_thing_they_regret(&c.s(0)))),
+        "bot.compose.fallback_chain:_a_care_home_line" => {
+            let u = c.und(0);
+            r(opt(fc::_a_care_home_line(if c.has_und(0) { Some(&u) } else { None }, &c.mem(1))))
+        }
+        "bot.compose.fallback_chain:_a_day_told_instead_of_the_receipt" => {
+            r(opt(fc::_a_day_told_instead_of_the_receipt(c.os(0).as_deref(), &c.s(1), &c.mem(2))))
+        }
+        "bot.compose.fallback_chain:_the_crowd_is_ahead" => r(json!(fc::_the_crowd_is_ahead(&c.s(0)))),
+        "bot.compose.fallback_chain:_the_rest_of_the_day" => {
+            let mood = c.os(2).unwrap_or_else(|| "neutral".into());
+            r(opt_pool(fc::_the_rest_of_the_day(&c.s(0), &c.mem(1), &mood)))
+        }
+        "bot.compose.fallback_chain:_an_emotion" => r(opt(fc::_an_emotion(&c.s(0)))),
+        "bot.compose.fallback_chain:_just_asked_about_the_day" => r(json!(fc::_just_asked_about_the_day(&c.mem(0)))),
+        "bot.compose.fallback_chain:_a_day_of_someone_else" => r(json!(fc::_a_day_of_someone_else(&c.s(0)))),
+        "bot.compose.fallback_chain:_a_thing_happened" => r(json!(fc::_a_thing_happened(&c.s(0)))),
+        "bot.compose.fallback_chain:_a_thing_got_ahead" => r(opt_pool(fc::_a_thing_got_ahead(&c.s(0)))),
+        "bot.compose.fallback_chain:_a_problem_stated" => r(json!(fc::_a_problem_stated(&c.s(0), c.os(1).as_deref()))),
+        "bot.compose.fallback_chain:_says_there_is_nothing_to_wear" => r(json!(fc::_says_there_is_nothing_to_wear(&c.s(0), &c.s(1), &c.s(2)))),
+        "bot.compose.fallback_chain:_a_wear_ask_about_a_day" => r(json!(fc::_a_wear_ask_about_a_day(&c.s(0), &c.s(1), &c.s(2)))),
+        "bot.compose.fallback_chain:_the_wear_pool_for_the_line" => r(json!(fc::_the_wear_pool_for_the_line(&c.s(0), &c.s(1), &c.s(2)))),
+        "bot.compose.fallback_chain:_a_small_day" => r(json!(fc::_a_small_day(&c.s(0), &c.mem(1)))),
+        "bot.compose.fallback_chain:_a_detail_about_what_was_said" => r(json!(fc::_a_detail_about_what_was_said(&c.s(0), &c.mem(1)))),
+        "bot.compose.fallback_chain:_a_dish_name" => r(json!(fc::_a_dish_name(&c.s(0), &c.strs(1), &c.mem(2)))),
+        "bot.compose.fallback_chain:_a_report_with_no_pronoun" => {
+            let mut m = c.mem(2);
+            let got = fc::_a_report_with_no_pronoun(&c.s(0), &c.s(1), &mut m);
+            Some((json!(got), Some(m)))
+        }
+        "bot.compose.fallback_chain:_repaired_of" => r(json!(fc::_repaired_of(&c.s(0), &c.mem(1)))),
+        "bot.compose.fallback_chain:takes_as_it_comes" => {
+            let mut m = c.mem(1);
+            let got = fc::takes_as_it_comes(&c.s(0), &mut m);
+            Some((json!(got), Some(m)))
+        }
+        "bot.compose.fallback_chain:_a_name_told" => r(match fc::_a_name_told(&c.s(0)) {
+            Some((a, b, p)) => json!([a, b, p]),
+            None => J::Null,
+        }),
+        "bot.compose.fallback_chain:_named_after_reply" => r(opt(fc::_named_after_reply(&c.s(0), &c.mem(1)))),
+        "bot.compose.fallback_chain:_a_name_told_reply" => r(opt(fc::_a_name_told_reply(&c.s(0), &c.mem(1)))),
+        "bot.compose.fallback_chain:_a_state_of_theirs" => r(opt(fc::_a_state_of_theirs(&c.s(0)))),
+        "bot.compose.fallback_chain:_a_day_said_badly" => r(json!(fc::_a_day_said_badly(&c.s(0)))),
+        "bot.compose.fallback_chain:_the_last_exchange" => {
+            let m = c.mem(0);
+            r(fc::_the_last_exchange(&m).map(|t| json!({"user": t.user, "bot": t.bot, "module": t.module})).unwrap_or(J::Null))
+        }
+        "bot.compose.fallback_chain:_the_day_was_already_bad" => r(json!(fc::_the_day_was_already_bad(&c.mem(0)))),
+        "bot.compose.fallback_chain:_a_detail_of_a_bad_day" => r(json!(fc::_a_detail_of_a_bad_day(&c.mem(0), c.os(1).as_deref()))),
+        "bot.compose.fallback_chain:_money_came_to_them" => r(json!(fc::_money_came_to_them(&c.s(0), &c.strs(1)))),
+        "bot.compose.fallback_chain:_a_sum_with_nothing_beside_it" => {
+            let m = c.mem(1);
+            r(opt(fc::_a_sum_with_nothing_beside_it(&c.s(0), if c.has_mem(1) { Some(&m) } else { None })))
+        }
+        "bot.compose.fallback_chain:_a_report_from_elsewhere" => r(opt_pool(fc::_a_report_from_elsewhere(&c.s(0)))),
+        "bot.compose.fallback_chain:_a_small_day_shape" => r(json!(fc::_a_small_day_shape(&c.s(0)))),
+        "bot.compose.fallback_chain:_a_bad_time_told" => r(json!(fc::_a_bad_time_told(&c.s(0), &c.mem(1)))),
+        "bot.compose.fallback_chain:_a_day_asked_without_a_cheer" => r(json!(fc::_a_day_asked_without_a_cheer(&c.s(0), &c.mem(1)))),
         _ => None,
     }
 }

@@ -10,7 +10,7 @@
 
 use crate::compose::fallback_chain::{caught, data_re, data_set, data_strs, NO_MEMORY};
 use crate::data::{self, Value};
-use crate::py::re::{escape, Re};
+use crate::py::re::Re;
 use crate::py::text;
 use crate::state::{Memory, Turn};
 use std::collections::{HashMap, HashSet};
@@ -476,9 +476,21 @@ pub fn _is_an_explanation(sentence: &str) -> bool {
     text::split(&head).len() > *EXPLANATION_WORDS
 }
 
+/// Python 3.12's `re.escape`: only the characters it lists get a backslash.
+fn py_escape(part: &str) -> String {
+    let mut out = String::with_capacity(part.len() * 2);
+    for c in part.chars() {
+        if "()[]{}?*+-|^$\\.&~# \t\n\r\u{b}\u{c}".contains(c) {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out
+}
+
 /// Python: bot/compose/verdict.py:2047 `_own_pattern(line)`
 pub fn _own_pattern(line: &str) -> String {
-    A_GAP.split(line).iter().map(|part| escape(part)).collect::<Vec<_>>().join(".+?")
+    A_GAP.split(line).iter().map(|part| py_escape(part)).collect::<Vec<_>>().join(".+?")
 }
 
 /// `_ACK_PATTERN`, built the first time it is needed from the acknowledgement frames.

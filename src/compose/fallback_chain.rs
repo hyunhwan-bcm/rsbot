@@ -1397,6 +1397,830 @@ pub fn _a_countdown_in_a_care_thread(memory: &Memory, clean: &str, repaired: &st
 }
 
 // ---------------------------------------------------------------------------------------------
+// The rows after the chain: wrongs, regrets, care homes, small days, names, states, sums.
+// ---------------------------------------------------------------------------------------------
+
+data_re!(M; A_WRONG_PLAIN, A_WRONG_SAID, A_WRONG_AIMED, A_WRONG_ABOUT_A_THING, FOUND_IT_OUT, WHO_DID_IT, FOUND_OUT,
+    HARM_ON_ME, A_REGRET_DOING, NOT_A_REGRET, SNAPPED_A_PHOTO, THE_JOB_NAMED, A_MISTAKE, HARM_NAMED,
+    HAVE_GOT_A_THING, A_CROWD, A_MILESTONE, CROWD_ORDER, NOT_A_CROWD_AHEAD, A_CHILDHOOD_MEMORY,
+    SOMEONE_ELSE_NAMED, A_VISIT, THEIR_OWN_DOING, PAST_DOING, A_THING_GOT_AHEAD, GOT_AHEAD_GONE,
+    GOT_AHEAD_NOT_A_DATE, A_MONTH, DATE_AHEAD, PROBLEM_STATED, SOMETHING_UP, NOTHING_TO_WEAR, WEAR_ASK,
+    WEATHER_WET, COLD_FIGURE, WEATHER_COLD, HOT_FIGURE, WEATHER_HOT, WEATHER_SUN, A_LOOKING_BACK, DAY_PAST,
+    A_DAY_SUBJECT, NOT_A_DAY_DONE, NOT_A_DAY_SAID, A_SYMPTOM_PHRASE, NEGATIVE_LINE, A_HURT_MYSELF,
+    A_DAY_WENT_WRONG, SOMEONE_DONE_WRONG, A_BAD_THING_NAMED, A_HAND_OUT, BAD_DAY_ANYWAY, _A_DETAIL_OPENING,
+    _A_SYMPATHY, HARM_ANYWHERE, _A_BODY_UNWELL, A_NAMES_TOLD, A_NAME_A_HOUSEHOLD_TAKES, NAMED_AFTER,
+    STATE_NOT_A_DOING, BARE_STATE, STATE_THEN, STATE_IN_THE_PAST, A_DAY_SAID_BADLY, BOT_WAS_SORRY,
+    MONEY_IN_SHAPES, A_ASKING_WORD, A_REPORTED_NOT_LIVED, A_NEWS_IS_WEATHER, A_NEWS_IS_A_CHANGE,
+    A_BEING_DONE_NOW, A_DECISION_NOT_A_DAY, A_WISH, AN_ATTEMPT_AT_SOMEONE, A_BETRAYAL_FOUND_OUT,
+    A_NAME_IS_NOT_A_DAY, RESULT_WENT_WRONG, PLAN_THAT_FELL_THROUGH, A_DOING_GONE_BADLY, A_THING_SKIPPED,
+    A_MEAL_SKIPPED);
+data_strs!(M; A_CARE_HOME_BRING, A_CARE_HOME_GUILT, A_CARE_HOME_VISITING, A_CARE_HOME_MOVED, A_CARE_HOME,
+    A_BAD_TIME_TOLD, A_THING_THEY_REGRET, A_BETRAYAL, A_DAY_ASKED_PLAIN, A_SMALL_DAY, A_REST_OF_A_GOOD_DAY,
+    A_REST_OF_A_HARD_DAY, A_GOOD_TIME, A_GOOD_TIME_IN_A_CARE_THREAD, LOW_DAY_REPLIES, A_HARD_DAY_MOOD,
+    A_BOOKING_AHEAD_DATED, A_BOOKING_AHEAD, BARE_PICK_WEAR_WET, BARE_PICK_WEAR_COLD, BARE_PICK_WEAR_HOT,
+    WEAR_WHEN_NOTHING_ANSWERS, A_NAMED_AFTER_THEM, A_NAMED_AFTER, A_NAME_STORY, A_NAME_TOLD, NEGATIVE,
+    A_THING_CAME_OUT_WRONG, A_PLAN_THAT_FELL_THROUGH, A_NEWS_OF_WEATHER, A_NEWS_OF_SOMETHING_ELSE);
+data_set!(M; NOT_A_JOB_BUT_A_PERSON, A_BARE_MODIFIER, DISH_PARTICIPLE, DISH_DETERMINER, FOOD_TOPICS, DONE_VERB,
+    DONE_NOT_THIS, _THING_DONE_LINES, NOT_A_NAME_WORD, THE_PEOPLE, A_POSSESSIVE_OF_MINE, MONEY_IN_NOUNS,
+    NO_THING_SAID, PRICE_NOUNS);
+
+/// A tuple of pools as a value, for `fallback._in_a_pool(text, pools)`.
+fn pools_value(pools: &[&Vec<String>]) -> Value {
+    Value::Tuple(std::sync::Arc::new(pools.iter().map(|p| Value::Tuple(std::sync::Arc::new(p.iter().map(|s| Value::from(s.as_str())).collect()))).collect()))
+}
+
+fn in_a_pool(text_: &str, pools: &[&Vec<String>]) -> bool {
+    fallback::_in_a_pool(text_, &pools_value(pools))
+}
+
+static AIMED_ELSEWHERE: LazyLock<Re> =
+    LazyLock::new(|| Re::new(r"\b(?:to|with|from|on|at)\s+(?!me\b|us\b)(?:his|her|their|my|the|a|an|some)\b", 0));
+
+/// Python: bot/compose/fallback_chain.py:5028 `_a_betrayal(clean)`
+pub fn _a_betrayal(clean: &str) -> bool {
+    let t = low_squash(clean);
+    if t.is_empty() || text::split(&t).len() > 22 {
+        return false;
+    }
+    let (wstart, wend) = match A_WRONG_PLAIN.search(&t) {
+        Some(w) => (w.start(), w.end()),
+        None => {
+            let Some(w) = A_WRONG_SAID.search(&t) else { return false };
+            if A_WRONG_AIMED.search(&t).is_none() {
+                if A_WRONG_ABOUT_A_THING.match_(&t[w.end()..]).is_some() {
+                    return false;
+                }
+                if FOUND_IT_OUT.search(&t).is_none() {
+                    return false;
+                }
+            }
+            (w.start(), w.end())
+        }
+    };
+    if WHO_DID_IT.search(&t[..wstart]).is_none() && FOUND_OUT.search(&t[..wstart]).is_none() {
+        return false;
+    }
+    if AIMED_ELSEWHERE.search(&t[wend..]).is_some() {
+        return false;
+    }
+    if HARM_ON_ME.search(&t).is_some() && WHO_DID_IT.search(&t).is_none() {
+        return false;
+    }
+    true
+}
+
+/// Python: bot/compose/fallback_chain.py:5068 `_a_thing_they_regret(clean)`
+pub fn _a_thing_they_regret(clean: &str) -> bool {
+    let t = low_squash(clean);
+    if t.is_empty() || text::split(&t).len() > 20 {
+        return false;
+    }
+    if A_REGRET_DOING.search(&t).is_none() {
+        return false;
+    }
+    if NOT_A_REGRET.search(&t).is_some() || SNAPPED_A_PHOTO.search(&t).is_some() {
+        return false;
+    }
+    if A_MISTAKE.search(&t).is_some() {
+        if let Some(job) = THE_JOB_NAMED.search(&t) {
+            if !NOT_A_JOB_BUT_A_PERSON.contains(job.str(1)) {
+                return false;
+            }
+        }
+    }
+    if HARM_NAMED.search(&t).is_some() || HARM_ON_ME.search(&t).is_some() {
+        return false;
+    }
+    true
+}
+
+/// Python: bot/compose/fallback_chain.py:5131 `_a_care_home_line(understood, memory)`
+pub fn _a_care_home_line(understood: Option<&Understood>, memory: &Memory) -> Option<String> {
+    let care = understood?.care_home.as_ref()?;
+    let pronoun = if care.pronoun.is_empty() { "they".to_string() } else { care.pronoun.clone() };
+    let several = pronoun == "they";
+    let words: [(&str, &str); 4] = [("they", &pronoun), ("them", "them"), ("their", "their"), ("is", if several { "are" } else { "is" })];
+    let pool: &Vec<String> = match care.shape.as_str() {
+        "bring" => &A_CARE_HOME_BRING,
+        "guilt" => &A_CARE_HOME_GUILT,
+        "visiting" => &A_CARE_HOME_VISITING,
+        "moved" => &A_CARE_HOME_MOVED,
+        _ => &A_CARE_HOME,
+    };
+    _choose_opt(&formatted(pool, &words), memory, &care.who, None)
+}
+
+/// Python: bot/compose/fallback_chain.py:5167 `_a_day_told_instead_of_the_receipt(said_back, clean,
+/// memory)`
+pub fn _a_day_told_instead_of_the_receipt(said_back: Option<&str>, clean: &str, memory: &Memory) -> Option<String> {
+    let said_back = said_back.filter(|s| !s.is_empty())?;
+    if !crate::memory::ack::reads_as_a_receipt(said_back) {
+        return None;
+    }
+    if let Some(named) = _a_name_told_reply(clean, memory) {
+        return Some(named);
+    }
+    if _a_small_day_shape(clean) && _a_detail_of_a_bad_day(memory, Some(clean)) {
+        return _choose_opt(&A_BAD_TIME_TOLD, memory, clean, None);
+    }
+    if _a_thing_they_regret(clean) {
+        return _choose_opt(&A_THING_THEY_REGRET, memory, clean, None);
+    }
+    if _a_betrayal(clean) {
+        return _choose_opt(&A_BETRAYAL, memory, clean, None);
+    }
+    if let Some(care) = _a_care_home_line(memory.understood.as_ref(), memory) {
+        if !care.is_empty() {
+            return Some(care);
+        }
+    }
+    if HAVE_GOT_A_THING.search(clean).is_some() {
+        return None;
+    }
+    if _just_asked_about_the_day(memory) {
+        return None;
+    }
+    if _a_bad_time_told(clean, memory) {
+        return _choose_opt(&A_BAD_TIME_TOLD, memory, clean, None);
+    }
+    if _a_day_asked_without_a_cheer(clean, memory) {
+        return _choose_opt(&A_DAY_ASKED_PLAIN, memory, clean, None);
+    }
+    if !_a_small_day(clean, memory) {
+        return None;
+    }
+    if let Some(wrecked) = pool_of(crate::compose::finding_out::the_wrecked_form_reply(clean)) {
+        if let Some(said) = _choose_opt(&wrecked, memory, clean, None) {
+            if !said.is_empty() {
+                return Some(said);
+            }
+        }
+    }
+    if let Some(rest) = _the_rest_of_the_day(clean, memory, "neutral") {
+        return _choose_opt(&rest, memory, clean, None);
+    }
+    _choose_opt(&A_SMALL_DAY, memory, clean, None)
+}
+
+/// Python: bot/compose/fallback_chain.py:5295 `_the_crowd_is_ahead(clean)`
+pub fn _the_crowd_is_ahead(clean: &str) -> bool {
+    let t = low_squash(clean);
+    if t.is_empty() || t.contains('?') || text::split(&t).len() > 16 {
+        return false;
+    }
+    if A_CROWD.search(&t).is_none() || A_MILESTONE.search(&t).is_none() {
+        return false;
+    }
+    if CROWD_ORDER.search(&t).is_none() {
+        return false;
+    }
+    NOT_A_CROWD_AHEAD.search(&t).is_none()
+}
+
+/// Python: bot/compose/fallback_chain.py:5319 `_the_rest_of_the_day(clean, memory, mood='neutral')`
+pub fn _the_rest_of_the_day(clean: &str, memory: &Memory, mood: &str) -> Option<Vec<String>> {
+    if mood == "negative" {
+        return None;
+    }
+    if !_a_small_day(clean, memory) {
+        return None;
+    }
+    let last = memory.turns.last()?;
+    let was = fallback::_matchable(&last.user);
+    if was.is_empty() {
+        return None;
+    }
+    if fallback::_a_good_time(&was, &NO_MEMORY) || in_a_pool(&last.bot, &[&A_GOOD_TIME, &A_GOOD_TIME_IN_A_CARE_THREAD]) {
+        return Some(A_REST_OF_A_GOOD_DAY.clone());
+    }
+    if in_a_pool(&last.bot, &[&LOW_DAY_REPLIES]) {
+        return Some(A_REST_OF_A_HARD_DAY.clone());
+    }
+    if let Some(emotion) = _an_emotion(&was) {
+        if A_HARD_DAY_MOOD.contains(&emotion) {
+            return Some(A_REST_OF_A_HARD_DAY.clone());
+        }
+    }
+    None
+}
+
+/// Python: bot/compose/fallback_chain.py:5348 `_an_emotion(clean)`
+pub fn _an_emotion(clean: &str) -> Option<String> {
+    caught(|| crate::understanding::kinds::emotion_of(clean)).flatten().filter(|e| !e.is_empty())
+}
+
+/// Python: bot/compose/fallback_chain.py:5356 `_just_asked_about_the_day(memory)`
+pub fn _just_asked_about_the_day(memory: &Memory) -> bool {
+    match memory.turns.last() {
+        Some(last) => in_a_pool(&last.bot, &[&A_SMALL_DAY]),
+        None => false,
+    }
+}
+
+/// Python: bot/compose/fallback_chain.py:5452 `_a_day_of_someone_else(text)`
+pub fn _a_day_of_someone_else(text_: &str) -> bool {
+    if A_CHILDHOOD_MEMORY.search(text_).is_some() {
+        return true;
+    }
+    let Some(who) = SOMEONE_ELSE_NAMED.search(text_) else { return false };
+    if A_VISIT.search(text_).is_some() {
+        return false;
+    }
+    match THEIR_OWN_DOING.search(text_) {
+        None => true,
+        Some(mine) => who.start() < mine.start(),
+    }
+}
+
+/// Python: bot/compose/fallback_chain.py:5480 `_a_thing_happened(text)`
+pub fn _a_thing_happened(text_: &str) -> bool {
+    let rest = match PAST_DOING.search(text_) {
+        None => text_.to_string(),
+        Some(doing) => format!("{} {}", &text_[..doing.start()], &text_[doing.end()..]),
+    };
+    text::split_ref(&rest).iter().any(|w| text::len(w) > 2 && !A_BARE_MODIFIER.contains(*w))
+}
+
+/// Python: bot/compose/fallback_chain.py:5518 `_a_thing_got_ahead(clean)`: the pool, or None.
+pub fn _a_thing_got_ahead(clean: &str) -> Option<Vec<String>> {
+    let t = low_squash(clean);
+    if t.is_empty() || t.contains('?') {
+        return None;
+    }
+    A_THING_GOT_AHEAD.search(&t)?;
+    if GOT_AHEAD_GONE.search(&t).is_some() || GOT_AHEAD_NOT_A_DATE.search(&t).is_some() {
+        return None;
+    }
+    if A_MONTH.search(&t).is_some() || DATE_AHEAD.search(&t).is_some() {
+        return Some(A_BOOKING_AHEAD_DATED.clone());
+    }
+    Some(A_BOOKING_AHEAD.clone())
+}
+
+static NOT_ALNUM_SPACE: LazyLock<Re> = LazyLock::new(|| Re::new(r"[^a-z0-9 ]+", 0));
+
+/// Python: bot/compose/fallback_chain.py:5588 `_a_problem_stated(clean, repaired=None)`
+pub fn _a_problem_stated(clean: &str, repaired: Option<&str>) -> bool {
+    for line in [Some(clean), repaired] {
+        let bare = text::squash(&NOT_ALNUM_SPACE.sub(" ", &text::lower(line.unwrap_or(""))));
+        if !bare.is_empty() && (PROBLEM_STATED.match_(&bare).is_some() || SOMETHING_UP.match_(&bare).is_some()) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback_chain.py:5646 `_says_there_is_nothing_to_wear(clean, repaired=None,
+/// text=None)`
+pub fn _says_there_is_nothing_to_wear(clean: &str, repaired: &str, text_: &str) -> bool {
+    [clean, repaired, text_].iter().any(|line| {
+        let said = low_squash(line);
+        !said.is_empty() && NOTHING_TO_WEAR.search(&said).is_some()
+    })
+}
+
+static TWO_LETTERS: LazyLock<Re> = LazyLock::new(|| Re::new(r"[a-z']{2,}", 0));
+
+/// Python: bot/compose/fallback_chain.py:5655 `_a_wear_ask_about_a_day(clean, repaired=None,
+/// text=None)`
+pub fn _a_wear_ask_about_a_day(clean: &str, repaired: &str, text_: &str) -> bool {
+    for line in [clean, repaired, text_] {
+        let said = low_squash(line);
+        if said.is_empty() || WEAR_ASK.search(&said).is_none() {
+            continue;
+        }
+        let rest = WEAR_ASK.subn(" ", &said, 1);
+        if TWO_LETTERS.search(&rest).is_some() {
+            return true;
+        }
+    }
+    false
+}
+
+/// Python: bot/compose/fallback_chain.py:5695 `_the_wear_pool_for_the_line(clean, repaired=None,
+/// text=None)`
+pub fn _the_wear_pool_for_the_line(clean: &str, repaired: &str, text_: &str) -> Vec<String> {
+    let said = [clean, repaired, text_].iter().map(|l| low_squash(l)).collect::<Vec<_>>().join(" ");
+    if WEATHER_WET.search(&said).is_some() {
+        return BARE_PICK_WEAR_WET.clone();
+    }
+    if COLD_FIGURE.search(&said).is_some() || WEATHER_COLD.search(&said).is_some() {
+        return BARE_PICK_WEAR_COLD.clone();
+    }
+    if HOT_FIGURE.search(&said).is_some() || WEATHER_HOT.search(&said).is_some() || WEATHER_SUN.search(&said).is_some() {
+        return BARE_PICK_WEAR_HOT.clone();
+    }
+    WEAR_WHEN_NOTHING_ANSWERS.clone()
+}
+
+static REMARK_THEIR_NAME_AGE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.remark.THEIR_NAME_AGE"));
+static REMARK_THEIR_NAME: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.remark.THEIR_NAME"));
+static ONETHING_A_MEDS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.onething.A_MEDS"));
+static ONETHING_A_MEDS_CHANGE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.onething.A_MEDS_CHANGE"));
+static ONETHING_A_MEDS_MINE: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.onething.A_MEDS_MINE"));
+static ONETHING_A_MEDS_SYMPTOM: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.onething.A_MEDS_SYMPTOM"));
+
+/// Python: bot/compose/fallback_chain.py:5708 `_a_small_day(clean, memory=None)`
+pub fn _a_small_day(clean: &str, memory: &Memory) -> bool {
+    if !_a_small_day_shape(clean) {
+        return false;
+    }
+    let t = low_squash(clean);
+    let read = memory.understood.as_ref();
+    if read.is_some_and(|u| u.suggestion.is_some()) {
+        return false;
+    }
+    if fallback::_a_good_time(clean, memory) {
+        return false;
+    }
+    if _a_detail_about_what_was_said(&t, memory) {
+        return false;
+    }
+    if A_LOOKING_BACK.match_(&t).is_some() {
+        return false;
+    }
+    if read.is_some_and(|u| u.polarity == -1) {
+        return false;
+    }
+    if _a_thing_got_ahead(&t).is_some() {
+        return false;
+    }
+    if REMARK_THEIR_NAME_AGE.match_(&t).is_some() || REMARK_THEIR_NAME.match_(&t).is_some() {
+        return false;
+    }
+    if _a_day_of_someone_else(&t) {
+        return false;
+    }
+    if _a_problem_stated(&t, None) {
+        return false;
+    }
+    if DAY_PAST.search(&t).is_none() && !_a_thing_happened(&t) {
+        return false;
+    }
+    if !(A_DAY_SUBJECT.search(&t).is_some() && PAST_DOING.search(&t).is_some()) {
+        return false;
+    }
+    if DAY_PAST.search(&t).is_none() && text::split(&t).len() > 10 {
+        return false;
+    }
+    if NOT_A_DAY_DONE.search(&t).is_some() || NOT_A_DAY_SAID.search(&t).is_some() {
+        return false;
+    }
+    if _a_thing_they_regret(&t) {
+        return false;
+    }
+    if A_SYMPTOM_PHRASE.search(&t).is_some() {
+        return false;
+    }
+    if NEGATIVE_LINE.search(&t).is_some() || HARM_NAMED.search(&t).is_some() || A_HURT_MYSELF.search(&t).is_some() {
+        return false;
+    }
+    if A_DAY_WENT_WRONG.search(&t).is_some() || crate::compose::remark::done_to_me(&t) {
+        return false;
+    }
+    if fallback::_a_mishap_to_ask_about(&t) {
+        return false;
+    }
+    if SOMEONE_DONE_WRONG.search(&t).is_some() {
+        return false;
+    }
+    if A_BAD_THING_NAMED.search(&t).is_some() || A_HAND_OUT.search(&t).is_some() {
+        return false;
+    }
+    if _the_day_was_already_bad(memory) && DAY_PAST.search(&t).is_none() {
+        return false;
+    }
+    if ONETHING_A_MEDS.search(&t).is_some()
+        && ONETHING_A_MEDS_CHANGE.search(&t).is_some()
+        && ONETHING_A_MEDS_MINE.match_(&t).is_some()
+        && ONETHING_A_MEDS_SYMPTOM.search(&t).is_none()
+    {
+        return false;
+    }
+    BAD_DAY_ANYWAY.search(&t).is_none()
+}
+
+/// Python: bot/compose/fallback_chain.py:5900 `_a_detail_about_what_was_said(text, memory)`
+pub fn _a_detail_about_what_was_said(text_: &str, memory: &Memory) -> bool {
+    if _A_DETAIL_OPENING.match_(text_).is_none() {
+        return false;
+    }
+    let Some(last) = memory.turns.last() else { return false };
+    let last_bot = last.bot.as_str();
+    if in_a_pool(last_bot, &[&A_SMALL_DAY]) {
+        return false;
+    }
+    if _A_SYMPATHY.search(&text::lower(last_bot)).is_some() {
+        return true;
+    }
+    let before = low_squash(&last.user);
+    [&*HARM_ANYWHERE, &*NEGATIVE_LINE, &*BAD_DAY_ANYWAY, &*A_DAY_WENT_WRONG, &*_A_BODY_UNWELL]
+        .iter()
+        .any(|reading| reading.search(&before).is_some())
+}
+
+/// Python: bot/compose/fallback_chain.py:6019 `_a_dish_name(clean, words, memory)`
+pub fn _a_dish_name(clean: &str, words: &[String], memory: &Memory) -> bool {
+    if words.len() < 2 || !DISH_PARTICIPLE.contains(&words[0]) {
+        return false;
+    }
+    if DISH_DETERMINER.contains(&words[1]) {
+        return false;
+    }
+    let Some(understood) = memory.understood.as_ref() else { return false };
+    let mut topics: HashSet<&str> = understood.topics.iter().map(String::as_str).collect();
+    if let Some(topic) = understood.topic.as_deref() {
+        topics.insert(topic);
+    }
+    topics.iter().any(|t| FOOD_TOPICS.contains(*t))
+}
+
+/// Python: bot/compose/fallback_chain.py:6039 `_a_report_with_no_pronoun(clean, text, memory)`. The
+/// composer is asked on the memory itself, as in Python (what it writes there stays).
+pub fn _a_report_with_no_pronoun(clean: &str, text_: &str, memory: &mut Memory) -> bool {
+    let words = A_WORD.findall_str(clean);
+    if words.is_empty() || !DONE_VERB.contains(&words[0]) {
+        return false;
+    }
+    if HARM_ANYWHERE.search(clean).is_some() {
+        return false;
+    }
+    if words[1..words.len().min(3)].iter().any(|w| DONE_NOT_THIS.contains(w)) {
+        return false;
+    }
+    if _a_dish_name(clean, &words, memory) {
+        return false;
+    }
+    let scan = fallback::_thing_done_scan(clean);
+    if scan.items().first().map(|v| v.str()) != Some("done") {
+        return false;
+    }
+    match caught(|| reply_for(text_, memory, true)) {
+        Some(reply) => _THING_DONE_LINES.contains(&reply),
+        None => false,
+    }
+}
+
+/// Python: bot/compose/fallback_chain.py:6080 `_repaired_of(text, memory)`
+pub fn _repaired_of(text_: &str, memory: &Memory) -> String {
+    caught(|| {
+        if let Some(read) = memory.understood.as_ref() {
+            if !read.plain.is_empty() {
+                return read.plain.clone();
+            }
+        }
+        crate::understanding::understand(text_, Some(memory)).plain
+    })
+    .unwrap_or_default()
+}
+
+/// Python: bot/compose/fallback_chain.py:6096 `takes_as_it_comes(text, memory)`
+pub fn takes_as_it_comes(text_: &str, memory: &mut Memory) -> bool {
+    let clean = low_squash(text_);
+    caught(|| {
+        if fallback::reads_as_a_report(text_, memory) {
+            return true;
+        }
+        let repaired = _repaired_of(text_, memory);
+        if truthy(crate::compose::remark::regret_reply_for(&clean, &text::split(&clean), memory, &repaired)) {
+            return true;
+        }
+        if _a_report_with_no_pronoun(&clean, text_, memory) {
+            return true;
+        }
+        if crate::compose::why::takes_as_it_comes(text_, memory) {
+            return true;
+        }
+        if truthy(fallback::_a_verdict_line(&clean, memory)) {
+            return true;
+        }
+        if truthy(crate::compose::safetyask::reply_for(&clean, memory)) {
+            return !truthy(fallback::_after_safety(memory, &clean, memory.understood.as_ref()));
+        }
+        if truthy(fallback::_a_verdict_on_their_plan(&clean, memory, false)) {
+            return true;
+        }
+        if truthy(fallback::_a_place_asked_about(&clean, memory)) {
+            return true;
+        }
+        if fallback::reads_as_if_i_saw(text_, memory) {
+            return true;
+        }
+        if !text_.contains('?') && crate::compose::trouble::answers_a_strain_question(&clean, memory) {
+            return true;
+        }
+        let plain = fallback::_plain(&clean);
+        if fallback::_a_declined_plan(&plain, true)
+            && (fallback::_a_hard_week(memory) || !fallback::_the_turn_before_was_a_heavy_one(memory, &fallback::_plain(&clean)))
+            && !(fallback::_a_plan_on_the_table(memory) && !fallback::_the_line_cancels(&fallback::_plain(&clean)))
+        {
+            return !truthy(fallback::_after_safety(memory, &clean, memory.understood.as_ref()));
+        }
+        if !crate::compose::handoff::takes_as_it_comes(text_, memory) {
+            return false;
+        }
+        !truthy(fallback::_after_safety(memory, &clean, memory.understood.as_ref()))
+    })
+    .unwrap_or(false)
+}
+
+static NAME_JOIN: LazyLock<Re> = LazyLock::new(|| Re::new(r"\s*(?:,|and)\s*", 0));
+
+/// Python: bot/compose/fallback_chain.py:6223 `_a_name_told(clean)`: (the names said, the person
+/// word, more than one).
+pub fn _a_name_told(clean: &str) -> Option<(String, String, bool)> {
+    let said = text::strip_chars(&low_squash(clean), " .!,").to_string();
+    if said.is_empty() || said.contains('?') {
+        return None;
+    }
+    let (names_text, mut person) = match A_NAMES_TOLD.search(&said) {
+        Some(m) => (m.name_str("names").to_string(), m.name_str("person").to_string()),
+        None => {
+            let m = A_NAME_A_HOUSEHOLD_TAKES.search(&said)?;
+            (m.name_str("names").to_string(), String::new())
+        }
+    };
+    let names: Vec<String> = NAME_JOIN.split(&names_text).iter().map(|w| text::strip(w).to_string()).collect();
+    let mut kept = Vec::new();
+    for word in names {
+        if word.is_empty() || text::split(&word).iter().all(|w| NOT_A_NAME_WORD.contains(w)) {
+            break;
+        }
+        kept.push(word);
+    }
+    if kept.is_empty() {
+        return None;
+    }
+    let spoken = if kept.len() == 1 {
+        text::title(&kept[0])
+    } else {
+        let front: Vec<String> = kept[..kept.len() - 1].iter().map(|w| text::title(w)).collect();
+        format!("{} and {}", front.join(", "), text::title(kept.last().unwrap()))
+    };
+    if !person.is_empty() && !THE_PEOPLE.contains(&person) && !person.contains('-') {
+        person = String::new();
+    }
+    Some((spoken, person, kept.len() > 1))
+}
+
+/// Python: bot/compose/fallback_chain.py:6277 `_named_after_reply(clean, memory)`
+pub fn _named_after_reply(clean: &str, memory: &Memory) -> Option<String> {
+    let said = low_squash(clean);
+    let found = NAMED_AFTER.search(&said)?;
+    let mut who = found.name_str("who").to_string();
+    if ["me", "us", "you", "i"].contains(&who.as_str()) {
+        return _choose_opt(&A_NAMED_AFTER_THEM, memory, clean, None).filter(|s| !s.is_empty());
+    }
+    let words = text::split(&who);
+    let last_word = words.last().cloned().unwrap_or_default();
+    if A_POSSESSIVE_OF_MINE.contains(&words[0]) {
+        who = format!("your {}", words[1]);
+    }
+    let lines: Vec<String> = A_NAMED_AFTER
+        .iter()
+        .map(|line| text_of(crate::compose::remark::fill_person(&line.replace("{who}", &who), &last_word)).unwrap_or_default())
+        .collect();
+    _choose_opt(&lines, memory, clean, None).filter(|s| !s.is_empty())
+}
+
+/// Python: bot/compose/fallback_chain.py:6296 `_a_name_told_reply(clean, memory)`
+pub fn _a_name_told_reply(clean: &str, memory: &Memory) -> Option<String> {
+    let (spoken, person, plural) = _a_name_told(clean)?;
+    if person.is_empty() {
+        let lines: Vec<String> = A_NAME_STORY.iter().map(|line| line.replace("{names}", &spoken)).collect();
+        return _choose_opt(&lines, memory, clean, None).filter(|s| !s.is_empty());
+    }
+    let word = if plural { "kids".to_string() } else { person };
+    let lines: Vec<String> = A_NAME_TOLD
+        .iter()
+        .map(|line| text_of(crate::compose::remark::fill_person(&line.replace("{names}", &spoken), &word)).unwrap_or_default())
+        .collect();
+    _choose_opt(&lines, memory, clean, None).filter(|s| !s.is_empty())
+}
+
+/// Python: bot/compose/fallback_chain.py:6343 `_a_state_of_theirs(text)`: "now", "then" or None.
+pub fn _a_state_of_theirs(text_: &str) -> Option<String> {
+    let t = low_squash(text_);
+    if t.is_empty() || A_DAY_SUBJECT.search(&t).is_none() {
+        return None;
+    }
+    STATE_NOT_A_DOING.search(&t)?;
+    let rest = BARE_STATE.sub(" ", &STATE_NOT_A_DOING.sub(" ", &t));
+    if DAY_PAST.search(&t).is_some() || PAST_DOING.search(&rest).is_some() {
+        return None;
+    }
+    if STATE_THEN.search(&t).is_some() || STATE_IN_THE_PAST.search(&t).is_some() {
+        return Some("then".into());
+    }
+    Some("now".into())
+}
+
+/// Python: bot/compose/fallback_chain.py:6422 `_a_day_said_badly(text)`
+pub fn _a_day_said_badly(text_: &str) -> bool {
+    let said = text::strip_chars(&low_squash(text_), " .!,").to_string();
+    if said.is_empty() || said.contains('?') || text::split(&said).len() > 12 {
+        return false;
+    }
+    A_DAY_SAID_BADLY.search(&said).is_some()
+}
+
+/// Python: bot/compose/fallback_chain.py:6430 `_the_last_exchange(memory)`: the last turn with a
+/// reply on it.
+pub fn _the_last_exchange(memory: &Memory) -> Option<&crate::state::Turn> {
+    memory.turns.iter().rev().find(|t| !text::strip(&t.bot).is_empty())
+}
+
+/// Python: bot/compose/fallback_chain.py:6446 `_the_day_was_already_bad(memory)`
+pub fn _the_day_was_already_bad(memory: &Memory) -> bool {
+    let Some(seen) = _the_last_exchange(memory) else { return false };
+    let last = seen.bot.as_str();
+    if in_a_pool(last, &[&LOW_DAY_REPLIES, &NEGATIVE, &A_BAD_TIME_TOLD, &A_THING_CAME_OUT_WRONG, &A_PLAN_THAT_FELL_THROUGH, &A_DAY_ASKED_PLAIN]) {
+        return true;
+    }
+    if BOT_WAS_SORRY.search(&text::slice(last, 0, Some(80))).is_some() {
+        return true;
+    }
+    _a_day_said_badly(&seen.user)
+}
+
+/// Python: bot/compose/fallback_chain.py:6478 `_a_detail_of_a_bad_day(memory, text=None)`
+pub fn _a_detail_of_a_bad_day(memory: &Memory, text_: Option<&str>) -> bool {
+    let Some(seen) = _the_last_exchange(memory) else { return false };
+    if let Some(t) = text_.filter(|t| !t.is_empty()) {
+        if DAY_PAST.search(&text::lower(t)).is_some() {
+            return _a_detail_about_what_was_said(t, memory);
+        }
+    }
+    _a_day_said_badly(&seen.user)
+}
+
+/// Python: bot/compose/fallback_chain.py:6567 `_money_came_to_them(text, words)`
+pub fn _money_came_to_them(text_: &str, words: &[String]) -> bool {
+    if meets(words, &MONEY_IN_NOUNS) {
+        return true;
+    }
+    MONEY_IN_SHAPES.search(text_).is_some()
+}
+
+static A_CURRENCY_MARK: LazyLock<Re> = LazyLock::new(|| Re::new("[\u{00a3}$\u{20ac}]", 0));
+static READING_A_PRICE_VERB: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.compose.reading.A_PRICE_VERB"));
+
+/// Python: bot/compose/fallback_chain.py:6574 `_a_sum_with_nothing_beside_it(clean, memory=None)`:
+/// the figure as they wrote it, or None.
+pub fn _a_sum_with_nothing_beside_it(clean: &str, memory: Option<&Memory>) -> Option<String> {
+    let _ = memory;
+    let t = low_squash(clean);
+    if t.is_empty() || t.contains('?') {
+        return None;
+    }
+    let words: Vec<String> = {
+        let mut seen = HashSet::new();
+        A_WORD.findall_str(&t).into_iter().filter(|w| seen.insert(w.clone())).collect()
+    };
+    if _money_came_to_them(&t, &words) {
+        return None;
+    }
+    let marked = A_CURRENCY_MARK.search(&t).is_some();
+    let named = words.iter().any(|w| !NO_THING_SAID.contains(w));
+    if !(marked || meets(&words, &PRICE_NOUNS) || (named && READING_A_PRICE_VERB.search(&t).is_some())) {
+        return None;
+    }
+    let probe = Memory { turns: vec![crate::state::Turn { user: t.clone(), bot: String::new(), module: None }], ..Memory::new() };
+    let found = crate::compose::reading::_their_figure(&probe, &Value::Int(1));
+    if !found.truthy() {
+        return None;
+    }
+    let parts = found.items();
+    let said = parts.get(2).cloned().unwrap_or(Value::None);
+    let money = parts.get(3).cloned().unwrap_or(Value::None);
+    if !money.truthy() || !said.truthy() {
+        return None;
+    }
+    Some(py_str(Some(&said)))
+}
+
+/// Python: bot/compose/fallback_chain.py:6653 `_a_report_from_elsewhere(clean)`: the pool, or None.
+pub fn _a_report_from_elsewhere(clean: &str) -> Option<Vec<String>> {
+    let t = low_squash(clean);
+    if t.is_empty() || t.contains('?') {
+        return None;
+    }
+    if A_ASKING_WORD.match_(&t).is_some() {
+        return None;
+    }
+    A_REPORTED_NOT_LIVED.search(&t)?;
+    if A_NEWS_IS_WEATHER.search(&t).is_some() {
+        return Some(A_NEWS_OF_WEATHER.clone());
+    }
+    if A_NEWS_IS_A_CHANGE.search(&t).is_some() {
+        return Some(A_NEWS_OF_SOMETHING_ELSE.clone());
+    }
+    None
+}
+
+/// Python: bot/compose/fallback_chain.py:6679 `_a_small_day_shape(clean)`
+pub fn _a_small_day_shape(clean: &str) -> bool {
+    let t = low_squash(clean);
+    if t.is_empty() || t.contains('?') {
+        return false;
+    }
+    if text::split(&t).len() > 14 {
+        return false;
+    }
+    if A_BEING_DONE_NOW.search(&t).is_some() || A_DECISION_NOT_A_DAY.search(&t).is_some() || A_WISH.search(&t).is_some() {
+        return false;
+    }
+    if AN_ATTEMPT_AT_SOMEONE.search(&t).is_some() || A_BETRAYAL_FOUND_OUT.search(&t).is_some() {
+        return false;
+    }
+    if _a_day_of_someone_else(&t) {
+        return false;
+    }
+    if DAY_PAST.search(&t).is_none() && !_a_thing_happened(&t) {
+        return false;
+    }
+    if !(A_DAY_SUBJECT.search(&t).is_some() && PAST_DOING.search(&t).is_some()) {
+        return false;
+    }
+    if DAY_PAST.search(&t).is_none() && text::split(&t).len() > 10 {
+        return false;
+    }
+    if NOT_A_DAY_DONE.search(&t).is_some() || NOT_A_DAY_SAID.search(&t).is_some() {
+        return false;
+    }
+    if _a_thing_they_regret(&t) {
+        return false;
+    }
+    if A_SYMPTOM_PHRASE.search(&t).is_some() {
+        return false;
+    }
+    if NEGATIVE_LINE.search(&t).is_some() || HARM_NAMED.search(&t).is_some() {
+        return false;
+    }
+    if A_DAY_WENT_WRONG.search(&t).is_some() {
+        return false;
+    }
+    if fallback::_a_mishap_to_ask_about(&t) {
+        return false;
+    }
+    if A_BAD_THING_NAMED.search(&t).is_some() || A_HAND_OUT.search(&t).is_some() {
+        return false;
+    }
+    if A_NAME_IS_NOT_A_DAY.search(&t).is_some() {
+        return false;
+    }
+    if _a_report_from_elsewhere(&t).is_some() {
+        return false;
+    }
+    if _a_state_of_theirs(&t).is_some() {
+        return false;
+    }
+    if RESULT_WENT_WRONG.search(&t).is_some() || PLAN_THAT_FELL_THROUGH.search(&t).is_some() {
+        return false;
+    }
+    true
+}
+
+/// Python: bot/compose/fallback_chain.py:6787 `_a_bad_time_told(clean, memory=None)`
+pub fn _a_bad_time_told(clean: &str, memory: &Memory) -> bool {
+    if !_a_small_day_shape(clean) {
+        return false;
+    }
+    let t = low_squash(clean);
+    if NEGATIVE_LINE.search(&t).is_some() || HARM_NAMED.search(&t).is_some() || A_DAY_WENT_WRONG.search(&t).is_some() {
+        return false;
+    }
+    if memory.understood.as_ref().is_some_and(|u| u.polarity == -1) {
+        return true;
+    }
+    if _a_detail_of_a_bad_day(memory, Some(&t)) {
+        return true;
+    }
+    if A_DOING_GONE_BADLY.search(&t).is_some() || (A_THING_SKIPPED.search(&t).is_some() && A_MEAL_SKIPPED.search(&t).is_none()) {
+        return true;
+    }
+    A_DAY_SAID_BADLY.search(&t).is_some()
+}
+
+/// Python: bot/compose/fallback_chain.py:6827 `_a_day_asked_without_a_cheer(clean, memory=None)`
+pub fn _a_day_asked_without_a_cheer(clean: &str, memory: &Memory) -> bool {
+    if !_a_small_day_shape(clean) {
+        return false;
+    }
+    let t = low_squash(clean);
+    if NEGATIVE_LINE.search(&t).is_some() || HARM_NAMED.search(&t).is_some() || A_DAY_WENT_WRONG.search(&t).is_some() {
+        return false;
+    }
+    if _a_bad_time_told(clean, memory) {
+        return false;
+    }
+    if _just_asked_about_the_day(memory) {
+        return false;
+    }
+    BAD_DAY_ANYWAY.search(&t).is_some()
+}
+
+// ---------------------------------------------------------------------------------------------
 // Not ported yet.
 // ---------------------------------------------------------------------------------------------
 
@@ -1404,180 +2228,5 @@ pub fn _a_countdown_in_a_care_thread(memory: &Memory, clean: &str, repaired: &st
 /// Python: bot/compose/fallback_chain.py:2986 `_reply_for(text, memory, understood=None, verdict=True)`
 pub fn _reply_for(text: &str, memory: &mut Memory, understood: Option<&Understood>, verdict: bool) -> Option<String> {
     crate::unported!("bot.compose.fallback_chain:_reply_for")
-}
-
-/// Python: bot/compose/fallback_chain.py:5028 `_a_betrayal(clean)`
-pub fn _a_betrayal(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_betrayal")
-}
-
-/// Python: bot/compose/fallback_chain.py:5068 `_a_thing_they_regret(clean)`
-pub fn _a_thing_they_regret(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_thing_they_regret")
-}
-
-/// Python: bot/compose/fallback_chain.py:5131 `_a_care_home_line(understood, memory)`
-pub fn _a_care_home_line(understood: &Understood, memory: &Memory) {
-    crate::unported!("bot.compose.fallback_chain:_a_care_home_line")
-}
-
-/// Python: bot/compose/fallback_chain.py:5167 `_a_day_told_instead_of_the_receipt(said_back, clean, memory)`
-pub fn _a_day_told_instead_of_the_receipt(said_back: Option<&str>, clean: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback_chain:_a_day_told_instead_of_the_receipt")
-}
-
-/// Python: bot/compose/fallback_chain.py:5295 `_the_crowd_is_ahead(clean)`
-pub fn _the_crowd_is_ahead(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_the_crowd_is_ahead")
-}
-
-/// Python: bot/compose/fallback_chain.py:5319 `_the_rest_of_the_day(clean, memory, mood='neutral')`
-pub fn _the_rest_of_the_day(clean: &str, memory: &Memory, mood: &str) {
-    crate::unported!("bot.compose.fallback_chain:_the_rest_of_the_day")
-}
-
-/// Python: bot/compose/fallback_chain.py:5348 `_an_emotion(clean)` (never called on the trace corpus)
-pub fn _an_emotion(clean: &str) -> Value {
-    crate::unported!("bot.compose.fallback_chain:_an_emotion")
-}
-
-/// Python: bot/compose/fallback_chain.py:5356 `_just_asked_about_the_day(memory)`
-pub fn _just_asked_about_the_day(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_just_asked_about_the_day")
-}
-
-/// Python: bot/compose/fallback_chain.py:5452 `_a_day_of_someone_else(text)`
-pub fn _a_day_of_someone_else(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_day_of_someone_else")
-}
-
-/// Python: bot/compose/fallback_chain.py:5480 `_a_thing_happened(text)`
-pub fn _a_thing_happened(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_thing_happened")
-}
-
-/// Python: bot/compose/fallback_chain.py:5518 `_a_thing_got_ahead(clean)`
-pub fn _a_thing_got_ahead(clean: &str) {
-    crate::unported!("bot.compose.fallback_chain:_a_thing_got_ahead")
-}
-
-/// Python: bot/compose/fallback_chain.py:5588 `_a_problem_stated(clean, repaired=None)`
-pub fn _a_problem_stated(clean: &str, repaired: Option<&str>) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_problem_stated")
-}
-
-/// Python: bot/compose/fallback_chain.py:5646 `_says_there_is_nothing_to_wear(clean, repaired=None, text=None)`
-pub fn _says_there_is_nothing_to_wear(clean: &str, repaired: &str, text: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_says_there_is_nothing_to_wear")
-}
-
-/// Python: bot/compose/fallback_chain.py:5655 `_a_wear_ask_about_a_day(clean, repaired=None, text=None)`
-pub fn _a_wear_ask_about_a_day(clean: &str, repaired: &str, text: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_wear_ask_about_a_day")
-}
-
-/// Python: bot/compose/fallback_chain.py:5695 `_the_wear_pool_for_the_line(clean, repaired=None, text=None)`
-pub fn _the_wear_pool_for_the_line(clean: &str, repaired: &str, text: &str) -> Vec<String> {
-    crate::unported!("bot.compose.fallback_chain:_the_wear_pool_for_the_line")
-}
-
-/// Python: bot/compose/fallback_chain.py:5708 `_a_small_day(clean, memory=None)`
-pub fn _a_small_day(clean: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_small_day")
-}
-
-/// Python: bot/compose/fallback_chain.py:5900 `_a_detail_about_what_was_said(text, memory)`
-pub fn _a_detail_about_what_was_said(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_detail_about_what_was_said")
-}
-
-/// Python: bot/compose/fallback_chain.py:6019 `_a_dish_name(clean, words, memory)` (never called on the trace corpus)
-pub fn _a_dish_name(clean: &str, words: &[String], memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_dish_name")
-}
-
-/// Python: bot/compose/fallback_chain.py:6039 `_a_report_with_no_pronoun(clean, text, memory)`
-pub fn _a_report_with_no_pronoun(clean: &str, text: &str, memory: &mut Memory) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_report_with_no_pronoun")
-}
-
-/// Python: bot/compose/fallback_chain.py:6080 `_repaired_of(text, memory)`
-pub fn _repaired_of(text: &str, memory: &Memory) -> String {
-    crate::unported!("bot.compose.fallback_chain:_repaired_of")
-}
-
-/// Python: bot/compose/fallback_chain.py:6096 `takes_as_it_comes(text, memory)`
-pub fn takes_as_it_comes(text: &str, memory: &mut Memory) -> bool {
-    crate::unported!("bot.compose.fallback_chain:takes_as_it_comes")
-}
-
-/// Python: bot/compose/fallback_chain.py:6223 `_a_name_told(clean)`
-pub fn _a_name_told(clean: &str) {
-    crate::unported!("bot.compose.fallback_chain:_a_name_told")
-}
-
-/// Python: bot/compose/fallback_chain.py:6277 `_named_after_reply(clean, memory)`
-pub fn _named_after_reply(clean: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback_chain:_named_after_reply")
-}
-
-/// Python: bot/compose/fallback_chain.py:6296 `_a_name_told_reply(clean, memory)`
-pub fn _a_name_told_reply(clean: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback_chain:_a_name_told_reply")
-}
-
-/// Python: bot/compose/fallback_chain.py:6343 `_a_state_of_theirs(text)`
-pub fn _a_state_of_theirs(text: &str) -> Option<String> {
-    crate::unported!("bot.compose.fallback_chain:_a_state_of_theirs")
-}
-
-/// Python: bot/compose/fallback_chain.py:6422 `_a_day_said_badly(text)`
-pub fn _a_day_said_badly(text: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_day_said_badly")
-}
-
-/// Python: bot/compose/fallback_chain.py:6430 `_the_last_exchange(memory)`
-pub fn _the_last_exchange(memory: &Memory) -> Value {
-    crate::unported!("bot.compose.fallback_chain:_the_last_exchange")
-}
-
-/// Python: bot/compose/fallback_chain.py:6446 `_the_day_was_already_bad(memory)`
-pub fn _the_day_was_already_bad(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_the_day_was_already_bad")
-}
-
-/// Python: bot/compose/fallback_chain.py:6478 `_a_detail_of_a_bad_day(memory, text=None)`
-pub fn _a_detail_of_a_bad_day(memory: &Memory, text: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_detail_of_a_bad_day")
-}
-
-/// Python: bot/compose/fallback_chain.py:6567 `_money_came_to_them(text, words)`
-pub fn _money_came_to_them(text: &str, words: &[String]) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_money_came_to_them")
-}
-
-/// Python: bot/compose/fallback_chain.py:6574 `_a_sum_with_nothing_beside_it(clean, memory=None)`
-pub fn _a_sum_with_nothing_beside_it(clean: &str, memory: &Memory) {
-    crate::unported!("bot.compose.fallback_chain:_a_sum_with_nothing_beside_it")
-}
-
-/// Python: bot/compose/fallback_chain.py:6653 `_a_report_from_elsewhere(clean)`
-pub fn _a_report_from_elsewhere(clean: &str) {
-    crate::unported!("bot.compose.fallback_chain:_a_report_from_elsewhere")
-}
-
-/// Python: bot/compose/fallback_chain.py:6679 `_a_small_day_shape(clean)`
-pub fn _a_small_day_shape(clean: &str) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_small_day_shape")
-}
-
-/// Python: bot/compose/fallback_chain.py:6787 `_a_bad_time_told(clean, memory=None)`
-pub fn _a_bad_time_told(clean: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_bad_time_told")
-}
-
-/// Python: bot/compose/fallback_chain.py:6827 `_a_day_asked_without_a_cheer(clean, memory=None)`
-pub fn _a_day_asked_without_a_cheer(clean: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback_chain:_a_day_asked_without_a_cheer")
 }
 
