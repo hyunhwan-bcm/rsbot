@@ -56,11 +56,15 @@ def main():
 
     convs, order = {}, []
     with gzip.open(a.oracle, "rt") as f:
-        for line in f:
-            r = json.loads(line)
-            if r["conv"] not in convs:
-                order.append(r["conv"]); convs[r["conv"]] = []
-            convs[r["conv"]].append(r["text"])
+        try:
+            for line in f:
+                r = json.loads(line)
+                if r["conv"] not in convs:
+                    order.append(r["conv"]); convs[r["conv"]] = []
+                convs[r["conv"]].append(r["text"])
+        except (EOFError, json.JSONDecodeError):  # an oracle still being written: what is there
+            if order:
+                convs.pop(order.pop())
     order = order[::a.stride][:a.limit]
 
     def enc(v, memo=None):
@@ -159,11 +163,22 @@ def main():
         for other in also:
             setattr(importlib.import_module(other), name, wrapped)
 
+    # Every name a loaded module holds for one of the four modules' functions is pointed at the
+    # wrapper ("from ..memory import note", "from ..memory.thread import about as _about_the_chat"),
+    # so the calls the rest of the bot makes are seen as well as the modules' own.
+    wrappers = {}
     for modname in MODULES:
         mod = importlib.import_module(modname)
         for name, f in list(vars(mod).items()):
             if inspect.isfunction(f) and f.__module__ == modname:
-                setattr(mod, name, wrap(modname, name, f))
+                wrappers[id(f)] = wrap(modname, name, f)
+                setattr(mod, name, wrappers[id(f)])
+    for other in list(sys.modules.values()):
+        if not getattr(other, "__name__", "").startswith("bot"):
+            continue
+        for name, f in list(vars(other).items()):
+            if inspect.isfunction(f) and id(f) in wrappers:
+                setattr(other, name, wrappers[id(f)])
 
     for n, cid in enumerate(order):
         random.seed(0)
