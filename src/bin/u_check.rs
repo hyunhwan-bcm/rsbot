@@ -237,6 +237,34 @@ fn main() {
             }
             println!("topics ok {ok} bad {bad} {fields:?}");
         }
+        "understand" => {
+            // u_check understand gold|heldout [show]: understand(text) against PyBot's reading
+            let show: usize = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(5);
+            let rows = rsbot::oracle::load(&args[1]);
+            let (mut ok, mut bad, mut shown) = (0, 0, 0);
+            let mut fields: std::collections::BTreeMap<String, usize> = Default::default();
+            for row in rows {
+                let got = rsbot::runtime::guarded(|| rsbot::understanding::understand(&row.text, None));
+                let got = got.map(|u| serde_json::to_value(u).unwrap()).unwrap_or(serde_json::Value::Null);
+                let want = serde_json::to_value(&row.understood).unwrap();
+                let mut same = true;
+                match (got.as_object(), want.as_object()) {
+                    (Some(g), Some(w)) => {
+                        for (k, wv) in w {
+                            if k == "wants" || k == "looks_back" { continue; }
+                            if g.get(k) != Some(wv) {
+                                same = false;
+                                *fields.entry(k.clone()).or_default() += 1;
+                                if shown < show { println!("-- {} {k} {:?}\n   rust {}\n   py   {}", row.id, row.text, g.get(k).map(|x| x.to_string()).unwrap_or_default(), wv); shown += 1; }
+                            }
+                        }
+                    }
+                    _ => { same = false; *fields.entry("(panic)".into()).or_default() += 1; if shown < show { println!("-- panic {:?}", row.text); shown += 1; } }
+                }
+                if same { ok += 1 } else { bad += 1 }
+            }
+            println!("understand ok {ok} bad {bad} {fields:?}");
+        }
         x => panic!("unknown check {x}"),
     }
 }
