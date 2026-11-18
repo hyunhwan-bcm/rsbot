@@ -232,7 +232,8 @@ fn run_lead(f: &crate::data::FnRef, understood: &Understood) -> String {
             return run(f, understood);
         }
     }
-    crate::unported!(format!("lead {}", f.id))
+    // An id none of the tables holds is a lead nobody has ported: the runtime counts it so.
+    panic!("UNPORTED lead {}", f.id)
 }
 
 /// Python: bot/compose/lead.py:379 `the_sentence_owed(reply, understood, declared=None)`
