@@ -19,3 +19,7 @@ pub mod health;
 pub mod kit_lists;
 pub mod prices;
 pub mod whenbuy;
+pub mod clothing;
+pub mod d2dup_g7;
+pub mod shopping;
+pub mod work;
