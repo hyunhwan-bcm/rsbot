@@ -7516,69 +7516,442 @@ pub fn _say_a_list(items: &[String]) -> String {
     }
 }
 
-/// Python: bot/memory/store_replies.py:7299 `_limit_reply(memory, low='')` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:7299 `_limit_reply(memory, low="")`
+///
+/// What they can't have, said back: "what can't i eat", "what should i avoid".
 pub fn _limit_reply(memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_limit_reply")
+    let known = user(memory);
+    let allergies: Vec<String> =
+        known.get("allergies").filter(|v| v.truthy()).map(py_list).unwrap_or_default().iter().map(py_str).filter(|a| !text::strip(a).is_empty()).collect();
+    let conditions: Vec<String> = match known.get("condition").filter(|v| v.truthy()) {
+        Some(Value::Str(s)) => vec![s.to_string()],
+        Some(v) => py_list(v).iter().map(py_str).collect(),
+        None => Vec::new(),
+    }
+    .into_iter()
+    .filter(|c| !text::strip(c).is_empty())
+    .collect();
+    let diet = text::strip(&sget(&known, "diet")).to_string();
+    // Only a food can be said back as one of the things they can't have.
+    let foods: Vec<String> = allergies.iter().filter(|a| _a_food(a)).cloned().collect();
+    if foods.is_empty() && conditions.is_empty() && diet.is_empty() {
+        // Nothing is stored, so there is no limit to say back.
+        if !FOOD_ASK.is_match(low) {
+            return None;
+        }
+        // Unless they did tell us something a moment ago.
+        if _said_a_limit(memory) {
+            return None;
+        }
+        return Some("You haven't told me anything you can't have. Say what to keep out of your food and I'll stick to it.".to_string());
+    }
+    // Every limit the store keeps is about food, so it is said as the food it rules out.
+    let mut clauses: Vec<String> = Vec::new();
+    if !foods.is_empty() {
+        let it = if foods.len() > 1 || foods[0].ends_with('s') { "them" } else { "it" };
+        clauses.push("nothing with ".to_string() + &_said_list(&foods) + " in it \u{2014} you're allergic to " + it);
+    }
+    if !conditions.is_empty() {
+        // A condition that rules a food out is said as the food.
+        let ruled: Vec<Option<String>> = conditions.iter().map(|c| CONDITION_FOOD.get(&c.to_lowercase()).cloned()).collect();
+        if !ruled.is_empty() && ruled.iter().all(|r| r.as_deref().map(|s| !s.is_empty()).unwrap_or(false)) {
+            let ruled: Vec<String> = ruled.into_iter().map(Option::unwrap).collect();
+            clauses.push("nothing with ".to_string() + &_said_list(&ruled) + " in it \u{2014} you're " + &_said_list(&conditions));
+        } else {
+            clauses.push("you're ".to_string() + &_said_list(&conditions));
+        }
+    }
+    if !diet.is_empty() {
+        let ruled = _diet_food(&diet);
+        // "no meat" is already the food, so that shape keeps the wording it had.
+        if !ruled.is_empty() && ruled.iter().all(|r| !r.is_empty()) && !diet.to_lowercase().starts_with("no ") {
+            clauses.push("nothing with ".to_string() + &_said_list(&ruled) + " in it \u{2014} you're " + &diet);
+        } else if diet.starts_with("no ") {
+            clauses.push("you don't ".to_string() + &_diet_how(&diet) + " " + &text::slice(&diet, 3, None));
+        } else {
+            clauses.push("you're ".to_string() + &diet);
+        }
+    }
+    let mut said = clauses[0].clone();
+    if clauses.len() == 2 {
+        said += &(", and ".to_string() + &clauses[1]);
+    } else if clauses.len() > 2 {
+        said += &(", ".to_string() + &clauses[1..clauses.len() - 1].join(", ") + ", and " + &clauses[clauses.len() - 1]);
+    }
+    let said = text::upper_first(&said) + ".";
+    if crate::memory::relations::_same_as_last(&said, memory) {
+        // The same sentence twice in a row reads like a machine: the limit is said afresh.
+        let rest = lower_first(&said);
+        return Some(_vary(
+            &["Still this: ".to_string() + &rest, "That hasn't changed: ".to_string() + &rest, "Same answer: ".to_string() + &rest],
+            memory,
+        ));
+    }
+    Some(said)
 }
 
+rx!(AN_ASK_AT_THE_END, HEDGED);
+
 /// Python: bot/memory/store_replies.py:7386 `_the_answer_the_ask_gets(text, memory)`
-pub fn _the_answer_the_ask_gets(text: &str, memory: &Memory) -> String {
-    crate::unported!("bot.memory.store_replies:_the_answer_the_ask_gets")
+///
+/// What the cards say to this line as a question, or "" when they have nothing to say.
+pub fn _the_answer_the_ask_gets(text_: &str, memory: &Memory) -> String {
+    let mut fresh = Memory::new();
+    fresh.set("aside", true);
+    for key in ["user", "others", "facts_log"] {
+        if let Some(v) = memory.get(key) {
+            fresh.set(key, v.clone());
+        }
+    }
+    // A store that cannot ask is a store that says the fact.
+    let reply = or_on_raise(|| crate::modules::answers::respond(text_, &mut fresh).unwrap_or_default(), String::new());
+    let said = text::squash(&reply);
+    if said.is_empty() || HEDGED.is_match(&said) {
+        return String::new();
+    }
+    said
 }
 
 /// Python: bot/memory/store_replies.py:7407 `_the_ask_beats_the_receipt(text, memory)`
-pub fn _the_ask_beats_the_receipt(text: &str, memory: &Memory) -> bool {
-    crate::unported!("bot.memory.store_replies:_the_ask_beats_the_receipt")
+///
+/// True when a line that ends on a question is a question the cards can answer.
+pub fn _the_ask_beats_the_receipt(text_: &str, memory: &Memory) -> bool {
+    if text_.contains('?') {
+        return false;
+    }
+    if !AN_ASK_AT_THE_END.is_match(&text::squash(text_)) {
+        return false;
+    }
+    !_the_answer_the_ask_gets(text_, memory).is_empty()
 }
 
 /// Python: bot/memory/store_replies.py:7421 `_a_diet_told(text, memory, low)`
-pub fn _a_diet_told(text: &str, memory: &mut Memory, low: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_a_diet_told")
+///
+/// "she doesnt eat meat" said about someone: "Your mum doesn't eat meat."
+pub fn _a_diet_told(text_: &str, memory: &mut Memory, low: &str) -> Option<String> {
+    if text_.contains('?') {
+        return None;
+    }
+    if _the_ask_beats_the_receipt(text_, memory) {
+        // The line ends on a question the cards can answer, so the fact is only what it is about.
+        return None;
+    }
+    if _about_this_chat(text_, memory) || OTHER_ASK.is_match(low) || REMINDER_MID.is_match(low) {
+        return None;
+    }
+    let found = crate::memory::facts::extract(text_, false).val();
+    if ["diet", "no_meat", "allergies"].iter().any(|k| found.get(k).map(Value::truthy).unwrap_or(false)) {
+        return None;
+    }
+    let named: Vec<String> = found.get("people").map(py_list).unwrap_or_default().iter().filter_map(|w| w.as_str().map(str::to_string)).collect();
+    for entry in found.get("others").map(py_list).unwrap_or_default() {
+        let diet = entry.get("diet").cloned().unwrap_or(Value::None);
+        if !diet.truthy() {
+            continue;
+        }
+        let who = match entry.get("who").filter(|w| w.truthy()) {
+            Some(w) => py_str(w),
+            None => crate::memory::relations::_person_from_pronoun(text_, memory, &named),
+        };
+        return Some(_diet_sentence(&who, &diet));
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:7451 `_object_pronoun(who, known=None)` (never called on the trace corpus)
-pub fn _object_pronoun(who: &str, known: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_object_pronoun")
+/// Python: bot/memory/store_replies.py:7451 `_object_pronoun(who, known=None)`
+///
+/// The pronoun a person takes as an object: "her", "him" or "them".
+pub fn _object_pronoun(who: &str, known: &Value) -> String {
+    match ret_str(crate::memory::relations::_pronoun_for(who, known)).as_str() {
+        "she" => "her".into(),
+        "he" => "him".into(),
+        _ => "them".into(),
+    }
 }
 
-/// Python: bot/memory/store_replies.py:7456 `_who_the_pronoun_means(low, memory, pronoun)` (never called on the trace corpus)
-pub fn _who_the_pronoun_means(low: &str, memory: &mut Memory, pronoun: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_who_the_pronoun_means")
+static PRONOUN_FITS: LazyLock<HashMap<String, Vec<String>>> = LazyLock::new(|| g("PRONOUN_FITS").str_list_map());
+static TITLE_GENDER: LazyLock<HashMap<String, String>> = LazyLock::new(|| data::str_map("bot.memory.facts.TITLE_GENDER"));
+
+/// Python: bot/memory/store_replies.py:7456 `_who_the_pronoun_means(low, memory, pronoun)`
+///
+/// The last person the chat named whose pronoun fits, for "whats his name".
+pub fn _who_the_pronoun_means(low: &str, memory: &mut Memory, pronoun: &str) -> String {
+    let fits = PRONOUN_FITS.get(&pronoun.to_lowercase()).cloned().unwrap_or_default();
+    let mut allowed: HashSet<String> = HashSet::new();
+    for key in &fits {
+        allowed.extend(if key == "he" { FACTS_HE.iter().cloned() } else { FACTS_SHE.iter().cloned() }.collect::<Vec<_>>());
+    }
+    if allowed.is_empty() {
+        return String::new();
+    }
+    let mut people: Vec<String> = user(memory).get("people").map(py_list).unwrap_or_default().iter().filter_map(|w| w.as_str().map(str::to_string)).collect();
+    people.extend(others(memory).items().iter().filter(|e| e.get("who").map(Value::truthy).unwrap_or(false)).map(|e| py_str(e.get("who").unwrap())));
+    if let Some(who) = people.iter().rev().find(|w| allowed.contains(*w)) {
+        return who.clone();
+    }
+    // A role can be held by anybody: the title the chat was given says it, and with one person on
+    // the table the pronoun means them whatever their word says.
+    let record = crate::memory::topics::about(memory);
+    if !record.truthy() {
+        return String::new();
+    }
+    let who = sget(&record, "who");
+    let mut titled = String::new();
+    for entry in others(memory).items() {
+        if sget(entry, "who") != who {
+            continue;
+        }
+        let name = sget(entry, "name");
+        let title = text::strip_chars(name.split(' ').next().unwrap_or(""), ".").to_lowercase();
+        if let Some(t) = TITLE_GENDER.get(&title) {
+            titled = t.clone();
+        }
+    }
+    if !titled.is_empty() {
+        // The title says it plainly, so it settles the pronoun both ways.
+        return if fits.contains(&titled) { who } else { String::new() };
+    }
+    let distinct: HashSet<&String> = people.iter().filter(|p| !p.is_empty()).collect();
+    if !who.is_empty() && !FACTS_SHE.contains(&who) && !FACTS_HE.contains(&who) && distinct.len() == 1 {
+        return who;
+    }
+    String::new()
 }
 
-/// Python: bot/memory/store_replies.py:7498 `_a_relations_name_reply(memory, low, text='')`
-pub fn _a_relations_name_reply(memory: &mut Memory, low: &str, text: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_a_relations_name_reply")
+static KIN_WORDS: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.facts.KIN_WORDS"));
+static ALONE_PERSON: LazyLock<HashSet<String>> = LazyLock::new(|| data::set("bot.memory.facts.ALONE_PERSON"));
+strset!(A_ONE_PERSON_WORD, PLURAL_PEOPLE);
+
+/// The named group of `m` that matched first, in the order given ("" when none did).
+fn first_group(m: &crate::py::re::Match, names: &[&str]) -> String {
+    names.iter().find_map(|g| m.name(g).filter(|s| !s.is_empty())).unwrap_or("").to_string()
 }
 
-/// Python: bot/memory/store_replies.py:7613 `_the_group(who)` (never called on the trace corpus)
-pub fn _the_group(who: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_group")
+/// Python: bot/memory/store_replies.py:7498 `_a_relations_name_reply(memory, low, text="")`
+///
+/// What someone in the family is called: "Your sister is called Meg."
+pub fn _a_relations_name_reply(memory: &mut Memory, low: &str, text_: &str) -> Option<String> {
+    use crate::memory::relations::{_a_list_of_names, _called, _canon_relation, _relations_of};
+    let who: String;
+    if let Some(m) = OTHER_NAME_ASK.search(low) {
+        let mut w = first_group(&m, &["who1", "who2", "who3", "who4", "who5", "who6", "who7", "who8", "who9", "who10", "who11"]).to_lowercase();
+        // "my babys name": the "s" on the end is the possessive.
+        if w.ends_with('s') {
+            let bare = text::slice(&w, 0, Some(-1));
+            if KIN_WORDS.contains(&bare) || ALONE_PERSON.contains(&bare) {
+                w = bare;
+            }
+        }
+        let w = _with_an_in_law(&w, low);
+        let group = _the_group(&w);
+        if !group.is_empty() {
+            if A_ONE_PERSON_WORD.contains(&w) {
+                // "what is my child called" names one person with a word that covers several.
+                if let Some(narrowed) = _which_one_of_them(memory, &w) {
+                    return Some(narrowed);
+                }
+            }
+            // "what are my children called": every name the store holds for that group.
+            if let Some(together) = _what_the_group_is_called(&group, memory) {
+                return Some(together);
+            }
+            // A line that named the group is one the store failed to file.
+            if crate::memory::relations::_the_group_was_said(&w, memory) {
+                return None;
+            }
+            let word = py_str(&crate::memory::relations::_the_group_word(&w).val());
+            return Some(_vary(
+                &[
+                    "You haven't told me what your ".to_string() + &word + " are called.",
+                    "I don't have any names for your ".to_string() + &word + " yet.",
+                    "You've not said what your ".to_string() + &word + " are called.",
+                ],
+                memory,
+            ));
+        }
+        if !KIN_WORDS.contains(&w) && !ALONE_PERSON.contains(&w) && !crate::memory::facts::an_in_law(&w) {
+            return None;
+        }
+        // A wide kin word is only a person the chat knows of once it has heard of them.
+        if !FACTS_RELATIONS.contains(&w) && !crate::memory::facts::an_in_law(&w) && !crate::memory::relations::_a_person_in_the_store(memory, &w) {
+            return None;
+        }
+        who = w;
+    } else {
+        let point = PRONOUN_NAME_ASK.search(low)?;
+        let pronoun = first_group(&point, &["pos", "sub", "obj", "pos2", "sub2", "obj2", "pos3", "pos4"]);
+        if ["their", "they", "them"].contains(&pronoun.as_str()) {
+            // "what are their names" about the children the chat has just named.
+            if let Some(together) = _everyone_they_mean(memory) {
+                return Some(together);
+            }
+        }
+        let w = _who_the_pronoun_means(low, memory, &pronoun).to_lowercase();
+        if w.is_empty() {
+            // The pronoun points at the one animal the chat has named.
+            if let Some(named_pet) = _the_one_animal_with_a_name(memory) {
+                return Some(named_pet);
+            }
+            return None;
+        }
+        who = w;
+    }
+    let told = others(memory);
+    let told = told.items();
+    let mine: Vec<&Value> = told.iter().filter(|e| sget(e, "who").to_lowercase() == who).collect();
+    let named: Vec<&&Value> = mine.iter().filter(|e| e.get("name").map(Value::truthy).unwrap_or(false)).collect();
+    if let Some(last) = named.last() {
+        let name = _called(&py_str(last.get("name").unwrap()));
+        return Some(_vary(
+            &[
+                "Your ".to_string() + &who + " is called " + &name + ".",
+                name.clone() + " \u{2014} your " + &who + ", you told me.",
+                "You said your ".to_string() + &who + " is called " + &name + ".",
+            ],
+            memory,
+        ));
+    }
+    // A pair of names said for two people does not say which name is whose.
+    for entry in told.iter() {
+        let entry_who = sget(entry, "who");
+        let pair: Vec<String> = entry_who.to_lowercase().split(" and ").map(|w| text::strip(w).to_string()).collect();
+        let pair_names: Vec<String> = entry.get("names").filter(|v| v.truthy()).map(py_list).unwrap_or_default().iter().map(py_str).collect();
+        let canon = _canon_relation(&who).val();
+        let relations = _relations_of(&py_str(entry.get("who").unwrap_or(&Value::None))).val();
+        let canon_in = relations.items().iter().any(|r| *r == canon);
+        if ((pair.len() > 1 && pair.contains(&who)) || canon_in) && pair_names.len() > 1 {
+            return Some("You told me your ".to_string() + &py_str(entry.get("who").unwrap()) + " are " + &_a_list_of_names(&pair_names) + " - which one is your " + &who + "?");
+        }
+    }
+    let in_law_of_the_same = told.iter().any(|e| {
+        let w = s_or(e.get("who"));
+        crate::memory::facts::an_in_law(&w) && w.to_lowercase().starts_with(&(who.clone() + " in law"))
+    });
+    let people: Vec<String> = user(memory).get("people").map(py_list).unwrap_or_default().iter().map(|p| py_str(p).to_lowercase()).collect();
+    if !mine.is_empty() || in_law_of_the_same || people.contains(&who) {
+        // The person is known to the chat even with no name filed for them.
+        return Some("You haven't told me your ".to_string() + &who + "'s name.");
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:7621 `_in_group(who, group)` (never called on the trace corpus)
-pub fn _in_group(who: &str, group: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_in_group")
+static PERSON_GROUP: LazyLock<HashMap<String, Vec<String>>> = LazyLock::new(|| g("PERSON_GROUP").str_list_map());
+static CHILD_OF: LazyLock<HashMap<String, String>> = LazyLock::new(|| g("CHILD_OF").str_map());
+strs!(CHILD_RELATIONS);
+
+/// Python: bot/memory/store_replies.py:7613 `_the_group(who)`
+///
+/// The people a group word names, or nothing: "children", "childrens", "kids", "boys".
+pub fn _the_group(who: &str) -> Vec<String> {
+    let word = py_str(&crate::memory::relations::_the_group_word(who).val());
+    PERSON_GROUP.get(&word).cloned().unwrap_or_default()
 }
 
-/// Python: bot/memory/store_replies.py:7627 `_the_people(entries)` (never called on the trace corpus)
-pub fn _the_people(entries: &Value) -> String {
-    crate::unported!("bot.memory.store_replies:_the_people")
+/// Python: bot/memory/store_replies.py:7621 `_in_group(who, group)`
+///
+/// Whether what the store filed a person under is in a group of relations.
+pub fn _in_group(who: &str, group: &[String]) -> bool {
+    let who = who.to_lowercase();
+    let has = |w: &str| group.iter().any(|g| g == w);
+    has(&who) || has(CHILD_OF.get(&who).map(String::as_str).unwrap_or("")) || (who.ends_with('s') && has(&text::slice(&who, 0, Some(-1))))
 }
 
-/// Python: bot/memory/store_replies.py:7648 `_which_one_of_them(memory, who)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:7627 `_the_people(entries)`
+///
+/// The people as one phrase: "daughter and son", "sons", "children".
+pub fn _the_people(entries: &[Value]) -> String {
+    let mut words: Vec<String> = Vec::new();
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for entry in entries {
+        let who = sget(entry, "who").to_lowercase();
+        *counts.entry(who.clone()).or_insert(0) += 1;
+        if !words.contains(&who) {
+            words.push(who);
+        }
+    }
+    let spoken: Vec<String> = words.into_iter().map(|w| if counts[&w] > 1 && !w.ends_with('s') { w + "s" } else { w }).collect();
+    _and_list(&spoken)
+}
+
+/// Python: bot/memory/store_replies.py:7648 `_which_one_of_them(memory, who)`
+///
+/// The several people a one-person word covers, when the store cannot say which is meant.
 pub fn _which_one_of_them(memory: &mut Memory, who: &str) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_which_one_of_them")
+    use crate::memory::relations::{_a_list_of_names, _called, _in_the_group, _relations_of};
+    let group = _relations_of(who).val();
+    let mine: Vec<Value> = others(memory).items().iter().filter(|e| e.is_dict() && _in_the_group(&s_or(e.get("who")), &group)).cloned().collect();
+    let mut said: Vec<String> = Vec::new();
+    for entry in &mine {
+        let names: Vec<String> = entry.get("names").filter(|v| v.truthy()).map(py_list).unwrap_or_default().iter().map(py_str).filter(|n| !text::strip(n).is_empty()).collect();
+        if names.len() > 1 {
+            said.extend(names.iter().map(|n| _called(n)));
+        } else if entry.get("name").map(Value::truthy).unwrap_or(false) {
+            said.push(_called(&py_str(entry.get("name").unwrap())));
+        }
+    }
+    if said.len() < 2 {
+        return None;
+    }
+    Some("You told me your ".to_string() + &_the_people(&mine) + " are " + &_a_list_of_names(&said) + " - which one do you mean?")
 }
 
-/// Python: bot/memory/store_replies.py:7670 `_what_the_group_is_called(group, memory)` (never called on the trace corpus)
-pub fn _what_the_group_is_called(group: &Value, memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_what_the_group_is_called")
+/// Python: bot/memory/store_replies.py:7670 `_what_the_group_is_called(group, memory)`
+///
+/// The names of the people a group word covers: "Emma and Jack - your daughter and son."
+pub fn _what_the_group_is_called(group: &[String], memory: &mut Memory) -> Option<String> {
+    use crate::memory::relations::_called;
+    let mine: Vec<Value> = others(memory).items().iter().filter(|e| e.is_dict() && _in_group(&s_or(e.get("who")), group)).cloned().collect();
+    if mine.is_empty() {
+        return None;
+    }
+    let has_names = |e: &Value| e.get("name").map(Value::truthy).unwrap_or(false) || e.get("names").map(Value::truthy).unwrap_or(false);
+    let named: Vec<Value> = mine.iter().filter(|e| has_names(e)).cloned().collect();
+    let unnamed: Vec<Value> = mine.iter().filter(|e| !has_names(e)).cloned().collect();
+    if named.is_empty() {
+        // "my kids are 4, 7 and 9" is several people filed as one entry.
+        let many = mine.len() > 1 || mine.iter().any(|e| PLURAL_PEOPLE.contains(&sget(e, "who").to_lowercase()));
+        return Some(
+            "You've told me about your ".to_string() + &_the_people(&mine) + ", not what " + if many { "they are" } else { "he or she is" } + " called.",
+        );
+    }
+    let mut said: Vec<String> = Vec::new();
+    let mut paired = false;
+    for entry in &named {
+        let names: Vec<String> = entry.get("names").filter(|v| v.truthy()).map(py_list).unwrap_or_default().iter().map(py_str).filter(|n| !text::strip(n).is_empty()).collect();
+        if names.len() > 1 {
+            said.extend(names.iter().map(|n| _called(n)));
+            paired = true;
+        } else {
+            let name = match entry.get("name").filter(|v| v.truthy()) {
+                Some(n) => py_str(n),
+                None => names.first().cloned().expect("IndexError: list index out of range"),
+            };
+            said.push(_called(&name));
+        }
+    }
+    let names = _and_list(&said);
+    if paired && unnamed.is_empty() {
+        // One fact about two people: both names are said back.
+        return Some("You told me your ".to_string() + &_the_people(&mine) + " are called " + &names + ".");
+    }
+    if unnamed.is_empty() {
+        if said.len() > 1 {
+            return Some(names + " \u{2014} your " + &_the_people(&mine) + ".");
+        }
+        return Some(names + ", your " + &_the_people(&mine) + ".");
+    }
+    Some(names + ", and your " + &_the_people(&unnamed) + " you haven't named.")
 }
 
-/// Python: bot/memory/store_replies.py:7711 `_everyone_they_mean(memory)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:7711 `_everyone_they_mean(memory)`
+///
+/// "What are their names" after two children were named, and nothing else was: them.
 pub fn _everyone_they_mean(memory: &mut Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_everyone_they_mean")
+    let told: Vec<Value> = others(memory).items().iter().filter(|e| e.is_dict()).cloned().collect();
+    if told.len() < 2 || !told.iter().all(|e| _in_group(&s_or(e.get("who")), &CHILD_RELATIONS)) {
+        return None;
+    }
+    _what_the_group_is_called(&CHILD_RELATIONS, memory)
 }
 
 /// Python: bot/memory/store_replies.py:7723 `_who_is_the_name_reply(memory, low)`
