@@ -6708,4 +6708,121 @@ mod mem3_py_tests {
         assert_eq!(deadline::the_deadline("by december i want to be in a flat"), "");
         assert_eq!(deadline::the_deadline("in two weeks"), "");
     }
+
+    trait PyOut {
+        fn out(self) -> serde_json::Value;
+    }
+    impl PyOut for String {
+        fn out(self) -> serde_json::Value {
+            serde_json::Value::String(self)
+        }
+    }
+    impl PyOut for Option<String> {
+        fn out(self) -> serde_json::Value {
+            self.map(serde_json::Value::String).unwrap_or(serde_json::Value::Null)
+        }
+    }
+    impl PyOut for (String, i64) {
+        fn out(self) -> serde_json::Value {
+            serde_json::json!([self.0, self.1])
+        }
+    }
+    impl PyOut for Vec<String> {
+        fn out(self) -> serde_json::Value {
+            serde_json::json!(self)
+        }
+    }
+    impl PyOut for crate::data::Value {
+        fn out(self) -> serde_json::Value {
+            self.to_plain()
+        }
+    }
+    fn mem(j: &str) -> Memory {
+        Memory::from_plain(serde_json::from_str::<serde_json::Value>(j).unwrap().as_object().unwrap())
+    }
+    #[test]
+    fn py_memory_case_0() {
+        assert_eq!(serde_json::to_value(PyOut::out(thread::checking_the_verdict("is that alright", &mem(r#"{"turns": [{"user": "can i have a satay", "bot": "No: a satay is made with nuts, and that is off the table for you. Try a korma.", "module": "answers"}]}"#)))).unwrap(), serde_json::json!("Afraid not — a satay is made with nuts."));
+    }
+    #[test]
+    fn py_memory_case_1() {
+        assert_eq!(serde_json::to_value(PyOut::out(thread::checking_the_verdict("are you sure", &mem(r#"{"turns": [{"user": "x", "bot": "Afraid not — a satay is made with nuts.", "module": "chat"}]}"#)))).unwrap(), serde_json::json!("Still a no — a satay is made with nuts."));
+    }
+    #[test]
+    fn py_memory_case_2() {
+        assert_eq!(serde_json::to_value(PyOut::out(thread::checking_the_verdict("will that work", &mem(r#"{"turns": [{"user": "x", "bot": "Yes: the cake has no nuts in it, so it is fine for you.", "module": "answers"}]}"#)))).unwrap(), serde_json::json!("Yes — the cake has no nuts in it."));
+    }
+    #[test]
+    fn py_memory_case_3() {
+        assert_eq!(serde_json::to_value(PyOut::out(thread::checking_a_fact("is that right", &mem(r#"{"turns": [{"user": "That's right. It keeps 1 to 2 days.", "bot": "That's right. It keeps 1 to 2 days in the fridge.", "module": "chat"}]}"#)))).unwrap(), serde_json::json!("Yes — that's the usual guidance."));
+    }
+    #[test]
+    fn py_memory_case_4() {
+        assert_eq!(serde_json::to_value(PyOut::out(deadline::follow_up("by december", &mem(r#"{"turns": [{"user": "we want to save 3000 pounds", "bot": "Good plan.", "module": "answers"}]}"#)))).unwrap(), serde_json::json!("we want to save 3000 pounds by december"));
+    }
+    #[test]
+    fn py_memory_case_5() {
+        assert_eq!(serde_json::to_value(PyOut::out(deadline::follow_up("by december", &mem(r#"{"turns": [{"user": "my exam is in june", "bot": "Good luck.", "module": "answers"}]}"#)))).unwrap(), serde_json::json!(""));
+    }
+    #[test]
+    fn py_memory_case_6() {
+        assert_eq!(serde_json::to_value(PyOut::out(deadline::follow_up("by december", &mem(r#"{"turns": [{"user": "we want to save 3000 pounds", "bot": "Good plan.", "module": "answers"}, {"user": "we are on about 200 a month", "bot": "ok", "module": "chat"}]}"#)))).unwrap(), serde_json::json!("we are on about 200 a month by december"));
+    }
+    #[test]
+    fn py_memory_case_7() {
+        assert_eq!(serde_json::to_value(PyOut::out(named::the_name_given("its biscuit", &mem(r#"{"turns": [{"user": "we got a puppy", "bot": "Lovely! What's it called?", "module": "chat"}]}"#)))).unwrap(), serde_json::json!("biscuit"));
+    }
+    #[test]
+    fn py_memory_case_8() {
+        assert_eq!(serde_json::to_value(PyOut::out(named::the_name_given("no idea yet", &mem(r#"{"turns": [{"user": "we got a puppy", "bot": "Lovely! What's it called?", "module": "chat"}]}"#)))).unwrap(), serde_json::json!(""));
+    }
+    #[test]
+    fn py_memory_case_9() {
+        assert_eq!(serde_json::to_value(PyOut::out(named::the_name_given("she is called Rosie", &mem(r#"{"turns": [{"user": "we got a puppy", "bot": "What is her name?", "module": "chat"}]}"#)))).unwrap(), serde_json::json!("Rosie"));
+    }
+    #[test]
+    fn py_memory_case_10() {
+        assert_eq!(serde_json::to_value(PyOut::out(named::a_measure_asked_again("and a new one fitted?", &mem(r#"{"turns": [{"user": "my boiler is broken", "bot": "Sorry.", "module": "chat"}, {"user": "how long will it take to fix", "bot": "A day.", "module": "answers"}]}"#)))).unwrap(), serde_json::json!("how long does it take to fit a new boiler"));
+    }
+    #[test]
+    fn py_memory_case_11() {
+        assert_eq!(serde_json::to_value(PyOut::out(named::_the_job_before(&mem(r#"{"turns": [{"user": "im painting the fence this weekend", "bot": "Nice.", "module": "chat"}]}"#)))).unwrap(), serde_json::json!("paint"));
+    }
+    #[test]
+    fn py_memory_case_12() {
+        assert_eq!(serde_json::to_value(PyOut::out(named::_the_opening_place_at(&mem(r#"{"turns": [{"user": "tell me about lisbon", "bot": "In Lisbon: trams and tiles.", "module": "answers"}, {"user": "thanks", "bot": "In the meantime, enjoy.", "module": "chat"}]}"#)))).unwrap(), serde_json::json!(["Lisbon", 0]));
+    }
+    #[test]
+    fn py_memory_case_13() {
+        assert_eq!(serde_json::to_value(PyOut::out(topics::introduction_question("will they get on?", &mem(r#"{"user": {"pets": [{"animal": "cat"}, {"animal": "kitten"}], "plan": "getting a kitten next week"}}"#)))).unwrap(), serde_json::json!("how do i introduce a new kitten to my older cat"));
+    }
+    #[test]
+    fn py_memory_case_14() {
+        assert_eq!(serde_json::to_value(PyOut::out(topics::introduction_question("will they get on?", &mem(r#"{"user": {"pets": [{"animal": "rabbit"}, {"animal": "kitten"}], "plan": "getting a kitten"}}"#)))).unwrap(), serde_json::json!(""));
+    }
+    #[test]
+    fn py_memory_case_15() {
+        assert_eq!(topics::in_a_safety_thread(&mem(r#"{"turns": [{"user": "fire", "bot": "Ring 999.", "module": "safety"}, {"user": "ok", "bot": "Stay low.", "module": "carers_turn"}, {"user": "hi", "bot": "hello", "module": "greeting"}]}"#)), true);
+    }
+    #[test]
+    fn py_memory_case_16() {
+        assert_eq!(topics::in_a_safety_thread(&mem(r#"{"turns": [{"user": "fire", "bot": "Ring 999.", "module": "safety"}, {"user": "what now", "bot": "x", "module": "answers"}]}"#)), false);
+    }
+    #[test]
+    fn py_memory_case_17() {
+        assert_eq!(serde_json::to_value(PyOut::out(topics::context(&mem(r#"{"topics": [{"text": "a"}, {"text": ""}, {"text": "c"}]}"#), 0))).unwrap(), serde_json::json!(["a", "c"]));
+    }
+    #[test]
+    fn py_memory_case_18() {
+        assert_eq!(serde_json::to_value(PyOut::out(topics::context(&mem(r#"{"topics": [{"text": "a"}, {"text": "b"}, {"text": "c"}]}"#), -1))).unwrap(), serde_json::json!(["b", "c"]));
+    }
+    #[test]
+    fn py_memory_case_19() {
+        assert_eq!(topics::already_said(&mem(r#"{"turns": [{"user": "a", "bot": "Hello There.", "module": "chat"}]}"#), Some("hello  there."), 0), true);
+    }
+    #[test]
+    fn py_memory_case_20() {
+        assert_eq!(serde_json::to_value(PyOut::out(topics::answer_in_hand(&mem(r#"{"turns": [{"user": "how do i make ragu", "bot": "Brown the mince.", "module": "answers"}, {"user": "ok thanks", "bot": "Glad that helped.", "module": "chat"}, {"user": "cheers", "bot": "Any time.", "module": "chat"}]}"#)))).unwrap(), serde_json::json!({"user": "how do i make ragu", "bot": "Brown the mince.", "module": "answers"}));
+    }
+
 }
