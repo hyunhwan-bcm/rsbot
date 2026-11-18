@@ -6434,6 +6434,30 @@ pub mod deps {
 #[cfg(test)]
 mod mem3_py_tests {
     use crate::memory::{deadline, named, thread, topics};
+    use crate::state::{Memory, Turn};
+
+    /// PyBot: after a turn no reply was chosen for, `memory["topic"]` is still the same dict as
+    /// the newest record in `memory["topics"]`, and a follow-up's words go on both; after a chosen
+    /// reply the runtime's copy has parted them and only the topic gets the words.
+    #[test]
+    fn py_note_topic_and_topics_share_until_the_runtime_copies() {
+        for line in ["my boiler keeps losing pressure", "how often should i check the boiler pressure"] {
+            topics::deps::record("bot.memory.facts:a_moved_place", &serde_json::json!([line]), serde_json::json!(""));
+        }
+        for (module, both) in [(None, true), (Some("answers"), false)] {
+            let mut m = Memory::new();
+            let l1 = "my boiler keeps losing pressure";
+            topics::note(&mut m, l1, "");
+            m.turns.push(Turn { user: l1.into(), bot: "Top it up to 1.5 bar.".into(), module: module.map(str::to_string) });
+            let mut m = m.clone();
+            topics::note(&mut m, "how often should i check the boiler pressure", "");
+            let topic: Vec<String> = m.get("topic").unwrap().get("words").unwrap().strs();
+            let last: Vec<String> = m.get("topics").unwrap().items().last().unwrap().get("words").unwrap().strs();
+            assert_eq!(topic, vec!["boiler", "keep", "losing", "pressure", "often", "check"]);
+            let want: Vec<&str> = if both { vec!["boiler", "keep", "losing", "pressure", "often", "check"] } else { vec!["boiler", "keep", "losing", "pressure"] };
+            assert_eq!(last, want);
+        }
+    }
 
     #[test]
     fn py_topics___gerund() {
