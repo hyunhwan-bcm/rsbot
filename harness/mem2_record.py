@@ -72,6 +72,8 @@ def main():
     ap.add_argument("--max", type=int, default=0, help="at most this many conversations per file")
     ap.add_argument("--cap", type=int, default=200)
     ap.add_argument("--turns", action="store_true")
+    ap.add_argument("--oracle", action="store_true",
+                    help="call the memory-reading functions on each oracle turn's own memory")
     a = ap.parse_args()
 
     run_python.pin_clock("2026-11-17")
@@ -154,6 +156,89 @@ def main():
             if callable(value) and id(value) in wrapped:
                 setattr(mod, attr, wrapped[id(value)])
     facts = sys.modules["bot.memory.facts"]
+    again = sys.modules["bot.memory.again"]
+    corrected = sys.modules["bot.memory.corrected"]
+    rename = sys.modules["bot.memory.rename"]
+
+    def quietly(fn, *args):
+        try:
+            fn(*args)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def oracle_calls(row, text):
+        """The turn's memory as the responders see it (mem_in and the observers' writes), handed
+        to the functions that read memory, with each reply the responders gave."""
+        memory = copy.deepcopy(row.get("mem_in") or {})
+        for ob in row.get("observe") or []:
+            diff = ob.get("diff") or {}
+            for key, value in (diff.get("set") or {}).items():
+                memory[key] = copy.deepcopy(value)
+            for key in diff.get("del") or []:
+                memory.pop(key, None)
+        replies = [r["reply"] for r in row.get("respond") or []
+                   if isinstance(r.get("reply"), str) and r["reply"].strip()]
+        replies += [t.get("bot") for t in (memory.get("turns") or [])[-2:] if isinstance(t, dict)
+                    and isinstance(t.get("bot"), str) and t.get("bot").strip()]
+        for reply in replies[:6]:
+            quietly(again.instead, reply, text, memory)
+            quietly(again.already_had, reply, memory)
+            quietly(again.a_thing_of_the_answer, reply, text, memory)
+            quietly(again.the_cause_said_again, reply, memory)
+            quietly(again.the_same_thing_underneath, text, reply, 2, memory)
+            quietly(again._short, reply, memory)
+            quietly(again._framed_as_a_repeat, reply, again._flat(reply), memory, 1, text)
+            quietly(again.carries_a_lead_in, reply)
+            quietly(again.the_name_the_answer_says, reply, text, reply)
+        user = memory.get("user") if isinstance(memory.get("user"), dict) else {}
+        pets = user.get("pets") or []
+        turns = memory.get("turns") or []
+        before = turns[-1].get("user", "") if turns and isinstance(turns[-1], dict) else ""
+        quietly(facts.count_of_the_people, text, memory)
+        quietly(facts.names_offered, memory)
+        quietly(facts.a_name_picked, text, memory)
+        quietly(facts.the_name_they_take_back, text, user.get("name") or "")
+        quietly(facts.a_correction_without_a_subject, text, before)
+        quietly(facts.denials, text, pets)
+        quietly(facts.losses, text, pets, before)
+        quietly(facts.given_away_one, text, pets)
+        quietly(facts.their_back, text)
+        quietly(facts.one_more, text)
+        quietly(facts.the_limit_they_share, text)
+        quietly(facts.kid_ages, text)
+        quietly(facts.ages_said_one_by_one, text, 2)
+        quietly(facts.pet_name_only, text, True)
+        quietly(facts.pet_appositive, text)
+        quietly(facts.bare_name, text)
+        quietly(facts.a_moved_place, text)
+        quietly(facts.the_date_put_right, text)
+        quietly(facts.a_trip_date_put_right, text)
+        quietly(facts.without_the_correction_opener, text)
+        quietly(facts.is_a_correction_opener, text)
+        quietly(facts._reported_clause, text)
+        quietly(rename.moves, text)
+        quietly(rename.the_name_a_line_moved_on, text.lower(), pets, False)
+        quietly(rename.the_name_a_line_moved_on, text.lower(), pets, True)
+        found = {}
+        try:
+            found = facts.extract(text)
+        except Exception:  # noqa: BLE001
+            pass
+        fix = found.get("correction") if isinstance(found, dict) else None
+        if isinstance(fix, dict):
+            to = fix.get("to")
+            quietly(corrected._a_name_for_a_person, to)
+            quietly(corrected._a_new_name_was_said, to, text)
+            quietly(corrected._without_the_naming_verb, to)
+            quietly(corrected._date_said, str(to or "").lower())
+            quietly(corrected._kind_of_value, str(to or ""), before)
+            quietly(corrected._swap_in, before, to, fix.get("from"))
+            quietly(corrected._an_amount_on_the_measure, before, to)
+            quietly(corrected._count_said, str(to or ""))
+            quietly(corrected._names_a_date, to)
+            quietly(corrected._measured_the_same, to, before)
+        quietly(corrected._asks, text)
+
     done = 0
     for path in a.lines:
         convs = 0
@@ -168,6 +253,10 @@ def main():
                         break
                 text = row.get("text") or ""
                 if a.turns:
+                    continue
+                if a.oracle:
+                    oracle_calls(row, text)
+                    done += 1
                     continue
                 for question in (False, True):
                     try:

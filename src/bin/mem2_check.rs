@@ -80,7 +80,8 @@ fn to_value(j: &J) -> Value {
 
 fn has_tag(j: &J) -> bool {
     match j {
-        J::Object(o) => o.contains_key("__match__") || o.contains_key("__re__") || o.contains_key("__opaque__") || o.values().any(has_tag),
+        J::Object(o) if o.contains_key("__re__") => false,
+        J::Object(o) => o.contains_key("__match__") || o.contains_key("__opaque__") || o.values().any(has_tag),
         J::Array(a) => a.iter().any(has_tag),
         _ => false,
     }
@@ -146,8 +147,12 @@ fn r<T: ToJ>(x: T) -> Result<J, Skip> {
 fn call(name: &str, a: &Args) -> Option<Result<J, Skip>> {
     let fname = name.rsplit(':').next().unwrap_or(name);
     let module = name.split(':').next().unwrap_or("");
-    if module != "bot.memory.facts" {
-        return None;
+    match module {
+        "bot.memory.again" => return call_again(fname, a),
+        "bot.memory.corrected" => return call_corrected(fname, a),
+        "bot.memory.rename" => return call_rename(fname, a),
+        "bot.memory.facts" => {}
+        _ => return None,
     }
     let text = a.s(0, "text");
     Some(match fname {
@@ -465,6 +470,121 @@ fn expected(row: &J, name: &str) -> J {
         _ => row["result"].clone(),
     }
 }
+
+use rsbot::memory::again as ag;
+use rsbot::memory::corrected as co;
+use rsbot::memory::rename as rn;
+
+fn call_again(fname: &str, a: &Args) -> Option<Result<J, Skip>> {
+    let mem = |i: usize, n: &str| a.memory(i, n);
+    Some(match fname {
+        "the_name_the_answer_says" => r(ag::the_name_the_answer_says(a.s(0, "answer"), a.s(1, "detail"), a.s(2, "card"))),
+        "as_a_phrase" => r(ag::as_a_phrase(a.s(0, "text"))),
+        "_a_phrase_of" => r(ag::_a_phrase_of(a.s(0, "text"))),
+        "_says_i" => r(ag::_says_i(a.s(0, "text"))),
+        "_for_the_person" => r(ag::_for_the_person(a.s(0, "text"))),
+        "the_same_thing_underneath" => a.n(2, "times").and_then(|t| r(ag::the_same_thing_underneath(a.s(0, "text"), a.s(1, "reply"), t, &mem(3, "memory")))),
+        "unframed" => r(ag::unframed(a.s(0, "reply"))),
+        "_flat" => r(ag::_flat(a.s(0, "text"))),
+        "the_cause_said_again" => r(ag::the_cause_said_again(a.s(0, "reply"), &mem(1, "memory"))),
+        "_a_card_behind" => r(ag::_a_card_behind(&mem(0, "memory"))),
+        "_led_an_earlier_answer" => r(ag::_led_an_earlier_answer(a.s(0, "sentence"), &mem(1, "memory"))),
+        "_the_answer_in_hand" => r(ag::_the_answer_in_hand(a.s(0, "reply"), &mem(1, "memory"))),
+        "_short" => {
+            let m = a.get(1, "memory").filter(|j| j.is_object()).map(|_| mem(1, "memory"));
+            r(ag::_short(a.s(0, "reply"), m.as_ref()))
+        }
+        "_the_first_sentence" => r(ag::_the_first_sentence(a.s(0, "reply"), &mem(1, "memory"))),
+        "_carries_a_lead_in" => r(ag::_carries_a_lead_in(a.s(0, "mine"))),
+        "carries_a_lead_in" => r(ag::carries_a_lead_in(a.s(0, "reply"))),
+        "_times_on_the_screen" => r(ag::_times_on_the_screen(a.s(0, "mine"), &mem(1, "memory"))),
+        "_said_earlier" => r(ag::_said_earlier(a.s(0, "mine"), &mem(1, "memory"))),
+        "_said_earlier_text" => r(ag::_said_earlier_text(a.s(0, "mine"), &mem(1, "memory"))),
+        "_names_something_the_answer_says" => r(ag::_names_something_the_answer_says(a.s(0, "text"), a.s(1, "mine"))),
+        "_returned_thing" => r(ag::_returned_thing(&mem(0, "memory"), a.s(1, "text"))),
+        "_the_line_asks" => r(ag::_the_line_asks(&mem(0, "memory"), a.s(1, "text"))),
+        "_adds_nothing_the_answer_did_not_say" => {
+            r(ag::_adds_nothing_the_answer_did_not_say(a.s(0, "thing"), a.s(1, "text"), a.s(2, "said"), &mem(3, "memory")))
+        }
+        "_as_a_name" => r(ag::_as_a_name(a.s(0, "thing"))),
+        "_without_the_thing_in_front" => r(ag::_without_the_thing_in_front(a.s(0, "short"), a.s(1, "thing"))),
+        "_said_recently" => r(ag::_said_recently(a.s(0, "mine"), &mem(1, "memory"), a.get(2, "look").and_then(J::as_i64).unwrap_or(3))),
+        "_says_it_came_back" => r(ag::_says_it_came_back(a.s(0, "text"))),
+        "_a_figure_asked_that_the_answer_does_not_hold" => r(ag::_a_figure_asked_that_the_answer_does_not_hold(a.s(0, "text"), a.s(1, "reply"))),
+        "_asks_for_a_detail" => r(ag::_asks_for_a_detail(a.s(0, "text"))),
+        "_a_report" => r(ag::_a_report(a.s(0, "text"))),
+        "_has_a_script" => r(ag::_has_a_script(a.s(0, "reply"))),
+        "_the_line_that_got_it" => r(ag::_the_line_that_got_it(a.s(0, "mine"), &mem(1, "memory"), a.get(2, "look").and_then(J::as_i64).unwrap_or(3))),
+        "_said_and_more" => r(ag::_said_and_more(a.s(0, "mine"), &mem(1, "memory"))),
+        "already_had" => r(ag::already_had(a.s(0, "reply"), &mem(1, "memory"))),
+        "_as_said" => r(ag::_as_said(a.s(0, "text"))),
+        "_content_words_in_order" => r(ag::_content_words_in_order(a.s(0, "text"))),
+        "_the_run_they_said_both_times" => {
+            let earlier: std::collections::HashSet<String> = a.strs(1, "earlier").into_iter().collect();
+            r(ag::_the_run_they_said_both_times(a.s(0, "text"), &earlier))
+        }
+        "_the_same_question_asked_again" => r(ag::_the_same_question_asked_again(a.s(0, "mine"), a.s(1, "text"), &mem(2, "memory"))),
+        "_the_subject_on_the_screen" => r(ag::_the_subject_on_the_screen(&mem(0, "memory"))),
+        "_as_your" => r(ag::_as_your(a.s(0, "subject"))),
+        "instead" => r(ag::instead(a.s(0, "reply"), a.s(1, "text"), &mem(2, "memory"))),
+        "a_thing_of_the_answer" => r(ag::a_thing_of_the_answer(a.s(0, "reply"), a.s(1, "text"), &mem(2, "memory"))),
+        "_another_stand_down" => r(ag::_another_stand_down(a.s(0, "reply"), &mem(1, "memory"))),
+        "_framed_as_a_repeat" => a.n(3, "times").and_then(|t| r(ag::_framed_as_a_repeat(a.s(0, "reply"), a.s(1, "mine"), &mem(2, "memory"), t, a.s(4, "text")))),
+        _ => return None,
+    })
+}
+
+fn call_corrected(fname: &str, a: &Args) -> Option<Result<J, Skip>> {
+    Some(match fname {
+        "_a_name_for_a_person" => r(co::_a_name_for_a_person(&a.v(0, "value"))),
+        "_a_new_name_was_said" => r(co::_a_new_name_was_said(&a.v(0, "target"), a.s(1, "text"))),
+        "_a_word_of_a_name" => r(co::_a_word_of_a_name(a.s(0, "word"))),
+        "_denies_and_names" => r(co::_denies_and_names(a.s(0, "text"))),
+        "_the_unit" => r(co::_the_unit(a.s(0, "text"))),
+        "_measured_the_same" => r(co::_measured_the_same(&a.v(0, "value"), a.s(1, "before"))),
+        "_without_the_naming_verb" => r(co::_without_the_naming_verb(&a.v(0, "value"))),
+        "_what_took_its_place" => r(co::_what_took_its_place(a.s(0, "before"), a.s(1, "after"), a.s(2, "value"))),
+        "_a_day_written_the_way_the_store_writes_it" => r(co::_a_day_written_the_way_the_store_writes_it(a.s(0, "fact"))),
+        "_an_amount_on_the_measure" => r(co::_an_amount_on_the_measure(a.s(0, "plan"), &a.v(1, "target"))),
+        "_number_in" => r(co::_number_in(&a.v(0, "value"))),
+        "_a_spelling_of" => r(co::_a_spelling_of(a.s(0, "new"), a.s(1, "old"))),
+        "_letters_apart" => r(co::_letters_apart(a.s(0, "one"), a.s(1, "other"))),
+        "_the_topic_with_the_new_clock" => r(co::_the_topic_with_the_new_clock(a.s(0, "text"), a.s(1, "plan_now"))),
+        "_a_bare_hour" => r(co::_a_bare_hour(&a.v(0, "value"))),
+        "_names_a_half_of_the_day" => r(co::_names_a_half_of_the_day(a.s(0, "clock"))),
+        "_clock_key" => match a.get(0, "clock") {
+            Some(J::String(c)) => r(co::_clock_key(c)),
+            _ => Err(Skip::Shape),
+        },
+        "_count_said" => r(co::_count_said(a.s(0, "text"))),
+        "_a_count" => a.n(0, "count").and_then(|c| r(co::_a_count(c, &a.v(1, "animal")))),
+        "_date_said" => r(co::_date_said(a.s(0, "low"))),
+        "_a_day_in_the_kind" => r(co::_a_day_in_the_kind(a.s(0, "old_day"), a.s(1, "day"))),
+        "_date_word_case" => r(co::_date_word_case(&a.v(0, "value"))),
+        "_date_in_plan" => r(co::_date_in_plan(a.s(0, "plan"))),
+        "_names_a_date" => r(co::_names_a_date(&a.v(0, "value"))),
+        "_date_word" => r(co::_date_word(a.s(0, "phrase"))),
+        "_kind_of_value" => r(co::_kind_of_value(&a.v(0, "target"), &a.v(1, "told"))),
+        "_swap_in" => r(co::_swap_in(&a.v(0, "told"), &a.v(1, "target"), &a.v(2, "wrong"))),
+        "_carries" => r(co::_carries(&a.v(0, "value"), a.s(1, "word"))),
+        "_the_line_is_about_that_birthday" => r(co::_the_line_is_about_that_birthday(a.s(0, "text"), &a.v(1, "held"), &a.v(2, "target"))),
+        "_keep_unit" => r(co::_keep_unit(&a.v(0, "value"), &a.v(1, "was"))),
+        "_birthday_words" => r(co::_birthday_words(&a.v(0, "date"))),
+        "_many" => a.n(0, "count").and_then(|c| r(co::_many(c, &a.v(1, "animal")))),
+        "_asks" => r(co::_asks(a.s(0, "line"))),
+        _ => return None,
+    })
+}
+
+fn call_rename(fname: &str, a: &Args) -> Option<Result<J, Skip>> {
+    Some(match fname {
+        "moves" => r(rn::moves(a.s(0, "low"))),
+        "the_name_it_gave" => r(rn::the_name_it_gave(a.s(0, "low"))),
+        "the_name_a_line_moved_on" => r(rn::the_name_a_line_moved_on(a.s(0, "low"), &a.v(1, "pets"), &a.v(2, "animal_named"))),
+        _ => return None,
+    })
+}
+
 
 fn main() {
     rsbot::runtime::quiet_panics();
