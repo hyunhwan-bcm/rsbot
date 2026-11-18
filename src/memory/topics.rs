@@ -279,7 +279,7 @@ fn _said(phrase: &str, found: &[String]) -> bool {
 }
 
 /// `_entry(text)`: the knowledge entry a bare text reaches.
-fn _entry(text_: &str) -> Option<&'static Entry> {
+pub fn _entry(text_: &str) -> Option<&'static Entry> {
     let reading = Understood { clean: text_.to_string(), words: words(text_), ..Default::default() };
     lookup::find(&reading, None, None, false)
 }
@@ -2892,7 +2892,7 @@ pub fn _an_elided_ask_situated(line: &str, topic: &str, understood: Option<&Unde
 
 /// Python's `str(entry.reply)`: the text, or the repr of a tuple / list of lines, or a
 /// function's repr.
-fn _reply_as_str(item: &Entry) -> String {
+pub(crate) fn _reply_as_str(item: &Entry) -> String {
     use crate::knowledge::entry::Reply;
     let raw = item.raw.attr("reply");
     match &item.reply {
