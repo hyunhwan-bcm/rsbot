@@ -54,6 +54,8 @@ fn guard_tables() -> Vec<&'static [(&'static str, GuardFn)]> {
         // e.g. crate::knowledge::cooking::GUARDS,
         // D2
         crate::knowledge::differences::GUARDS,
+        crate::knowledge::money::GUARDS,
+        crate::knowledge::travel::GUARDS,
         crate::knowledge::entertainment::GUARDS,
         crate::knowledge::work::GUARDS,
         crate::knowledge::shopping::GUARDS,
@@ -79,6 +81,8 @@ fn reply_tables() -> Vec<&'static [(&'static str, ReplyFn)]> {
         // e.g. crate::knowledge::cooking::REPLIES,
         // D2
         crate::knowledge::differences::REPLIES,
+        crate::knowledge::money::REPLIES,
+        crate::knowledge::travel::REPLIES,
         crate::knowledge::entertainment::REPLIES,
         crate::knowledge::work::REPLIES,
         crate::knowledge::shopping::REPLIES,

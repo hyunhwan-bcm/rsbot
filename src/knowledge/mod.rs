@@ -25,3 +25,7 @@ pub mod shopping;
 pub mod work;
 pub mod d2dup_entertainment;
 pub mod entertainment;
+pub mod d2dup_travel;
+pub mod travel;
+pub mod d2dup_money;
+pub mod money;
