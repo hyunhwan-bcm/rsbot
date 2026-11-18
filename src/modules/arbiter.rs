@@ -4384,11 +4384,10 @@ mod lanes {
     }
 
     /// `leaving.pool(typed) is leaving.REASON_POOL`.
-    /// CONTRACT: `compose::leaving::pool` returns `()` (and takes `&[String]`/`&Memory` where
-    /// Python passes None), so the pool it picks cannot be compared: read as not the reason pool.
+    /// (The pools are compared by their lines: no two of them hold the same ones.)
     pub fn leaving_pool_is_the_reason_pool(typed: &str) -> bool {
-        let pool = crate::compose::leaving::pool(typed, &[], true, &Memory::new(), true).read();
-        !pool.is_none() && pool.strs() == data::strs("bot.compose.leaving.REASON_POOL")
+        crate::compose::leaving::pool(typed, &[], true, &Memory::new(), true)
+            .is_some_and(|pool| pool == data::strs("bot.compose.leaving.REASON_POOL"))
     }
 }
 

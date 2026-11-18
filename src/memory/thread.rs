@@ -1503,8 +1503,7 @@ pub fn _the_thing_they_had(line: &str) -> String {
 /// `pick(options, memory)` from the compose package, given the memory as the plain dict its
 /// contract takes.
 fn _pick(options: &[String], memory: &Memory) -> String {
-    let plain = Value::from_plain(&serde_json::Value::Object(memory.to_plain()));
-    crate::compose::pick(options, &plain, "")
+    crate::compose::pick(options, memory, "")
 }
 
 /// `went(text, memory)`: the reply to "how did it go" after they told the chat about a thing they

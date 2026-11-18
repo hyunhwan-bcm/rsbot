@@ -397,6 +397,7 @@ static INJURY_WORDS: LazyLock<Vec<(String, Vec<&'static Re>)>> = LazyLock::new(|
 // The composer's pick, and the memory notes.
 
 /// The memory as a Python-like value, for the composer's `pick`.
+#[allow(dead_code)]
 fn memory_value(memory: &Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
 }
@@ -407,7 +408,7 @@ fn pick(options: &[String], memory: &Memory) -> String {
     if tests::FIRST_PICK.with(|first| first.get()) {
         return options[0].clone();
     }
-    crate::compose::pick(options, &memory_value(memory), "")
+    crate::compose::pick(options, memory, "")
 }
 
 /// `pick(options, memory, seed_text)`.
@@ -416,7 +417,7 @@ fn pick_seeded(options: &[String], memory: &Memory, seed: &str) -> String {
     if tests::FIRST_PICK.with(|first| first.get()) {
         return options[0].clone();
     }
-    crate::compose::pick(options, &memory_value(memory), seed)
+    crate::compose::pick(options, memory, seed)
 }
 
 /// `str(x or "")` of a memory value.
