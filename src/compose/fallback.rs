@@ -208,71 +208,6 @@ pub fn _after_advice(memory: &Memory, clean: &str, words: &[String]) {
     crate::unported!("bot.compose.fallback:_after_advice")
 }
 
-/// Python: bot/compose/fallback.py:16161 `_the_answer_above_already_says_what_to_do(turns, memory)` (never called on the trace corpus)
-pub fn _the_answer_above_already_says_what_to_do(turns: &[Turn], memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_the_answer_above_already_says_what_to_do")
-}
-
-/// Python: bot/compose/fallback.py:16176 `_a_thread_about_how_somebody_treats_them(turns)` (never called on the trace corpus)
-pub fn _a_thread_about_how_somebody_treats_them(turns: &[Turn]) -> bool {
-    crate::unported!("bot.compose.fallback:_a_thread_about_how_somebody_treats_them")
-}
-
-/// Python: bot/compose/fallback.py:16201 `_a_refusal_to_answer(clean, memory, words=None)`
-pub fn _a_refusal_to_answer(clean: &str, memory: &Memory, words: &[String]) {
-    crate::unported!("bot.compose.fallback:_a_refusal_to_answer")
-}
-
-/// Python: bot/compose/fallback.py:16264 `reads_as_a_refusal(text, memory)` (never called on the trace corpus)
-pub fn reads_as_a_refusal(text: &str, memory: &Memory) -> Option<bool> {
-    crate::unported!("bot.compose.fallback:reads_as_a_refusal")
-}
-
-/// Python: bot/compose/fallback.py:16273 `_the_next_move_after_the_advice(memory, clean, words)`
-pub fn _the_next_move_after_the_advice(memory: &Memory, clean: &str, words: &[String]) {
-    crate::unported!("bot.compose.fallback:_the_next_move_after_the_advice")
-}
-
-/// Python: bot/compose/fallback.py:16298 `_a_care_thread(memory)` (never called on the trace corpus)
-pub fn _a_care_thread(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:_a_care_thread")
-}
-
-/// Python: bot/compose/fallback.py:16306 `in_a_safety_thread(memory)`
-pub fn in_a_safety_thread(memory: &Memory) -> bool {
-    crate::unported!("bot.compose.fallback:in_a_safety_thread")
-}
-
-/// Python: bot/compose/fallback.py:16316 `_thread_answer(memory)`
-pub fn _thread_answer(memory: &Memory) -> String {
-    crate::unported!("bot.compose.fallback:_thread_answer")
-}
-
-/// Python: bot/compose/fallback.py:16362 `asks_about_the_last_answer(line, last, own=())` (never called on the trace corpus)
-pub fn asks_about_the_last_answer(line: &str, last: &str, own: &str) -> bool {
-    crate::unported!("bot.compose.fallback:asks_about_the_last_answer")
-}
-
-/// Python: bot/compose/fallback.py:16420 `asks_about_a_care_answer(line, last, memory, own=())` (never called on the trace corpus)
-pub fn asks_about_a_care_answer(line: &str, last: &str, memory: &Memory, own: &str) -> bool {
-    crate::unported!("bot.compose.fallback:asks_about_a_care_answer")
-}
-
-/// Python: bot/compose/fallback.py:16442 `how_much_of_the_answer_kept(reply, memory)` (never called on the trace corpus)
-pub fn how_much_of_the_answer_kept(reply: &str, memory: &Memory) -> i64 {
-    crate::unported!("bot.compose.fallback:how_much_of_the_answer_kept")
-}
-
-/// Python: bot/compose/fallback.py:16471 `_words_kept(reply, answer)` (never called on the trace corpus)
-pub fn _words_kept(reply: &str, answer: &str) -> i64 {
-    crate::unported!("bot.compose.fallback:_words_kept")
-}
-
-/// Python: bot/compose/fallback.py:16492 `careful(text, memory)`
-pub fn careful(text: &str, memory: &Memory) -> Option<String> {
-    crate::unported!("bot.compose.fallback:careful")
-}
-
 /// Python: bot/compose/fallback.py:16505 `_in_a_loss_thread(memory)`
 pub fn _in_a_loss_thread(memory: &Memory) -> bool {
     crate::unported!("bot.compose.fallback:_in_a_loss_thread")
@@ -8717,4 +8652,235 @@ pub fn reading_of(text_: &str, memory: &Memory) -> (String, Vec<String>) {
         Some(Some(kind)) => (kind, Vec::new()),
         _ => (String::new(), Vec::new()),
     }
+}
+
+// ---- fallback.py:16197-16514: a refusal, the next move, the care thread, the answer kept ----
+
+regexes!(REFUSED, OWN_NO, ASKS_WHY, HYPOTHETICAL, REFUSED_PARTY, REFUSED_NOT, REFUSED_FAMILY, REFUSED_NO_OBJECT, AN_ANSWER_ABOUT_A_NO);
+pools!(REFUSED_REPLIES);
+word_sets!(TREATMENT_HARM);
+
+/// Python: bot/compose/fallback.py:16201 `_a_refusal_to_answer(clean, memory, words=None)`
+/// The pool for a line that reports somebody else's no, or None. (The skeleton's `()` return
+/// could not carry the pool.)
+pub fn _a_refusal_to_answer(clean: &str, memory: &Memory, words: &[String]) -> Option<Vec<String>> {
+    if clean.contains('?') {
+        return None;
+    }
+    let matched = REFUSED.search(clean)?;
+    if OWN_NO.is_match(clean) || ASKS_WHY.is_match(clean) {
+        return None;
+    }
+    if HYPOTHETICAL.is_match(&clean[..matched.start()]) {
+        return None;
+    }
+    let split;
+    let words: &[String] = if words.is_empty() {
+        split = text::split(clean);
+        &split
+    } else {
+        words
+    };
+    if words.len() > 15 {
+        return None;
+    }
+    let turns = &memory.turns;
+    if !REFUSED_PARTY.is_match(clean) && !_an_answer_above(turns) {
+        return None;
+    }
+    if REFUSED_NOT.is_match(clean) || REFUSED_FAMILY.is_match(clean) {
+        return None;
+    }
+    if REFUSED_NO_OBJECT.is_match(clean) {
+        return None;
+    }
+    if _the_answer_above_already_says_what_to_do(turns, memory) {
+        return None;
+    }
+    if _a_thread_about_how_somebody_treats_them(turns) {
+        return None;
+    }
+    let stands_down = py_try(|| {
+        crate::compose::trouble::reads_as_trouble(clean, None, "").truthy() || _in_a_loss_thread(memory) || _grief_thread(memory) || in_a_safety_thread(memory)
+    });
+    match stands_down {
+        Some(false) => {}
+        _ => return None,
+    }
+    if let Some(last) = turns.last() {
+        if in_a_pool(&last.bot, &[&REFUSED_REPLIES[..]]) {
+            return None;
+        }
+    }
+    Some(REFUSED_REPLIES.clone())
+}
+
+/// Python: bot/compose/fallback.py:16264 `reads_as_a_refusal(text, memory)` (never called on the trace corpus)
+/// Read by the arbiter: is this line somebody else's no, which the composer answers?
+pub fn reads_as_a_refusal(text_: &str, memory: &Memory) -> Option<bool> {
+    let clean = text::squash(&lower(text_));
+    let words = text::split(&clean);
+    Some(py_try(|| _a_refusal_to_answer(&clean, memory, &words).is_some_and(|p| !p.is_empty())).unwrap_or(false))
+}
+
+/// Python: bot/compose/fallback.py:16161 `_the_answer_above_already_says_what_to_do(turns, memory)` (never called on the trace corpus)
+/// Did the card answer above already say what to do when the answer comes back no?
+pub fn _the_answer_above_already_says_what_to_do(turns: &[Turn], memory: &Memory) -> bool {
+    let Some(last) = turns.last() else { return false };
+    let entry = memory.get("entry_answer").is_some_and(Value::truthy) || memory.get("entry_answers").is_some_and(Value::truthy);
+    if !entry {
+        return false;
+    }
+    AN_ANSWER_ABOUT_A_NO.is_match(&last.bot)
+}
+
+/// Python: bot/compose/fallback.py:16176 `_a_thread_about_how_somebody_treats_them(turns)` (never called on the trace corpus)
+/// Whether the chat is on somebody's conduct rather than on a request for something.
+pub fn _a_thread_about_how_somebody_treats_them(turns: &[Turn]) -> bool {
+    last_n(turns, 4).iter().any(|t| az_words(&lower(&t.user)).iter().any(|w| TREATMENT_HARM.contains(w)))
+}
+
+/// Python: bot/compose/fallback.py:16273 `_the_next_move_after_the_advice(memory, clean, words)`
+/// The step the answer itself named, for a report that the advice did not work, or None. (The
+/// skeleton's `()` return could not carry the step.)
+pub fn _the_next_move_after_the_advice(memory: &Memory, clean: &str, words: &[String]) -> Option<String> {
+    let steps = _the_words_in(&the_advice(memory));
+    let pool = _a_report_on_the_advice(clean, words, _advice_thread_is_about_the_body(memory), !crate::memory::reject::offers_a_choice(memory), &steps);
+    // `pool not in (TRIED_NO_CHANGE, TRIED_NO_CHANGE_ELSEWHERE)`: the first is the module's
+    // compiled pattern, which no pool equals.
+    if pool.as_ref() != Some(&*TRIED_NO_CHANGE_ELSEWHERE) {
+        return None;
+    }
+    if _in_a_loss_thread(memory) || _grief_thread(memory) {
+        return None;
+    }
+    py_try(|| crate::memory::repeat::the_next_move(memory, clean)).filter(|s| !s.is_empty())
+}
+
+/// Python: bot/compose/fallback.py:16298 `_a_care_thread(memory)` (never called on the trace corpus)
+/// True when the safety answer this thread continues was first aid, not a crisis line.
+pub fn _a_care_thread(memory: &Memory) -> bool {
+    let answer = _thread_answer(memory);
+    if answer.is_empty() {
+        return false;
+    }
+    !CRISIS_WORDS.iter().any(|w| answer.contains(w.as_str()))
+}
+
+/// Python: bot/compose/fallback.py:16306 `in_a_safety_thread(memory)`
+/// True when the bot's last word in this stretch was a safety answer.
+pub fn in_a_safety_thread(memory: &Memory) -> bool {
+    !_thread_answer(memory).is_empty()
+}
+
+/// Python: bot/compose/fallback.py:16316 `_thread_answer(memory)`
+/// The bot's safety answer this thread continues, lower case, or "" when there is none.
+pub fn _thread_answer(memory: &Memory) -> String {
+    let mut window = last_n(&memory.turns, *THREAD_TURNS);
+    let mut answer = String::new();
+    for index in (0..window.len()).rev() {
+        if window[index].module.as_deref() == Some("safety") {
+            answer = lower(&window[index].bot);
+            window = &window[index + 1..];
+            break;
+        }
+    }
+    if answer.is_empty() {
+        return String::new();
+    }
+    for turn in window {
+        if turn.module.as_deref() == Some(FALLBACK_MODULE.as_str()) {
+            continue;
+        }
+        if _words_kept(&turn.bot, &answer) >= *THE_THREAD_KEPT {
+            continue;
+        }
+        return String::new();
+    }
+    answer
+}
+
+regexes!(OWN_THING, AFTER_THING, ASK_WORD);
+word_sets!(PLAIN_WORDS);
+
+/// Python: bot/compose/fallback.py:16362 `asks_about_the_last_answer(line, last, own=())` (never called on the trace corpus)
+/// True when the line asks about something the bot's last answer named. `own` is the topics the
+/// line's own words point at. (The skeleton's `&str` could not carry the set Python passes.)
+pub fn asks_about_the_last_answer(line: &str, last: &str, own: &[String]) -> bool {
+    if line.is_empty() || last.is_empty() {
+        return false;
+    }
+    let t = lower(line);
+    if !t.contains('?') && !ASK_WORD.is_match(&t) {
+        return false;
+    }
+    let distinct: HashSet<&String> = own.iter().collect();
+    if distinct.len() > 1 {
+        return false;
+    }
+    let named: HashSet<String> = OWN_THING.findall_str(&t).into_iter().collect();
+    for word in _words(&t) {
+        if word.chars().count() < 5 || PLAIN_WORDS.contains(&word) {
+            continue;
+        }
+        if !last.contains(word.as_str()) {
+            continue;
+        }
+        if !named.is_empty() && !named.contains(&word) {
+            return false;
+        }
+        for said in rx(&format!(r"\b{}\b", crate::py::re::escape(&word))).finditer(&t) {
+            let rest = &t[said.end()..];
+            let clause = match CLAUSE_END.search(rest) {
+                Some(m) => &rest[..m.start()],
+                None => rest,
+            };
+            let Some(brought_in) = AFTER_THING.search(clause) else { continue };
+            let thing = brought_in.str(1);
+            if thing.chars().count() >= 4 && !PLAIN_WORDS.contains(thing) && !last.contains(thing) {
+                return false;
+            }
+        }
+        return true;
+    }
+    false
+}
+
+/// Python: bot/compose/fallback.py:16420 `asks_about_a_care_answer(line, last, memory, own=())` (never called on the trace corpus)
+/// True when the line asks about something the care thread has named, else False.
+pub fn asks_about_a_care_answer(line: &str, last: &str, memory: &Memory, own: &[String]) -> bool {
+    if asks_about_the_last_answer(line, last, own) {
+        return true;
+    }
+    let answer = _thread_answer(memory);
+    if answer.is_empty() || answer == lower(last) {
+        return false;
+    }
+    asks_about_the_last_answer(line, &answer, own)
+}
+
+/// Python: bot/compose/fallback.py:16442 `how_much_of_the_answer_kept(reply, memory)` (never called on the trace corpus)
+/// How many of the care thread's own answer words a reply says back, or 0.
+pub fn how_much_of_the_answer_kept(reply: &str, memory: &Memory) -> i64 {
+    let answer = _thread_answer(memory);
+    if answer.is_empty() {
+        return 0;
+    }
+    _words_kept(reply, &answer)
+}
+
+/// Python: bot/compose/fallback.py:16471 `_words_kept(reply, answer)` (never called on the trace corpus)
+/// How many of an answer's own words a reply says back, or 0.
+pub fn _words_kept(reply: &str, answer: &str) -> i64 {
+    let said: HashSet<String> = _words(&lower(answer)).into_iter().collect();
+    let kept: HashSet<String> = _words(&lower(reply)).into_iter().filter(|w| w.chars().count() >= 5 && said.contains(w)).collect();
+    kept.len() as i64
+}
+
+/// Python: bot/compose/fallback.py:16492 `careful(text, memory)`
+/// The careful continuation a line inside a safety thread gets, or None. (The skeleton's `()`
+/// return could not carry the reply.)
+pub fn careful(text_: &str, memory: &Memory) -> Option<String> {
+    let clean = text::squash(&lower(text_));
+    _after_safety(memory, &clean, memory.understood.as_ref())
 }
