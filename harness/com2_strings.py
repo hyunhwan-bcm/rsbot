@@ -123,6 +123,23 @@ def main():
         call("bot.compose.verdict", verdict, "_first_positive", [said, list(verdict.REASSURE)])
         call("bot.compose.verdict", verdict, "_first", [said, list(verdict.CARE)])
         call("bot.compose.verdict", verdict, "_round_robin", [list(verdict.YES_LINES), said])
+        # Readers that take a position or a step the answer gave, fed the ones PyBot reads off it.
+        care_at = verdict._first(said.lower(), verdict.CARE)
+        call("bot.compose.verdict", verdict, "_condition_after_care", [said, care_at, None])
+        care = verdict._referral(said)
+        if care is not None:
+            call("bot.compose.verdict", verdict, "_a_plain_go", [care, said])
+            call("bot.compose.verdict", verdict, "_told_to_act", [said, care])
+            call("bot.compose.verdict", verdict, "_behind_a_description", [said.lower(), care])
+        step = verdict._step(said)
+        if step:
+            call("bot.compose.verdict", verdict, "_step_sentence", [said, step])
+            whole = verdict._step_sentence(said, step)
+            if whole:
+                call("bot.compose.verdict", verdict, "_up_to_a_break", [whole, step, verdict.HAND_OVER_WORDS])
+            call("bot.compose.verdict", verdict, "_the_other_thing_in_the_answer", [said, step, {}])
+        call("bot.compose.verdict", verdict, "_the_other_thing_in_the_answer", [said, None, {}])
+        call("bot.compose.verdict", verdict, "_described_clause", [said])
         for name in ONSCREEN_READERS:
             call("bot.compose.onscreen", onscreen, name, [said])
     for line in lines:
