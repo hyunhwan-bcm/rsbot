@@ -8,7 +8,7 @@
 //! (and memory) compared. A call that reaches a function another workstream has not ported yet
 //! is counted apart ("unported"), as is a Rust panic that stands for a Python exception.
 
-use rsbot::memory::{callback, narrow, repeat};
+use rsbot::memory::{ack, callback, narrow, repeat};
 use rsbot::state::Memory;
 use serde_json::{Map, Value as J};
 use std::collections::BTreeMap;
@@ -73,6 +73,7 @@ impl<'a> A<'a> {
     }
     fn value(&self, i: usize) -> rsbot::data::Value {
         match self.get(i) {
+            Some(J::Object(o)) if o.contains_key("__dict__") => rsbot::data::Value::from_plain(&o["__dict__"]),
             Some(v) => rsbot::data::Value::from_plain(v),
             None => rsbot::data::Value::None,
         }
@@ -414,8 +415,154 @@ fn call(fid: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out> {
 
 /// The ack adapters (kept apart, so the list above stays readable).
 fn ack_call(name: &str, a: &A, memory_after: &mut Option<Memory>) -> Option<Out> {
-    let _ = (name, a, memory_after);
-    None
+    macro_rules! with_mem {
+        ($i:expr, $m:ident, $e:expr) => {{
+            let mut $m = a.mem($i);
+            let r = $e;
+            *memory_after = Some($m);
+            r
+        }};
+    }
+    let out = match name {
+        "_a_relation" => text(ack::_a_relation(&a.s(0))),
+        "_the_pronoun" => text(ack::_the_pronoun(&a.s(0))),
+        "a_person_named_alone" => text(with_mem!(1, m, ack::a_person_named_alone(&a.s(0), &mut m))),
+        "a_person_pointed_at" => text(with_mem!(1, m, ack::a_person_pointed_at(&a.s(0), &mut m))),
+        "a_second_person" => text(ack::a_second_person(&a.s(0), &a.mem(1))),
+        "_the_last_reply_gave_a_plan" => Out::Bool(ack::_the_last_reply_gave_a_plan(&a.mem(0))),
+        "_a_limit_on_the_plan" => opt(ack::a_limit_on_the_plan_text(&a.s(0), &a.mem(1))),
+        "_a_day_coming" => match ack::_a_day_coming(&a.s(0)) {
+            Some(v) => strs_out(v),
+            None => Out::Exact(J::Null),
+        },
+        "reads_as_a_receipt" => Out::Bool(ack::reads_as_a_receipt(&a.s(0))),
+        "_one_frame" => Out::Bool(ack::_one_frame(&a.s(0))),
+        "reads_as_a_trip" => opt(ack::reads_as_a_trip(&a.s(0))),
+        "_the_plan_in_hand" => opt(ack::_the_plan_in_hand(&a.mem(0), &a.s(1))),
+        "_a_like_of_one_thing" => Out::Bool(ack::_a_like_of_one_thing(&a.s(0), &a.mem(1))),
+        "_only_a_liking" => Out::Bool(ack::_only_a_liking(&a.value(0))),
+        "a_liked_thing" => text(ack::a_liked_thing(&a.value(0))),
+        "a_limit_reply" => opt(ack::a_limit_reply_text(&a.s(0), &a.mem(1))),
+        "_a_plan_on_the_table" => Out::Bool(ack::_a_plan_on_the_table(&a.mem(0), &a.s(1))),
+        "a_limit_for_the_plan" => opt(ack::a_limit_for_the_plan_text(&a.s(0), &a.mem(1))),
+        "reads_as_cruelty" => Out::Bool(ack::reads_as_cruelty(&a.s(0))),
+        "reads_as_an_ask" => Out::Bool(ack::reads_as_an_ask(&a.s(0))),
+        "_shape_of" => text(ack::_shape_of(&a.s(0))),
+        "_clock_shape" => text(ack::_clock_shape(&a.s(0))),
+        "_tells_them_what_to_do" => Out::Bool(ack::_tells_them_what_to_do(&a.s(0))),
+        "_a_bare_state" => Out::Bool(ack::_a_bare_state(&a.s(0))),
+        "has_news" => Out::Bool(ack::has_news(&a.s(0))),
+        "_repaired" => text(ack::_repaired(&a.s(0), &a.mem(1))),
+        "_the_bare_value" => text(ack::_the_bare_value(&a.s(0))),
+        "value_put_right" => text(ack::value_put_right(&a.s(0), &a.mem(1))),
+        "_the_line_before" => text(ack::_the_line_before(&a.mem(0))),
+        "_the_unit_before" => text(ack::_the_unit_before(&a.mem(0))),
+        "pet_given_away" => opt(ack::pet_given_away_text(&a.s(0), &a.mem(1))),
+        "_offers_a_chat" => opt(ack::offers_a_chat_text(&a.s(0), &a.mem(1))),
+        "_a_date_on_the_thing_in_hand" => opt(ack::a_date_on_the_thing_in_hand_text(&a.s(0), &a.mem(1))),
+        "_after_the_hello" => text(ack::_after_the_hello(&a.s(0))),
+        "reply" => opt(with_mem!(1, m, ack::reply(&a.s(0), &mut m))),
+        "_a_remark_on_what_was_said" => opt(ack::_a_remark_on_what_was_said(&a.s(0), &a.mem(1))),
+        "_a_price_still_to_come" => Out::Bool(ack::_a_price_still_to_come(&a.s(0), &a.s(1))),
+        "_a_result_is_on_the_table" => Out::Bool(ack::_a_result_is_on_the_table(&a.s(0))),
+        "_ending_of" => text(ack::_ending_of(&a.s(0))),
+        "_after_a_feeling" => Out::Bool(ack::_after_a_feeling(&a.s(0), &a.mem(1))),
+        "_a_heavy_reply_just_before" => Out::Bool(ack::_a_heavy_reply_just_before(&a.mem(0), a.n(1))),
+        "_bad_news_just_before" => Out::Bool(ack::_bad_news_just_before(&a.s(0), &a.mem(1))),
+        "carries_the_story_on" => Out::Bool(ack::carries_the_story_on(&a.s(0), &a.mem(1))),
+        "the_old_one_aged" => opt(ack::the_old_one_aged_text(&a.s(0), &a.mem(1))),
+        "_the_length" => opt(ack::the_length_text(&a.s(0), &a.mem(1))),
+        "_the_hours" => opt(with_mem!(2, m, ack::the_hours_text(&a.s(0), &a.s(1), &mut m))),
+        "_a_deadline" => opt(ack::a_deadline_text(&a.s(0), &a.s(1), &a.mem(2))),
+        "_an_hour_on_the_day" => opt(ack::_an_hour_on_the_day(&a.s(0))),
+        "_the_figure_is_an_hour" => Out::Bool(ack::_the_figure_is_an_hour(&a.s(0))),
+        "_a_clock_time" => opt(ack::a_clock_time_text(&a.s(0), &a.s(1), &a.mem(2))),
+        "_nothing_added_but_the_pet" => Out::Bool(ack::_nothing_added_but_the_pet(&a.s(0), &a.value(1))),
+        "_a_pet_that_is_all_right" => Out::Bool(ack::_a_pet_that_is_all_right(&a.s(0), &a.value(1))),
+        "_a_wanted_animal" => Out::Bool(ack::_a_wanted_animal(&a.s(0))),
+        "_an_animal_wanted" => text(ack::_an_animal_wanted(&a.s(0))),
+        "_an_animal_they_had_once" => Out::Bool(ack::_an_animal_they_had_once(&a.s(0))),
+        "_the_animal_coming" => text(ack::_the_animal_coming(&a.value(0))),
+        "_an_animal_turned_down" => Out::Bool(ack::_an_animal_turned_down(&a.value(0), &a.mem(1))),
+        "_on_record" => Out::Bool(ack::_on_record(&a.s(0), &a.mem(1))),
+        "_an_animal_only_planned" => text(ack::_an_animal_only_planned(&a.value(0), &a.s(1), &a.mem(2))),
+        "_only_a_wish" => Out::Bool(ack::_only_a_wish(&a.value(0))),
+        "_an_animal_taken_back" => Out::Bool(ack::_an_animal_taken_back(&a.value(0))),
+        "_plain" => opt(ack::_plain(&a.s(0), &a.mem(1))),
+        "_about_them" => Out::Bool(ack::_about_them(&a.s(0))),
+        "_who_is_getting_better" => text(ack::_who_is_getting_better(&a.s(0))),
+        "a_person_getting_better" => match ack::a_person_getting_better_pool(&a.s(0), &a.mem(1)) {
+            Some(v) => strs_out(v),
+            None => Out::Exact(J::Null),
+        },
+        "_the_words_of_the_last_two_turns" => strs_out(ack::_the_words_of_the_last_two_turns(&a.mem(0))),
+        "nobody_around" => match ack::nobody_around_pool(&a.s(0), &a.mem(1)) {
+            Some(v) => strs_out(v),
+            None => Out::Exact(J::Null),
+        },
+        "_said_to_the_bot" => Out::Bool(ack::_said_to_the_bot(&a.s(0))),
+        "_no_subject" => Out::Bool(ack::_no_subject(&a.s(0), &a.mem(1))),
+        "_asked_last" => Out::Bool(ack::_asked_last(&a.mem(0))),
+        "_a_diary_plan" => match ack::_a_diary_plan(&a.value(0), &a.s(1)) {
+            Some(v) => strs_out(v),
+            None => Out::Exact(J::Null),
+        },
+        "_plan_tails" => match ack::_plan_tails(&a.value(0), &a.s(1), &a.mem(2)) {
+            Some(v) => strs_out(v),
+            None => Out::Exact(J::Null),
+        },
+        "the_job_they_had" => opt(ack::the_job_they_had_text(&a.s(0), &a.mem(1))),
+        "a_job_to_do" => opt(ack::a_job_to_do(&a.s(0), &a.mem(1))),
+        "_a_job_to_do" => opt(ack::_a_job_to_do(&a.s(0), &a.mem(1))),
+        "_somebody_was_being_hurt" => Out::Bool(ack::_somebody_was_being_hurt(&a.mem(0))),
+        "_who_the_figure_is" => opt(with_mem!(1, m, ack::who_the_figure_is_text(&a.value(0), &mut m, &a.s(2)))),
+        "_a_condition_they_wonder_about" => text(ack::_a_condition_they_wonder_about(&a.s(0), &a.mem(1))),
+        "_a_thing_they_have" => opt(ack::a_thing_they_have_text(&a.s(0), &a.mem(1))),
+        "_a_spending_budget" => Out::Bool(ack::_a_spending_budget(&a.s(0), &a.mem(1))),
+        "_frames" => strs_out(ack::_frames(&a.value(0), a.b(1), &a.s(2), &a.mem(3))),
+        "_about_someone_else" => Out::Bool(ack::_about_someone_else(&a.value(0), &a.s(1))),
+        "_a_visit" => Out::Bool(ack::_a_visit(&a.s(0))),
+        "_the_milestone" => Out::Bool(ack::_the_milestone(&a.s(0))),
+        "_a_workplace" => Out::Bool(ack::_a_workplace(&a.value(0), a.b(1), &a.mem(2))),
+        "_about_the_family" => Out::Bool(ack::_about_the_family(&a.value(0))),
+        "_just_a_liking" => Out::Bool(ack::_just_a_liking(&a.value(0))),
+        "_heavy" => Out::Bool(ack::_heavy(&a.mem(0))),
+        "_statement" => Out::Bool(ack::_statement(&a.mem(0))),
+        "_learned" => Out::Exact(ack::_learned(&a.s(0), Some(&a.mem(1))).to_plain()),
+        "_adds_one_more_allergen" => strs_out(ack::_adds_one_more_allergen(&a.s(0), Some(&a.mem(1)))),
+        "_adds_a_detail" => Out::Bool(ack::_adds_a_detail(&a.s(0), Some(&a.mem(1)))),
+        "_words" => strs_out(ack::_words(&a.s(0))),
+        "_names_nothing" => Out::Bool(ack::_names_nothing(&a.s(0))),
+        "_repairs" => text(ack::_repairs(&a.s(0), &a.mem(1))),
+        "_says_something" => Out::Bool(ack::_says_something(&a.s(0))),
+        "_the_person_the_pointer_is_about" => text(ack::_the_person_the_pointer_is_about(&a.s(0), &a.mem(1))),
+        "_plural" => text(ack::_plural(&a.s(0))),
+        "_is_a_contraction" => Out::Bool(ack::_is_a_contraction(&a.s(0))),
+        "_a_loss_just_before" => Out::Bool(ack::_a_loss_just_before(&a.mem(0))),
+        "_another_of_what_we_said" => opt(ack::another_of_what_we_said_text(&a.s(0), &a.mem(1))),
+        "_only_the_correction_in_front" => Out::Bool(ack::_only_the_correction_in_front(&a.s(0), &a.s(1))),
+        "_echo" => text(ack::_echo(&a.s(0), Some(&a.mem(1)))),
+        "said_back" => Out::Exact(ack::said_back(&a.s(0), &a.mem(1)).to_plain()),
+        "_only_a_dislike" => Out::Bool(ack::_only_a_dislike(&a.s(0), &a.value(1))),
+        "only_a_dislike" => Out::Bool(ack::only_a_dislike(&a.s(0), &a.mem(1))),
+        "_tells_it" => Out::Bool(ack::_tells_it(&a.s(0), &a.value(1))),
+        "_a_diet" => Out::Bool(ack::_a_diet(&a.value(0))),
+        "_only_the_figure" => Out::Bool(ack::_only_the_figure(&a.s(0))),
+        "_the_rest_of_a_question" => Out::Bool(ack::_the_rest_of_a_question(&a.s(0), &a.s(1))),
+        "_after_a_reaction" => text(ack::_after_a_reaction(&a.s(0))),
+        "_strip_lead_in" => text(ack::_strip_lead_in(&a.s(0), a.b(1))),
+        "without_the_frame" => Out::Exact(ack::without_the_frame(&a.s(0)).to_plain()),
+        "_spoken" => text(ack::_spoken(&a.s(0))),
+        "_pick_off" => text(ack::_pick_off(&a.s(0))),
+        "_tail_off" => text(ack::_tail_off(&a.s(0))),
+        "_contrast_off" => text(ack::_contrast_off(&a.s(0))),
+        "_reason_off" => text(ack::_reason_off(&a.s(0), &a.s(1))),
+        "_a_value" => Out::Bool(ack::_a_value(&a.s(0))),
+        "_cut" => text(ack::_cut(&a.s(0))),
+        "_tidy" => text(ack::_tidy(&a.s(0))),
+        _ => return None,
+    };
+    Some(out)
 }
 
 fn truthy(v: &J) -> bool {
@@ -475,6 +622,7 @@ fn main() {
     // (ok, mismatch, unported, panic, no adapter)
     let mut stats: BTreeMap<String, [usize; 5]> = BTreeMap::new();
     let mut shown: BTreeMap<String, usize> = BTreeMap::new();
+    let mut missing: BTreeMap<String, usize> = BTreeMap::new();
     for file in &files {
         let f = std::fs::File::open(file).expect("calls file");
         let reader = std::io::BufReader::new(flate2::read::GzDecoder::new(f));
@@ -542,6 +690,7 @@ fn main() {
                     let msg = rsbot::runtime::take_last_panic().unwrap_or_default();
                     if msg.starts_with("UNPORTED") {
                         entry[2] += 1;
+                        *missing.entry(msg.clone()).or_default() += 1;
                     } else if raised.is_some() {
                         entry[0] += 1; // Python raised, and so did the port
                     } else {
@@ -566,4 +715,10 @@ fn main() {
         }
     }
     println!("{:<55} {:>6} {:>6} {:>8} {:>6} {:>6}", "TOTAL", total[0], total[1], total[2], total[3], total[4]);
+    let mut missing: Vec<(String, usize)> = missing.into_iter().collect();
+    missing.sort_by(|a, b| b.1.cmp(&a.1));
+    println!("\nunported functions reached (other workstreams'):");
+    for (name, n) in missing.iter().take(25) {
+        println!("  {n:6} {name}");
+    }
 }

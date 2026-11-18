@@ -9,7 +9,6 @@
 //! there is any word since. When the chat holds nobody, the module stands down.
 
 use crate::data::{self, Value};
-use crate::memory::holds as earlier;
 use crate::memory::narrow::{py_format, py_str_or_empty, re_cached};
 use crate::py::re::{self as pyre, Re};
 use crate::py::{random, text};
@@ -41,6 +40,24 @@ const NEWS_VERBS: [&str; 20] = [
     "is", "was", "had", "has", "have", "went", "got", "kept", "said", "wants", "wanted", "needs", "keeps", "lives",
     "does", "did", "came", "started", "turned", "seems",
 ];
+
+/// `bot.memory.holds` as this file reads it: the turns before this one (`holds.turns`), what
+/// the person said in them (`holds.lines`) and what the bot said (`holds.the_bot_lines`), each
+/// tidied to one line, and whether there is any (`holds.there_is_one`).
+mod earlier {
+    use crate::py::text;
+    use crate::state::Memory;
+
+    pub fn there_is_one(memory: &Memory) -> bool {
+        !memory.turns.is_empty()
+    }
+    pub fn lines(memory: &Memory) -> Vec<String> {
+        memory.turns.iter().map(|t| text::squash(&t.user)).filter(|l| !l.is_empty()).collect()
+    }
+    pub fn the_bot_lines(memory: &Memory) -> Vec<String> {
+        memory.turns.iter().map(|t| text::squash(&t.bot)).filter(|l| !l.is_empty()).collect()
+    }
+}
 
 /// (relation, name, age) for a person the chat holds.
 pub type Held = (String, String, Value);
@@ -255,6 +272,6 @@ pub fn claims(text_: &str, memory: &mut Memory) -> bool {
 /// One line from the pool, not one this chat has already had, compared as it would read.
 pub fn _choose(pool: &[String], memory: &Memory) -> String {
     let said = earlier::the_bot_lines(memory);
-    let fresh: Vec<String> = pool.iter().filter(|line| !said.contains_str(line)).cloned().collect();
+    let fresh: Vec<String> = pool.iter().filter(|line| !said.contains(line)).cloned().collect();
     if fresh.is_empty() { random::choice(pool) } else { random::choice(&fresh) }
 }
