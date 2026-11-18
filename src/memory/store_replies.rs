@@ -12871,119 +12871,481 @@ pub fn _first_sentence(text_: &str, limit: i64) -> String {
     text::rstrip_chars(&said, " .!?").to_string()
 }
 
-/// Python: bot/memory/store_replies.py:12295 `_sentences(answer)` (never called on the trace corpus)
+rx!(CALL_ASK, CARRY_ON, STOP_IT, STOP_CONDITION, CLAUSE_SPLIT, SEE_SOMEONE, HALF_AN_HOUR, TIME_LENGTH, LEAD_LABEL, SENTENCE_SPLIT, SPLIT_MOVES, BUDGET, A_HORIZON);
+strset!(LENGTH_FILLER);
+
+/// Python: bot/memory/store_replies.py:12295 `_sentences(answer)`
+///
+/// The sentences of an answer, in the order given.
 pub fn _sentences(answer: &str) -> Vec<String> {
-    crate::unported!("bot.memory.store_replies:_sentences")
+    SENTENCE_SPLIT.split(&text::squash(answer)).iter().map(|p| text::strip(p).to_string()).filter(|p| !p.is_empty()).collect()
 }
 
-/// Python: bot/memory/store_replies.py:12299 `_halves(sentence)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:12299 `_halves(sentence)`
+///
+/// A sentence cut where a semicolon, a dash or an "or" joins two moves (a list of str; the
+/// contract types it `Value`).
 pub fn _halves(sentence: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_halves")
+    str_list(&_halves_v(sentence))
 }
 
-/// Python: bot/memory/store_replies.py:12308 `_says_something(part)` (never called on the trace corpus)
+/// `_halves` as the strs it is.
+fn _halves_v(sentence: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    for part in SPLIT_MOVES.split(sentence) {
+        let part = LEAD_LABEL.sub("", text::strip_chars(&part, " .;,"));
+        if !part.is_empty() {
+            parts.push(part);
+        }
+    }
+    parts
+}
+
+/// Python: bot/memory/store_replies.py:12308 `_says_something(part)`
+///
+/// True when a part of an answer says more than how long it takes.
 pub fn _says_something(part: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_says_something")
+    let left = TIME_LENGTH.sub(" ", &text::squash(part));
+    let left = HALF_AN_HOUR.sub(" ", &left);
+    LETTER_WORDS.findall_str(&left.to_lowercase()).iter().filter(|w| !LENGTH_FILLER.contains(*w) && text::len(w) > 1).count() >= 2
 }
 
-/// Python: bot/memory/store_replies.py:12320 `_seconds(said)` (never called on the trace corpus)
-pub fn _seconds(said: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_seconds")
+static WORD_NUMBERS: LazyLock<HashMap<String, i64>> =
+    LazyLock::new(|| g("WORD_NUMBERS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.as_int().unwrap())).collect());
+static UNIT_SECONDS: LazyLock<HashMap<String, i64>> =
+    LazyLock::new(|| g("UNIT_SECONDS").pairs().iter().map(|(k, v)| (k.str().to_string(), v.as_int().unwrap())).collect());
+
+/// Python: bot/memory/store_replies.py:12320 `_seconds(said)`
+///
+/// A length of time in seconds ("20 minutes", "half an hour", "a couple of days"), or None.
+pub fn _seconds(said: &str) -> Option<i64> {
+    let text_ = text::squash(said);
+    if text_.is_empty() {
+        return None;
+    }
+    let half = HALF_AN_HOUR.search(&text_);
+    let found = TIME_LENGTH.search(&text_);
+    if let Some(h) = &half {
+        if found.as_ref().map(|f| h.start() < f.start()).unwrap_or(true) {
+            return Some(1800);
+        }
+    }
+    let found = found?;
+    let count = found.name_str("count").to_lowercase();
+    let number: Option<i64> = if count.starts_with("a couple") {
+        Some(2)
+    } else if count.starts_with("a few") {
+        Some(3)
+    } else if crate::understanding::pyuni::is_digit(&count) {
+        py_int(&count)
+    } else {
+        WORD_NUMBERS.get(&count).copied()
+    };
+    let unit = text::rstrip_chars(&found.name_str("unit").to_lowercase(), "s").to_string();
+    let number = number.filter(|n| *n != 0)?;
+    let per = UNIT_SECONDS.get(&unit)?;
+    Some(number * per)
 }
 
-/// Python: bot/memory/store_replies.py:12345 `_names_minutes(said)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:12343 `_names_minutes(said)`
+///
+/// True when the wording names minutes rather than hours: "45 minutes", "twenty-minute".
 pub fn _names_minutes(said: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_names_minutes")
+    TIME_LENGTH.finditer(&text::squash(said)).iter().any(|m| m.name_str("unit").to_lowercase().starts_with("min"))
 }
 
-/// Python: bot/memory/store_replies.py:12350 `_longest(said, bare=False)` (never called on the trace corpus)
+static IN_A_NUMBER: LazyLock<Re> = LazyLock::new(|| Re::new(r"\bin\s+(\d{1,2})\b", crate::py::re::I));
+
+/// Python: bot/memory/store_replies.py:12348 `_longest(said, bare=False)`
+///
+/// The longest length of time named in a sentence, in seconds, or None (an int or None; the
+/// contract types it `Value`).
 pub fn _longest(said: &str, bare: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_longest")
+    _longest_n(said, bare.truthy()).val()
 }
 
-/// Python: bot/memory/store_replies.py:12381 `_a_remark_about_a_length(answer)` (never called on the trace corpus)
-pub fn _a_remark_about_a_length(answer: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_a_remark_about_a_length")
+/// `_longest` as the number it is.
+fn _longest_n(said: &str, bare: bool) -> Option<i64> {
+    let mut text_ = text::squash(said);
+    if text_.is_empty() {
+        return None;
+    }
+    if let Some(half) = HALF_AN_HOUR.search(&text_) {
+        text_ = text_[..half.start()].to_string() + " 30 minutes " + &text_[half.end()..];
+    }
+    let found: Vec<String> = TIME_LENGTH.finditer(&text_).iter().map(|m| m.as_str().to_string()).collect();
+    let mut lengths: Vec<i64> = found.iter().filter_map(|p| _seconds(p)).filter(|n| *n != 0).collect();
+    if bare || lengths.iter().any(|s| *s <= 3600) {
+        // A bare number after "in" is a length too, beside a figure that does name minutes.
+        for m in IN_A_NUMBER.finditer(&text_) {
+            let minutes = py_int(m.str(1)).expect("ValueError");
+            if 0 < minutes && minutes <= 90 {
+                lengths.push(minutes * 60);
+            }
+        }
+    }
+    lengths.into_iter().max()
 }
 
-/// Python: bot/memory/store_replies.py:12397 `_moves(answer)` (never called on the trace corpus)
-pub fn _moves(answer: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_moves")
+static A_LENGTH_AS_THE_SUBJECT: LazyLock<&'static Re> = LazyLock::new(|| g("A_LENGTH_AS_THE_SUBJECT").as_re().unwrap());
+
+/// Python: bot/memory/store_replies.py:12383 `_a_remark_about_a_length(answer)`
+///
+/// Whether the reply only remarks on a length, giving none to a thing it names.
+pub fn _a_remark_about_a_length(answer: &str) -> bool {
+    let mut remarked = false;
+    for sentence in _sentences(answer) {
+        if _longest_n(&sentence, false).is_none() {
+            continue;
+        }
+        if !A_LENGTH_AS_THE_SUBJECT.is_match(&text::squash(&sentence)) {
+            return false;
+        }
+        remarked = true;
+    }
+    remarked
 }
 
-/// Python: bot/memory/store_replies.py:12408 `_up_to_the_move(answer, part)` (never called on the trace corpus)
-pub fn _up_to_the_move(answer: &str, part: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_up_to_the_move")
+/// One move of an answer: the move, its length in seconds, and its sentence number.
+type Move = (String, Option<i64>, usize);
+
+/// Python: bot/memory/store_replies.py:12398 `_moves(answer)`
+///
+/// The moves of an answer in the order given: the move, its length, and its sentence number.
+pub fn _moves(answer: &str) -> Vec<Move> {
+    let names = _names_minutes(answer);
+    let mut out = Vec::new();
+    for (at, sentence) in _sentences(answer).iter().enumerate() {
+        for part in _halves_v(sentence) {
+            if !_says_something(&part) {
+                continue;
+            }
+            let took = _longest_n(&part, names);
+            out.push((part, took, at));
+        }
+    }
+    out
 }
 
-/// Python: bot/memory/store_replies.py:12430 `_the_move_that_fits(moves, room)` (never called on the trace corpus)
-pub fn _the_move_that_fits(moves: &Value, room: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_move_that_fits")
+/// Python: bot/memory/store_replies.py:12409 `_up_to_the_move(answer, part)`
+///
+/// The answer from its first sentence to the one `part` was cut from, and no further.
+pub fn _up_to_the_move(answer: &str, part: &str) -> Option<String> {
+    let want = text::squash(part);
+    let sentences = _sentences(answer);
+    for (at, sentence) in sentences.iter().enumerate() {
+        for half in _halves_v(sentence) {
+            if text::squash(&half) == want {
+                if at == 0 {
+                    // The move is in the answer's first sentence: it needs no lead-in.
+                    return Some(want);
+                }
+                return Some(text::strip(&sentences[..at + 1].join(" ")).to_string());
+            }
+        }
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:12456 `_left_out(moves, room)` (never called on the trace corpus)
-pub fn _left_out(moves: &Value, room: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_left_out")
+/// Python: bot/memory/store_replies.py:12432 `_the_move_that_fits(moves, room)`
+///
+/// The move whose own length is the largest that fits, and the long move it is a step of.
+pub fn _the_move_that_fits(moves: &[Move], room: i64) -> (Option<String>, Option<i64>) {
+    let (mut best, mut best_sentence, mut best_seconds): (Option<String>, Option<usize>, i64) = (None, None, -1);
+    let (mut over, mut over_sentence): (Option<i64>, Option<usize>) = (None, None);
+    for (part, took, sentence) in moves {
+        let Some(took) = took else { continue };
+        if *took > room {
+            if over.is_none() {
+                over = Some(*took);
+                over_sentence = Some(*sentence);
+            }
+            continue;
+        }
+        if *took > best_seconds {
+            best = Some(part.clone());
+            best_sentence = Some(*sentence);
+            best_seconds = *took;
+        }
+    }
+    let step = if best.is_some() && over.is_some() && over_sentence < best_sentence { over } else { None };
+    (best, step)
 }
 
-/// Python: bot/memory/store_replies.py:12460 `_the_lead(answer)` (never called on the trace corpus)
-pub fn _the_lead(answer: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_lead")
+/// Python: bot/memory/store_replies.py:12458 `_left_out(moves, room)`
+///
+/// True when the answer has a move of its own that takes longer than the room.
+pub fn _left_out(moves: &[Move], room: i64) -> bool {
+    moves.iter().any(|(_, took, _)| took.map(|t| t > room).unwrap_or(false))
 }
 
-/// Python: bot/memory/store_replies.py:12478 `_a_rate_of_the_same_length(answer, room)` (never called on the trace corpus)
-pub fn _a_rate_of_the_same_length(answer: &str, room: &Value) -> bool {
-    crate::unported!("bot.memory.store_replies:_a_rate_of_the_same_length")
+/// Python: bot/memory/store_replies.py:12462 `_the_lead(answer)`
+///
+/// The first thing an answer says, for a budget too small for any move of it.
+pub fn _the_lead(answer: &str) -> Option<String> {
+    for sentence in _sentences(answer) {
+        let part = LEAD_LABEL.sub("", text::strip_chars(&sentence, " .;,"));
+        if _says_something(&part) {
+            return Some(part);
+        }
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:12489 `_the_budget_on_the_answer(text, memory)`
-pub fn _the_budget_on_the_answer(text: &str, memory: &Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_the_budget_on_the_answer")
+rx!(A_RATE_OF, ANY_FIGURE);
+
+/// Python: bot/memory/store_replies.py:12479 `_a_rate_of_the_same_length(answer, room)`
+///
+/// True when the answer names this same length as a regular allowance ("20 minutes a day").
+pub fn _a_rate_of_the_same_length(answer: &str, room: i64) -> bool {
+    A_RATE_OF.finditer(answer).iter().any(|m| _seconds(&(m.name_str("length").to_string() + " " + m.name_str("unit"))) == Some(room))
 }
 
-/// Python: bot/memory/store_replies.py:12611 `_theirs(length, mid=False)` (never called on the trace corpus)
-pub fn _theirs(length: &Value, mid: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_theirs")
+strs!(BUDGET_FITS, BUDGET_MORE, BUDGET_TIGHT, CALL_LEADS, RESTRICT_OPENS);
+static OF_FIRST: LazyLock<Re> = LazyLock::new(|| Re::new(r"^of\b", crate::py::re::I));
+
+/// A budget shape with the length and the move filled in.
+fn budget_said(shape: &[String], memory: &Memory, budget: &str, part: &str) -> String {
+    fmt_named(&pick(shape, memory, ""), &[("budget", budget), ("part", part)])
 }
 
-/// Python: bot/memory/store_replies.py:12620 `_tidy(part)` (never called on the trace corpus)
-pub fn _tidy(part: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_tidy")
+/// Python: bot/memory/store_replies.py:12488 `_the_budget_on_the_answer(text, memory)`
+///
+/// The answer above, cut to the part of it that fits the time they say they have, or None.
+/// (Contract change: the generated stub returned `()`.)
+pub fn _the_budget_on_the_answer(text_: &str, memory: &Memory) -> Option<String> {
+    let said = text::squash(text_);
+    if said.is_empty() || said.contains('?') || text::split(&said).len() > 11 {
+        return None;
+    }
+    let found = BUDGET.match_(&said)?;
+    let tail = text::strip_chars(&said[found.end()..], " .!,;").to_string();
+    if text::split(&tail).len() > 4 {
+        // "i only get 20 minutes to get to the station" is a question about the journey.
+        return None;
+    }
+    if OF_FIRST.match_(&tail).is_some() {
+        // "i have 2 hours of meetings today": the length belongs to the thing after it.
+        return None;
+    }
+    let length = found.name_str("length").to_string();
+    let room = _seconds(&length)?;
+    let mut longer: Option<String> = None;
+    for answer in _recent_answers(memory, 3) {
+        if _a_rate_of_the_same_length(&answer, room) {
+            // The answer already talks about this length as a regular allowance.
+            return None;
+        }
+        if room < 86400 && A_HORIZON.is_match(&answer) {
+            // A day's regime read to a short budget: the answer stands as it was given.
+            if let Some(lead) = _the_lead(&answer) {
+                return Some(budget_said(&BUDGET_TIGHT, memory, &_theirs(&length, true), &_tidy(&lead)));
+            }
+            continue;
+        }
+        if _a_remark_about_a_length(&answer) {
+            // A remark about a length is not an answer with a length in it.
+            continue;
+        }
+        if _longest_n(&answer, false).is_none() {
+            // A turn with no length in it is not the answer this budget is about.
+            continue;
+        }
+        let moves = _moves(&answer);
+        let (part, over) = _the_move_that_fits(&moves, room);
+        if over.is_some() {
+            // The answer's long move is behind the one that fits, so the fitting move is a step of it.
+            if let Some(lead) = _the_lead(&answer) {
+                return Some(budget_said(&BUDGET_TIGHT, memory, &_theirs(&length, true), &_tidy(&lead)));
+            }
+        }
+        if let Some(mut part) = part.filter(|p| !p.is_empty()) {
+            // Which shape it takes is decided by whether the budget leaves anything out.
+            let shape: &[String] = if _left_out(&moves, room) {
+                if let Some(shorter) = _up_to_the_move(&answer, &part) {
+                    if !shorter.is_empty() && text::split(&shorter).len() <= 90 && _says_something(&shorter) {
+                        // A move is handed back with everything the answer said before it.
+                        part = shorter;
+                    }
+                }
+                &BUDGET_FITS
+            } else {
+                // A budget bigger than every move of the answer is not a limit on anything.
+                let mut kept: Option<String> = None;
+                if ANY_FIGURE.findall(&answer).len() == 1 {
+                    if let Some(shorter) = _up_to_the_move(&answer, &part) {
+                        if !shorter.is_empty() && text::split(&shorter).len() <= 45 && _says_something(&shorter) {
+                            kept = Some(shorter);
+                        }
+                    }
+                }
+                if let Some(kept) = kept {
+                    part = kept;
+                } else if let Some(lead) = _the_lead(&answer) {
+                    if text::split(&lead).len() <= 90 && _says_something(&lead) {
+                        part = lead;
+                    }
+                }
+                &BUDGET_MORE
+            };
+            return Some(budget_said(shape, memory, &_theirs(&length, false), &_tidy(&part)));
+        }
+        if longer.is_none() {
+            longer = Some(answer.clone());
+        }
+    }
+    let longer = longer?;
+    let part = _the_lead(&longer).filter(|p| !p.is_empty())?;
+    Some(budget_said(&BUDGET_TIGHT, memory, &_theirs(&length, true), &_tidy(&part)))
 }
 
-/// Python: bot/memory/store_replies.py:12633 `_clauses(reply)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:12613 `_theirs(length, mid=False)`
+///
+/// The length as they said it, with a capital and no full stop: "20 minutes".
+pub fn _theirs(length: &str, mid: bool) -> String {
+    let text_ = text::strip_chars(&text::squash(length), " .;,").to_string();
+    if text_.is_empty() {
+        return text_;
+    }
+    let second_upper = text_.chars().nth(1).map(|c| crate::understanding::pyuni::ch_upper(c)).unwrap_or(false);
+    if mid && !second_upper {
+        return lower_first(&text_);
+    }
+    text::upper_first(&text_)
+}
+
+/// Python: bot/memory/store_replies.py:12622 `_tidy(part)`
+///
+/// A move of an answer as the first thing a reply says: capital, no trailing full stop.
+pub fn _tidy(part: &str) -> String {
+    let text_ = text::strip_chars(&text::squash(part), " .;,?!").to_string();
+    if text_.is_empty() {
+        return text_;
+    }
+    text::upper_first(&text_)
+}
+
+/// Python: bot/memory/store_replies.py:12635 `_clauses(reply)`
+///
+/// The clauses of an answer, longest-lived punctuation split, in the order given.
 pub fn _clauses(reply: &str) -> Vec<String> {
-    crate::unported!("bot.memory.store_replies:_clauses")
+    CLAUSE_SPLIT.split(&text::squash(reply)).iter().map(|p| text::strip_chars(p, " .;").to_string()).filter(|p| !p.is_empty()).collect()
 }
 
-/// Python: bot/memory/store_replies.py:12638 `_the_limit(reply)` (never called on the trace corpus)
-pub fn _the_limit(reply: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_limit")
+/// Python: bot/memory/store_replies.py:12640 `_the_limit(reply)`
+///
+/// The answer's own restriction - "cut the distance and the speed for a week or two".
+pub fn _the_limit(reply: &str) -> Option<String> {
+    for part in _clauses(reply) {
+        let low = part.to_lowercase();
+        if text::split(&part).len() > 24 {
+            continue;
+        }
+        if RESTRICT_OPENS.iter().any(|w| low == *w || low.starts_with(&(w.clone() + " "))) {
+            return Some(part);
+        }
+    }
+    None
 }
 
-/// Python: bot/memory/store_replies.py:12648 `_the_condition(reply)` (never called on the trace corpus)
-pub fn _the_condition(reply: &str) -> Value {
-    crate::unported!("bot.memory.store_replies:_the_condition")
+static MEANS_STOP: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:means stop|stop driving|do not drive|don't drive)\b", 0));
+
+/// Python: bot/memory/store_replies.py:12650 `_the_condition(reply)`
+///
+/// The answer's own stop condition - "see a physio if the pain is sharp" - or None.
+pub fn _the_condition(reply: &str) -> Option<String> {
+    let clauses = _clauses(reply);
+    for part in &clauses {
+        let low = part.to_lowercase();
+        if text::split(part).len() > 26 {
+            continue;
+        }
+        if STOP_CONDITION.match_(&low).is_some() && low.contains(" if ") {
+            return Some(part.clone());
+        }
+    }
+    clauses.into_iter().find(|p| MEANS_STOP.is_match(&p.to_lowercase()))
 }
 
-/// Python: bot/memory/store_replies.py:12662 `_recent_answers(memory, back=3)` (never called on the trace corpus)
-pub fn _recent_answers(memory: &Memory, back: &Value) -> Value {
-    crate::unported!("bot.memory.store_replies:_recent_answers")
+/// Python: bot/memory/store_replies.py:12664 `_recent_answers(memory, back=3)`
+///
+/// The answers the chat has had, newest first, as far back as "the advice above" reaches.
+pub fn _recent_answers(memory: &Memory, back: usize) -> Vec<String> {
+    let turns = &memory.turns;
+    let mut said: Vec<String> = Vec::new();
+    for turn in turns[turns.len().saturating_sub(back + 1)..].iter().rev() {
+        let reply = text::strip(&turn.bot);
+        if !reply.is_empty() {
+            said.push(reply.to_string());
+        }
+        if said.len() >= back {
+            break;
+        }
+    }
+    said
 }
 
-/// Python: bot/memory/store_replies.py:12683 `_shares_a_word(low, said)` (never called on the trace corpus)
+/// Python: bot/memory/store_replies.py:12683 `_shares_a_word(low, said)`
+///
+/// True when the line names something the answer it would quote also talks about.
 pub fn _shares_a_word(low: &str, said: &str) -> bool {
-    crate::unported!("bot.memory.store_replies:_shares_a_word")
+    use crate::memory::topics::{keywords, stem};
+    let words = |t: &str| -> HashSet<String> { keywords(&t.to_lowercase()).iter().map(|w| stem(w)).collect() };
+    let mine = words(low);
+    words(said).iter().any(|w| mine.contains(w))
 }
+
+static KEEP_OR_GO_ON: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:keep|keep going|carry on|continue|still|go on)\b", 0));
 
 /// Python: bot/memory/store_replies.py:12694 `_the_call_from_the_advice(text, memory)`
-pub fn _the_call_from_the_advice(text: &str, memory: &Memory) -> Option<String> {
-    crate::unported!("bot.memory.store_replies:_the_call_from_the_advice")
+///
+/// The decision a follow-up asks, answered with the limit the last answer already gave.
+/// (Contract change: the generated stub returned `()`.)
+pub fn _the_call_from_the_advice(text_: &str, memory: &Memory) -> Option<String> {
+    let low = _bare(&crate::memory::relations::_folded(text_, memory));
+    if low.is_empty() || text::split(&low).len() > 9 || (" ".to_string() + &low + " ").contains(" you ") {
+        return None;
+    }
+    if CALL_ASK.match_(&low).is_none() || !CARRY_ON.is_match(&low) {
+        return None;
+    }
+    if SEE_SOMEONE.is_match(&low) {
+        // "should i see someone about it or wait" is answered by the entry that gave the advice.
+        return None;
+    }
+    // The answer that had the limit in it: the newest one about the same thing as the line.
+    let (mut limit, mut condition): (Option<String>, Option<String>) = (None, None);
+    for said in _recent_answers(memory, 3) {
+        if !_shares_a_word(&low, &said) {
+            continue;
+        }
+        let (found, if_half) = (_the_limit(&said), _the_condition(&said));
+        if found.is_some() && if_half.is_some() {
+            limit = found;
+            condition = if_half;
+            break;
+        }
+    }
+    let (Some(limit), Some(condition)) = (limit.filter(|l| !l.is_empty()), condition.filter(|c| !c.is_empty())) else { return None };
+    let rest_or_go = KEEP_OR_GO_ON.is_match(&low);
+    if STOP_IT.is_match(&low) && rest_or_go {
+        // "should i rest it or keep going" is a choice the entry answers better.
+        return None;
+    }
+    if STOP_IT.is_match(&low) {
+        // "should i stop running?": the answer is the change rather than stopping.
+        return Some("Not all the way: ".to_string() + &lower_first(&limit) + ". And " + &lower_first(&condition) + ".");
+    }
+    Some(fmt_named(&pick(&CALL_LEADS, memory, ""), &[("limit", &lower_first(&limit)), ("condition", &lower_first(&condition))]))
 }
 
-/// Python: bot/memory/store_replies.py:12743 `_trim(text, limit=90)` (never called on the trace corpus)
-pub fn _trim(text: &str, limit: i64) -> String {
-    crate::unported!("bot.memory.store_replies:_trim")
+/// Python: bot/memory/store_replies.py:12743 `_trim(text, limit=90)`
+pub fn _trim(text_: &str, limit: i64) -> String {
+    let said = text::squash(text_);
+    if text::len(&said) as i64 <= limit {
+        return said;
+    }
+    text::rstrip(&text::slice(&said, 0, Some((limit - 1) as isize))).to_string() + "\u{2026}"
 }
 
 /// Python: bot/memory/store_replies.py:12943 `_reads_as_the_invitation(text, memory)`
