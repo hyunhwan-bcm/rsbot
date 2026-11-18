@@ -1,0 +1,180 @@
+{"m": "a_year_of_birth", "f": "_a_slip", "a": ["i was born in 1990"], "r": true}
+{"m": "a_year_of_birth", "f": "_a_slip", "a": ["i was born in 1990 what about you"], "r": false}
+{"m": "a_year_of_birth", "f": "_a_slip", "a": ["born 1985, how old am i"], "r": false}
+{"m": "asked_about", "f": "_the_words_asked", "a": ["and how do i get some sleep"], "r": ["sleep"]}
+{"m": "asked_about", "f": "_the_words_asked", "a": ["what kills the ants"], "r": ["kill", "ant"]}
+{"m": "asked_about", "f": "_sentences", "a": ["Waking is normal. Sleep runs in cycles!  Try this?"], "r": ["Waking is normal.", "Sleep runs in cycles!", "Try this?"]}
+{"m": "asked_about", "f": "_the_part_that_answers", "a": ["Waking in the night is normal. Sleep runs in cycles of about ninety minutes. If you're worn out all day too, ask a GP.", ["sleep"], ""], "r": "Sleep runs in cycles of about ninety minutes."}
+{"m": "asked_about", "f": "_the_part_that_answers", "a": ["If sleep fails, ask a GP. And sleep more. Rest is good for you.", ["sleep"], ""], "r": "Rest is good for you."}
+{"m": "baking", "f": "written_out", "a": ["what about a carrot cake", {}], "r": "how do i make a carrot cake"}
+{"m": "baking", "f": "written_out", "a": ["and lemon drizzle?", {}], "r": "how do i make lemon drizzle"}
+{"m": "baking", "f": "written_out", "a": ["can i bake a cake with no oven", {}], "r": null}
+{"m": "baking", "f": "written_out", "a": ["i baked a carrot cake", {}], "r": null}
+{"m": "baking", "f": "_the_name", "a": ["a red velvet cake instead"], "r": "a red velvet cake"}
+{"m": "doing_it", "f": "_is_doing", "a": ["practising"], "r": true}
+{"m": "doing_it", "f": "_is_doing", "a": ["dog"], "r": false}
+{"m": "doing_it", "f": "doing_word", "a": ["how long should i practise"], "r": "practise"}
+{"m": "doing_it", "f": "asks_about_doing", "a": ["how long should i practise"], "r": true}
+{"m": "doing_it", "f": "written_out", "a": ["how long should i practise", {"topics": [{"text": "i started learning guitar last month"}, {"text": "my fingers hurt"}]}], "r": ["how long should i practise guitar?", "how long should i practise guitar each day?"]}
+{"m": "doing_it", "f": "the_ask_behind_a_moan", "a": ["i always get rice wrong"], "r": "how do i get rice right?"}
+{"m": "doing_it", "f": "the_ask_behind_a_moan", "a": ["i keep getting the timing wrong"], "r": "how do i get the timing right?"}
+{"m": "doing_it", "f": "the_ask_behind_a_moan", "a": ["i always get it wrong"], "r": ""}
+{"m": "doubt", "f": "the_doubt", "a": ["that makes no sense", {"turns": [{"user": "x", "bot": "A very long answer about eggs that goes on and on for a while.", "module": "answers"}]}], "r": "unclear"}
+{"m": "doubt", "f": "the_doubt", "a": ["that cant be right tbh", {"turns": [{"user": "x", "bot": "A very long answer about eggs that goes on and on for a while.", "module": "answers"}]}], "r": "wrong"}
+{"m": "doubt", "f": "the_doubt", "a": ["it doesnt make sense to buy new", {"turns": [{"user": "x", "bot": "A very long answer about eggs that goes on and on for a while.", "module": "answers"}]}], "r": null}
+{"m": "filler", "f": "without_filler", "a": ["im veggie tho lol"], "r": "im veggie"}
+{"m": "filler", "f": "without_filler", "a": ["how old is my son by the way"], "r": "how old is my son"}
+{"m": "filler", "f": "without_filler", "a": ["by the way"], "r": "by the way"}
+{"m": "filler", "f": "without_the_end_shrug", "a": ["whats the postcode out of interest actually"], "r": "whats the postcode"}
+{"m": "filler", "f": "without_the_shrug", "a": ["what can i actually do to help her"], "r": "what can i do to help her"}
+{"m": "filler", "f": "without_the_shrug", "a": ["actually"], "r": "actually"}
+{"m": "goals", "f": "_tidy", "a": ["2kg"], "r": "2 kg"}
+{"m": "goals", "f": "_tidy", "a": ["half a  stone"], "r": "Half a stone"}
+{"m": "goals", "f": "the_loss_that_was_the_plan", "a": ["i lost 2kg", {"user": {"plan": "Lose weight"}, "turns": [{"user": "im trying to lose weight", "bot": "ok", "module": "x"}]}], "r": "2 kg down is real progress: slow enough to keep, which is the part most people miss."}
+{"m": "goals", "f": "a_progress_asked", "a": ["how am i doing", {"user": {"progress": {"lost": "2 kg"}}, "turns": [{"user": "a", "bot": "b", "module": "c"}, {"user": "d", "bot": "e", "module": "f"}]}], "r": "You have 2 kg off since you started. That is on the good side of the pace, so keep the plan as it is unless it stalls."}
+{"m": "groupages", "f": "the_list_given", "a": ["my two kids theyre 4 and 7"], "r": ["kids", [4, 7]]}
+{"m": "groupages", "f": "the_list_given", "a": ["my parents are 66 and 70"], "r": ["parents", [66, 70]]}
+{"m": "groupages", "f": "the_list_given", "a": ["the boys 2 and 3 days ago"], "r": null}
+{"m": "groupages", "f": "reply_for", "a": ["how old are they", {"group_ages": {"word": "kids", "ages": [4, 7], "line": "x"}}], "r": "Your kids are 4 and 7."}
+{"m": "groupages", "f": "reply_for", "a": ["how old is my youngest", {"group_ages": {"word": "kids", "ages": [4, 7], "line": "x"}}], "r": "Your youngest is 4."}
+{"m": "groupages", "f": "reply_for", "a": ["how old is my oldest kid", {"group_ages": {"word": "kids", "ages": [4, 7, 9], "line": "x"}}], "r": "Your oldest is 9."}
+{"m": "groupages", "f": "reply_for", "a": ["how old is my oldest cat", {"group_ages": {"word": "kids", "ages": [4, 7], "line": "x"}}], "r": ""}
+{"m": "groupages", "f": "reply_for", "a": ["how old are the girls", {"group_ages": {"word": "parents", "ages": [66, 70], "line": "x"}}], "r": ""}
+{"m": "hope", "f": "reading", "a": ["ok fingers crossed"], "r": true}
+{"m": "hope", "f": "reading", "a": ["alright then, good luck"], "r": true}
+{"m": "hope", "f": "reading", "a": ["hope you feel better"], "r": false}
+{"m": "hope", "f": "reading", "a": ["any luck?"], "r": false}
+{"m": "hope", "f": "answer_for", "a": ["touch wood", {"hope_said": 1}], "r": "Touch wood, then. Say how it turns out."}
+{"m": "hours", "f": "remembered", "a": [{"hours": {"family": "nights", "turn": 1}, "turns": [{"user": "i work nights", "bot": "ok", "module": "ack"}]}], "r": null}
+{"m": "kidcount", "f": "_asks", "a": ["how many kids do i have"], "r": true}
+{"m": "kidcount", "f": "_asks", "a": ["how many kids does my sister have"], "r": false}
+{"m": "kidcount", "f": "_asks", "a": ["how many kids"], "r": true}
+{"m": "kidcount", "f": "reply_for", "a": ["how many children do i have", {"user": {"people": ["son", "daughter"]}, "others": [{"who": "son", "name": "jack"}], "turns": [{"user": "a", "bot": "b", "module": "c"}]}], "r": "You've got two children."}
+{"m": "kinds", "f": "the_kind_asked", "a": ["and what time again"], "r": ["time"]}
+{"m": "kinds", "f": "the_line_that_gives", "a": ["what time again", ["the plumber is coming tuesday at 10", "ok thanks"]], "r": {"line": "the plumber is coming tuesday at 10", "kind": "time"}}
+{"m": "kinds", "f": "the_line_that_gives", "a": ["and what make is the boiler", ["my boiler is broken", "its a worcester bosch, about six years old"]], "r": {"line": "its a worcester bosch, about six years old", "kind": "make"}}
+{"m": "kinds", "f": "the_line_that_gives", "a": ["how much was it again", ["we paid 28 pounds for it"]], "r": {"line": "we paid 28 pounds for it", "kind": "price"}}
+{"m": "kinds", "f": "the_line_that_gives", "a": ["what time is it", ["the plumber is coming tuesday at 10"]], "r": null}
+{"m": "limits", "f": "names_a_limit", "a": ["she cant walk far"], "r": "walk"}
+{"m": "limits", "f": "names_a_limit", "a": ["he is in a wheelchair"], "r": "chair"}
+{"m": "limits", "f": "names_a_limit", "a": ["no stairs please"], "r": "stairs"}
+{"m": "limits", "f": "names_a_limit", "a": ["no walk in the park then"], "r": null}
+{"m": "limits", "f": "_the_trip_is_on", "a": ["she cant walk far", {"user": {"places": ["rome"]}}], "r": true}
+{"m": "more", "f": "asks_for_more", "a": ["go on then"], "r": true}
+{"m": "more", "f": "asks_for_more", "a": ["tell me more about the washing machine"], "r": true}
+{"m": "more", "f": "_about_what", "a": ["tell me more about the washing machine"], "r": "the washing machine"}
+{"m": "more", "f": "_is_what_was_asked", "a": ["washing machines", "my washing machine is broken"], "r": true}
+{"m": "more", "f": "_its_ask", "a": ["Use a bucket. Tell me what is in the fridge and I will pick properly."], "r": "Tell me what is in the fridge and I will pick properly."}
+{"m": "more", "f": "_as_a_line", "a": ["Tell me what is in the fridge"], "r": "tell me what is in the fridge."}
+{"m": "more", "f": "_flat", "a": ["Hello, World! it's 5"], "r": "hello world it's 5"}
+{"m": "not_a_trip", "f": "a_doing_after_to", "a": [["wait", "till", "next", "year"]], "r": true}
+{"m": "not_a_trip", "f": "a_doing_after_to", "a": [["the", "lake", "district"]], "r": false}
+{"m": "not_a_trip", "f": "a_doing_after_to", "a": [["start", "a", "business"]], "r": true}
+{"m": "not_a_trip", "f": "a_place_of_ordinary_life", "a": ["the uni"], "r": true}
+{"m": "not_a_trip", "f": "a_person", "a": ["my aunts"], "r": "my aunts"}
+{"m": "not_a_trip", "f": "a_person", "a": ["my in laws house"], "r": "my in-laws house"}
+{"m": "not_a_trip", "f": "the_visit", "a": ["im going to my sisters on saturday"], "r": "my sisters"}
+{"m": "not_a_trip", "f": "the_visit", "a": ["going to see my friend at the hospital"], "r": ""}
+{"m": "not_a_trip", "f": "the_visit", "a": ["ive stopped seeing my mates"], "r": ""}
+{"m": "not_this", "f": "_in_plain_words", "a": ["We aren't going to Portugal anymore."], "r": "we are not going to portugal anymore"}
+{"m": "not_this", "f": "the_place_ruled_out", "a": ["not portugal", {}], "r": "Portugal"}
+{"m": "not_this", "f": "the_place_ruled_out", "a": ["no rome, then", {}], "r": "Rome"}
+{"m": "not_this", "f": "the_place_ruled_out", "a": ["we arent going to portugal", {}], "r": "Portugal"}
+{"m": "not_this", "f": "the_place_ruled_out", "a": ["no worries", {}], "r": ""}
+{"m": "not_this", "f": "_a_place_the_chat_knows", "a": ["paris"], "r": "Paris"}
+{"m": "not_this", "f": "_a_place_the_chat_knows", "a": ["france"], "r": "France"}
+{"m": "onset", "f": "reads_as_onset", "a": ["it started when i moved house"], "r": ["move", null]}
+{"m": "onset", "f": "reads_as_onset", "a": ["it started a month ago"], "r": ["time", 30]}
+{"m": "onset", "f": "reads_as_onset", "a": ["it started last month"], "r": ["time", 30]}
+{"m": "onset", "f": "reads_as_onset", "a": ["since christmas it started"], "r": null}
+{"m": "onset", "f": "reads_as_onset", "a": ["with two kids"], "r": null}
+{"m": "onset", "f": "reads_as_onset", "a": ["it started a couple of weeks ago"], "r": ["time", 14]}
+{"m": "onset", "f": "_clause", "a": ["it started when i lost my job."], "r": "i lost my job"}
+{"m": "opening", "f": "_who", "a": ["my daughter is six next month"], "r": ["she", "is"]}
+{"m": "opening", "f": "_who", "a": ["they said my mum is 72"], "r": ["she", "is"]}
+{"m": "opening", "f": "_who", "a": ["im 34 this year"], "r": ["you", "are"]}
+{"m": "opening", "f": "_names_my", "a": ["my daughters party", "daughter"], "r": true}
+{"m": "opening", "f": "_said_before", "a": [{"turns": [{"user": "a", "bot": "", "module": null}]}], "r": false}
+{"m": "passing_the_time", "f": "_the_chat_is_heavy", "a": [{"turns": [{"user": "he hits me", "bot": "x", "module": "y"}, {"user": "ok", "bot": "z", "module": "w"}]}], "r": true}
+{"m": "pending", "f": "_clauses", "a": ["i still havent got an outfit, and the wedding is in 3 weeks"], "r": ["i still havent got an outfit", "the wedding is in 3 weeks"]}
+{"m": "pending", "f": "_what_is_missing", "a": ["i still havent got a present for the wedding"], "r": ["present", "a present for the wedding"]}
+{"m": "pending", "f": "_the_occasion", "a": ["i still havent got a present for the wedding", "present"], "r": "the wedding"}
+{"m": "pending", "f": "as_question", "a": ["i still havent got a present for the wedding"], "r": "what should i get for the wedding"}
+{"m": "pending", "f": "as_question", "a": ["ive got a wedding in 3 weeks and i still havent got an outfit"], "r": "what should i wear to wedding in 3 weeks"}
+{"m": "pending", "f": "as_question", "a": ["the wedding is next month and i havent booked anything"], "r": "how do i plan the wedding"}
+{"m": "prefer", "f": "_taste", "a": ["i like crime"], "r": "crime"}
+{"m": "prefer", "f": "_taste", "a": ["im in the mood for something light"], "r": "light"}
+{"m": "prefer", "f": "_taste", "a": ["i like comedy not horror"], "r": ""}
+{"m": "prefer", "f": "_said_the_medium", "a": ["any good films or books"], "r": "films"}
+{"m": "prefer", "f": "follow_up", "a": ["i like crime", {"turns": [{"user": "any good books", "bot": "Try *Gone Girl* or *The Secret History*.", "module": "answers"}]}], "r": "any good crime books"}
+{"m": "purse", "f": "_money_in", "a": ["is £40 enough or 50 quid"], "r": [40.0, 50.0]}
+{"m": "purse", "f": "_the_money", "a": [1200.0], "r": "£1,200"}
+{"m": "purse", "f": "_the_money", "a": [12.5], "r": "£12.50"}
+{"m": "purse", "f": "_money_bands", "a": ["A decent one is £30 to £60, buys a sound second-hand one. Rome is about £55 to £95 a day."], "r": [[30.0, 60.0, ""]]}
+{"m": "purse", "f": "against_the_bands", "a": ["is 40 pounds enough", [{"user": "how much is a bike", "bot": "A decent one is £30 to £60, buys a sound second-hand one.", "module": "answers"}]], "r": "£40 is inside the £30 to £60 that answer named."}
+{"m": "purse", "f": "against_the_bands", "a": ["is 20 quid enough", [{"user": "how much is a bike", "bot": "A decent one is £30 to £60 or £100 to £200 new.", "module": "answers"}]], "r": "£20 is under the £30 to £60 that answer named."}
+{"m": "quotes", "f": "left_open", "a": ["he said \"hi"], "r": true}
+{"m": "quotes", "f": "closed", "a": ["he said “hi", ["there.”", "x"], ""], "r": "he said “hi there.”"}
+{"m": "remedy", "f": "_the_thing", "a": ["a hot bath and it didnt help", "tried"], "r": "hot bath"}
+{"m": "remedy", "f": "_the_thing", "a": ["the ice pack a go", "gave"], "r": "ice pack"}
+{"m": "remedy", "f": "_the_thing", "a": ["it a go", "gave"], "r": ""}
+{"m": "remedy", "f": "reply_for", "a": ["i tried a hot bath", {"turns": [{"user": "my back hurts", "bot": "Try a warm bath and keep moving.", "module": "answers"}]}], "r": "Hot bath - did that do anything?"}
+{"m": "reminded", "f": "_trim", "a": ["the boiler again"], "r": "the boiler"}
+{"m": "reminded", "f": "_the_thing_itself", "a": ["my bike problem was"], "r": "my bike"}
+{"m": "returned", "f": "reads_as_returning", "a": ["its back again"], "r": true}
+{"m": "returned", "f": "reads_as_returning", "a": ["its dropped again"], "r": true}
+{"m": "returned", "f": "reads_as_returning", "a": ["will it come back"], "r": false}
+{"m": "returned", "f": "the_next_step", "a": ["Bleed the radiators. If it keeps dropping, there's a leak somewhere: stop topping it up."], "r": "There's a leak somewhere: stop topping it up."}
+{"m": "returned", "f": "the_next_step", "a": ["If it has been more than six weeks, keeps waking you up, or comes back every time, ask your GP."], "r": null}
+{"m": "returned", "f": "says_it_happened_again", "a": ["my back is sore again"], "r": true}
+{"m": "returned", "f": "says_it_happened_again", "a": ["how do i cook rice again"], "r": false}
+{"m": "returned", "f": "pool_for", "a": ["its dropped again", {"turns": [{"user": "my boiler keeps losing pressure", "bot": "Top it up to 1.5 bar. If it keeps dropping, there's a leak somewhere and you should call an engineer.", "module": "answers"}]}], "r": "There's a leak somewhere and you should call an engineer."}
+{"m": "setback", "f": "reading", "a": ["the cake went wrong"], "r": ["the cake", "past"]}
+{"m": "setback", "f": "reading", "a": ["work is killing me"], "r": ["work", "now"]}
+{"m": "setback", "f": "reading", "a": ["i messed up the cake"], "r": ["your cake", "past"]}
+{"m": "setback", "f": "reading", "a": ["my mum was a nightmare"], "r": null}
+{"m": "setback", "f": "pool", "a": ["the lessons are going badly"], "r": ["Ugh — the lessons sound relentless. What's the worst bit of it?", "That's a lot to be carrying. What's the hardest part of the lessons?", "Ah no. What's the worst of the lessons at the moment?", "I bet. What is it about the lessons that's wearing you down?"]}
+{"m": "setback", "f": "pool", "a": ["my interview was a disaster"], "r": ["Oh no — what happened with your interview?", "That's rotten — what happened with your interview?", "Oh no. What went wrong with your interview?"]}
+{"m": "size", "f": "_the_rule", "a": ["Roast it at 190C for 20 minutes per 500g, so a 2kg bird takes 1 hour 40 minutes."], "r": "Roast it at 190C for 20 minutes per 500g"}
+{"m": "size", "f": "_one_of_ours", "a": ["The rule works at any size: x"], "r": true}
+{"m": "spoken", "f": "_spoken_as_numbers", "a": ["half an hour"], "r": "30 minutes"}
+{"m": "spoken", "f": "_spoken_as_numbers", "a": ["an hour and a half"], "r": "90 minutes"}
+{"m": "spoken", "f": "_spoken_as_numbers", "a": ["two and a half litres"], "r": "2.5 litres"}
+{"m": "spoken", "f": "_spoken_as_numbers", "a": ["twenty five minutes"], "r": "25 minutes"}
+{"m": "spoken", "f": "_spoken_as_numbers", "a": ["twice a week"], "r": "twice a week"}
+{"m": "spoken", "f": "_spoken_as_numbers", "a": ["four and a half hours"], "r": "4.5 hours"}
+{"m": "spoken", "f": "_spoken_as_numbers", "a": ["a couple of miles"], "r": "2 miles"}
+{"m": "stuck", "f": "the_ask_in", "a": ["that sounds hard, what should i do"], "r": "what should i do"}
+{"m": "stuck", "f": "the_ask_in", "a": ["that sounds like my printer, what should i do"], "r": ""}
+{"m": "stuck", "f": "_opens_with_an_emergency", "a": ["Ring 111 or your GP first thing. Rest."], "r": true}
+{"m": "stuck", "f": "_opens_with_an_emergency", "a": ["Rest it. Call 111 if the cry is high."], "r": false}
+{"m": "stuck", "f": "pool", "a": ["i dont know what to do", {"turns": [{"user": "i lost my job", "bot": "That is hard.", "module": "chat"}]}], "r": ["Money has dates, so start there: what the last pay and any notice money come to, and when they land.", "One small thing tomorrow, one the day after - a CV refreshed, a single application. Momentum does more than a plan here.", "First find out what you are owed and when: final pay, holiday, notice. Work out the next month before the next year."]}
+{"m": "stuck", "f": "pool", "a": ["where do i start", {}], "r": null}
+{"m": "stuck", "f": "_the_answer_gave_a_step", "a": [{"turns": [{"user": "a", "bot": "Start with four chords.", "module": "answers"}]}], "r": true}
+{"m": "the_verdict", "f": "answer_for", "a": ["the plumber said it would be 350", {}], "r": "Get it in writing, with the parts and the labour apart, and one more quote before you say yes - two prices is the whole trick. Tell me the figure and I'll say whether it's in the usual range for the job."}
+{"m": "the_verdict", "f": "answer_for", "a": ["the consultant said to come back in six weeks", {}], "r": "Ring back before then if it gets worse - you don't have to sit out the wait for the date. Keep a short note of what changes day to day so the next appointment is worth having."}
+{"m": "the_verdict", "f": "answer_for", "a": ["the roofer said it would take six weeks", {}], "r": "Ask when they start, not when they finish - a start date in writing is the only part anyone can be held to, and everything after it follows. Then agree what happens if the weather or the scaffold puts it back, and keep the last payment until the work is signed off."}
+{"m": "the_verdict", "f": "answer_for", "a": ["the teacher said she needs assessing", {}], "r": "Ask what it is for, who does it, and what changes in the meantime - and ask them to put the answer in an email so you have it."}
+{"m": "the_verdict", "f": "answer_for", "a": ["he said its the pump", {"turns": [{"user": "the boiler engineer came", "bot": "ok", "module": "x"}]}], "r": "Get it in writing, with the parts and the labour apart, and one more quote before you say yes - two prices is the whole trick. Tell me the figure and I'll say whether it's in the usual range for the job."}
+{"m": "the_years", "f": "_the_turn", "a": ["im turning 50 in may"], "r": "turning 50"}
+{"m": "their_feeling", "f": "_says_something", "a": ["the whole thing"], "r": true}
+{"m": "too_late", "f": "_two_clauses", "a": ["Most people need around 45 hours of lessons before they pass, so two lessons a week gets you there in six months at 40 just as at 18."], "r": "Most people need around 45 hours of lessons before they pass, so two lessons a week gets you there in six months at 40 just as at 18."}
+{"m": "warmth", "f": "_nothing_said_before", "a": [{"turns": [{"user": "", "bot": "x", "module": "y"}]}], "r": true}
+{"m": "whathurts", "f": "which_one_is_a_side", "a": ["which one should i buy"], "r": false}
+{"m": "whathurts", "f": "which_one_is_a_side", "a": ["which one"], "r": true}
+{"m": "whathurts", "f": "the_part_asked", "a": [{"user": {"hurts": {"part": "knee", "side": "left"}}, "turns": [{"user": "my knee hurts", "bot": "x", "module": "y"}]}, "which knee"], "r": "Left knee."}
+{"m": "whathurts", "f": "the_part_asked", "a": [{"user": {"hurts": {"part": "knee", "place": "outside"}}, "turns": [{"user": "my knee hurts", "bot": "x", "module": "y"}]}, "which one"], "r": "The outside of it - you did not say which side."}
+{"m": "whathurts", "f": "what_is_hurting_reply", "a": [{"user": {"hurts": {"part": "back", "was": "knees"}}, "turns": [{"user": "a", "bot": "b", "module": "c"}]}, "what did i say was hurting"], "r": "It is your back - you put the knees right."}
+{"m": "whathurts", "f": "what_is_hurting_reply", "a": [{"turns": [{"user": "who has a sore hip", "bot": "b", "module": "c"}]}, "what did i say was hurting"], "r": "You asked about a sore hip - you haven't told me about anything of your own hurting."}
+{"m": "whereabout", "f": "the_place", "a": ["near leeds"], "r": "leeds"}
+{"m": "whereabout", "f": "the_place", "a": ["in a minute"], "r": ""}
+{"m": "whereabout", "f": "the_question_with_the_place", "a": ["near leeds", {"turns": [{"user": "any ideas for a cheap day out with kids", "bot": "Try the park.", "module": "answers"}, {"user": "its raining", "bot": "Ok.", "module": "chat"}]}], "r": "any ideas for a cheap day out with kids near leeds"}
+{"m": "whose_body", "f": "somebody_elses_body", "a": ["he cant breathe", {"turns": [{"user": "my dad is ill", "bot": "x", "module": "y"}]}], "r": false}
+{"m": "whose_body", "f": "a_body_of_a_pronoun", "a": ["her leg is swollen"], "r": true}
+{"m": "will_it_work", "f": "asks_if_it_will_work", "a": ["will that work?"], "r": true}
+{"m": "will_it_work", "f": "_what_it_achieves", "a": ["Soak the pan overnight. Then lift the burnt layer with a wooden spoon: almost nothing needs scrubbing after that."], "r": "almost nothing needs scrubbing after that"}
+{"m": "workplace", "f": "_the_place_the_line_said", "a": ["i work in a primary school"], "r": ["in", "a primary school"]}
+{"m": "workplace", "f": "_the_place_the_line_said", "a": ["i work from home"], "r": ["from", "home"]}
+{"m": "workplace", "f": "_a_clean_place", "a": ["a primary school and i love it"], "r": "a primary school"}
+{"m": "workplace", "f": "the_place_the_person_works", "a": ["i work in a primary school", {"user": {"job": "teacher"}}], "r": "A teacher in a primary school - busy one, I should think."}
+{"m": "workplace", "f": "_with_an_article", "a": ["engineer"], "r": "an engineer"}

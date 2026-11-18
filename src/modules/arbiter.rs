@@ -4305,18 +4305,10 @@ mod lanes {
     }
 
     /// `thing, _kept, _opening = _ruledout._rules_out_what_i_never_said(text, memory)`: the thing
-    /// when it is a non-empty string, None when it is falsy. Unpacking anything but a triple
-    /// raises (a panic, as in Python).
+    /// when it is a non-empty string, None when it is "" (the port returns the typed triple).
     pub fn ruled_out_thing(text: &str, mem: &Mem) -> Option<String> {
-        let found = crate::compose::ruledout::_rules_out_what_i_never_said(text, &m(mem));
-        let items = found.items();
-        assert!(matches!(found, Value::List(_) | Value::Tuple(_)) && items.len() == 3, "not three values to unpack");
-        match &items[0] {
-            Value::Str(thing) if !thing.is_empty() => Some(thing.to_string()),
-            thing if !thing.truthy() => None,
-            // A truthy thing that is not a string: Python's `food + "s"` raises on it.
-            _ => panic!("the thing ruled out is not a string"),
-        }
+        let (thing, _kept, _opening) = crate::compose::ruledout::_rules_out_what_i_never_said(text, &m(mem));
+        if thing.is_empty() { None } else { Some(thing) }
     }
 
     /// `_limit.reply_for(understood, memory)` (the caller has checked there is a reading).

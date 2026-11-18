@@ -1,0 +1,6166 @@
+{
+"loss.reads_as_loss": [
+[
+"my nan passed in jan",
+true
+],
+[
+"she passed peacefully",
+true
+],
+[
+"i passed my test",
+false
+],
+[
+"he passed me the salt",
+false
+],
+[
+"my mum got her results and she passed",
+false
+],
+[
+"my grandad passed on in march",
+true
+],
+[
+"i passed on the job",
+false
+],
+[
+"we buried my dad",
+true
+],
+[
+"i buried the fence posts",
+false
+],
+[
+"the dog is buried at the end of the garden",
+true
+],
+[
+"my mums death was sudden",
+true
+],
+[
+"the death star lego set",
+false
+],
+[
+"hamlets death",
+true
+],
+[
+"the death of my laptop",
+false
+],
+[
+"my cat was run over last night",
+true
+],
+[
+"my dad got knocked over by a bike",
+false
+],
+[
+"i lost my son at the park",
+false
+],
+[
+"we lost the baby at twelve weeks",
+true
+],
+[
+"losing my wife has hit me hard",
+true
+],
+[
+"im losing my friend",
+false
+],
+[
+"my mum would have been 70 this week",
+true
+],
+[
+"the first christmas without my dad",
+true
+],
+[
+"my phone died",
+false
+],
+[
+"i bought a phone for my daughter and it died",
+false
+],
+[
+"my carer badge died",
+false
+],
+[
+"my vacuum cleaner died",
+false
+],
+[
+"the doctor said theres nothing more they can do",
+true
+],
+[
+"nothing more they can do about my knee",
+false
+],
+[
+"they put my dad on morphine",
+true
+],
+[
+"im on morphine for my back",
+false
+],
+[
+"my nan is in a hospice",
+true
+],
+[
+"my grandad was killed in a crash",
+true
+],
+[
+"my brother was killed in a film last night",
+false
+],
+[
+"my cat keeps bringing dead birds in",
+false
+],
+[
+"dead tired",
+false
+],
+[
+"the boiler is dead and it keeps cutting out",
+false
+],
+[
+"is it normal to still cry about my mum three years later",
+true
+],
+[
+"my son keeps crying",
+false
+],
+[
+"she's dying",
+true
+],
+[
+"our fish are going to die if we dont clean the tank",
+false
+],
+[
+"what do i say when someone dies",
+true
+],
+[
+"how do i arrange a funeral",
+false
+],
+[
+"funeral costs",
+false
+],
+[
+"the loss of my mum",
+true
+],
+[
+"the news of my dad hit me hard",
+true
+],
+[
+"my knee is killing me",
+false
+],
+[
+"my washing machine is broken",
+false
+],
+[
+"my career is stuck",
+false
+],
+[
+"my confidence has gone",
+false
+],
+[
+"my razor keeps pulling",
+false
+],
+[
+"the road keeps flooding",
+false
+],
+[
+"this soup is to die for but the oven is broken",
+false
+],
+[
+"my wrist is broken",
+false
+],
+[
+"my heart is broken",
+false
+],
+[
+"the pan is burnt",
+false
+],
+[
+"my lips are burnt",
+false
+],
+[
+"i got the job and nobody said anything",
+false
+],
+[
+"we finally got the keys and the place is a state",
+false
+],
+[
+"i won a competition i never entered",
+false
+],
+[
+"my knee doesnt feel better",
+false
+],
+[
+"the rash has cleared up",
+false
+],
+[
+"my cough has gone green",
+false
+],
+[
+"the biopsy was benign",
+false
+],
+[
+"is 2400 a lot",
+false
+],
+[
+"60 seems high",
+false
+],
+[
+"30 quid for a haircut is that reasonable",
+false
+],
+[
+"thats expensive",
+false
+],
+[
+"a bit much",
+false
+],
+[
+"is 1998 a lot",
+false
+],
+[
+"is 45 an hour normal",
+false
+],
+[
+"is 80 pounds a lot",
+false
+],
+[
+"half an hour",
+false
+],
+[
+"an hour and a half each way",
+false
+],
+[
+"3km",
+false
+],
+[
+"a tenner",
+false
+],
+[
+"£250",
+false
+],
+[
+"20 minutes a day",
+false
+],
+[
+"45 a month",
+false
+],
+[
+"i take 5 a day",
+false
+],
+[
+"my budget is about 800 pounds",
+false
+],
+[
+"not tablets",
+false
+],
+[
+"nothing too sad",
+false
+],
+[
+"not a bad idea",
+false
+],
+[
+"u ok with that",
+false
+],
+[
+"does that work for you",
+false
+],
+[
+"is that ok to drive on",
+false
+],
+[
+"where can i buy a kettle",
+false
+],
+[
+"any good plumber near me",
+false
+],
+[
+"can i get them taken in",
+false
+],
+[
+"how do i get to the airport from leeds",
+false
+],
+[
+"who won the world cup",
+false
+],
+[
+"when is high tide in whitby",
+false
+]
+],
+"loss.is_dying_now": [
+[
+"my nan passed in jan",
+false
+],
+[
+"she passed peacefully",
+false
+],
+[
+"i passed my test",
+false
+],
+[
+"he passed me the salt",
+false
+],
+[
+"my mum got her results and she passed",
+false
+],
+[
+"my grandad passed on in march",
+false
+],
+[
+"i passed on the job",
+false
+],
+[
+"we buried my dad",
+false
+],
+[
+"i buried the fence posts",
+false
+],
+[
+"the dog is buried at the end of the garden",
+false
+],
+[
+"my mums death was sudden",
+false
+],
+[
+"the death star lego set",
+false
+],
+[
+"hamlets death",
+false
+],
+[
+"the death of my laptop",
+false
+],
+[
+"my cat was run over last night",
+false
+],
+[
+"my dad got knocked over by a bike",
+false
+],
+[
+"i lost my son at the park",
+false
+],
+[
+"we lost the baby at twelve weeks",
+false
+],
+[
+"losing my wife has hit me hard",
+false
+],
+[
+"im losing my friend",
+false
+],
+[
+"my mum would have been 70 this week",
+false
+],
+[
+"the first christmas without my dad",
+false
+],
+[
+"my phone died",
+false
+],
+[
+"i bought a phone for my daughter and it died",
+false
+],
+[
+"my carer badge died",
+false
+],
+[
+"my vacuum cleaner died",
+false
+],
+[
+"the doctor said theres nothing more they can do",
+true
+],
+[
+"nothing more they can do about my knee",
+false
+],
+[
+"they put my dad on morphine",
+true
+],
+[
+"im on morphine for my back",
+false
+],
+[
+"my nan is in a hospice",
+true
+],
+[
+"my grandad was killed in a crash",
+false
+],
+[
+"my brother was killed in a film last night",
+false
+],
+[
+"my cat keeps bringing dead birds in",
+false
+],
+[
+"dead tired",
+false
+],
+[
+"the boiler is dead and it keeps cutting out",
+false
+],
+[
+"is it normal to still cry about my mum three years later",
+false
+],
+[
+"my son keeps crying",
+false
+],
+[
+"she's dying",
+true
+],
+[
+"our fish are going to die if we dont clean the tank",
+false
+],
+[
+"what do i say when someone dies",
+false
+],
+[
+"how do i arrange a funeral",
+false
+],
+[
+"funeral costs",
+false
+],
+[
+"the loss of my mum",
+false
+],
+[
+"the news of my dad hit me hard",
+false
+],
+[
+"my knee is killing me",
+false
+],
+[
+"my washing machine is broken",
+false
+],
+[
+"my career is stuck",
+false
+],
+[
+"my confidence has gone",
+false
+],
+[
+"my razor keeps pulling",
+false
+],
+[
+"the road keeps flooding",
+false
+],
+[
+"this soup is to die for but the oven is broken",
+false
+],
+[
+"my wrist is broken",
+false
+],
+[
+"my heart is broken",
+false
+],
+[
+"the pan is burnt",
+false
+],
+[
+"my lips are burnt",
+false
+],
+[
+"i got the job and nobody said anything",
+false
+],
+[
+"we finally got the keys and the place is a state",
+false
+],
+[
+"i won a competition i never entered",
+false
+],
+[
+"my knee doesnt feel better",
+false
+],
+[
+"the rash has cleared up",
+false
+],
+[
+"my cough has gone green",
+false
+],
+[
+"the biopsy was benign",
+false
+],
+[
+"is 2400 a lot",
+false
+],
+[
+"60 seems high",
+false
+],
+[
+"30 quid for a haircut is that reasonable",
+false
+],
+[
+"thats expensive",
+false
+],
+[
+"a bit much",
+false
+],
+[
+"is 1998 a lot",
+false
+],
+[
+"is 45 an hour normal",
+false
+],
+[
+"is 80 pounds a lot",
+false
+],
+[
+"half an hour",
+false
+],
+[
+"an hour and a half each way",
+false
+],
+[
+"3km",
+false
+],
+[
+"a tenner",
+false
+],
+[
+"£250",
+false
+],
+[
+"20 minutes a day",
+false
+],
+[
+"45 a month",
+false
+],
+[
+"i take 5 a day",
+false
+],
+[
+"my budget is about 800 pounds",
+false
+],
+[
+"not tablets",
+false
+],
+[
+"nothing too sad",
+false
+],
+[
+"not a bad idea",
+false
+],
+[
+"u ok with that",
+false
+],
+[
+"does that work for you",
+false
+],
+[
+"is that ok to drive on",
+false
+],
+[
+"where can i buy a kettle",
+false
+],
+[
+"any good plumber near me",
+false
+],
+[
+"can i get them taken in",
+false
+],
+[
+"how do i get to the airport from leeds",
+false
+],
+[
+"who won the world cup",
+false
+],
+[
+"when is high tide in whitby",
+false
+]
+],
+"loss.whose": [
+[
+"my nan passed in jan",
+"own"
+],
+[
+"she passed peacefully",
+"own"
+],
+[
+"i passed my test",
+"own"
+],
+[
+"he passed me the salt",
+"own"
+],
+[
+"my mum got her results and she passed",
+"own"
+],
+[
+"my grandad passed on in march",
+"own"
+],
+[
+"i passed on the job",
+"own"
+],
+[
+"we buried my dad",
+"own"
+],
+[
+"i buried the fence posts",
+"own"
+],
+[
+"the dog is buried at the end of the garden",
+"own"
+],
+[
+"my mums death was sudden",
+"own"
+],
+[
+"the death star lego set",
+"own"
+],
+[
+"hamlets death",
+"own"
+],
+[
+"the death of my laptop",
+"own"
+],
+[
+"my cat was run over last night",
+"own"
+],
+[
+"my dad got knocked over by a bike",
+"own"
+],
+[
+"i lost my son at the park",
+"own"
+],
+[
+"we lost the baby at twelve weeks",
+"own"
+],
+[
+"losing my wife has hit me hard",
+"own"
+],
+[
+"im losing my friend",
+"own"
+],
+[
+"my mum would have been 70 this week",
+"own"
+],
+[
+"the first christmas without my dad",
+"own"
+],
+[
+"my phone died",
+"own"
+],
+[
+"i bought a phone for my daughter and it died",
+"own"
+],
+[
+"my carer badge died",
+"own"
+],
+[
+"my vacuum cleaner died",
+"own"
+],
+[
+"the doctor said theres nothing more they can do",
+"own"
+],
+[
+"nothing more they can do about my knee",
+"own"
+],
+[
+"they put my dad on morphine",
+"own"
+],
+[
+"im on morphine for my back",
+"own"
+],
+[
+"my nan is in a hospice",
+"own"
+],
+[
+"my grandad was killed in a crash",
+"own"
+],
+[
+"my brother was killed in a film last night",
+"own"
+],
+[
+"my cat keeps bringing dead birds in",
+"own"
+],
+[
+"dead tired",
+"own"
+],
+[
+"the boiler is dead and it keeps cutting out",
+"own"
+],
+[
+"is it normal to still cry about my mum three years later",
+"own"
+],
+[
+"my son keeps crying",
+"own"
+],
+[
+"she's dying",
+"own"
+],
+[
+"our fish are going to die if we dont clean the tank",
+"own"
+],
+[
+"what do i say when someone dies",
+"own"
+],
+[
+"how do i arrange a funeral",
+"own"
+],
+[
+"funeral costs",
+"own"
+],
+[
+"the loss of my mum",
+"own"
+],
+[
+"the news of my dad hit me hard",
+"own"
+],
+[
+"my knee is killing me",
+"own"
+],
+[
+"my washing machine is broken",
+"own"
+],
+[
+"my career is stuck",
+"own"
+],
+[
+"my confidence has gone",
+"own"
+],
+[
+"my razor keeps pulling",
+"own"
+],
+[
+"the road keeps flooding",
+"own"
+],
+[
+"this soup is to die for but the oven is broken",
+"own"
+],
+[
+"my wrist is broken",
+"own"
+],
+[
+"my heart is broken",
+"own"
+],
+[
+"the pan is burnt",
+"own"
+],
+[
+"my lips are burnt",
+"own"
+],
+[
+"i got the job and nobody said anything",
+"own"
+],
+[
+"we finally got the keys and the place is a state",
+"own"
+],
+[
+"i won a competition i never entered",
+"own"
+],
+[
+"my knee doesnt feel better",
+"own"
+],
+[
+"the rash has cleared up",
+"own"
+],
+[
+"my cough has gone green",
+"own"
+],
+[
+"the biopsy was benign",
+"own"
+],
+[
+"is 2400 a lot",
+"own"
+],
+[
+"60 seems high",
+"own"
+],
+[
+"30 quid for a haircut is that reasonable",
+"own"
+],
+[
+"thats expensive",
+"own"
+],
+[
+"a bit much",
+"own"
+],
+[
+"is 1998 a lot",
+"own"
+],
+[
+"is 45 an hour normal",
+"own"
+],
+[
+"is 80 pounds a lot",
+"own"
+],
+[
+"half an hour",
+"own"
+],
+[
+"an hour and a half each way",
+"own"
+],
+[
+"3km",
+"own"
+],
+[
+"a tenner",
+"own"
+],
+[
+"£250",
+"own"
+],
+[
+"20 minutes a day",
+"own"
+],
+[
+"45 a month",
+"own"
+],
+[
+"i take 5 a day",
+"own"
+],
+[
+"my budget is about 800 pounds",
+"own"
+],
+[
+"not tablets",
+"own"
+],
+[
+"nothing too sad",
+"own"
+],
+[
+"not a bad idea",
+"own"
+],
+[
+"u ok with that",
+"own"
+],
+[
+"does that work for you",
+"own"
+],
+[
+"is that ok to drive on",
+"own"
+],
+[
+"where can i buy a kettle",
+"own"
+],
+[
+"any good plumber near me",
+"own"
+],
+[
+"can i get them taken in",
+"own"
+],
+[
+"how do i get to the airport from leeds",
+"own"
+],
+[
+"who won the world cup",
+"own"
+],
+[
+"when is high tide in whitby",
+"own"
+]
+],
+"trouble.reads_as_trouble": [
+[
+"my nan passed in jan",
+null
+],
+[
+"she passed peacefully",
+null
+],
+[
+"i passed my test",
+null
+],
+[
+"he passed me the salt",
+null
+],
+[
+"my mum got her results and she passed",
+null
+],
+[
+"my grandad passed on in march",
+null
+],
+[
+"i passed on the job",
+null
+],
+[
+"we buried my dad",
+null
+],
+[
+"i buried the fence posts",
+null
+],
+[
+"the dog is buried at the end of the garden",
+null
+],
+[
+"my mums death was sudden",
+null
+],
+[
+"the death star lego set",
+null
+],
+[
+"hamlets death",
+null
+],
+[
+"the death of my laptop",
+null
+],
+[
+"my cat was run over last night",
+null
+],
+[
+"my dad got knocked over by a bike",
+null
+],
+[
+"i lost my son at the park",
+null
+],
+[
+"we lost the baby at twelve weeks",
+null
+],
+[
+"losing my wife has hit me hard",
+null
+],
+[
+"im losing my friend",
+null
+],
+[
+"my mum would have been 70 this week",
+null
+],
+[
+"the first christmas without my dad",
+null
+],
+[
+"my phone died",
+"thing"
+],
+[
+"i bought a phone for my daughter and it died",
+null
+],
+[
+"my carer badge died",
+null
+],
+[
+"my vacuum cleaner died",
+"thing"
+],
+[
+"the doctor said theres nothing more they can do",
+null
+],
+[
+"nothing more they can do about my knee",
+null
+],
+[
+"they put my dad on morphine",
+null
+],
+[
+"im on morphine for my back",
+null
+],
+[
+"my nan is in a hospice",
+null
+],
+[
+"my grandad was killed in a crash",
+null
+],
+[
+"my brother was killed in a film last night",
+null
+],
+[
+"my cat keeps bringing dead birds in",
+null
+],
+[
+"dead tired",
+null
+],
+[
+"the boiler is dead and it keeps cutting out",
+"thing"
+],
+[
+"is it normal to still cry about my mum three years later",
+null
+],
+[
+"my son keeps crying",
+null
+],
+[
+"she's dying",
+null
+],
+[
+"our fish are going to die if we dont clean the tank",
+null
+],
+[
+"what do i say when someone dies",
+null
+],
+[
+"how do i arrange a funeral",
+null
+],
+[
+"funeral costs",
+null
+],
+[
+"the loss of my mum",
+null
+],
+[
+"the news of my dad hit me hard",
+null
+],
+[
+"my knee is killing me",
+"sore"
+],
+[
+"my washing machine is broken",
+"thing"
+],
+[
+"my career is stuck",
+"strain"
+],
+[
+"my confidence has gone",
+"strain"
+],
+[
+"my razor keeps pulling",
+"thing"
+],
+[
+"the road keeps flooding",
+null
+],
+[
+"this soup is to die for but the oven is broken",
+"thing"
+],
+[
+"my wrist is broken",
+null
+],
+[
+"my heart is broken",
+null
+],
+[
+"the pan is burnt",
+"thing"
+],
+[
+"my lips are burnt",
+"thing"
+],
+[
+"i got the job and nobody said anything",
+null
+],
+[
+"we finally got the keys and the place is a state",
+null
+],
+[
+"i won a competition i never entered",
+null
+],
+[
+"my knee doesnt feel better",
+null
+],
+[
+"the rash has cleared up",
+null
+],
+[
+"my cough has gone green",
+"thing"
+],
+[
+"the biopsy was benign",
+null
+],
+[
+"is 2400 a lot",
+null
+],
+[
+"60 seems high",
+null
+],
+[
+"30 quid for a haircut is that reasonable",
+null
+],
+[
+"thats expensive",
+null
+],
+[
+"a bit much",
+null
+],
+[
+"is 1998 a lot",
+null
+],
+[
+"is 45 an hour normal",
+null
+],
+[
+"is 80 pounds a lot",
+null
+],
+[
+"half an hour",
+null
+],
+[
+"an hour and a half each way",
+null
+],
+[
+"3km",
+null
+],
+[
+"a tenner",
+null
+],
+[
+"£250",
+null
+],
+[
+"20 minutes a day",
+null
+],
+[
+"45 a month",
+null
+],
+[
+"i take 5 a day",
+null
+],
+[
+"my budget is about 800 pounds",
+null
+],
+[
+"not tablets",
+null
+],
+[
+"nothing too sad",
+null
+],
+[
+"not a bad idea",
+null
+],
+[
+"u ok with that",
+null
+],
+[
+"does that work for you",
+null
+],
+[
+"is that ok to drive on",
+null
+],
+[
+"where can i buy a kettle",
+null
+],
+[
+"any good plumber near me",
+null
+],
+[
+"can i get them taken in",
+null
+],
+[
+"how do i get to the airport from leeds",
+null
+],
+[
+"who won the world cup",
+null
+],
+[
+"when is high tide in whitby",
+null
+]
+],
+"goodnews.reads_as_settled": [
+[
+"my nan passed in jan",
+false
+],
+[
+"she passed peacefully",
+false
+],
+[
+"i passed my test",
+false
+],
+[
+"he passed me the salt",
+false
+],
+[
+"my mum got her results and she passed",
+false
+],
+[
+"my grandad passed on in march",
+false
+],
+[
+"i passed on the job",
+false
+],
+[
+"we buried my dad",
+false
+],
+[
+"i buried the fence posts",
+false
+],
+[
+"the dog is buried at the end of the garden",
+false
+],
+[
+"my mums death was sudden",
+false
+],
+[
+"the death star lego set",
+false
+],
+[
+"hamlets death",
+false
+],
+[
+"the death of my laptop",
+false
+],
+[
+"my cat was run over last night",
+false
+],
+[
+"my dad got knocked over by a bike",
+false
+],
+[
+"i lost my son at the park",
+false
+],
+[
+"we lost the baby at twelve weeks",
+false
+],
+[
+"losing my wife has hit me hard",
+false
+],
+[
+"im losing my friend",
+false
+],
+[
+"my mum would have been 70 this week",
+false
+],
+[
+"the first christmas without my dad",
+false
+],
+[
+"my phone died",
+false
+],
+[
+"i bought a phone for my daughter and it died",
+false
+],
+[
+"my carer badge died",
+false
+],
+[
+"my vacuum cleaner died",
+false
+],
+[
+"the doctor said theres nothing more they can do",
+false
+],
+[
+"nothing more they can do about my knee",
+false
+],
+[
+"they put my dad on morphine",
+false
+],
+[
+"im on morphine for my back",
+false
+],
+[
+"my nan is in a hospice",
+false
+],
+[
+"my grandad was killed in a crash",
+false
+],
+[
+"my brother was killed in a film last night",
+false
+],
+[
+"my cat keeps bringing dead birds in",
+false
+],
+[
+"dead tired",
+false
+],
+[
+"the boiler is dead and it keeps cutting out",
+false
+],
+[
+"is it normal to still cry about my mum three years later",
+false
+],
+[
+"my son keeps crying",
+false
+],
+[
+"she's dying",
+false
+],
+[
+"our fish are going to die if we dont clean the tank",
+false
+],
+[
+"what do i say when someone dies",
+false
+],
+[
+"how do i arrange a funeral",
+false
+],
+[
+"funeral costs",
+false
+],
+[
+"the loss of my mum",
+false
+],
+[
+"the news of my dad hit me hard",
+false
+],
+[
+"my knee is killing me",
+false
+],
+[
+"my washing machine is broken",
+false
+],
+[
+"my career is stuck",
+false
+],
+[
+"my confidence has gone",
+true
+],
+[
+"my razor keeps pulling",
+false
+],
+[
+"the road keeps flooding",
+false
+],
+[
+"this soup is to die for but the oven is broken",
+false
+],
+[
+"my wrist is broken",
+false
+],
+[
+"my heart is broken",
+false
+],
+[
+"the pan is burnt",
+false
+],
+[
+"my lips are burnt",
+false
+],
+[
+"i got the job and nobody said anything",
+false
+],
+[
+"we finally got the keys and the place is a state",
+false
+],
+[
+"i won a competition i never entered",
+false
+],
+[
+"my knee doesnt feel better",
+false
+],
+[
+"the rash has cleared up",
+true
+],
+[
+"my cough has gone green",
+false
+],
+[
+"the biopsy was benign",
+false
+],
+[
+"is 2400 a lot",
+false
+],
+[
+"60 seems high",
+false
+],
+[
+"30 quid for a haircut is that reasonable",
+false
+],
+[
+"thats expensive",
+false
+],
+[
+"a bit much",
+false
+],
+[
+"is 1998 a lot",
+false
+],
+[
+"is 45 an hour normal",
+false
+],
+[
+"is 80 pounds a lot",
+false
+],
+[
+"half an hour",
+false
+],
+[
+"an hour and a half each way",
+false
+],
+[
+"3km",
+false
+],
+[
+"a tenner",
+false
+],
+[
+"£250",
+false
+],
+[
+"20 minutes a day",
+false
+],
+[
+"45 a month",
+false
+],
+[
+"i take 5 a day",
+false
+],
+[
+"my budget is about 800 pounds",
+false
+],
+[
+"not tablets",
+false
+],
+[
+"nothing too sad",
+false
+],
+[
+"not a bad idea",
+false
+],
+[
+"u ok with that",
+false
+],
+[
+"does that work for you",
+false
+],
+[
+"is that ok to drive on",
+false
+],
+[
+"where can i buy a kettle",
+false
+],
+[
+"any good plumber near me",
+false
+],
+[
+"can i get them taken in",
+false
+],
+[
+"how do i get to the airport from leeds",
+false
+],
+[
+"who won the world cup",
+false
+],
+[
+"when is high tide in whitby",
+false
+]
+],
+"goodnews.reads_as_a_clear_result": [
+[
+"my nan passed in jan",
+false
+],
+[
+"she passed peacefully",
+false
+],
+[
+"i passed my test",
+false
+],
+[
+"he passed me the salt",
+false
+],
+[
+"my mum got her results and she passed",
+false
+],
+[
+"my grandad passed on in march",
+false
+],
+[
+"i passed on the job",
+false
+],
+[
+"we buried my dad",
+false
+],
+[
+"i buried the fence posts",
+false
+],
+[
+"the dog is buried at the end of the garden",
+false
+],
+[
+"my mums death was sudden",
+false
+],
+[
+"the death star lego set",
+false
+],
+[
+"hamlets death",
+false
+],
+[
+"the death of my laptop",
+false
+],
+[
+"my cat was run over last night",
+false
+],
+[
+"my dad got knocked over by a bike",
+false
+],
+[
+"i lost my son at the park",
+false
+],
+[
+"we lost the baby at twelve weeks",
+false
+],
+[
+"losing my wife has hit me hard",
+false
+],
+[
+"im losing my friend",
+false
+],
+[
+"my mum would have been 70 this week",
+false
+],
+[
+"the first christmas without my dad",
+false
+],
+[
+"my phone died",
+false
+],
+[
+"i bought a phone for my daughter and it died",
+false
+],
+[
+"my carer badge died",
+false
+],
+[
+"my vacuum cleaner died",
+false
+],
+[
+"the doctor said theres nothing more they can do",
+false
+],
+[
+"nothing more they can do about my knee",
+false
+],
+[
+"they put my dad on morphine",
+false
+],
+[
+"im on morphine for my back",
+false
+],
+[
+"my nan is in a hospice",
+false
+],
+[
+"my grandad was killed in a crash",
+false
+],
+[
+"my brother was killed in a film last night",
+false
+],
+[
+"my cat keeps bringing dead birds in",
+false
+],
+[
+"dead tired",
+false
+],
+[
+"the boiler is dead and it keeps cutting out",
+false
+],
+[
+"is it normal to still cry about my mum three years later",
+false
+],
+[
+"my son keeps crying",
+false
+],
+[
+"she's dying",
+false
+],
+[
+"our fish are going to die if we dont clean the tank",
+false
+],
+[
+"what do i say when someone dies",
+false
+],
+[
+"how do i arrange a funeral",
+false
+],
+[
+"funeral costs",
+false
+],
+[
+"the loss of my mum",
+false
+],
+[
+"the news of my dad hit me hard",
+false
+],
+[
+"my knee is killing me",
+false
+],
+[
+"my washing machine is broken",
+false
+],
+[
+"my career is stuck",
+false
+],
+[
+"my confidence has gone",
+false
+],
+[
+"my razor keeps pulling",
+false
+],
+[
+"the road keeps flooding",
+false
+],
+[
+"this soup is to die for but the oven is broken",
+false
+],
+[
+"my wrist is broken",
+false
+],
+[
+"my heart is broken",
+false
+],
+[
+"the pan is burnt",
+false
+],
+[
+"my lips are burnt",
+false
+],
+[
+"i got the job and nobody said anything",
+false
+],
+[
+"we finally got the keys and the place is a state",
+false
+],
+[
+"i won a competition i never entered",
+false
+],
+[
+"my knee doesnt feel better",
+false
+],
+[
+"the rash has cleared up",
+false
+],
+[
+"my cough has gone green",
+false
+],
+[
+"the biopsy was benign",
+true
+],
+[
+"is 2400 a lot",
+false
+],
+[
+"60 seems high",
+false
+],
+[
+"30 quid for a haircut is that reasonable",
+false
+],
+[
+"thats expensive",
+false
+],
+[
+"a bit much",
+false
+],
+[
+"is 1998 a lot",
+false
+],
+[
+"is 45 an hour normal",
+false
+],
+[
+"is 80 pounds a lot",
+false
+],
+[
+"half an hour",
+false
+],
+[
+"an hour and a half each way",
+false
+],
+[
+"3km",
+false
+],
+[
+"a tenner",
+false
+],
+[
+"£250",
+false
+],
+[
+"20 minutes a day",
+false
+],
+[
+"45 a month",
+false
+],
+[
+"i take 5 a day",
+false
+],
+[
+"my budget is about 800 pounds",
+false
+],
+[
+"not tablets",
+false
+],
+[
+"nothing too sad",
+false
+],
+[
+"not a bad idea",
+false
+],
+[
+"u ok with that",
+false
+],
+[
+"does that work for you",
+false
+],
+[
+"is that ok to drive on",
+false
+],
+[
+"where can i buy a kettle",
+false
+],
+[
+"any good plumber near me",
+false
+],
+[
+"can i get them taken in",
+false
+],
+[
+"how do i get to the airport from leeds",
+false
+],
+[
+"who won the world cup",
+false
+],
+[
+"when is high tide in whitby",
+false
+]
+],
+"goodnews.reads_as_recovery": [
+[
+"my nan passed in jan",
+false
+],
+[
+"she passed peacefully",
+false
+],
+[
+"i passed my test",
+false
+],
+[
+"he passed me the salt",
+false
+],
+[
+"my mum got her results and she passed",
+false
+],
+[
+"my grandad passed on in march",
+false
+],
+[
+"i passed on the job",
+false
+],
+[
+"we buried my dad",
+false
+],
+[
+"i buried the fence posts",
+false
+],
+[
+"the dog is buried at the end of the garden",
+false
+],
+[
+"my mums death was sudden",
+false
+],
+[
+"the death star lego set",
+false
+],
+[
+"hamlets death",
+false
+],
+[
+"the death of my laptop",
+false
+],
+[
+"my cat was run over last night",
+false
+],
+[
+"my dad got knocked over by a bike",
+false
+],
+[
+"i lost my son at the park",
+false
+],
+[
+"we lost the baby at twelve weeks",
+false
+],
+[
+"losing my wife has hit me hard",
+false
+],
+[
+"im losing my friend",
+false
+],
+[
+"my mum would have been 70 this week",
+false
+],
+[
+"the first christmas without my dad",
+false
+],
+[
+"my phone died",
+false
+],
+[
+"i bought a phone for my daughter and it died",
+false
+],
+[
+"my carer badge died",
+false
+],
+[
+"my vacuum cleaner died",
+false
+],
+[
+"the doctor said theres nothing more they can do",
+false
+],
+[
+"nothing more they can do about my knee",
+false
+],
+[
+"they put my dad on morphine",
+false
+],
+[
+"im on morphine for my back",
+false
+],
+[
+"my nan is in a hospice",
+false
+],
+[
+"my grandad was killed in a crash",
+false
+],
+[
+"my brother was killed in a film last night",
+false
+],
+[
+"my cat keeps bringing dead birds in",
+false
+],
+[
+"dead tired",
+false
+],
+[
+"the boiler is dead and it keeps cutting out",
+false
+],
+[
+"is it normal to still cry about my mum three years later",
+false
+],
+[
+"my son keeps crying",
+false
+],
+[
+"she's dying",
+false
+],
+[
+"our fish are going to die if we dont clean the tank",
+false
+],
+[
+"what do i say when someone dies",
+false
+],
+[
+"how do i arrange a funeral",
+false
+],
+[
+"funeral costs",
+false
+],
+[
+"the loss of my mum",
+false
+],
+[
+"the news of my dad hit me hard",
+false
+],
+[
+"my knee is killing me",
+false
+],
+[
+"my washing machine is broken",
+false
+],
+[
+"my career is stuck",
+false
+],
+[
+"my confidence has gone",
+false
+],
+[
+"my razor keeps pulling",
+false
+],
+[
+"the road keeps flooding",
+false
+],
+[
+"this soup is to die for but the oven is broken",
+false
+],
+[
+"my wrist is broken",
+false
+],
+[
+"my heart is broken",
+false
+],
+[
+"the pan is burnt",
+false
+],
+[
+"my lips are burnt",
+false
+],
+[
+"i got the job and nobody said anything",
+false
+],
+[
+"we finally got the keys and the place is a state",
+false
+],
+[
+"i won a competition i never entered",
+false
+],
+[
+"my knee doesnt feel better",
+false
+],
+[
+"the rash has cleared up",
+true
+],
+[
+"my cough has gone green",
+true
+],
+[
+"the biopsy was benign",
+false
+],
+[
+"is 2400 a lot",
+false
+],
+[
+"60 seems high",
+false
+],
+[
+"30 quid for a haircut is that reasonable",
+false
+],
+[
+"thats expensive",
+false
+],
+[
+"a bit much",
+false
+],
+[
+"is 1998 a lot",
+false
+],
+[
+"is 45 an hour normal",
+false
+],
+[
+"is 80 pounds a lot",
+false
+],
+[
+"half an hour",
+false
+],
+[
+"an hour and a half each way",
+false
+],
+[
+"3km",
+false
+],
+[
+"a tenner",
+false
+],
+[
+"£250",
+false
+],
+[
+"20 minutes a day",
+false
+],
+[
+"45 a month",
+false
+],
+[
+"i take 5 a day",
+false
+],
+[
+"my budget is about 800 pounds",
+false
+],
+[
+"not tablets",
+false
+],
+[
+"nothing too sad",
+false
+],
+[
+"not a bad idea",
+false
+],
+[
+"u ok with that",
+false
+],
+[
+"does that work for you",
+false
+],
+[
+"is that ok to drive on",
+false
+],
+[
+"where can i buy a kettle",
+false
+],
+[
+"any good plumber near me",
+false
+],
+[
+"can i get them taken in",
+false
+],
+[
+"how do i get to the airport from leeds",
+false
+],
+[
+"who won the world cup",
+false
+],
+[
+"when is high tide in whitby",
+false
+]
+],
+"goodnews.reads_as_a_prize_in_a_message": [
+[
+"my nan passed in jan",
+false
+],
+[
+"she passed peacefully",
+false
+],
+[
+"i passed my test",
+false
+],
+[
+"he passed me the salt",
+false
+],
+[
+"my mum got her results and she passed",
+false
+],
+[
+"my grandad passed on in march",
+false
+],
+[
+"i passed on the job",
+false
+],
+[
+"we buried my dad",
+false
+],
+[
+"i buried the fence posts",
+false
+],
+[
+"the dog is buried at the end of the garden",
+false
+],
+[
+"my mums death was sudden",
+false
+],
+[
+"the death star lego set",
+false
+],
+[
+"hamlets death",
+false
+],
+[
+"the death of my laptop",
+false
+],
+[
+"my cat was run over last night",
+false
+],
+[
+"my dad got knocked over by a bike",
+false
+],
+[
+"i lost my son at the park",
+false
+],
+[
+"we lost the baby at twelve weeks",
+false
+],
+[
+"losing my wife has hit me hard",
+false
+],
+[
+"im losing my friend",
+false
+],
+[
+"my mum would have been 70 this week",
+false
+],
+[
+"the first christmas without my dad",
+false
+],
+[
+"my phone died",
+false
+],
+[
+"i bought a phone for my daughter and it died",
+false
+],
+[
+"my carer badge died",
+false
+],
+[
+"my vacuum cleaner died",
+false
+],
+[
+"the doctor said theres nothing more they can do",
+false
+],
+[
+"nothing more they can do about my knee",
+false
+],
+[
+"they put my dad on morphine",
+false
+],
+[
+"im on morphine for my back",
+false
+],
+[
+"my nan is in a hospice",
+false
+],
+[
+"my grandad was killed in a crash",
+false
+],
+[
+"my brother was killed in a film last night",
+false
+],
+[
+"my cat keeps bringing dead birds in",
+false
+],
+[
+"dead tired",
+false
+],
+[
+"the boiler is dead and it keeps cutting out",
+false
+],
+[
+"is it normal to still cry about my mum three years later",
+false
+],
+[
+"my son keeps crying",
+false
+],
+[
+"she's dying",
+false
+],
+[
+"our fish are going to die if we dont clean the tank",
+false
+],
+[
+"what do i say when someone dies",
+false
+],
+[
+"how do i arrange a funeral",
+false
+],
+[
+"funeral costs",
+false
+],
+[
+"the loss of my mum",
+false
+],
+[
+"the news of my dad hit me hard",
+false
+],
+[
+"my knee is killing me",
+false
+],
+[
+"my washing machine is broken",
+false
+],
+[
+"my career is stuck",
+false
+],
+[
+"my confidence has gone",
+false
+],
+[
+"my razor keeps pulling",
+false
+],
+[
+"the road keeps flooding",
+false
+],
+[
+"this soup is to die for but the oven is broken",
+false
+],
+[
+"my wrist is broken",
+false
+],
+[
+"my heart is broken",
+false
+],
+[
+"the pan is burnt",
+false
+],
+[
+"my lips are burnt",
+false
+],
+[
+"i got the job and nobody said anything",
+false
+],
+[
+"we finally got the keys and the place is a state",
+false
+],
+[
+"i won a competition i never entered",
+true
+],
+[
+"my knee doesnt feel better",
+false
+],
+[
+"the rash has cleared up",
+false
+],
+[
+"my cough has gone green",
+false
+],
+[
+"the biopsy was benign",
+false
+],
+[
+"is 2400 a lot",
+false
+],
+[
+"60 seems high",
+false
+],
+[
+"30 quid for a haircut is that reasonable",
+false
+],
+[
+"thats expensive",
+false
+],
+[
+"a bit much",
+false
+],
+[
+"is 1998 a lot",
+false
+],
+[
+"is 45 an hour normal",
+false
+],
+[
+"is 80 pounds a lot",
+false
+],
+[
+"half an hour",
+false
+],
+[
+"an hour and a half each way",
+false
+],
+[
+"3km",
+false
+],
+[
+"a tenner",
+false
+],
+[
+"£250",
+false
+],
+[
+"20 minutes a day",
+false
+],
+[
+"45 a month",
+false
+],
+[
+"i take 5 a day",
+false
+],
+[
+"my budget is about 800 pounds",
+false
+],
+[
+"not tablets",
+false
+],
+[
+"nothing too sad",
+false
+],
+[
+"not a bad idea",
+false
+],
+[
+"u ok with that",
+false
+],
+[
+"does that work for you",
+false
+],
+[
+"is that ok to drive on",
+false
+],
+[
+"where can i buy a kettle",
+false
+],
+[
+"any good plumber near me",
+false
+],
+[
+"can i get them taken in",
+false
+],
+[
+"how do i get to the airport from leeds",
+false
+],
+[
+"who won the world cup",
+false
+],
+[
+"when is high tide in whitby",
+false
+]
+],
+"reading._doubt": [
+[
+"my nan passed in jan",
+null
+],
+[
+"she passed peacefully",
+null
+],
+[
+"i passed my test",
+null
+],
+[
+"he passed me the salt",
+null
+],
+[
+"my mum got her results and she passed",
+null
+],
+[
+"my grandad passed on in march",
+null
+],
+[
+"i passed on the job",
+null
+],
+[
+"we buried my dad",
+null
+],
+[
+"i buried the fence posts",
+null
+],
+[
+"the dog is buried at the end of the garden",
+null
+],
+[
+"my mums death was sudden",
+null
+],
+[
+"the death star lego set",
+null
+],
+[
+"hamlets death",
+null
+],
+[
+"the death of my laptop",
+null
+],
+[
+"my cat was run over last night",
+null
+],
+[
+"my dad got knocked over by a bike",
+null
+],
+[
+"i lost my son at the park",
+null
+],
+[
+"we lost the baby at twelve weeks",
+null
+],
+[
+"losing my wife has hit me hard",
+null
+],
+[
+"im losing my friend",
+null
+],
+[
+"my mum would have been 70 this week",
+null
+],
+[
+"the first christmas without my dad",
+null
+],
+[
+"my phone died",
+null
+],
+[
+"i bought a phone for my daughter and it died",
+null
+],
+[
+"my carer badge died",
+null
+],
+[
+"my vacuum cleaner died",
+null
+],
+[
+"the doctor said theres nothing more they can do",
+null
+],
+[
+"nothing more they can do about my knee",
+null
+],
+[
+"they put my dad on morphine",
+null
+],
+[
+"im on morphine for my back",
+null
+],
+[
+"my nan is in a hospice",
+null
+],
+[
+"my grandad was killed in a crash",
+null
+],
+[
+"my brother was killed in a film last night",
+null
+],
+[
+"my cat keeps bringing dead birds in",
+null
+],
+[
+"dead tired",
+null
+],
+[
+"the boiler is dead and it keeps cutting out",
+null
+],
+[
+"is it normal to still cry about my mum three years later",
+null
+],
+[
+"my son keeps crying",
+null
+],
+[
+"she's dying",
+null
+],
+[
+"our fish are going to die if we dont clean the tank",
+null
+],
+[
+"what do i say when someone dies",
+null
+],
+[
+"how do i arrange a funeral",
+null
+],
+[
+"funeral costs",
+null
+],
+[
+"the loss of my mum",
+null
+],
+[
+"the news of my dad hit me hard",
+null
+],
+[
+"my knee is killing me",
+null
+],
+[
+"my washing machine is broken",
+null
+],
+[
+"my career is stuck",
+null
+],
+[
+"my confidence has gone",
+null
+],
+[
+"my razor keeps pulling",
+null
+],
+[
+"the road keeps flooding",
+null
+],
+[
+"this soup is to die for but the oven is broken",
+null
+],
+[
+"my wrist is broken",
+null
+],
+[
+"my heart is broken",
+null
+],
+[
+"the pan is burnt",
+null
+],
+[
+"my lips are burnt",
+null
+],
+[
+"i got the job and nobody said anything",
+null
+],
+[
+"we finally got the keys and the place is a state",
+null
+],
+[
+"i won a competition i never entered",
+null
+],
+[
+"my knee doesnt feel better",
+null
+],
+[
+"the rash has cleared up",
+null
+],
+[
+"my cough has gone green",
+null
+],
+[
+"the biopsy was benign",
+null
+],
+[
+"is 2400 a lot",
+{
+"word": "a lot",
+"value": 2400.0,
+"money": false,
+"unit": "",
+"subject": "",
+"rate": false
+}
+],
+[
+"60 seems high",
+{
+"word": "too high",
+"value": 60.0,
+"money": false,
+"unit": "",
+"subject": "",
+"rate": false
+}
+],
+[
+"30 quid for a haircut is that reasonable",
+{
+"word": "reasonable",
+"value": 30.0,
+"money": false,
+"unit": "",
+"subject": "a haircut",
+"rate": false
+}
+],
+[
+"thats expensive",
+{
+"word": "expensive",
+"value": null,
+"money": false,
+"unit": "",
+"subject": "",
+"rate": false
+}
+],
+[
+"a bit much",
+{
+"word": "too much",
+"value": null,
+"money": false,
+"unit": "",
+"subject": "",
+"rate": false
+}
+],
+[
+"is 1998 a lot",
+null
+],
+[
+"is 45 an hour normal",
+{
+"word": "normal",
+"value": 45.0,
+"money": false,
+"unit": "hour",
+"subject": "",
+"rate": true
+}
+],
+[
+"is 80 pounds a lot",
+{
+"word": "a lot",
+"value": 80.0,
+"money": true,
+"unit": "",
+"subject": "",
+"rate": false
+}
+],
+[
+"half an hour",
+null
+],
+[
+"an hour and a half each way",
+null
+],
+[
+"3km",
+null
+],
+[
+"a tenner",
+null
+],
+[
+"£250",
+null
+],
+[
+"20 minutes a day",
+null
+],
+[
+"45 a month",
+null
+],
+[
+"i take 5 a day",
+null
+],
+[
+"my budget is about 800 pounds",
+null
+],
+[
+"not tablets",
+null
+],
+[
+"nothing too sad",
+null
+],
+[
+"not a bad idea",
+null
+],
+[
+"u ok with that",
+null
+],
+[
+"does that work for you",
+null
+],
+[
+"is that ok to drive on",
+null
+],
+[
+"where can i buy a kettle",
+null
+],
+[
+"any good plumber near me",
+null
+],
+[
+"can i get them taken in",
+null
+],
+[
+"how do i get to the airport from leeds",
+null
+],
+[
+"who won the world cup",
+null
+],
+[
+"when is high tide in whitby",
+null
+]
+],
+"quantity._read": [
+[
+"my nan passed in jan",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"she passed peacefully",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"i passed my test",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"he passed me the salt",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my mum got her results and she passed",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my grandad passed on in march",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"i passed on the job",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"we buried my dad",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"i buried the fence posts",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the dog is buried at the end of the garden",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my mums death was sudden",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the death star lego set",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"hamlets death",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the death of my laptop",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my cat was run over last night",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my dad got knocked over by a bike",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"i lost my son at the park",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"we lost the baby at twelve weeks",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"losing my wife has hit me hard",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"im losing my friend",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my mum would have been 70 this week",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the first christmas without my dad",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my phone died",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"i bought a phone for my daughter and it died",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my carer badge died",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my vacuum cleaner died",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the doctor said theres nothing more they can do",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"nothing more they can do about my knee",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"they put my dad on morphine",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"im on morphine for my back",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my nan is in a hospice",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my grandad was killed in a crash",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my brother was killed in a film last night",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my cat keeps bringing dead birds in",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"dead tired",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the boiler is dead and it keeps cutting out",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"is it normal to still cry about my mum three years later",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my son keeps crying",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"she's dying",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"our fish are going to die if we dont clean the tank",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"what do i say when someone dies",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"how do i arrange a funeral",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"funeral costs",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the loss of my mum",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the news of my dad hit me hard",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my knee is killing me",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my washing machine is broken",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my career is stuck",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my confidence has gone",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my razor keeps pulling",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the road keeps flooding",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"this soup is to die for but the oven is broken",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my wrist is broken",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my heart is broken",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the pan is burnt",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my lips are burnt",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"i got the job and nobody said anything",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"we finally got the keys and the place is a state",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"i won a competition i never entered",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my knee doesnt feel better",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the rash has cleared up",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my cough has gone green",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"the biopsy was benign",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"is 2400 a lot",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"60 seems high",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"30 quid for a haircut is that reasonable",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"thats expensive",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"a bit much",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"is 1998 a lot",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"is 45 an hour normal",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"is 80 pounds a lot",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"half an hour",
+[
+30.0,
+"time",
+"hour",
+null,
+"half an hour",
+""
+]
+],
+[
+"an hour and a half each way",
+[
+90.0,
+"time",
+"hour",
+null,
+"an hour and a half",
+"each way"
+]
+],
+[
+"3km",
+[
+1.8641999999999999,
+"distance",
+"km",
+null,
+"3",
+""
+]
+],
+[
+"a tenner",
+[
+10.0,
+"money",
+"money",
+null,
+"a tenner",
+""
+]
+],
+[
+"£250",
+[
+250.0,
+"money",
+"money",
+null,
+"£250",
+""
+]
+],
+[
+"20 minutes a day",
+[
+20.0,
+"time",
+"minutes",
+"day",
+"20",
+""
+]
+],
+[
+"45 a month",
+[
+45.0,
+"money",
+"money",
+"month",
+"45",
+""
+]
+],
+[
+"i take 5 a day",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"my budget is about 800 pounds",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"not tablets",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"nothing too sad",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"not a bad idea",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"u ok with that",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"does that work for you",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"is that ok to drive on",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"where can i buy a kettle",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"any good plumber near me",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"can i get them taken in",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"how do i get to the airport from leeds",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"who won the world cup",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+],
+[
+"when is high tide in whitby",
+[
+null,
+null,
+null,
+null,
+null,
+null
+]
+]
+],
+"ruledout._ruled_out_thing": [
+[
+"my nan passed in jan",
+[
+"",
+false
+]
+],
+[
+"she passed peacefully",
+[
+"",
+false
+]
+],
+[
+"i passed my test",
+[
+"",
+false
+]
+],
+[
+"he passed me the salt",
+[
+"",
+false
+]
+],
+[
+"my mum got her results and she passed",
+[
+"",
+false
+]
+],
+[
+"my grandad passed on in march",
+[
+"",
+false
+]
+],
+[
+"i passed on the job",
+[
+"",
+false
+]
+],
+[
+"we buried my dad",
+[
+"",
+false
+]
+],
+[
+"i buried the fence posts",
+[
+"",
+false
+]
+],
+[
+"the dog is buried at the end of the garden",
+[
+"",
+false
+]
+],
+[
+"my mums death was sudden",
+[
+"",
+false
+]
+],
+[
+"the death star lego set",
+[
+"",
+false
+]
+],
+[
+"hamlets death",
+[
+"",
+false
+]
+],
+[
+"the death of my laptop",
+[
+"",
+false
+]
+],
+[
+"my cat was run over last night",
+[
+"",
+false
+]
+],
+[
+"my dad got knocked over by a bike",
+[
+"",
+false
+]
+],
+[
+"i lost my son at the park",
+[
+"",
+false
+]
+],
+[
+"we lost the baby at twelve weeks",
+[
+"",
+false
+]
+],
+[
+"losing my wife has hit me hard",
+[
+"",
+false
+]
+],
+[
+"im losing my friend",
+[
+"",
+false
+]
+],
+[
+"my mum would have been 70 this week",
+[
+"",
+false
+]
+],
+[
+"the first christmas without my dad",
+[
+"",
+false
+]
+],
+[
+"my phone died",
+[
+"",
+false
+]
+],
+[
+"i bought a phone for my daughter and it died",
+[
+"",
+false
+]
+],
+[
+"my carer badge died",
+[
+"",
+false
+]
+],
+[
+"my vacuum cleaner died",
+[
+"",
+false
+]
+],
+[
+"the doctor said theres nothing more they can do",
+[
+"",
+false
+]
+],
+[
+"nothing more they can do about my knee",
+[
+"",
+false
+]
+],
+[
+"they put my dad on morphine",
+[
+"",
+false
+]
+],
+[
+"im on morphine for my back",
+[
+"",
+false
+]
+],
+[
+"my nan is in a hospice",
+[
+"",
+false
+]
+],
+[
+"my grandad was killed in a crash",
+[
+"",
+false
+]
+],
+[
+"my brother was killed in a film last night",
+[
+"",
+false
+]
+],
+[
+"my cat keeps bringing dead birds in",
+[
+"",
+false
+]
+],
+[
+"dead tired",
+[
+"",
+false
+]
+],
+[
+"the boiler is dead and it keeps cutting out",
+[
+"",
+false
+]
+],
+[
+"is it normal to still cry about my mum three years later",
+[
+"",
+false
+]
+],
+[
+"my son keeps crying",
+[
+"",
+false
+]
+],
+[
+"she's dying",
+[
+"",
+false
+]
+],
+[
+"our fish are going to die if we dont clean the tank",
+[
+"",
+false
+]
+],
+[
+"what do i say when someone dies",
+[
+"",
+false
+]
+],
+[
+"how do i arrange a funeral",
+[
+"",
+false
+]
+],
+[
+"funeral costs",
+[
+"",
+false
+]
+],
+[
+"the loss of my mum",
+[
+"",
+false
+]
+],
+[
+"the news of my dad hit me hard",
+[
+"",
+false
+]
+],
+[
+"my knee is killing me",
+[
+"",
+false
+]
+],
+[
+"my washing machine is broken",
+[
+"",
+false
+]
+],
+[
+"my career is stuck",
+[
+"",
+false
+]
+],
+[
+"my confidence has gone",
+[
+"",
+false
+]
+],
+[
+"my razor keeps pulling",
+[
+"",
+false
+]
+],
+[
+"the road keeps flooding",
+[
+"",
+false
+]
+],
+[
+"this soup is to die for but the oven is broken",
+[
+"",
+false
+]
+],
+[
+"my wrist is broken",
+[
+"",
+false
+]
+],
+[
+"my heart is broken",
+[
+"",
+false
+]
+],
+[
+"the pan is burnt",
+[
+"",
+false
+]
+],
+[
+"my lips are burnt",
+[
+"",
+false
+]
+],
+[
+"i got the job and nobody said anything",
+[
+"",
+false
+]
+],
+[
+"we finally got the keys and the place is a state",
+[
+"",
+false
+]
+],
+[
+"i won a competition i never entered",
+[
+"",
+false
+]
+],
+[
+"my knee doesnt feel better",
+[
+"",
+false
+]
+],
+[
+"the rash has cleared up",
+[
+"",
+false
+]
+],
+[
+"my cough has gone green",
+[
+"",
+false
+]
+],
+[
+"the biopsy was benign",
+[
+"",
+false
+]
+],
+[
+"is 2400 a lot",
+[
+"",
+false
+]
+],
+[
+"60 seems high",
+[
+"",
+false
+]
+],
+[
+"30 quid for a haircut is that reasonable",
+[
+"",
+false
+]
+],
+[
+"thats expensive",
+[
+"",
+false
+]
+],
+[
+"a bit much",
+[
+"",
+false
+]
+],
+[
+"is 1998 a lot",
+[
+"",
+false
+]
+],
+[
+"is 45 an hour normal",
+[
+"",
+false
+]
+],
+[
+"is 80 pounds a lot",
+[
+"",
+false
+]
+],
+[
+"half an hour",
+[
+"",
+false
+]
+],
+[
+"an hour and a half each way",
+[
+"",
+false
+]
+],
+[
+"3km",
+[
+"",
+false
+]
+],
+[
+"a tenner",
+[
+"",
+false
+]
+],
+[
+"£250",
+[
+"",
+false
+]
+],
+[
+"20 minutes a day",
+[
+"",
+false
+]
+],
+[
+"45 a month",
+[
+"",
+false
+]
+],
+[
+"i take 5 a day",
+[
+"",
+false
+]
+],
+[
+"my budget is about 800 pounds",
+[
+"",
+false
+]
+],
+[
+"not tablets",
+[
+"tablets",
+false
+]
+],
+[
+"nothing too sad",
+[
+"",
+false
+]
+],
+[
+"not a bad idea",
+[
+"",
+false
+]
+],
+[
+"u ok with that",
+[
+"",
+false
+]
+],
+[
+"does that work for you",
+[
+"",
+false
+]
+],
+[
+"is that ok to drive on",
+[
+"",
+false
+]
+],
+[
+"where can i buy a kettle",
+[
+"",
+false
+]
+],
+[
+"any good plumber near me",
+[
+"",
+false
+]
+],
+[
+"can i get them taken in",
+[
+"",
+false
+]
+],
+[
+"how do i get to the airport from leeds",
+[
+"",
+false
+]
+],
+[
+"who won the world cup",
+[
+"",
+false
+]
+],
+[
+"when is high tide in whitby",
+[
+"",
+false
+]
+]
+],
+"check_with_you.reads_as_a_check": [
+[
+"my nan passed in jan",
+false
+],
+[
+"she passed peacefully",
+false
+],
+[
+"i passed my test",
+false
+],
+[
+"he passed me the salt",
+false
+],
+[
+"my mum got her results and she passed",
+false
+],
+[
+"my grandad passed on in march",
+false
+],
+[
+"i passed on the job",
+false
+],
+[
+"we buried my dad",
+false
+],
+[
+"i buried the fence posts",
+false
+],
+[
+"the dog is buried at the end of the garden",
+false
+],
+[
+"my mums death was sudden",
+false
+],
+[
+"the death star lego set",
+false
+],
+[
+"hamlets death",
+false
+],
+[
+"the death of my laptop",
+false
+],
+[
+"my cat was run over last night",
+false
+],
+[
+"my dad got knocked over by a bike",
+false
+],
+[
+"i lost my son at the park",
+false
+],
+[
+"we lost the baby at twelve weeks",
+false
+],
+[
+"losing my wife has hit me hard",
+false
+],
+[
+"im losing my friend",
+false
+],
+[
+"my mum would have been 70 this week",
+false
+],
+[
+"the first christmas without my dad",
+false
+],
+[
+"my phone died",
+false
+],
+[
+"i bought a phone for my daughter and it died",
+false
+],
+[
+"my carer badge died",
+false
+],
+[
+"my vacuum cleaner died",
+false
+],
+[
+"the doctor said theres nothing more they can do",
+false
+],
+[
+"nothing more they can do about my knee",
+false
+],
+[
+"they put my dad on morphine",
+false
+],
+[
+"im on morphine for my back",
+false
+],
+[
+"my nan is in a hospice",
+false
+],
+[
+"my grandad was killed in a crash",
+false
+],
+[
+"my brother was killed in a film last night",
+false
+],
+[
+"my cat keeps bringing dead birds in",
+false
+],
+[
+"dead tired",
+false
+],
+[
+"the boiler is dead and it keeps cutting out",
+false
+],
+[
+"is it normal to still cry about my mum three years later",
+false
+],
+[
+"my son keeps crying",
+false
+],
+[
+"she's dying",
+false
+],
+[
+"our fish are going to die if we dont clean the tank",
+false
+],
+[
+"what do i say when someone dies",
+false
+],
+[
+"how do i arrange a funeral",
+false
+],
+[
+"funeral costs",
+false
+],
+[
+"the loss of my mum",
+false
+],
+[
+"the news of my dad hit me hard",
+false
+],
+[
+"my knee is killing me",
+false
+],
+[
+"my washing machine is broken",
+false
+],
+[
+"my career is stuck",
+false
+],
+[
+"my confidence has gone",
+false
+],
+[
+"my razor keeps pulling",
+false
+],
+[
+"the road keeps flooding",
+false
+],
+[
+"this soup is to die for but the oven is broken",
+false
+],
+[
+"my wrist is broken",
+false
+],
+[
+"my heart is broken",
+false
+],
+[
+"the pan is burnt",
+false
+],
+[
+"my lips are burnt",
+false
+],
+[
+"i got the job and nobody said anything",
+false
+],
+[
+"we finally got the keys and the place is a state",
+false
+],
+[
+"i won a competition i never entered",
+false
+],
+[
+"my knee doesnt feel better",
+false
+],
+[
+"the rash has cleared up",
+false
+],
+[
+"my cough has gone green",
+false
+],
+[
+"the biopsy was benign",
+false
+],
+[
+"is 2400 a lot",
+false
+],
+[
+"60 seems high",
+false
+],
+[
+"30 quid for a haircut is that reasonable",
+false
+],
+[
+"thats expensive",
+false
+],
+[
+"a bit much",
+false
+],
+[
+"is 1998 a lot",
+false
+],
+[
+"is 45 an hour normal",
+false
+],
+[
+"is 80 pounds a lot",
+false
+],
+[
+"half an hour",
+false
+],
+[
+"an hour and a half each way",
+false
+],
+[
+"3km",
+false
+],
+[
+"a tenner",
+false
+],
+[
+"£250",
+false
+],
+[
+"20 minutes a day",
+false
+],
+[
+"45 a month",
+false
+],
+[
+"i take 5 a day",
+false
+],
+[
+"my budget is about 800 pounds",
+false
+],
+[
+"not tablets",
+false
+],
+[
+"nothing too sad",
+false
+],
+[
+"not a bad idea",
+false
+],
+[
+"u ok with that",
+true
+],
+[
+"does that work for you",
+true
+],
+[
+"is that ok to drive on",
+false
+],
+[
+"where can i buy a kettle",
+false
+],
+[
+"any good plumber near me",
+false
+],
+[
+"can i get them taken in",
+false
+],
+[
+"how do i get to the airport from leeds",
+false
+],
+[
+"who won the world cup",
+false
+],
+[
+"when is high tide in whitby",
+false
+]
+],
+"finding_out.for_the_ask": [
+[
+"my nan passed in jan",
+null
+],
+[
+"she passed peacefully",
+null
+],
+[
+"i passed my test",
+null
+],
+[
+"he passed me the salt",
+null
+],
+[
+"my mum got her results and she passed",
+null
+],
+[
+"my grandad passed on in march",
+null
+],
+[
+"i passed on the job",
+null
+],
+[
+"we buried my dad",
+null
+],
+[
+"i buried the fence posts",
+null
+],
+[
+"the dog is buried at the end of the garden",
+null
+],
+[
+"my mums death was sudden",
+null
+],
+[
+"the death star lego set",
+null
+],
+[
+"hamlets death",
+null
+],
+[
+"the death of my laptop",
+null
+],
+[
+"my cat was run over last night",
+null
+],
+[
+"my dad got knocked over by a bike",
+null
+],
+[
+"i lost my son at the park",
+null
+],
+[
+"we lost the baby at twelve weeks",
+null
+],
+[
+"losing my wife has hit me hard",
+null
+],
+[
+"im losing my friend",
+null
+],
+[
+"my mum would have been 70 this week",
+null
+],
+[
+"the first christmas without my dad",
+null
+],
+[
+"my phone died",
+null
+],
+[
+"i bought a phone for my daughter and it died",
+null
+],
+[
+"my carer badge died",
+null
+],
+[
+"my vacuum cleaner died",
+null
+],
+[
+"the doctor said theres nothing more they can do",
+null
+],
+[
+"nothing more they can do about my knee",
+null
+],
+[
+"they put my dad on morphine",
+null
+],
+[
+"im on morphine for my back",
+null
+],
+[
+"my nan is in a hospice",
+null
+],
+[
+"my grandad was killed in a crash",
+null
+],
+[
+"my brother was killed in a film last night",
+null
+],
+[
+"my cat keeps bringing dead birds in",
+null
+],
+[
+"dead tired",
+null
+],
+[
+"the boiler is dead and it keeps cutting out",
+null
+],
+[
+"is it normal to still cry about my mum three years later",
+null
+],
+[
+"my son keeps crying",
+null
+],
+[
+"she's dying",
+null
+],
+[
+"our fish are going to die if we dont clean the tank",
+null
+],
+[
+"what do i say when someone dies",
+null
+],
+[
+"how do i arrange a funeral",
+null
+],
+[
+"funeral costs",
+null
+],
+[
+"the loss of my mum",
+null
+],
+[
+"the news of my dad hit me hard",
+null
+],
+[
+"my knee is killing me",
+null
+],
+[
+"my washing machine is broken",
+null
+],
+[
+"my career is stuck",
+null
+],
+[
+"my confidence has gone",
+null
+],
+[
+"my razor keeps pulling",
+null
+],
+[
+"the road keeps flooding",
+null
+],
+[
+"this soup is to die for but the oven is broken",
+null
+],
+[
+"my wrist is broken",
+null
+],
+[
+"my heart is broken",
+null
+],
+[
+"the pan is burnt",
+null
+],
+[
+"my lips are burnt",
+null
+],
+[
+"i got the job and nobody said anything",
+null
+],
+[
+"we finally got the keys and the place is a state",
+null
+],
+[
+"i won a competition i never entered",
+null
+],
+[
+"my knee doesnt feel better",
+null
+],
+[
+"the rash has cleared up",
+null
+],
+[
+"my cough has gone green",
+null
+],
+[
+"the biopsy was benign",
+null
+],
+[
+"is 2400 a lot",
+null
+],
+[
+"60 seems high",
+null
+],
+[
+"30 quid for a haircut is that reasonable",
+null
+],
+[
+"thats expensive",
+null
+],
+[
+"a bit much",
+null
+],
+[
+"is 1998 a lot",
+null
+],
+[
+"is 45 an hour normal",
+null
+],
+[
+"is 80 pounds a lot",
+null
+],
+[
+"half an hour",
+null
+],
+[
+"an hour and a half each way",
+null
+],
+[
+"3km",
+null
+],
+[
+"a tenner",
+null
+],
+[
+"£250",
+null
+],
+[
+"20 minutes a day",
+null
+],
+[
+"45 a month",
+null
+],
+[
+"i take 5 a day",
+null
+],
+[
+"my budget is about 800 pounds",
+null
+],
+[
+"not tablets",
+null
+],
+[
+"nothing too sad",
+null
+],
+[
+"not a bad idea",
+null
+],
+[
+"u ok with that",
+null
+],
+[
+"does that work for you",
+null
+],
+[
+"is that ok to drive on",
+null
+],
+[
+"where can i buy a kettle",
+[
+"Stock moves by the hour and a phone call is the only thing that checks it, so I can't see who has a kettle near you: a map app search shows what's nearest, and ring before you set off.",
+"Stock moves by the hour, so a list from me would be wrong by the time you got there: a map app or the chain's own site will say who has a kettle near you, and a ring first saves the trip."
+]
+],
+[
+"any good plumber near me",
+[
+"Who is any good and who is free changes month to month, so I can't vouch for one: a directory or map app search for plumber near you sorted by the recent reviews, then two written quotes before you book anyone.",
+"The recent reviews are what tells you and I can't see them from here: a map app search for plumber near you sorted by reviews is the quickest way in; ask for two quotes, and check they're registered before you pay a deposit."
+]
+],
+[
+"can i get them taken in",
+null
+],
+[
+"how do i get to the airport from leeds",
+[
+"Miles and minutes depend on the roads on the day, which is why a journey planner is the one to ask - I can't measure one from here: put the two places in and it gives the distance and the time in one go.",
+"The roads decide it rather than the map, so I can't give you the miles and the time myself: put the two places into a map app and it'll have both; say what you're planning and I'll help with the rest of it."
+]
+],
+[
+"who won the world cup",
+[
+"The record is the only place it is written down, and a name I got half right would stick, so I can't check one: Wikipedia has it with its sources and the official site will confirm it - tell me what you find and I'll help you make sense of it.",
+"The Wikipedia page for it answers that in a line and cites where the line comes from, and I can't look it up from here: paste what it says and I'll help you weigh the rest."
+]
+],
+[
+"when is high tide in whitby",
+[
+"High and low water move by up to an hour a day, and by minutes between two beaches a few miles apart, so a tide time is the one thing I would not guess: a tide-table site for that beach, or the harbour or pier's own page, has today and tomorrow, and the local paper prints them too.",
+"Two beaches a few miles apart turn minutes apart and the same one is an hour later tomorrow, so I can't hold today's times: the harbour's page or a tide table for that beach has them, with the height as well as the clock time - the height is the bit that matters if you are walking a causeway or launching a boat."
+]
+]
+],
+"what_i_do_know._a_thing_from": [
+[
+"my nan passed in jan",
+"nan passed"
+],
+[
+"she passed peacefully",
+"passed peacefully"
+],
+[
+"i passed my test",
+"test"
+],
+[
+"he passed me the salt",
+"salt"
+],
+[
+"my mum got her results and she passed",
+"mum"
+],
+[
+"my grandad passed on in march",
+"grandad passed"
+],
+[
+"i passed on the job",
+"job"
+],
+[
+"we buried my dad",
+"dad"
+],
+[
+"i buried the fence posts",
+"fence posts"
+],
+[
+"the dog is buried at the end of the garden",
+"dog"
+],
+[
+"my mums death was sudden",
+"mums death"
+],
+[
+"the death star lego set",
+"death star"
+],
+[
+"hamlets death",
+"hamlets death"
+],
+[
+"the death of my laptop",
+"death"
+],
+[
+"my cat was run over last night",
+"cat"
+],
+[
+"my dad got knocked over by a bike",
+"dad"
+],
+[
+"i lost my son at the park",
+"son"
+],
+[
+"we lost the baby at twelve weeks",
+"baby"
+],
+[
+"losing my wife has hit me hard",
+"wife"
+],
+[
+"im losing my friend",
+"friend"
+],
+[
+"my mum would have been 70 this week",
+"mum"
+],
+[
+"the first christmas without my dad",
+"christmas"
+],
+[
+"my phone died",
+"phone died"
+],
+[
+"i bought a phone for my daughter and it died",
+"phone"
+],
+[
+"my carer badge died",
+"carer badge"
+],
+[
+"my vacuum cleaner died",
+"vacuum cleaner"
+],
+[
+"the doctor said theres nothing more they can do",
+"doctor said"
+],
+[
+"nothing more they can do about my knee",
+"knee"
+],
+[
+"they put my dad on morphine",
+"dad"
+],
+[
+"im on morphine for my back",
+""
+],
+[
+"my nan is in a hospice",
+"nan"
+],
+[
+"my grandad was killed in a crash",
+"grandad"
+],
+[
+"my brother was killed in a film last night",
+"brother"
+],
+[
+"my cat keeps bringing dead birds in",
+"cat"
+],
+[
+"dead tired",
+"dead tired"
+],
+[
+"the boiler is dead and it keeps cutting out",
+"boiler"
+],
+[
+"is it normal to still cry about my mum three years later",
+"mum three"
+],
+[
+"my son keeps crying",
+"son"
+],
+[
+"she's dying",
+""
+],
+[
+"our fish are going to die if we dont clean the tank",
+"fish"
+],
+[
+"what do i say when someone dies",
+"someone dies"
+],
+[
+"how do i arrange a funeral",
+"funeral"
+],
+[
+"funeral costs",
+"funeral costs"
+],
+[
+"the loss of my mum",
+"loss"
+],
+[
+"the news of my dad hit me hard",
+"news"
+],
+[
+"my knee is killing me",
+"knee"
+],
+[
+"my washing machine is broken",
+"washing machine"
+],
+[
+"my career is stuck",
+"career"
+],
+[
+"my confidence has gone",
+"confidence"
+],
+[
+"my razor keeps pulling",
+"razor"
+],
+[
+"the road keeps flooding",
+"road"
+],
+[
+"this soup is to die for but the oven is broken",
+"soup"
+],
+[
+"my wrist is broken",
+"wrist"
+],
+[
+"my heart is broken",
+"heart"
+],
+[
+"the pan is burnt",
+"pan"
+],
+[
+"my lips are burnt",
+"lips"
+],
+[
+"i got the job and nobody said anything",
+"job and"
+],
+[
+"we finally got the keys and the place is a state",
+"keys and"
+],
+[
+"i won a competition i never entered",
+"competition"
+],
+[
+"my knee doesnt feel better",
+"knee doesnt"
+],
+[
+"the rash has cleared up",
+"rash"
+],
+[
+"my cough has gone green",
+"cough"
+],
+[
+"the biopsy was benign",
+"biopsy"
+],
+[
+"is 2400 a lot",
+"lot"
+],
+[
+"60 seems high",
+"seems high"
+],
+[
+"30 quid for a haircut is that reasonable",
+"haircut"
+],
+[
+"thats expensive",
+"thats"
+],
+[
+"a bit much",
+"bit"
+],
+[
+"is 1998 a lot",
+"lot"
+],
+[
+"is 45 an hour normal",
+"normal"
+],
+[
+"is 80 pounds a lot",
+"lot"
+],
+[
+"half an hour",
+"half"
+],
+[
+"an hour and a half each way",
+"half each"
+],
+[
+"3km",
+""
+],
+[
+"a tenner",
+"tenner"
+],
+[
+"£250",
+""
+],
+[
+"20 minutes a day",
+""
+],
+[
+"45 a month",
+""
+],
+[
+"i take 5 a day",
+""
+],
+[
+"my budget is about 800 pounds",
+"budget"
+],
+[
+"not tablets",
+"not tablets"
+],
+[
+"nothing too sad",
+"too sad"
+],
+[
+"not a bad idea",
+"idea"
+],
+[
+"u ok with that",
+""
+],
+[
+"does that work for you",
+"work"
+],
+[
+"is that ok to drive on",
+"drive"
+],
+[
+"where can i buy a kettle",
+"kettle"
+],
+[
+"any good plumber near me",
+"plumber"
+],
+[
+"can i get them taken in",
+"taken"
+],
+[
+"how do i get to the airport from leeds",
+"airport"
+],
+[
+"who won the world cup",
+"world cup"
+],
+[
+"when is high tide in whitby",
+"whitby"
+]
+]
+}

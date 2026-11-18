@@ -4870,7 +4870,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         }
     }
     // The line points at someone the chat never named: the age is read back off the line that gave it.
-    let mut who_asked = crate::memory::relations::_named_person(&low, memory);
+    let mut who_asked = crate::memory::relations::_named_person(&low, Some(&mut *memory));
     if who_asked.is_empty() && A_PRONOUN_PERSON.is_match(&low) {
         who_asked = crate::memory::relations::_person_from_pronoun(&low, memory, &[]);
     }
@@ -8685,7 +8685,7 @@ pub fn _about_a_person_reply(memory: &mut Memory, low: &str, text_: &str) -> Opt
     if !asked {
         return None;
     }
-    let mut who = crate::memory::relations::_named_person(low, memory);
+    let mut who = crate::memory::relations::_named_person(low, Some(&mut *memory));
     if who.is_empty() {
         who = called;
     }
