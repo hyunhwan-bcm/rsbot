@@ -381,3 +381,68 @@ pub fn ord_sum(text: &str) -> u64 {
 pub fn int_global(name: &str) -> i64 {
     crate::data::get(name).as_int().unwrap_or_else(|| panic!("{name} is not an int"))
 }
+
+/// The value a call into another workstream's file gives back, whatever Rust type its contract
+/// has: a contract generated from a trace that only saw `None` returns `()`, and such a
+/// function's real value arrives here once its owner types it.
+pub trait PyVal {
+    fn val(self) -> Value;
+}
+impl PyVal for () {
+    fn val(self) -> Value {
+        Value::None
+    }
+}
+impl PyVal for Value {
+    fn val(self) -> Value {
+        self
+    }
+}
+impl PyVal for bool {
+    fn val(self) -> Value {
+        Value::Bool(self)
+    }
+}
+impl PyVal for i64 {
+    fn val(self) -> Value {
+        Value::Int(self)
+    }
+}
+impl PyVal for String {
+    fn val(self) -> Value {
+        Value::from(self)
+    }
+}
+impl PyVal for &str {
+    fn val(self) -> Value {
+        Value::from(self)
+    }
+}
+impl<T: PyVal> PyVal for Option<T> {
+    fn val(self) -> Value {
+        self.map_or(Value::None, PyVal::val)
+    }
+}
+impl PyVal for Vec<String> {
+    fn val(self) -> Value {
+        Value::from(self)
+    }
+}
+impl PyVal for Vec<Value> {
+    fn val(self) -> Value {
+        Value::from(self)
+    }
+}
+
+/// Python truthiness of what a call gave back.
+pub fn truthy(value: impl PyVal) -> bool {
+    value.val().truthy()
+}
+
+/// What a call gave back as `Option<String>`: None for None (and for "" when `empty_is_none`).
+pub fn some_text(value: impl PyVal) -> Option<String> {
+    match value.val() {
+        Value::None => None,
+        other => Some(py_str(&other)),
+    }
+}
