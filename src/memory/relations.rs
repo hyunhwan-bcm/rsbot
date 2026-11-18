@@ -971,7 +971,7 @@ pub fn _whether_they_have(memory: &mut Memory, low: &str) -> Option<String> {
     let plain: Vec<String> = user_list(memory, "people").iter().map(|word| pt::lower(&py_str(word))).collect();
     // `counts`: a dict, in the order its words were first set.
     let mut counts: Vec<(String, i64)> = Vec::new();
-    let mut set_count = |counts: &mut Vec<(String, i64)>, word: &str, count: i64| match counts.iter_mut().find(|(w, _)| w == word) {
+    let set_count = |counts: &mut Vec<(String, i64)>, word: &str, count: i64| match counts.iter_mut().find(|(w, _)| w == word) {
         Some(slot) => slot.1 = count,
         None => counts.push((word.to_string(), count)),
     };

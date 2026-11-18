@@ -2022,7 +2022,7 @@ mod tests {
         // Values from CPython with today = 2026-11-17.
         let today = day(2026, 11, 17);
         assert_eq!(_a_year_for(today, 3, None), day(2027, 3, 1));
-        assert_eq!(_a_year_for(today, 13, Some(31)), day(2027, 1, 31));
+        assert_eq!(_a_year_for(today, 13, Some(31)), day(2028, 1, 31));
         assert_eq!(_this_month_or_next(today, 31), (day(2026, 12, 31), "date".to_string()));
         assert_eq!(_this_month_or_next(today, 3), (day(2026, 12, 3), "date".to_string()));
         assert_eq!(_days_in(2028, 2), 29);
@@ -2036,6 +2036,16 @@ mod tests {
         assert_eq!(_a_length_in_words(1000), "two and a half years");
         assert_eq!(_a_length_in_words(45), "six weeks");
         assert_eq!(_a_length_in_words(1), "a day");
+        let read = |s: &str| _the_day(s, Some(today)).map(|(d, k)| (d, k));
+        assert_eq!(read("on friday"), Some((day(2026, 11, 20), "date".into())));
+        assert_eq!(read("in march"), Some((day(2027, 3, 1), "month".into())));
+        assert_eq!(read("the end of may"), Some((day(2027, 5, 31), "end".into())));
+        assert_eq!(read("next month"), Some((day(2026, 12, 1), "month".into())));
+        assert_eq!(read("starts 3 august"), Some((day(2027, 8, 3), "date".into())));
+        assert_eq!(read("my son is 11"), None);
+        assert_eq!(read("on the 31st"), Some((day(2026, 12, 31), "date".into())));
+        assert_eq!(read("next week"), Some((day(2026, 11, 24), "week".into())));
+        assert_eq!(read("mid june"), Some((day(2027, 6, 15), "month".into())));
     }
 
     #[test]
@@ -2055,5 +2065,8 @@ mod tests {
         assert_eq!(_a_plural_stem("results"), "result");
         assert_eq!(_a_plural_stem("news"), "");
         assert!(_backs_off("when is it due"));
+        let moved = a_plan_moved_to_a_day("can i make it friday night instead").unwrap();
+        assert_eq!(moved.get("day").unwrap().str(), "friday night");
+        assert_eq!(moved.get("line").unwrap().str(), "can i make it ahead of time");
     }
 }
