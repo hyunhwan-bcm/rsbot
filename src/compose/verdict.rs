@@ -683,7 +683,7 @@ pub fn _a_check_on_the_method(flat: &Value, memory: &Memory) -> Value {
 }
 
 /// Python: bot/compose/verdict.py:5422 `reply_for(clean, memory)`
-pub fn reply_for(clean: &str, memory: &Memory) {
+pub fn reply_for(clean: &str, memory: &Memory) -> Option<String> {
     crate::unported!("bot.compose.verdict:reply_for")
 }
 
@@ -743,7 +743,7 @@ pub fn _the_front_names_what_is_in_hand(head: &str, line: &str, memory: &Memory)
 }
 
 /// Python: bot/compose/verdict.py:6511 `next_step(clean, memory)`
-pub fn next_step(clean: &str, memory: &Memory) {
+pub fn next_step(clean: &str, memory: &Memory) -> Option<String> {
     crate::unported!("bot.compose.verdict:next_step")
 }
 
