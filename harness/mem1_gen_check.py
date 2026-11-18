@@ -303,10 +303,19 @@ fn main() {
     let path = &args[1];
     let show: usize = args.iter().position(|x| x == "--show").map(|i| args[i + 1].parse().unwrap()).unwrap_or(0);
     let only: Option<String> = args.iter().position(|x| x == "--fn").map(|i| args[i + 1].clone());
+    replay(path, show, only, true);
+}
+
+/// Replay a calls file (gzip or plain JSON lines); the totals per column.
+fn replay(path: &str, show: usize, only: Option<String>, print: bool) -> [usize; 8] {
     rsbot::data::load();
     std::panic::set_hook(Box::new(|_| {}));
     let file = std::fs::File::open(path).expect("calls file");
-    let reader = std::io::BufReader::new(flate2::read::GzDecoder::new(file));
+    let reader: Box<dyn BufRead> = if path.ends_with(".gz") {
+        Box::new(std::io::BufReader::new(flate2::read::GzDecoder::new(file)))
+    } else {
+        Box::new(std::io::BufReader::new(file))
+    };
     // fn -> [same, falsy-same, differ, unported, panicked, raised-in-python, unknown, memory differs]
     let mut tally: BTreeMap<String, [usize; 8]> = BTreeMap::new();
     let mut shown: BTreeMap<String, usize> = BTreeMap::new();
@@ -384,14 +393,34 @@ fn main() {
         }
     }
     let mut total = [0usize; 8];
-    println!("{:<44} {:>6} {:>6} {:>6} {:>8} {:>6} {:>6} {:>6} {:>6}", "function", "same", "falsy", "DIFF", "unported", "PANIC", "pyraise", "skip", "MEMDIF");
-    for (name, t) in &tally {
+    for t in tally.values() {
         for i in 0..8 {
             total[i] += t[i];
         }
+    }
+    if !print {
+        return total;
+    }
+    println!("{:<44} {:>6} {:>6} {:>6} {:>8} {:>6} {:>6} {:>6} {:>6}", "function", "same", "falsy", "DIFF", "unported", "PANIC", "pyraise", "skip", "MEMDIF");
+    for (name, t) in &tally {
         println!("{:<44} {:>6} {:>6} {:>6} {:>8} {:>6} {:>6} {:>6} {:>6}", name, t[0], t[1], t[2], t[3], t[4], t[5], t[6], t[7]);
     }
     println!("{:<44} {:>6} {:>6} {:>6} {:>8} {:>6} {:>6} {:>6} {:>6}", "TOTAL", total[0], total[1], total[2], total[3], total[4], total[5], total[6], total[7]);
+    total
+}
+
+#[cfg(test)]
+mod tests {
+    /// The cases in harness/mem1_expect.jsonl, with PyBot's own results (branches the corpus
+    /// does not reach among them): none may differ or panic; an UNPORTED dependency is skipped.
+    #[test]
+    fn python_expectations() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/harness/mem1_expect.jsonl");
+        let t = super::replay(path, 5, None, true);
+        assert_eq!(t[2], 0, "results that differ from PyBot");
+        assert_eq!(t[4], 0, "panics other than UNPORTED");
+        assert_eq!(t[7], 0, "memory that differs from PyBot");
+    }
 }
 '''
 open(OUT, "w").write(code.replace("ARMS", "\n".join(arms)))

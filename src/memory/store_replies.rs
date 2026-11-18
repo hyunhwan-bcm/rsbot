@@ -13658,3 +13658,39 @@ pub fn _the_close(text_: &str, memory: &mut Memory) -> Option<String> {
     Some(pick(if gentle { &CLOSE_HEAVY } else { &CLOSE_PLAIN }, memory, &low))
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Python's `"%g" % x` and float `//`, checked against CPython's own output.
+    #[test]
+    fn python_number_formats() {
+        assert_eq!(fmt_g(500.0), "500");
+        assert_eq!(fmt_g(0.5), "0.5");
+        assert_eq!(fmt_g(1e-5), "1e-05");
+        assert_eq!(fmt_g(1234567.0), "1.23457e+06");
+        assert_eq!(fmt_g(453.59), "453.59");
+        assert_eq!(py_floordiv(1.0, 0.1), 9.0);
+        assert_eq!(py_floordiv(7.5, 2.0), 3.0);
+        assert_eq!(py_floordiv(2000.0, 500.0), 4.0);
+    }
+
+    /// Python `int()` on str: whitespace, signs, underscores and any Unicode decimal digit.
+    #[test]
+    fn python_int_parsing() {
+        assert_eq!(py_int(" 42 "), Some(42));
+        assert_eq!(py_int("-7"), Some(-7));
+        assert_eq!(py_int("1_000"), Some(1000));
+        assert_eq!(py_int("_1"), None);
+        assert_eq!(py_int("\u{0663}"), Some(3));
+        assert_eq!(py_int("4.5"), None);
+        assert_eq!(py_int(""), None);
+    }
+
+    /// `str.format` with named fields and doubled braces.
+    #[test]
+    fn python_str_format() {
+        assert_eq!(fmt_named("{Thing}, not {old} {{x}}", &[("Thing", "Nuts"), ("old", "eggs")]), "Nuts, not eggs {x}");
+    }
+}
