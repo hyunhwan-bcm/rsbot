@@ -75,20 +75,7 @@ static GROUP_VALUE: LazyLock<HashMap<String, i64>> = LazyLock::new(|| {
         .collect()
 });
 
-// DUP(bot.knowledge.units::people_in_groups)
-/// The people a line counts in groups ("4 adults and 3 kids" is 7), or None.
-pub fn people_in_groups(text: &str) -> Option<i64> {
-    let mut total = 0;
-    for raw in TABLE_GROUPS.findall_str(&text.to_lowercase()) {
-        let count = if text::is_digit(&raw) { raw.parse::<i64>().ok() } else { GROUP_VALUE.get(&raw).copied() };
-        if let Some(n) = count {
-            if n != 0 {
-                total += n;
-            }
-        }
-    }
-    if total != 0 { Some(total) } else { None }
-}
+pub use crate::knowledge::units::people_in_groups;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/cooking_more.py

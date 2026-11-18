@@ -40,47 +40,6 @@ pub fn in_a_safety_thread(memory: &Memory) -> bool {
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/units.py
 
-static SPECIFIC: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.units._SPECIFIC"));
-static GRAMS_PER_CUP: LazyLock<Vec<(String, i64)>> = LazyLock::new(|| {
-    data::get("bot.knowledge.units.GRAMS_PER_CUP")
-        .items()
-        .iter()
-        .map(|t| (t.items()[0].str().to_string(), t.items()[1].as_int().unwrap_or(0)))
-        .collect()
-});
-
-// DUP(bot.knowledge.units::_food_named)
-/// The food this line names, and what a cup of it weighs, the longest name winning.
-pub fn units_food_named(clean: &str) -> Option<(String, i64)> {
-    let mut best: Option<(String, i64)> = None;
-    for (name, grams) in GRAMS_PER_CUP.iter() {
-        let pattern = format!(r"\b{}\b", crate::py::re::escape(name));
-        if crate::knowledge::maths::rx(&pattern, 0).is_match(clean)
-            && best.as_ref().is_none_or(|b| name.chars().count() > b.0.chars().count())
-        {
-            best = Some((name.clone(), *grams));
-        }
-    }
-    best
-}
-
-// DUP(bot.knowledge.units::answers_more_than_a_pair)
-/// True when the reply says more than how many of one unit make another.
-pub fn units_answers_more_than_a_pair(clean: &str) -> bool {
-    if SPECIFIC.is_match(clean) {
-        return true;
-    }
-    units_food_named(clean).is_some()
-}
-
-// NEEDS(bot.knowledge.units::convert)
-/// `units.convert(clean, memory)`: the whole conversion table (3,700 lines of units.py, owned by
-/// no D workstream). Until it is ported this answers nothing, so `solve` falls through to the
-/// hand-written unit facts and the cards after it, as Python does for a line the table declines.
-pub fn units_convert(_clean: &str, _memory: Option<&mut Memory>) -> Option<String> {
-    None
-}
-
 // ---------------------------------------------------------------------------------------------
 // bot/memory/saving.py
 

@@ -84,20 +84,7 @@ static UNITS_GROUP_VALUE: LazyLock<IndexMap<String, i64>> = LazyLock::new(|| {
         .collect()
 });
 
-// DUP(bot.knowledge.units::people_in_groups)
-/// How many people the groups named in the line add up to, or None when it names none.
-pub fn people_in_groups(text: &str) -> Option<i64> {
-    let mut total = 0;
-    for raw in UNITS_TABLE_GROUPS.findall_str(&text.to_lowercase()) {
-        let count = if text::is_digit(&raw) { raw.parse::<i64>().ok() } else { UNITS_GROUP_VALUE.get(&raw).copied() };
-        if let Some(c) = count {
-            if c != 0 {
-                total += c;
-            }
-        }
-    }
-    if total != 0 { Some(total) } else { None }
-}
+pub use crate::knowledge::units::people_in_groups;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/freshness.py

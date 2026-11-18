@@ -3299,8 +3299,8 @@ pub fn _at_a_pace(clean: &str, memory: Option<&Memory>, a_verdict: bool) -> Opti
 /// A unit conversion, from the one table of units (bot/knowledge/units.py).
 pub fn _convert(clean: &str, memory: Option<&mut Memory>) -> Option<String> {
     let fact = _unit_fact(clean);
-    let table = dup::units_convert(clean, memory);
-    if fact.is_some() && !dup::units_answers_more_than_a_pair(clean) {
+    let table = crate::knowledge::units::convert(clean, memory.as_deref());
+    if fact.is_some() && !crate::knowledge::units::answers_more_than_a_pair(clean) {
         return fact;
     }
     table.filter(|t| !t.is_empty()).or(fact)

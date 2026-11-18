@@ -17,25 +17,7 @@ use std::sync::LazyLock;
 
 static TABLE_GROUPS: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.knowledge.units._TABLE_GROUPS"));
 
-// DUP(bot.knowledge.units::people_in_groups)
-/// How many people the groups named in the line add up to, or None when it names none.
-pub fn people_in_groups(text_: &str) -> Option<i64> {
-    let values = data::get("bot.knowledge.units._GROUP_VALUE");
-    let mut total = 0i64;
-    for raw in TABLE_GROUPS.findall_str(&text_.to_lowercase()) {
-        let count = if !raw.is_empty() && text::is_digit(&raw) {
-            raw.parse::<i64>().ok()
-        } else {
-            values.get(&raw).and_then(Value::as_int)
-        };
-        if let Some(c) = count {
-            if c != 0 {
-                total += c;
-            }
-        }
-    }
-    if total != 0 { Some(total) } else { None }
-}
+pub use crate::knowledge::units::people_in_groups;
 
 // ---------------------------------------------------------------------------------------------
 // bot.knowledge.garden

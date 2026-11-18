@@ -107,18 +107,7 @@ fn lookup_int(table: &[(String, i64)], key: &str) -> Option<i64> {
     table.iter().find(|(k, _)| k == key).map(|(_, v)| *v)
 }
 
-// DUP(bot.knowledge.units::people_in_groups)
-/// How many people the groups named in the line add up to, or None when it names none.
-pub fn people_in_groups(text: &str) -> Option<i64> {
-    let mut total = 0;
-    for raw in TABLE_GROUPS.findall_str(&text.to_lowercase()) {
-        let count = if crate::py::text::is_digit(&raw) { raw.parse::<i64>().ok() } else { lookup_int(&GROUP_VALUE, &raw) };
-        if let Some(count) = count.filter(|c| *c != 0) {
-            total += count;
-        }
-    }
-    if total == 0 { None } else { Some(total) }
-}
+pub use crate::knowledge::units::people_in_groups;
 
 // ---------------------------------------------------------------------------------------------
 // bot/knowledge/cooking.py (owned by the cooking groups)

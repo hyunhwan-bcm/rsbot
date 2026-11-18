@@ -32,11 +32,11 @@ def case(clean, turns):
     r = {}
     memory = {"turns": [{"user": t, "bot": "", "module": None} for t in turns]} if turns else None
     v = call(U.convert, clean, memory)
-    if v not in (None, False):
+    if v is not None and v is not False:
         r["convert"] = v
     for name in ONE:
         v = call(getattr(U, name), clean)
-        if v not in (None, False):
+        if v is not None and v is not False:
             r[name] = v
     return {"c": clean, "t": turns, "r": r}
 

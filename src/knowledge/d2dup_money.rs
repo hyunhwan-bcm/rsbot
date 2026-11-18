@@ -81,22 +81,7 @@ static _GROUP_VALUE: LazyLock<Vec<(String, i64)>> = LazyLock::new(|| str_int_pai
 // was DUP-D2(bot.knowledge.cooking::_people_after): now the real port
 pub use crate::knowledge::cooking::_people_after;
 
-// DUP(bot.knowledge.units::people_in_groups)
-/// How many people the groups named in the line add up to, or None when it names none.
-pub fn people_in_groups(text: &str) -> Option<i64> {
-    let mut total = 0;
-    for raw in _TABLE_GROUPS.findall_str(&text.to_lowercase()) {
-        let count = if text::is_digit(&raw) {
-            raw.parse().ok()
-        } else {
-            _GROUP_VALUE.iter().find(|(k, _)| *k == raw).map(|(_, v)| *v)
-        };
-        if let Some(c) = count.filter(|c| *c != 0) {
-            total += c;
-        }
-    }
-    if total != 0 { Some(total) } else { None }
-}
+pub use crate::knowledge::units::people_in_groups;
 
 // was DUP-D2(bot.knowledge.cooking::_crowd): now the real port
 pub use crate::knowledge::cooking::_crowd;

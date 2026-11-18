@@ -50,6 +50,7 @@ pub mod school_days;
 pub mod seasoning;
 pub mod spice_heat;
 pub mod trades;
+pub mod built;
 pub mod units;
 pub mod vegetables;
 pub mod warm_food;
