@@ -772,12 +772,54 @@ pub fn _the_person(found: &[Value], who: &str, name: &str) -> Option<usize> {
 
 /// Python's `str(value)` for the values a fact holds (strings, numbers, None).
 fn value_str(v: &Value) -> String {
+    py_str(v)
+}
+
+/// Python's `str(value)` for the values memory holds: a string as it is, and a container the way
+/// Python prints it (`['nuts']`, `{'who': 'son'}`, `(1, 2)`).
+pub fn py_str(v: &Value) -> String {
     match v {
         Value::Str(s) => s.to_string(),
+        other => py_repr(other),
+    }
+}
+
+/// Python's `repr(value)` for the plain values memory holds.
+pub fn py_repr(v: &Value) -> String {
+    match v {
+        Value::None => "None".into(),
+        Value::Bool(b) => if *b { "True".into() } else { "False".into() },
         Value::Int(i) => i.to_string(),
         Value::Float(f) => pt::float_repr(*f),
-        Value::Bool(b) => if *b { "True".into() } else { "False".into() },
-        Value::None => "None".into(),
+        Value::Str(s) => {
+            let quote = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
+            let mut out = String::with_capacity(s.len() + 2);
+            out.push(quote);
+            for c in s.chars() {
+                match c {
+                    '\\' => out.push_str("\\\\"),
+                    '\n' => out.push_str("\\n"),
+                    '\r' => out.push_str("\\r"),
+                    '\t' => out.push_str("\\t"),
+                    c if c == quote => {
+                        out.push('\\');
+                        out.push(c);
+                    }
+                    c if (c as u32) < 0x20 || c as u32 == 0x7f => out.push_str(&format!("\\x{:02x}", c as u32)),
+                    c => out.push(c),
+                }
+            }
+            out.push(quote);
+            out
+        }
+        Value::List(items) => format!("[{}]", items.iter().map(py_repr).collect::<Vec<_>>().join(", ")),
+        Value::Tuple(items) if items.len() == 1 => format!("({},)", py_repr(&items[0])),
+        Value::Tuple(items) => format!("({})", items.iter().map(py_repr).collect::<Vec<_>>().join(", ")),
+        Value::Set(items) if items.is_empty() => "set()".into(),
+        Value::Set(items) => format!("{{{}}}", items.iter().map(py_repr).collect::<Vec<_>>().join(", ")),
+        Value::Dict(pairs) => {
+            format!("{{{}}}", pairs.iter().map(|(k, v)| format!("{}: {}", py_repr(k), py_repr(v))).collect::<Vec<_>>().join(", "))
+        }
         _ => String::new(),
     }
 }

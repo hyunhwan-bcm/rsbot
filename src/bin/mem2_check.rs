@@ -467,6 +467,19 @@ fn expected(row: &J, name: &str) -> J {
             let deed = row.get("after").and_then(|a| a.get(1)).cloned().unwrap_or_else(|| row["args"].get(1).cloned().unwrap_or(J::Null));
             json!({"__result__": row["result"], "__deed__": if deed.is_null() { json!([]) } else { deed }})
         }
+        "_correct_count" | "_correct_a_persons_name" | "_a_value_already_the_plans" | "_a_correction_is_not_a_plan"
+        | "_correct_their_birthday" | "_a_birthday_for_somebody" | "_the_person_the_plan_is_about"
+        | "_correct_plan" | "_correct_fact" | "_correct_date" | "_correct_clock" | "_correct_number" | "_correct_when"
+        | "_correct_the_count_on_the_table" | "_correct_other" | "_correct_birthday" | "_a_name_the_store_keeps"
+        | "_apply_correction"
+            if name.starts_with("bot.memory.corrected") =>
+        {
+            let mut after = row.get("after").and_then(|a| a.get(0)).cloned().unwrap_or_else(|| row["args"][0].clone());
+            if let Some(o) = after.as_object_mut() {
+                o.remove("understood");
+            }
+            json!({"__result__": row["result"], "__memory__": after})
+        }
         _ => row["result"].clone(),
     }
 }
@@ -534,7 +547,60 @@ fn call_again(fname: &str, a: &Args) -> Option<Result<J, Skip>> {
     })
 }
 
+/// The memory after a call, as the recording keeps it (the reading itself left out: it is typed
+/// in the port and plain in Python, and none of these readers writes it).
+fn memory_plain(m: &Memory) -> J {
+    let mut map = m.to_plain();
+    map.remove("understood");
+    J::Object(map)
+}
+
+/// A reader that writes memory: its result and the memory after it.
+fn with_memory<T: ToJ>(a: &Args, f: impl FnOnce(&mut Memory) -> T) -> Result<J, Skip> {
+    let mut m = a.memory(0, "memory");
+    let got = f(&mut m).j();
+    Ok(json!({"__result__": got, "__memory__": memory_plain(&m)}))
+}
+
 fn call_corrected(fname: &str, a: &Args) -> Option<Result<J, Skip>> {
+    let mem = || a.memory(0, "memory");
+    match fname {
+        "_correct_count" => return Some(with_memory(a, |m| co::_correct_count(m, &a.v(1, "target"), a.s(2, "text")))),
+        "_correct_a_persons_name" => {
+            return Some(with_memory(a, |m| co::_correct_a_persons_name(m, &a.v(1, "target"), a.s(2, "text"), &a.v(3, "wrong"))))
+        }
+        "_a_value_already_the_plans" => return Some(with_memory(a, |m| co::_a_value_already_the_plans(m, &a.v(1, "target"), a.s(2, "text")))),
+        "_a_correction_is_not_a_plan" => return Some(with_memory(a, |m| { co::_a_correction_is_not_a_plan(m, a.s(1, "text")); Value::None })),
+        "_correct_their_birthday" => {
+            return Some(with_memory(a, |m| co::_correct_their_birthday(m, &a.v(1, "target"), &a.v(2, "wrong"), a.s(3, "text"))))
+        }
+        "_a_birthday_for_somebody" => return Some(with_memory(a, |m| co::_a_birthday_for_somebody(m))),
+        "_correct_plan" => return Some(with_memory(a, |m| co::_correct_plan(m, &a.v(1, "target"), &a.v(2, "wrong"), a.s(3, "text")))),
+        "_correct_fact" => return Some(with_memory(a, |m| co::_correct_fact(m, &a.v(1, "target"), &a.v(2, "wrong"), a.s(3, "text")))),
+        "_correct_date" => return Some(with_memory(a, |m| co::_correct_date(m, &a.v(1, "target"), a.s(2, "text"), &a.v(3, "wrong")))),
+        "_correct_clock" => return Some(with_memory(a, |m| co::_correct_clock(m, &a.v(1, "target"), a.s(2, "text"), &a.v(3, "wrong")))),
+        "_correct_number" => return Some(with_memory(a, |m| co::_correct_number(m, &a.v(1, "target"), a.s(2, "text")))),
+        "_correct_when" => return Some(with_memory(a, |m| co::_correct_when(m, &a.v(1, "target"), a.s(2, "text")))),
+        "_correct_the_count_on_the_table" => {
+            return Some(with_memory(a, |m| co::_correct_the_count_on_the_table(m, &a.v(1, "target"), a.s(2, "text"))))
+        }
+        "_correct_other" => return Some(with_memory(a, |m| co::_correct_other(m, &a.v(1, "target"), a.s(2, "text")))),
+        "_correct_birthday" => return Some(with_memory(a, |m| co::_correct_birthday(m, &a.v(1, "target"), a.s(2, "text")))),
+        "_a_name_the_store_keeps" => return Some(with_memory(a, |m| co::_a_name_the_store_keeps(m, a.s(1, "taken_back"), a.s(2, "new")))),
+        "_apply_correction" => return Some(with_memory(a, |m| { co::_apply_correction(m, &a.v(1, "correction"), a.s(2, "text")); Value::None })),
+        "_the_person_the_plan_is_about" => {
+            let before = a.get(2, "before").and_then(J::as_str).map(str::to_string);
+            return Some(with_memory(a, |m| co::_the_person_the_plan_is_about(m, &a.v(1, "correction"), before.as_deref())));
+        }
+        "_stated_last" => return Some(r(co::_stated_last(&mem()))),
+        "_stated_plan" => return Some(r(co::_stated_plan(&mem()))),
+        "_fact_naming" => return Some(r(co::_fact_naming(&mem(), &a.v(1, "wrong")))),
+        "_a_birthday_on_the_last_line" => return Some(r(co::_a_birthday_on_the_last_line(&mem()))),
+        "_number_belongs_to_that_age" => return Some(r(co::_number_belongs_to_that_age(&mem()))),
+        "_the_plan_on_the_table" => return Some(r(co::_the_plan_on_the_table(&mem()))),
+        "_make_corrects" => return Some(r(co::_make_corrects(&a.v(0, "target"), &a.memory(1, "memory")))),
+        _ => {}
+    }
     Some(match fname {
         "_a_name_for_a_person" => r(co::_a_name_for_a_person(&a.v(0, "value"))),
         "_a_new_name_was_said" => r(co::_a_new_name_was_said(&a.v(0, "target"), a.s(1, "text"))),

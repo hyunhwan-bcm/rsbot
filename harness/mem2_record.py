@@ -37,6 +37,16 @@ DEPS = {
 }
 
 
+def lines_of(f):
+    """The lines of a gzip file, stopping quietly where a file still being written ends."""
+    try:
+        for line in f:
+            if line.endswith("\n"):
+                yield line
+    except EOFError:
+        return
+
+
 def enc(v, depth=0):
     if depth > 30:
         return {"__opaque__": "deep"}
@@ -68,10 +78,15 @@ def enc(v, depth=0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("out")
-    ap.add_argument("--lines", nargs="+", required=True)
+    ap.add_argument("--lines", nargs="*", default=[])
     ap.add_argument("--max", type=int, default=0, help="at most this many conversations per file")
     ap.add_argument("--cap", type=int, default=200)
     ap.add_argument("--turns", action="store_true")
+    ap.add_argument("--script", help="a JSON list of conversations: each one is played through the "
+                    "runtime, and the correction readers are called on the memory before its last line")
+    ap.add_argument("--fixes", action="store_true",
+                    help="on each oracle turn that puts a value right, call the correction readers that "
+                         "write memory on a copy of the turn's memory")
     ap.add_argument("--oracle", action="store_true",
                     help="call the memory-reading functions on each oracle turn's own memory")
     a = ap.parse_args()
@@ -239,12 +254,77 @@ def main():
             quietly(corrected._measured_the_same, to, before)
         quietly(corrected._asks, text)
 
+    def fix_calls(row, text):
+        """The readers that put a value right in memory, each on its own copy of the turn's memory."""
+        memory = copy.deepcopy(row.get("mem_in") or {})
+        for ob in row.get("observe") or []:
+            diff = ob.get("diff") or {}
+            for key, value in (diff.get("set") or {}).items():
+                memory[key] = copy.deepcopy(value)
+            for key in diff.get("del") or []:
+                memory.pop(key, None)
+        try:
+            found = facts.extract(text)
+        except Exception:  # noqa: BLE001
+            return
+        fix = found.get("correction") if isinstance(found, dict) else None
+        if not isinstance(fix, dict) or not fix.get("to"):
+            return
+        to, wrong = fix.get("to"), fix.get("from")
+        for fn, args in ((corrected._correct_count, (to, text)),
+                         (corrected._correct_a_persons_name, (to, text, wrong or "")),
+                         (corrected._a_value_already_the_plans, (to, text)),
+                         (corrected._a_correction_is_not_a_plan, (text,)),
+                         (corrected._correct_their_birthday, (to, wrong, text)),
+                         (corrected._a_birthday_for_somebody, ()),
+                         (corrected._stated_last, ()),
+                         (corrected._stated_plan, ()),
+                         (corrected._fact_naming, (wrong,)),
+                         (corrected._a_birthday_on_the_last_line, ()),
+                         (corrected._number_belongs_to_that_age, ()),
+                         (corrected._the_plan_on_the_table, ())):
+            quietly(fn, copy.deepcopy(memory), *args)
+        quietly(corrected._make_corrects, to, copy.deepcopy(memory))
+        quietly(corrected._the_person_the_plan_is_about, copy.deepcopy(memory),
+                {"value": to, "sentence": text}, None)
+
     done = 0
+    if a.script:
+        from bot import runtime as rt
+        for conv in json.load(open(a.script)):
+            memory = {}
+            random.seed(0)
+            for line in conv[:-1]:
+                quietly(rt.turn, line, memory)
+            last = conv[-1]
+            row = {"mem_in": memory, "observe": [], "respond": []}
+            fix_calls(row, last)
+            found = {}
+            try:
+                found = facts.extract(last)
+            except Exception:  # noqa: BLE001
+                pass
+            fix = found.get("correction") if isinstance(found, dict) else None
+            if isinstance(fix, dict):
+                quietly(corrected._apply_correction, copy.deepcopy(memory), dict(fix), last)
+                for fn in ("_correct_plan", "_correct_date", "_correct_clock", "_correct_number",
+                           "_correct_count", "_correct_fact", "_correct_a_persons_name",
+                           "_correct_when", "_correct_the_count_on_the_table", "_correct_other",
+                           "_correct_birthday"):
+                    reader = getattr(corrected, fn)
+                    if fn in ("_correct_plan", "_correct_fact"):
+                        quietly(reader, copy.deepcopy(memory), fix.get("to"), fix.get("from"), last)
+                    elif fn in ("_correct_date", "_correct_clock", "_correct_a_persons_name"):
+                        quietly(reader, copy.deepcopy(memory), fix.get("to"), last, fix.get("from") or "")
+                    else:
+                        quietly(reader, copy.deepcopy(memory), fix.get("to"), last)
+            quietly(rt.turn, last, memory)
+            done += len(conv)
     for path in a.lines:
         convs = 0
         last = None
         with gzip.open(path, "rt") as f:
-            for line in f:
+            for line in lines_of(f):
                 row = json.loads(line)
                 if row.get("conv") != last:
                     last = row.get("conv")
@@ -253,6 +333,10 @@ def main():
                         break
                 text = row.get("text") or ""
                 if a.turns:
+                    continue
+                if a.fixes:
+                    fix_calls(row, text)
+                    done += 1
                     continue
                 if a.oracle:
                     oracle_calls(row, text)

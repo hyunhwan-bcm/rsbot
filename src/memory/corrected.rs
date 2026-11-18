@@ -82,13 +82,7 @@ fn s(v: &Value) -> String {
     if !v.truthy() {
         return String::new();
     }
-    match v {
-        Value::Str(x) => x.to_string(),
-        Value::Int(i) => i.to_string(),
-        Value::Float(f) => pt::float_repr(*f),
-        Value::Bool(b) => if *b { "True".into() } else { "False".into() },
-        _ => String::new(),
-    }
+    extract::py_str(v)
 }
 
 /// `str(value)` (None is "None").

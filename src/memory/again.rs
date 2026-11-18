@@ -593,14 +593,7 @@ pub fn _returned_thing(memory: &Memory, text: &str) -> String {
 
 /// `str(value)` for a recorded scalar.
 fn value_text(v: &Value) -> String {
-    match v {
-        Value::Str(s) => s.to_string(),
-        Value::Int(i) => i.to_string(),
-        Value::Float(f) => pt::float_repr(*f),
-        Value::Bool(b) => if *b { "True".into() } else { "False".into() },
-        Value::None => "None".into(),
-        _ => String::new(),
-    }
+    crate::memory::facts::py_str(v)
 }
 
 /// Python: bot/memory/again.py:663 `_the_line_asks(memory, text)`: whether the line asks something,
