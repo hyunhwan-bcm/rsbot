@@ -124,3 +124,25 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.joints:_noisy_joint:435", |_: &FnRef, m: &mut Memory, u: &Understood| _noisy_joint(m, u)),
     ("bot.knowledge.joints:_locked_joint:571", |_: &FnRef, m: &mut Memory, u: &Understood| _locked_joint(m, u)),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/joints.py:261 `_a_replacement()` (never called on the trace corpus)
+    pub fn _a_replacement(args: &[Value]) -> Value {
+        crate::unported!("bot.knowledge.joints:_a_replacement")
+    }
+
+}
+

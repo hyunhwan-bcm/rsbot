@@ -170,3 +170,25 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.fun:_pool.<locals>.choose:621", pool_choose),
     ("bot.knowledge.fun:_toast:691", |_: &FnRef, m: &mut Memory, u: &Understood| _toast(m, u)),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/fun.py:613 `_pool(options)` (never called on the trace corpus)
+    pub fn _pool(options: &Value) -> Value {
+        crate::unported!("bot.knowledge.fun:_pool")
+    }
+
+}
+

@@ -646,3 +646,30 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
         _worth_an_appliance(m, u)
     }),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/opinions.py:205 `_asked(reply)` (never called on the trace corpus)
+    pub fn _asked(reply: &str) -> Value {
+        crate::unported!("bot.knowledge.opinions:_asked")
+    }
+
+    /// Python: bot/knowledge/opinions.py:346 `_either(id, a, b, reply, avoid=(), bias=0)` (never called on the trace corpus)
+    pub fn _either(id: &Value, a: &Value, b: &Value, reply: &str, avoid: &Value, bias: &Value) -> Value {
+        crate::unported!("bot.knowledge.opinions:_either")
+    }
+
+}
+

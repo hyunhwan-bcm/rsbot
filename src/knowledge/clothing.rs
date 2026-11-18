@@ -1080,3 +1080,25 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.clothing:_trainers_to_buy:615", |_: &FnRef, m: &mut Memory, u: &Understood| _trainers_to_buy(m, u)),
     ("bot.knowledge.clothing:_wash_temperature:741", |_: &FnRef, m: &mut Memory, u: &Understood| _wash_temperature(m, u)),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/clothing.py:4859 `_a_garment_to_choose(fit)` (never called on the trace corpus)
+    pub fn _a_garment_to_choose(fit: &Value) -> Value {
+        crate::unported!("bot.knowledge.clothing:_a_garment_to_choose")
+    }
+
+}
+

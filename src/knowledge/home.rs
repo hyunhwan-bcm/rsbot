@@ -4820,3 +4820,35 @@ mod diff_tests {
         assert_eq!(bad, 0);
     }
 }
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/home.py:3739 `the_filter_of(words, text)` (never called on the trace corpus)
+    pub fn the_filter_of(words: &[String], text: &str) -> Value {
+        crate::unported!("bot.knowledge.home:the_filter_of")
+    }
+
+    /// Python: bot/knowledge/home.py:7337 `_heat_row(names, slug, said)` (never called on the trace corpus)
+    pub fn _heat_row(names: &[String], slug: &Value, said: &str) -> Value {
+        crate::unported!("bot.knowledge.home:_heat_row")
+    }
+
+    /// Python: bot/knowledge/home.py:8792 `_sized_by_the_chat_before(reply)` (never called on the trace corpus)
+    pub fn _sized_by_the_chat_before(reply: &str) -> Value {
+        crate::unported!("bot.knowledge.home:_sized_by_the_chat_before")
+    }
+
+}
+

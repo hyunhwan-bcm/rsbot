@@ -34,3 +34,25 @@ fn s_asks_a_length(_f: &FnRef, text: &str) -> bool {
 pub const GUARDS: &[(&str, GuardFn)] = &[("bot.knowledge.takes:_typed.<locals>.guard:59", g_typed)];
 pub const REPLIES: &[(&str, ReplyFn)] = &[];
 pub const SHAPES: &[(&str, ShapeFn)] = &[("bot.knowledge.takes:_asks_a_length:65", s_asks_a_length)];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/takes.py:42 `_typed()` (never called on the trace corpus)
+    pub fn _typed(words: &[Value]) -> Value {
+        crate::unported!("bot.knowledge.takes:_typed")
+    }
+
+}
+

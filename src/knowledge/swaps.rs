@@ -213,3 +213,35 @@ mod tests {
         println!("{got:?}");
     }
 }
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/swaps.py:1115 `_fenced(row, said)` (never called on the trace corpus)
+    pub fn _fenced(row: &'static Entry, said: &str) -> Value {
+        crate::unported!("bot.knowledge.swaps:_fenced")
+    }
+
+    /// Python: bot/knowledge/swaps.py:1154 `_fence_every_row(rows)` (never called on the trace corpus)
+    pub fn _fence_every_row(rows: &Value) {
+        crate::unported!("bot.knowledge.swaps:_fence_every_row")
+    }
+
+    /// Python: bot/knowledge/swaps.py:1179 `_the_other_side_of_a_swap(rows)` (never called on the trace corpus)
+    pub fn _the_other_side_of_a_swap(rows: &Value) {
+        crate::unported!("bot.knowledge.swaps:_the_other_side_of_a_swap")
+    }
+
+}
+

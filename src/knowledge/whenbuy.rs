@@ -229,3 +229,25 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.whenbuy:_general_sales:375", |_: &FnRef, m: &mut Memory, u: &Understood| _general_sales(m, u)),
     ("bot.knowledge.whenbuy:_christmas:382", |_: &FnRef, m: &mut Memory, u: &Understood| _christmas(m, u)),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/whenbuy.py:293 `_whenbuy(reply, own)` (never called on the trace corpus)
+    pub fn _whenbuy(reply: &str, own: &str) -> Value {
+        crate::unported!("bot.knowledge.whenbuy:_whenbuy")
+    }
+
+}
+

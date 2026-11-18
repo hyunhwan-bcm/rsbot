@@ -143,3 +143,40 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
     ("bot.knowledge.animals:_eats:867", |_: &FnRef, m: &mut Memory, u: &Understood| _eats(m, u)),
     ("bot.knowledge.animals:_record:884", |_: &FnRef, m: &mut Memory, u: &Understood| _record(m, u)),
 ];
+
+
+// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
+// define yet, with signatures from the generated contract. Port them in place (move a
+// function up into the file when you port it).
+pub use self::skeleton_stubs::*;
+#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
+mod skeleton_stubs {
+    use super::*;
+    use crate::data::{self, Value};
+    use crate::knowledge::entry::Entry;
+    use crate::runtime::Candidate;
+    use crate::state::{Memory, Turn};
+    use crate::understood::Understood;
+
+    /// Python: bot/knowledge/animals.py:836 `_names_with(fact, rows=ANIMALS)` (never called on the trace corpus)
+    pub fn _names_with(fact: &str, rows: &Value) -> Value {
+        crate::unported!("bot.knowledge.animals:_names_with")
+    }
+
+    /// Python: bot/knowledge/animals.py:841 `_the_word(kind)` (never called on the trace corpus)
+    pub fn _the_word(kind: &str) -> Value {
+        crate::unported!("bot.knowledge.animals:_the_word")
+    }
+
+    /// Python: bot/knowledge/animals.py:859 `_fact(fact)` (never called on the trace corpus)
+    pub fn _fact(fact: &str) -> Value {
+        crate::unported!("bot.knowledge.animals:_fact")
+    }
+
+    /// Python: bot/knowledge/animals.py:910 `_curiosity(animal, cue, reply, avoid=(), bias=0, ask=())` (never called on the trace corpus)
+    pub fn _curiosity(animal: &Value, cue: &Value, reply: &str, avoid: &Value, bias: &Value, ask: &str) -> Value {
+        crate::unported!("bot.knowledge.animals:_curiosity")
+    }
+
+}
+
