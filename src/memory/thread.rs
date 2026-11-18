@@ -9,6 +9,7 @@ use crate::data::Value;
 use crate::py::re::Re;
 use crate::py::text;
 use crate::state::{Memory, Turn};
+use crate::memory::topics::deps;
 use crate::understanding::t;
 use crate::understood::{Entity, Understood};
 use indexmap::IndexMap;
@@ -938,8 +939,10 @@ pub fn _restate(text_: &str) -> Option<String> {
             clause = if AUX.contains(&first) { format!("whether {said}") } else { said };
         }
     } else {
-        let to_bot = crate::memory::_to_the_bot(&words.join(" "));
-        clause = crate::memory::_from_the_bot(&_flip(&text::split(&to_bot), false).join(" "));
+        let said = words.join(" ");
+        let to_bot = deps::string("bot.memory:_to_the_bot", deps::args1(&said), || crate::memory::_to_the_bot(&said));
+        let flipped = _flip(&text::split(&to_bot), false).join(" ");
+        clause = deps::string("bot.memory:_from_the_bot", deps::args1(&flipped), || crate::memory::_from_the_bot(&flipped));
     }
     clause = _conditional(&clause);
     clause = _keep_possessives(&clause, &clean);
@@ -951,7 +954,8 @@ pub fn _restate(text_: &str) -> Option<String> {
         }
     }
     clause = _numbers(text_, &clause);
-    clause = crate::memory::facts::no_tone(&clause);
+    let toned = clause.clone();
+    clause = deps::string("bot.memory.facts:no_tone", deps::args1(&toned), || crate::memory::facts::no_tone(&toned));
     if clause.is_empty() {
         return None;
     }
@@ -1258,7 +1262,7 @@ pub fn _only_a_detail(text_: &str) -> bool {
     if rest == line {
         return false;
     }
-    let Some(got) = crate::memory::detail::the_detail(line).py_str().filter(|g| !g.is_empty()) else { return false };
+    let Some(got) = deps::opt_string("bot.memory.detail:the_detail", deps::args1(line), || crate::memory::detail::the_detail(line).py_str()).filter(|g| !g.is_empty()) else { return false };
     let lower_words = |t_: &str| text::split(t_).iter().map(|w| w.to_lowercase()).collect::<Vec<_>>();
     lower_words(&got) == lower_words(&rest)
 }

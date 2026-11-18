@@ -19,6 +19,24 @@ from export_data import encode
 from plain import plain
 
 MODULES = ("bot.memory.topics", "bot.memory.named", "bot.memory.thread", "bot.memory.deadline")
+DEPS = [
+    ("bot.memory.facts", "a_moved_place", []), ("bot.memory.facts", "extract", []),
+    ("bot.memory.facts", "no_tone", ["bot.memory.thread"]),
+    ("bot.memory.facts", "without_the_correction_opener", []),
+    ("bot.memory.detail", "answers_the_line", []), ("bot.memory.detail", "the_detail", []),
+    ("bot.memory.already", "the_step_they_took", []), ("bot.memory.repeat", "_tried", []),
+    ("bot.memory.quotes", "sentences", []), ("bot.memory.quotes", "closed", []),
+    ("bot.memory.again", "carries_a_lead_in", []),
+    ("bot.memory.returned", "says_it_happened_again", []),
+    ("bot.memory.narrow", "narrow", []), ("bot.memory.narrow", "part_in_the_unit", []),
+    ("bot.memory.narrow", "kind_of", []),
+    ("bot.memory.filler", "without_the_shrug", ["bot.memory.topics"]),
+    ("bot.memory.when", "asks_what_today_is", []),
+    ("bot.compose.fallback", "is_a_hedge", []), ("bot.compose.fallback", "reads_as_a_judgement", []),
+    ("bot.memory", "_to_the_bot", ["bot.memory.thread"]),
+    ("bot.memory", "_from_the_bot", ["bot.memory.thread"]),
+    ("bot.compose.trouble", "reads_as_trouble", []),
+]
 WRITERS = {"note", "_note", "remember_answer", "_keep_person", "_resume", "_back_to",
            "the_step_back_takes_its_words_back", "_the_step_back_is_undone", "_the_words_this_turn",
            "_the_detail_steps_back", "_the_plan_a_correction_renames", "_the_answer_on_the_return"}
@@ -110,6 +128,36 @@ def main():
                 raise exc
             return res
         return w
+
+    # The other files' functions the four modules call: their results are recorded too, keyed by
+    # the simple arguments (str, number, bool, None, list of str; anything else is null), so the
+    # checker can answer those calls while the files are still stubs in Rust.
+    dep_seen = set()
+
+    def simple(v):
+        if v is None or isinstance(v, (str, int, float, bool)):
+            return v
+        if isinstance(v, (list, tuple)) and all(isinstance(x, str) for x in v):
+            return list(v)
+        return None
+
+    def wrap_dep(key_fn, f):
+        def w(*args, **kwargs):
+            res = f(*args, **kwargs)
+            key = json.dumps([key_fn, [simple(x) for x in args]], ensure_ascii=False)
+            if key not in dep_seen:
+                dep_seen.add(key)
+                out.write(json.dumps({"dep": key_fn, "args": [simple(x) for x in args],
+                                      "result": enc(res)}, ensure_ascii=False) + "\n")
+            return res
+        return w
+
+    for modname, name, also in DEPS:
+        mod = importlib.import_module(modname)
+        wrapped = wrap_dep(f"{modname}:{name}", getattr(mod, name))
+        setattr(mod, name, wrapped)
+        for other in also:
+            setattr(importlib.import_module(other), name, wrapped)
 
     for modname in MODULES:
         mod = importlib.import_module(modname)

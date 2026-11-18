@@ -751,7 +751,7 @@ pub fn is_small_talk(text_: &str, kind: &str) -> bool {
 
 /// `_a_place_the_line_moves(text)`: the place a line moves a plan to (`facts.a_moved_place`).
 pub fn _a_place_the_line_moves(text_: &str) -> String {
-    crate::memory::facts::a_moved_place(text_)
+    deps::string("bot.memory.facts:a_moved_place", deps::args1(text_), || crate::memory::facts::a_moved_place(text_))
 }
 
 /// `_asks_about_the_bot(read)`: the reading says the line is a question about the bot itself.
@@ -2697,7 +2697,7 @@ pub fn _the_answer_covers_it(line: &str, memory: &Memory, understood: Option<&Un
     }
     let put_back: Vec<String> = asked.iter().filter_map(|one| _with_the_article(one)).filter(|p| !p.is_empty()).collect();
     asked.extend(put_back);
-    asked.iter().any(|one| crate::memory::detail::answers_the_line(one, memory))
+    asked.iter().any(|one| deps::truth("bot.memory.detail:answers_the_line", serde_json::json!([one, null]), || crate::memory::detail::answers_the_line(one, memory)))
 }
 
 /// `_with_the_article(line)`: the line with "the" put back before a bare thing ("what about
@@ -3117,7 +3117,8 @@ pub fn _a_sky_ask(line: &str) -> bool {
 /// the topic. A reading that fails counts as no report, as Python's `except` has it.
 pub fn _the_step_they_report(line: &str) -> bool {
     crate::runtime::guarded(|| {
-        crate::memory::already::the_step_they_took(line, None).py_truth() || crate::memory::repeat::_tried(line)
+        deps::truth("bot.memory.already:the_step_they_took", deps::args1(line), || crate::memory::already::the_step_they_took(line, None).py_truth())
+            || deps::truth("bot.memory.repeat:_tried", deps::args1(line), || crate::memory::repeat::_tried(line))
     })
     .unwrap_or(false)
 }
@@ -3319,7 +3320,7 @@ fn _grams_of(unit: &str) -> Option<f64> {
 
 /// `quoted.sentences(text, SENTENCE)`.
 fn _sentences(text_: &str) -> Vec<String> {
-    crate::memory::quotes::sentences(text_, t::value(M, "SENTENCE"))
+    deps::strings("bot.memory.quotes:sentences", serde_json::json!([text_, null]), || crate::memory::quotes::sentences(text_, t::value(M, "SENTENCE")))
 }
 
 /// The upper-cased first letter (`s[:1].upper() + s[1:]`).
@@ -3514,7 +3515,8 @@ pub fn _the_opening_of(reply: &str) -> String {
     }
     let n = if text::len(&parts[0]) >= 60 { 1 } else { 2 };
     let kept: Vec<String> = parts[..n].iter().map(|p| text::strip(p).to_string()).collect();
-    crate::memory::quotes::closed(&kept.join(" "), &parts[n..], &body)
+    let said = kept.join(" ");
+    deps::string("bot.memory.quotes:closed", serde_json::json!([said, parts[n..], body]), || crate::memory::quotes::closed(&said, &parts[n..], &body))
 }
 
 /// `said_again(reply, memory, line)`: the reply, framed as the repeat it is when it is already on
@@ -3525,7 +3527,7 @@ pub fn said_again(reply: &str, memory: &Memory, line: &str) -> Option<String> {
 
 /// `said_again(reply, memory, line=None)` with the line optional.
 pub fn said_again_on(reply: &str, memory: &Memory, line: Option<&str>) -> Option<String> {
-    if crate::memory::again::carries_a_lead_in(reply) {
+    if deps::truth("bot.memory.again:carries_a_lead_in", deps::args1(reply), || crate::memory::again::carries_a_lead_in(reply)) {
         return None;
     }
     let mine = words(reply).join(" ");
@@ -3533,7 +3535,7 @@ pub fn said_again_on(reply: &str, memory: &Memory, line: Option<&str>) -> Option
         return None;
     }
     if let Some(line) = line {
-        if crate::memory::returned::says_it_happened_again(line) {
+        if deps::truth("bot.memory.returned:says_it_happened_again", deps::args1(line), || crate::memory::returned::says_it_happened_again(line)) {
             return None;
         }
         if keywords(line).iter().any(|w| !ASK_ONLY.contains(w) && !POINTS_AT_THE_ANSWER.contains(w)) || FIGURE.is_match(line) {
@@ -3653,7 +3655,7 @@ pub fn answer_about(line: &str, memory: &Memory) -> Option<String> {
 /// `_the_trip_of_theirs(text)`: the places a line of theirs says they are going to (a set; here
 /// in the order the store read them, once each).
 pub fn _the_trip_of_theirs(text_: &str) -> Vec<String> {
-    let found = crate::memory::facts::extract(text_, false);
+    let found = deps::value("bot.memory.facts:extract", deps::args1(text_), || crate::memory::facts::extract(text_, false));
     if !found.get("plan").is_some_and(Value::truthy) {
         return Vec::new();
     }
@@ -3772,7 +3774,7 @@ pub fn same_as_before(understood: &Understood, memory: &Memory) -> Option<String
         if asks_only(understood) {
             if let Some(moved) = _the_thing_the_chat_moved_to(card, &line, memory, *MOVED_KEEP) {
                 let answer = _reply_as_str(moved);
-                let part = crate::memory::narrow::narrow(&answer, &line, "").filter(|p| !p.is_empty());
+                let part = deps::opt_string("bot.memory.narrow:narrow", serde_json::json!([answer, line]), || crate::memory::narrow::narrow(&answer, &line, "")).filter(|p| !p.is_empty());
                 if let Some(part) = part {
                     let bare = text::strip_chars(&part, " .").to_lowercase();
                     for sentence in SENTENCE.split(&answer) {
@@ -3808,7 +3810,7 @@ pub fn same_as_before(understood: &Understood, memory: &Memory) -> Option<String
         if earlier != answer {
             answer = earlier.clone();
             whole = Some(earlier);
-            if let Some(part) = crate::memory::narrow::narrow(&answer, &line, "").filter(|p| !p.is_empty()) {
+            if let Some(part) = deps::opt_string("bot.memory.narrow:narrow", serde_json::json!([answer, line]), || crate::memory::narrow::narrow(&answer, &line, "")).filter(|p| !p.is_empty()) {
                 return Some(part);
             }
         }
@@ -3829,14 +3831,14 @@ pub fn same_as_before(understood: &Understood, memory: &Memory) -> Option<String
     if sentences.len() < 2 && whole.is_none() {
         return None;
     }
-    let part = crate::memory::narrow::part_in_the_unit(&answer, &line).py_str();
+    let part = deps::opt_string("bot.memory.narrow:part_in_the_unit", serde_json::json!([answer, line]), || crate::memory::narrow::part_in_the_unit(&answer, &line).py_str());
     if let Some(part) = part.filter(|p| !p.is_empty()) {
         if words(&part).join(" ") != words(&last.bot).join(" ") {
             return said_again(&part, memory, &line).or(Some(part));
         }
     }
     if ASKS_A_FREQUENCY.is_match(&line.to_lowercase()) {
-        if let Some(part) = crate::memory::narrow::narrow(&answer, &line, "").filter(|p| !p.is_empty()) {
+        if let Some(part) = deps::opt_string("bot.memory.narrow:narrow", serde_json::json!([answer, line]), || crate::memory::narrow::narrow(&answer, &line, "")).filter(|p| !p.is_empty()) {
             if words(&part) != words(&answer) {
                 return Some(part);
             }
@@ -4708,7 +4710,7 @@ pub fn _the_thing_the_chat_moved_to(whole: &str, line: &str, memory: &Memory, ke
     }
     let at = at?;
     let was = _entry(&turns[at].user)?;
-    let kind = crate::memory::narrow::kind_of(line);
+    let kind = deps::opt_string("bot.memory.narrow:kind_of", deps::args1(line), || crate::memory::narrow::kind_of(line));
     let figure = kind.and_then(|k| t::value("bot.memory.narrow.", "SPANS").get(&k).and_then(Value::as_re))?;
     let line_words = words(line);
     for turn in turns[at + 1..].iter().rev() {
@@ -4814,7 +4816,7 @@ pub fn leans_on_topic(understood: &Understood, memory: &Memory) -> bool {
         return false;
     }
     let said = if understood.clean.is_empty() { &understood.text } else { &understood.clean };
-    let text_ = crate::memory::filler::without_the_shrug(said);
+    let text_ = deps::string("bot.memory.filler:without_the_shrug", deps::args1(said), || crate::memory::filler::without_the_shrug(said));
     if PROCEED.iter().any(|p| text_.to_lowercase().contains(p.as_str())) {
         return false;
     }
@@ -5851,7 +5853,7 @@ pub fn _what_the_turn_took_away(record: &Value, memory: &Memory) -> HashSet<Stri
 /// `_widened(line, understood, record, memory)`: this line read with the record's subject put
 /// back in, or None when that reaches nothing.
 pub fn _widened(line: &str, understood: &Understood, record: &Value, memory: &Memory) -> Option<String> {
-    if crate::memory::when::asks_what_today_is(line) {
+    if deps::truth("bot.memory.when:asks_what_today_is", deps::args1(line), || crate::memory::when::asks_what_today_is(line)) {
         return None;
     }
     if !is_dict(record) {
@@ -6054,7 +6056,8 @@ pub fn followup_reading(understood: &Understood, memory: &Memory) -> Understood 
     if let Some(r) = the_limit_of_the_thing(understood, memory) {
         return r;
     }
-    let line = crate::memory::filler::without_the_shrug(&_line_of(understood));
+    let said = _line_of(understood);
+    let line = deps::string("bot.memory.filler:without_the_shrug", deps::args1(&said), || crate::memory::filler::without_the_shrug(&said));
     if let Some(gathering) = _a_gathering_read_as_the_food(understood, &line, memory) {
         return _reading_with(understood, &gathering, true);
     }
@@ -6262,7 +6265,8 @@ pub fn _the_words_this_turn(memory: &mut Memory, before: &IndexMap<String, Vec<S
 
 /// `_a_step_back(reply)`: the reply is one of the pools that say the bot cannot answer this.
 pub fn _a_step_back(reply: &str) -> bool {
-    crate::runtime::guarded(|| crate::compose::fallback::is_a_hedge(text::strip(reply))).unwrap_or(false)
+    let said = text::strip(reply);
+    crate::runtime::guarded(|| deps::truth("bot.compose.fallback:is_a_hedge", deps::args1(said), || crate::compose::fallback::is_a_hedge(said))).unwrap_or(false)
 }
 
 /// `_the_detail_steps_back(memory, reply)`: put back the thing the chat was on when this turn's
@@ -6338,4 +6342,77 @@ pub fn the_step_back_takes_its_words_back(memory: &mut Memory, reply: &str) -> O
         }
     }
     took_back
+}
+
+/// Results of other workstreams' functions recorded while PyBot ran, for MEM3's function-level
+/// check (`src/bin/mem3_check.rs`): a call this file and `named` / `thread` make to another file
+/// is answered from here when the checker has loaded a result for exactly those arguments, so a
+/// reader can be checked before the file it leans on is ported. Empty in every real run, where
+/// each call goes to the function itself.
+pub mod deps {
+    use serde_json::{json, Value as J};
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+
+    thread_local! {
+        static RECORDED: RefCell<HashMap<String, J>> = RefCell::new(HashMap::new());
+    }
+
+    /// Load one recorded result: the function's Python name and its simple arguments.
+    pub fn record(name: &str, args: &J, result: J) {
+        RECORDED.with(|r| r.borrow_mut().insert(format!("{name}|{args}"), result));
+    }
+
+    fn lookup(name: &str, args: &J) -> Option<J> {
+        RECORDED.with(|r| {
+            let r = r.borrow();
+            if r.is_empty() {
+                return None;
+            }
+            r.get(&format!("{name}|{args}")).cloned()
+        })
+    }
+
+    pub fn string(name: &str, args: J, real: impl FnOnce() -> String) -> String {
+        match lookup(name, &args) {
+            Some(J::String(s)) => s,
+            Some(_) => String::new(),
+            None => real(),
+        }
+    }
+    pub fn opt_string(name: &str, args: J, real: impl FnOnce() -> Option<String>) -> Option<String> {
+        match lookup(name, &args) {
+            Some(J::String(s)) => Some(s),
+            Some(_) => None,
+            None => real(),
+        }
+    }
+    pub fn truth(name: &str, args: J, real: impl FnOnce() -> bool) -> bool {
+        match lookup(name, &args) {
+            Some(J::Bool(b)) => b,
+            Some(J::Null) => false,
+            Some(J::String(s)) => !s.is_empty(),
+            Some(J::Array(a)) => !a.is_empty(),
+            Some(J::Object(o)) => !o.is_empty(),
+            Some(J::Number(n)) => n.as_f64() != Some(0.0),
+            None => real(),
+        }
+    }
+    pub fn strings(name: &str, args: J, real: impl FnOnce() -> Vec<String>) -> Vec<String> {
+        match lookup(name, &args) {
+            Some(J::Array(a)) => a.iter().map(|x| x.as_str().unwrap_or("").to_string()).collect(),
+            Some(_) => Vec::new(),
+            None => real(),
+        }
+    }
+    pub fn value(name: &str, args: J, real: impl FnOnce() -> crate::data::Value) -> crate::data::Value {
+        match lookup(name, &args) {
+            Some(j) => crate::data::Value::from_plain(&j),
+            None => real(),
+        }
+    }
+    /// The simple arguments as the recorder keys them.
+    pub fn args1(a: &str) -> J {
+        json!([a])
+    }
 }

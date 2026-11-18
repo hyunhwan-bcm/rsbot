@@ -9,6 +9,7 @@ use crate::memory::topics::{carried_topic as the_carried_topic, is_ack, subject 
 use crate::py::re::Re;
 use crate::py::text;
 use crate::state::{Memory, Turn};
+use crate::memory::topics::deps;
 use crate::understanding::t;
 use crate::understood::Understood;
 use indexmap::IndexMap;
@@ -840,7 +841,7 @@ pub fn follow_up(text_: &str, memory: &Memory) -> String {
     if _no_thanks(text_) {
         return String::new();
     }
-    if crate::compose::trouble::reads_as_trouble(text_, None, "").py_truth() {
+    if deps::truth("bot.compose.trouble:reads_as_trouble", deps::args1(text_), || crate::compose::trouble::reads_as_trouble(text_, None, "").py_truth()) {
         return String::new();
     }
     if BARE_ANOTHER.match_(text_).is_some() {
@@ -891,16 +892,16 @@ pub fn about_it(text_: &str, memory: &Memory) -> String {
     if _answers_the_bot(text_) {
         return String::new();
     }
-    if crate::compose::trouble::reads_as_trouble(text_, None, "").py_truth() {
+    if deps::truth("bot.compose.trouble:reads_as_trouble", deps::args1(text_), || crate::compose::trouble::reads_as_trouble(text_, None, "").py_truth()) {
         return String::new();
     }
-    if crate::compose::fallback::reads_as_a_judgement(text_) {
+    if deps::truth("bot.compose.fallback:reads_as_a_judgement", deps::args1(text_), || crate::compose::fallback::reads_as_a_judgement(text_)) {
         return String::new();
     }
     if _only_how_they_feel(text_, memory) {
         return String::new();
     }
-    let corrected = crate::memory::facts::without_the_correction_opener(text_);
+    let corrected = deps::opt_string("bot.memory.facts:without_the_correction_opener", deps::args1(text_), || Some(crate::memory::facts::without_the_correction_opener(text_))).unwrap_or_default();
     let corrected = if corrected.is_empty() { text_.to_string() } else { corrected };
     let said = thing(&corrected);
     if said.is_empty() {
@@ -1426,8 +1427,9 @@ pub fn _thing_in_hand(memory: &Memory) -> Vec<String> {
     let said: Vec<String> = match topic.and_then(|t_| t_.get("words")) {
         Some(Value::List(l)) if !l.is_empty() => l.iter().map(|w| vstr(Some(w))).collect(),
         _ => {
-            let only = subject_word(memory);
-            return if only.is_empty() { Vec::new() } else { vec![only] };
+            // Python returns the subject word itself here, a str and not a list, so a caller that
+            // walks the things walks its letters: kept as the letters
+            return subject_word(memory).chars().map(String::from).collect();
         }
     };
     let answer = memory.get("last_answer").cloned().unwrap_or(Value::None);

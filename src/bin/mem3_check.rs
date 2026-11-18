@@ -496,7 +496,6 @@ fn call(name: &str, a: &Args) -> Option<(J, Option<J>)> {
             "_the_answer_is_about_what_the_line_names" => topics::_the_answer_is_about_what_the_line_names(a.entry(0, "entry")?, &a.s(1, "line")).py(),
             "_already_answered_here" => topics::_already_answered_here(a.entry(0, "entry")?, &a.mem(1, "memory")).py(),
             "_how_much_of_the_thing_the_entry_uses" => topics::_how_much_of_the_thing_the_entry_uses(a.entry(0, "entry")?, &a.s(1, "said")).py(),
-            "_the_things_the_chat_named" => topics::_the_things_the_chat_named(&a.s(0, "record_text"), &a.mem(1, "memory"), &a.s(2, "line")).py(),
             "followup_reading" => topics::followup_reading(&a.und(0, "understood"), &a.mem(1, "memory")).py(),
             "the_advice_ask_with_its_doing" => topics::the_advice_ask_with_its_doing(&a.und(0, "understood"), &a.mem(1, "memory")).py(),
             "_the_reply_to_the_turn_before" => topics::_the_reply_to_the_turn_before(&a.mem(0, "memory")).py(),
@@ -660,6 +659,11 @@ fn expected(fname: &str, result: &J) -> J {
         | "the_thing_a_detail_belongs_to" | "_carrying_on" | "_the_length_of_the_aim" | "the_advice_ask_with_its_doing" => {
             reading_view(result)
         }
+        // a str where Python's callers walk it as a list: compared as its letters
+        "_thing_in_hand" => match result {
+            J::String(s) => J::Array(s.chars().map(|c| J::String(c.to_string())).collect()),
+            other => other.clone(),
+        },
         _ => result.clone(),
     }
 }
@@ -670,11 +674,24 @@ fn main() {
     let path = &argv[0];
     let show: usize = argv.iter().position(|a| a == "--show").map(|i| argv[i + 1].parse().unwrap()).unwrap_or(3);
     let only: Option<&String> = argv.iter().position(|a| a == "--only").map(|i| &argv[i + 1]);
+    // the other files' results first, so the readers that lean on them can be checked
+    let mut deps = 0;
+    for line in std::io::BufReader::new(GzDecoder::new(std::fs::File::open(path).unwrap())).lines() {
+        let rec: J = serde_json::from_str(&line.unwrap()).unwrap();
+        if let Some(dep) = rec.get("dep").and_then(J::as_str) {
+            rsbot::memory::topics::deps::record(dep, &rec["args"], rec["result"].clone());
+            deps += 1;
+        }
+    }
+    println!("{deps} recorded results of other files' functions loaded");
     let reader = std::io::BufReader::new(GzDecoder::new(std::fs::File::open(path).unwrap()));
     let mut stats: BTreeMap<String, (usize, usize, usize, usize)> = BTreeMap::new(); // ok, bad, panic, skipped
     let mut shown: BTreeMap<String, usize> = BTreeMap::new();
     for line in reader.lines() {
         let rec: J = serde_json::from_str(&line.unwrap()).unwrap();
+        if rec.get("dep").is_some() {
+            continue;
+        }
         let name = rec["fn"].as_str().unwrap().to_string();
         if only.is_some_and(|o| !name.ends_with(o.as_str())) {
             continue;
