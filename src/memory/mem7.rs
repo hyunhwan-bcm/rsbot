@@ -446,3 +446,22 @@ pub fn some_text(value: impl PyVal) -> Option<String> {
         other => Some(py_str(&other)),
     }
 }
+
+/// Python's `float(text)` for the plain decimal forms ("4", "4.5", "-2", "1e3", "inf"), with
+/// surrounding whitespace and underscores between digits; None for ValueError.
+pub fn py_float(text: &str) -> Option<f64> {
+    let t = pt::strip(text);
+    if t.is_empty() || t.starts_with('_') || t.ends_with('_') || t.contains("__") {
+        return None;
+    }
+    let cleaned = t.replace('_', "");
+    let low = cleaned.to_lowercase();
+    let body = low.trim_start_matches(['+', '-']);
+    if matches!(body, "inf" | "infinity" | "nan") {
+        return cleaned.parse::<f64>().ok().or_else(|| if low.starts_with('-') { Some(f64::NEG_INFINITY) } else { Some(f64::INFINITY) });
+    }
+    if !body.chars().all(|c| c.is_ascii_digit() || matches!(c, '.' | 'e' | '+' | '-')) || !body.chars().any(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    cleaned.parse::<f64>().ok()
+}
