@@ -376,6 +376,11 @@ impl<A: PyRet, B: PyRet, C: PyRet> PyRet for (A, B, C) {
         Value::Tuple(Arc::new(vec![self.0.val(), self.1.val(), self.2.val()]))
     }
 }
+impl<A: PyRet, B: PyRet, C: PyRet, D: PyRet> PyRet for (A, B, C, D) {
+    fn val(self) -> Value {
+        Value::Tuple(Arc::new(vec![self.0.val(), self.1.val(), self.2.val(), self.3.val()]))
+    }
+}
 
 /// A call's value as Python's `x or ""` string: "" for a falsy value.
 pub(crate) fn ret_str(v: impl PyRet) -> String {
