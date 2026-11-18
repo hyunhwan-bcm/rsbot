@@ -225,33 +225,47 @@ pub const REPLIES: &[(&str, ReplyFn)] = &[
 ];
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The guard factories: the closures they make, each over the table it was given.
 
-    /// Python: bot/knowledge/history.py:1882 `names_a_row(table)` (never called on the trace corpus)
-    pub fn names_a_row(table: &Value) -> Value {
-        crate::unported!("bot.knowledge.history:names_a_row")
-    }
+use crate::knowledge::built;
 
-    /// Python: bot/knowledge/history.py:1913 `names_a_row_or_a_question_after_one(table)` (never called on the trace corpus)
-    pub fn names_a_row_or_a_question_after_one(table: &Value) -> Value {
-        crate::unported!("bot.knowledge.history:names_a_row_or_a_question_after_one")
-    }
-
-    /// Python: bot/knowledge/history.py:1928 `a_short_question_about_the_last_one(table)` (never called on the trace corpus)
-    pub fn a_short_question_about_the_last_one(table: &Value) -> Value {
-        crate::unported!("bot.knowledge.history:a_short_question_about_the_last_one")
-    }
-
+/// `names_a_row(table)`: the table takes a line only when the row it names is its own.
+pub fn names_a_row(table: &Value) -> FnRef {
+    built::closure("bot.knowledge.history:names_a_row.<locals>.guard:1890", vec![("table", table.clone())])
 }
 
+/// `names_a_row_or_a_question_after_one(table)`: the table's guard, which also lets through a
+/// question about the last row it named.
+pub fn names_a_row_or_a_question_after_one(table: &Value) -> FnRef {
+    built::closure("bot.knowledge.history:names_a_row_or_a_question_after_one.<locals>.guard:1920", vec![("table", table.clone())])
+}
+
+/// `a_short_question_about_the_last_one(table)`: the follow-up row's guard.
+pub fn a_short_question_about_the_last_one(table: &Value) -> FnRef {
+    built::closure("bot.knowledge.history:a_short_question_about_the_last_one.<locals>.guard:1936", vec![("table", table.clone())])
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    #[test]
+    fn guards_rebuild() {
+        crate::data::load();
+        let mut n = 0;
+        for row in crate::knowledge::entries() {
+            let Some(g) = &row.guard else { continue };
+            let Some(table) = g.cell("table") else { continue };
+            let ours = match g.name() {
+                "bot.knowledge.history:names_a_row.<locals>.guard" => names_a_row(table),
+                "bot.knowledge.history:names_a_row_or_a_question_after_one.<locals>.guard" => names_a_row_or_a_question_after_one(table),
+                "bot.knowledge.history:a_short_question_about_the_last_one.<locals>.guard" => a_short_question_about_the_last_one(table),
+                _ => continue,
+            };
+            assert_eq!(ours.id, g.id);
+            n += 1;
+        }
+        assert!(n > 0);
+    }
+}

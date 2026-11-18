@@ -4829,33 +4829,71 @@ mod diff_tests {
 }
 
 
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
+// ---------------------------------------------------------------------------------------------
+// The row factories, building what PyBot built at import (`knowledge::built`).
 
-    /// Python: bot/knowledge/home.py:3739 `the_filter_of(words, text)` (never called on the trace corpus)
-    pub fn the_filter_of(words: &[String], text: &str) -> Value {
-        crate::unported!("bot.knowledge.home:the_filter_of")
-    }
+use crate::knowledge::built;
+use crate::knowledge::entry::{Entry, Reply};
 
-    /// Python: bot/knowledge/home.py:7337 `_heat_row(names, slug, said)` (never called on the trace corpus)
-    pub fn _heat_row(names: &[String], slug: &Value, said: &str) -> Value {
-        crate::unported!("bot.knowledge.home:_heat_row")
-    }
-
-    /// Python: bot/knowledge/home.py:8792 `_sized_by_the_chat_before(reply)` (never called on the trace corpus)
-    pub fn _sized_by_the_chat_before(reply: &str) -> Value {
-        crate::unported!("bot.knowledge.home:_sized_by_the_chat_before")
-    }
-
+/// `the_filter_of(words, text)`: a machine's filter reply that also answers a bare "filter"
+/// when the machine was named in the turns just before.
+pub fn the_filter_of(words: &[String], text_: &str) -> FnRef {
+    let patterns: Vec<Value> = words
+        .iter()
+        .map(|w| Value::Re(std::sync::Arc::new(Re::new(&format!("(?<![a-z0-9]){}(?![a-z0-9])", crate::py::re::escape(w)), crate::py::re::U))))
+        .collect();
+    built::closure("bot.knowledge.home:the_filter_of.<locals>.reply:3744", vec![("patterns", Value::from(patterns)), ("text", Value::from(text_))])
 }
 
+/// `_heat_row(names, slug, said)`: one appliance temperature, keyed by the appliance and asked
+/// about the heat of it.
+pub fn _heat_row(names: &[String], slug: &str, said: &str) -> Entry {
+    built::entry(
+        &format!("appliance-heat-{slug}"),
+        vec![built::part(names), built::part(&g("_HEAT_ASK").strs())],
+        Reply::Text(said.to_string()),
+        &[g("_HEAT_NOT_FOOD").clone()],
+        2,
+        vec![],
+        None,
+    )
+}
+
+/// `_sized_by_the_chat_before(reply)`: a follow-up that leaves the size out is sized by the
+/// line before it.
+pub fn _sized_by_the_chat_before(reply: FnRef) -> FnRef {
+    built::closure("bot.knowledge.home:_sized_by_the_chat_before.<locals>.answered:8799", vec![("reply", Value::Fn(std::sync::Arc::new(reply)))])
+}
+
+#[cfg(test)]
+mod factory_tests {
+    use super::*;
+
+    #[test]
+    fn rows_rebuild() {
+        data::load();
+        let (mut heat, mut filters) = (0, 0);
+        for row in built::exported("bot.knowledge.home.ENTRIES") {
+            if let (Some(slug), Reply::Text(said), crate::knowledge::entry::KeyPart::Any(names)) =
+                (row.id.strip_prefix("appliance-heat-"), &row.reply, &row.key[0])
+            {
+                assert_eq!(built::same_entry(&_heat_row(names, slug, said), &row), None);
+                heat += 1;
+            }
+            if let Reply::Fn(f) = &row.reply {
+                if f.name() == "bot.knowledge.home:the_filter_of.<locals>.reply" {
+                    let words: Vec<String> = f.cell("patterns").unwrap().items().iter().map(|p| {
+                        let p = p.as_re().unwrap().pattern().to_string();
+                        p.trim_start_matches("(?<![a-z0-9])").trim_end_matches("(?![a-z0-9])").replace('\\', "")
+                    }).collect();
+                    let ours = Reply::Fn(the_filter_of(&words, f.cell("text").unwrap().str()));
+                    let mut e = row.clone();
+                    e.reply = ours;
+                    assert_eq!(built::same_entry(&e, &row), None);
+                    filters += 1;
+                }
+            }
+        }
+        assert!(heat > 3 && filters > 0, "{heat} {filters}");
+    }
+}
