@@ -1,64 +1,102 @@
-//! Port of `bot/memory/holds.py`.
+//! Port of `bot/memory/holds.py`: the earlier turns, one check for "was this said before the
+//! line I am answering?".
 //!
-//! GENERATED SKELETON: every function is a stub until its workstream ports it. The
-//! signatures are the contract other files call against; keep them.
-#![allow(unused_variables, unused_imports, non_snake_case, clippy::all)]
+//! The turns here are the turns that came before the line being answered: the runtime appends
+//! the current turn after the modules have replied.
 
-use crate::data::{self, Value};
-use crate::knowledge::entry::Entry;
-use crate::py::re::Re;
-use crate::runtime::Candidate;
+use crate::py::re::{self, Re, I};
+use crate::py::text;
 use crate::state::{Memory, Turn};
-use crate::understood::Understood;
-use std::sync::LazyLock;
 
 /// Python: bot/memory/holds.py:32 `turns(memory)`
-pub fn turns(memory: &Memory) -> Vec<String> {
-    crate::unported!("bot.memory.holds:turns")
+///
+/// The turns before this one, oldest first (every one a dict in Python; a `Turn` here).
+pub fn turns(memory: &Memory) -> &[Turn] {
+    &memory.turns
 }
 
 /// Python: bot/memory/holds.py:40 `there_is_one(memory)`
+///
+/// Whether the chat has an earlier turn at all.
 pub fn there_is_one(memory: &Memory) -> bool {
-    crate::unported!("bot.memory.holds:there_is_one")
+    !turns(memory).is_empty()
 }
 
 /// Python: bot/memory/holds.py:49 `lines(memory)`
+///
+/// What the person said, before this line, oldest first, each one tidied to one line.
 pub fn lines(memory: &Memory) -> Vec<String> {
-    crate::unported!("bot.memory.holds:lines")
+    turns(memory).iter().map(|turn| text::squash(&turn.user)).filter(|line| !line.is_empty()).collect()
 }
 
-/// Python: bot/memory/holds.py:59 `the_bot_lines(memory)` (never called on the trace corpus)
-pub fn the_bot_lines(memory: &Memory) -> Value {
-    crate::unported!("bot.memory.holds:the_bot_lines")
+/// Python: bot/memory/holds.py:59 `the_bot_lines(memory)`
+///
+/// What the bot said before this line, oldest first.
+pub fn the_bot_lines(memory: &Memory) -> Vec<String> {
+    turns(memory).iter().map(|turn| text::squash(&turn.bot)).filter(|line| !line.is_empty()).collect()
 }
 
-/// Python: bot/memory/holds.py:69 `last_reply(memory)` (never called on the trace corpus)
-pub fn last_reply(memory: &Memory) -> Value {
-    crate::unported!("bot.memory.holds:last_reply")
+/// Python: bot/memory/holds.py:69 `last_reply(memory)`
+///
+/// The bot's last line, or "" at the start of a chat.
+pub fn last_reply(memory: &Memory) -> String {
+    the_bot_lines(memory).pop().unwrap_or_default()
 }
 
-/// Python: bot/memory/holds.py:75 `last_module(memory)` (never called on the trace corpus)
+/// Python: bot/memory/holds.py:75 `last_module(memory)`
+///
+/// The module that answered the last line, or "" at the start of a chat.
 pub fn last_module(memory: &Memory) -> String {
-    crate::unported!("bot.memory.holds:last_module")
+    turns(memory).last().and_then(|t| t.module.clone()).unwrap_or_default()
 }
 
-/// Python: bot/memory/holds.py:81 `recent(memory, n=3)` (never called on the trace corpus)
+/// Python: bot/memory/holds.py:81 `recent(memory, n=3)`
+///
+/// The last `n` turns as text, the person's line and the bot's answer, in order.
 pub fn recent(memory: &Memory, n: i64) -> String {
-    crate::unported!("bot.memory.holds:recent")
+    let held = turns(memory);
+    // Python's `held[-n:]`: n == 0 is the whole list, a negative n drops from the front.
+    let from = if n > 0 {
+        held.len().saturating_sub(n as usize)
+    } else if n == 0 {
+        0
+    } else {
+        (n.unsigned_abs() as usize).min(held.len())
+    };
+    let mut said = Vec::new();
+    for turn in &held[from..] {
+        for part in [&turn.user, &turn.bot] {
+            let part = text::squash(part);
+            if !part.is_empty() {
+                said.push(part);
+            }
+        }
+    }
+    said.join(" ")
 }
 
-/// Python: bot/memory/holds.py:92 `says(memory, word)` (never called on the trace corpus)
+/// Python: bot/memory/holds.py:92 `says(memory, word)`
+///
+/// Whether an earlier line of theirs names this word, as a word.
 pub fn says(memory: &Memory, word: &str) -> bool {
-    crate::unported!("bot.memory.holds:says")
+    let word = text::strip(word).to_lowercase();
+    if word.is_empty() {
+        return false;
+    }
+    let pattern = Re::new(&format!(r"\b{}\b", re::escape(&word)), I);
+    lines(memory).iter().any(|line| pattern.is_match(line))
 }
 
-/// Python: bot/memory/holds.py:101 `the_line(memory, pattern)` (never called on the trace corpus)
-pub fn the_line(memory: &Memory, pattern: &Value) -> Value {
-    crate::unported!("bot.memory.holds:the_line")
+/// Python: bot/memory/holds.py:101 `the_line(memory, pattern)`
+///
+/// The first earlier line of theirs that matches `pattern`, or "" when none does.
+pub fn the_line(memory: &Memory, pattern: &Re) -> String {
+    lines(memory).into_iter().find(|line| pattern.is_match(line)).unwrap_or_default()
 }
 
-/// Python: bot/memory/holds.py:109 `the_last_line(memory, pattern)` (never called on the trace corpus)
-pub fn the_last_line(memory: &Memory, pattern: &Value) -> Value {
-    crate::unported!("bot.memory.holds:the_last_line")
+/// Python: bot/memory/holds.py:109 `the_last_line(memory, pattern)`
+///
+/// The most recent earlier line of theirs that matches `pattern`, or "".
+pub fn the_last_line(memory: &Memory, pattern: &Re) -> String {
+    lines(memory).into_iter().rev().find(|line| pattern.is_match(line)).unwrap_or_default()
 }
-

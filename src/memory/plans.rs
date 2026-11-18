@@ -90,7 +90,17 @@ fn reading_of(question: &str, memory: &Memory) -> Understood {
 /// Python: bot/memory/plans.py:135 `_the_reply(entry, question, memory)`
 ///
 /// The entry's answer said, the way the composer will say it, or "".
-pub fn _the_reply(entry: &'static Entry, question: &str, memory: &mut Memory) -> String {
+///
+/// CONTRACT: `memory` is `&Memory` (pending.rs calls it so); an entry's reply function may write
+/// to the memory it is handed, so it gets a copy here, and `answer` uses `the_reply_on`, which
+/// hands it the real one as PyBot does.
+pub fn _the_reply(entry: &'static Entry, question: &str, memory: &Memory) -> String {
+    let mut copy = memory.clone();
+    the_reply_on(entry, question, &mut copy)
+}
+
+/// `_the_reply` with the memory the reply function may write to.
+fn the_reply_on(entry: &'static Entry, question: &str, memory: &mut Memory) -> String {
     match &entry.reply {
         Reply::Text(text) => text.clone(),
         Reply::Choices(options) => mem7::pick(options, memory, ""),
@@ -122,7 +132,7 @@ pub fn answer(text: &str, memory: &mut Memory) -> Option<String> {
         // The entry is about the thing, not about planning it.
         return None;
     }
-    let reply = _the_reply(entry, &question, memory);
+    let reply = the_reply_on(entry, &question, memory);
     if pt::strip(&reply).is_empty() {
         return None;
     }

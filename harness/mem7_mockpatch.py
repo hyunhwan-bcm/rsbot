@@ -67,7 +67,10 @@ pub fn pick(options: &[String], memory: &Value, seed: &str) -> String {
 def patch(path, old, new):
     p = f"{root}/{path}"
     s = open(p).read()
-    assert old in s, (path, old)
+    if old not in s:
+        # Its owner has ported it since: the real function answers.
+        print("ported already, not mocked:", path, old.split("(")[0].split()[-1])
+        return
     s = s.replace(old, new)
     open(p, "w").write(s)
 

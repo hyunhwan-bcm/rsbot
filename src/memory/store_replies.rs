@@ -4870,7 +4870,7 @@ pub fn _respond(text_: &str, memory: &mut Memory) -> Option<String> {
         }
     }
     // The line points at someone the chat never named: the age is read back off the line that gave it.
-    let mut who_asked = crate::memory::relations::_named_person(&low, memory);
+    let mut who_asked = crate::memory::relations::_named_person(&low, Some(&mut *memory));
     if who_asked.is_empty() && A_PRONOUN_PERSON.is_match(&low) {
         who_asked = crate::memory::relations::_person_from_pronoun(&low, memory, &[]);
     }
@@ -7000,7 +7000,7 @@ pub fn _diet_reply(memory: &mut Memory, low: &str) -> Option<String> {
         let was = user(memory).get("diet").cloned().unwrap_or(Value::None);
         if said == "changed" && was.truthy() {
             // The reply says what it is doing with the old value, so the store has to do it.
-            crate::memory::forget(memory, "diet", &[py_str(&was)], "");
+            crate::memory::forget(memory, "diet", &Value::from(vec![was.clone()]), "");
             user_set(memory, "diet_changed", was.clone());
         }
         return ret_opt(crate::memory::change::reply(&said, "diet", &s_or(Some(&was))));
@@ -8685,7 +8685,7 @@ pub fn _about_a_person_reply(memory: &mut Memory, low: &str, text_: &str) -> Opt
     if !asked {
         return None;
     }
-    let mut who = crate::memory::relations::_named_person(low, memory);
+    let mut who = crate::memory::relations::_named_person(low, Some(&mut *memory));
     if who.is_empty() {
         who = called;
     }

@@ -186,17 +186,12 @@ pub fn _a_list_under_a_frame(one: &str) -> bool {
 
 /// `detail._a_step(said, questions_are_steps=...)` as the step it gives, or "".
 fn a_step(said: &str, questions_are_steps: bool) -> String {
-    let step = detail::_a_step(said, &Value::Bool(questions_are_steps));
-    if step.truthy() {
-        mem7::py_str(&step)
-    } else {
-        String::new()
-    }
+    detail::_a_step(said, questions_are_steps)
 }
 
 /// `detail._first_clause(step)`.
 fn first_clause(step: &str) -> String {
-    detail::_first_clause(&Value::from(step))
+    detail::_first_clause(step)
 }
 
 /// Python: bot/memory/obstacle.py:427 `_a_doing(one)`

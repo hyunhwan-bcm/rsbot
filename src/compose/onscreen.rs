@@ -3,7 +3,7 @@
 
 use crate::compose::fallback;
 use crate::compose::fallback_chain::{_choose_opt, caught};
-use crate::data::{self, Value};
+use crate::data;
 use crate::memory::history;
 use crate::py::re::Re;
 use crate::py::text;
@@ -147,7 +147,7 @@ pub fn _the_answer_to_hand_back(memory: &Memory) -> String {
 
 /// Python: bot/compose/onscreen.py:308 `_the_answer_is_a_card(memory)`
 pub fn _the_answer_is_a_card(memory: &Memory) -> bool {
-    history::the_answer_is_a_card(memory, &Value::Int(3))
+    history::the_answer_is_a_card(memory, 3)
 }
 
 /// Python: bot/compose/onscreen.py:328 `_the_parts(sentence)`

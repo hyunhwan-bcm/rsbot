@@ -122,7 +122,7 @@ pub fn _asks_for_it(text: &str) -> bool {
 
 /// Python: bot/memory/surname.py:188 `_the_first_name(memory)`
 pub fn _the_first_name(memory: &mut Memory) -> String {
-    mem7::text_of(Some(&crate::memory::name(memory)))
+    crate::memory::name(memory)
 }
 
 /// Python: bot/memory/surname.py:193 `a_note(text, memory)`
