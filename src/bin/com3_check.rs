@@ -7,7 +7,7 @@
 //! Per function: calls that give PyBot's result (and, for a function that writes memory, PyBot's
 //! memory after it), calls that differ, and calls that reached a stub not ported yet.
 use flate2::read::GzDecoder;
-use rsbot::compose::{remark as rm, goodnews as gn, check_with_you as cwy, checking as ck, fallback_pools as fp, finding_out as fo, loss, onsubject as os, quantity as qt, ruledout as ro, trouble as tr, what_i_do_know as wk};
+use rsbot::compose::{reading as rd, remark as rm, goodnews as gn, check_with_you as cwy, checking as ck, fallback_pools as fp, finding_out as fo, loss, onsubject as os, quantity as qt, ruledout as ro, trouble as tr, what_i_do_know as wk};
 use rsbot::runtime::{guarded, quiet_panics, take_last_panic};
 use rsbot::state::{Memory, Turn};
 use rsbot::understood::Understood;
@@ -204,6 +204,19 @@ fn run(name: &str, c: &Call) -> Option<Out> {
         "bot.compose.remark:done_to_me" => r(json!(rm::done_to_me(&c.s(0)))),
         "bot.compose.remark:_has_phrase" => r(json!(rm::_has_phrase(&c.s(0), &c.strs(1)))),
         "bot.compose.remark:interest_reply_for" => r(optj(rm::interest_reply_for(&c.get(0).map(rsbot::data::Value::from_plain).unwrap_or(rsbot::data::Value::None), &c.mem(1)))),
+        // ---- reading ----
+        "bot.compose.reading:reply_for" => r(optj(rd::reply_for(&c.s(0), &c.mem(1)))),
+        "bot.compose.reading:reply_to_a_doubt" => r(optj(rd::reply_to_a_doubt(&c.s(0), &c.mem(1)))),
+        "bot.compose.reading:reply_to_a_bare_doubt" => r(optj(rd::reply_to_a_bare_doubt(&c.s(0), &c.mem(1)))),
+        "bot.compose.reading:judges_a_figure" => r(json!(rd::judges_a_figure(&c.s(0), &c.mem(1)))),
+        "bot.compose.reading:judges_the_figure_on_the_table" => r(json!(rd::judges_the_figure_on_the_table(&c.s(0), &c.mem(1)))),
+        "bot.compose.reading:_the_verdict_for_the_table" => r(optj(rd::_the_verdict_for_the_table(&c.s(0), &c.mem(1)))),
+        "bot.compose.reading:_its_own_subject_judges_it" => r(json!(rd::_its_own_subject_judges_it(&c.s(0), &c.mem(1)))),
+        "bot.compose.reading:_a_bare_doubt" => r(rd::_a_bare_doubt(&c.s(0), &c.mem(1)).map(|(v, u, t, m)| json!([v, u, t, m])).unwrap_or(J::Null)),
+        "bot.compose.reading:_doubt" => r(rd::_doubt(&c.s(0)).map(|d| json!({"word": d.word, "value": d.value, "money": d.money, "unit": d.unit, "subject": d.subject, "rate": d.rate})).unwrap_or(J::Null)),
+        "bot.compose.reading:_number" => r(rd::_number(&c.s(0)).map(|(v, u)| json!([v, u])).unwrap_or(J::Null)),
+        "bot.compose.reading:_their_figure" => r(rd::_their_figure(&c.mem(0), &rsbot::data::Value::Int(c.n(1, 1))).to_plain()),
+        "bot.compose.reading:_the_figure_in_the_doubt" => { let (v, m, u, rest, rate) = rd::_the_figure_in_the_doubt(&c.s(0)); r(json!([v, m, u, rest, rate])) }
         // ---- loss ----
         "bot.compose.loss:reads_as_loss" => { let w = words_arg(c, 1); r(json!(loss::reads_as_loss(&c.s(0), w.as_deref(), c.b(2, false)))) }
         "bot.compose.loss:reply_for" => r(opt_pool(loss::reply_for(&c.s(0), &c.mem(1), &c.s(2), &c.strs(3), c.os(4).as_deref()))),
