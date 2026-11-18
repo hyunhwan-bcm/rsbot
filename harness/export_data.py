@@ -98,7 +98,15 @@ def main():
     a = ap.parse_args()
     run_python.pin_clock(a.today)
     sys.path.insert(0, os.path.abspath(a.pybot))
-    from bot import runtime  # noqa: F401 - imports every module
+    from bot import runtime  # noqa: F401 - imports every module the runtime loads at start
+    # About twenty modules are only imported inside functions (bot.compose.childwords,
+    # bot.memory.rename, ...): import them too, so their tables are in the bundle.
+    import importlib
+    import pkgutil
+    import bot
+    for info in pkgutil.walk_packages(bot.__path__, "bot."):
+        if info.name != "bot.__main__":
+            importlib.import_module(info.name)
     out = {}
     for name, mod in sorted(sys.modules.items()):
         if not (name == "bot" or name.startswith("bot.")) or mod is None:
