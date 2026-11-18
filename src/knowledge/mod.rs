@@ -240,24 +240,15 @@ pub fn entries() -> &'static [Entry] {
     crate::knowledge::entry::entries()
 }
 
-
-// Stubs appended by harness/integrate_skeleton.py: the Python functions this file does not
-// define yet, with signatures from the generated contract. Port them in place (move a
-// function up into the file when you port it).
-pub use self::skeleton_stubs::*;
-#[allow(unused_imports, unused_variables, non_snake_case, dead_code, clippy::all)]
-mod skeleton_stubs {
-    use super::*;
-    use crate::data::{self, Value};
-    use crate::knowledge::entry::Entry;
-    use crate::runtime::Candidate;
-    use crate::state::{Memory, Turn};
-    use crate::understood::Understood;
-
-    /// Python: bot/knowledge/__init__.py:132 `_with_one_more_test(guard, extra)`
-    pub fn _with_one_more_test(guard: &Value, extra: &Value) -> Value {
-        crate::unported!("bot.knowledge:_with_one_more_test")
+/// `_with_one_more_test(guard, extra)`: a row's guard with one more condition folded in; with no
+/// guard, the extra test alone. The fold is `guard_and_extra` over the two (see above).
+pub fn _with_one_more_test(guard: &Value, extra: &Value) -> Value {
+    if guard.is_none() {
+        return extra.clone();
     }
-
+    Value::Fn(std::sync::Arc::new(FnRef {
+        id: "bot.knowledge:_with_one_more_test.<locals>.guard_and_extra:142".to_string(),
+        cells: vec![("extra".to_string(), extra.clone()), ("guard".to_string(), guard.clone())],
+        defaults: vec![],
+    }))
 }
-
