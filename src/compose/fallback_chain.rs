@@ -3678,6 +3678,32 @@ mod tests {
         assert_eq!(said[0], "Your mum turns 73 next month \u{2014} that's one to look forward to. Are you doing anything for it?");
         assert_eq!(said[2], "Lovely \u{2014} your mum at 73 next month. Will you mark it somehow?");
     }
+    fn w(line: &str) -> Vec<String> {
+        text::split(line)
+    }
+
+    #[test]
+    fn word_readers_like_python() {
+        assert!(_the_win_is_someone_elses(&w("all my mates are sorted and i havent"), 3));
+        assert!(!_the_win_is_someone_elses(&w("everyone is happy for us"), 2));
+        assert!(!_the_win_is_someone_elses(&w("my friend said i should be proud"), 6));
+        assert!(!_a_thing_stopping_after(&w("my boiler has finally died"), 1));
+        assert!(!_a_thing_stopping_after(&w("i gave up smoking"), 0));
+        assert!(_a_thing_stopping_after(&w("my laptop has given up on me"), 1));
+        assert!(_no_such_thing_before(&w("nobody makes me feel good"), 4));
+        assert!(!_no_such_thing_before(&w("nobody believed i could but i did good"), 7));
+        assert_eq!(_state_from("really very cold"), (Some("cold".into()), vec![]));
+        assert_eq!(_state_from("cold and tired"), (Some("cold".into()), vec![]));
+        assert_eq!(_state_from("cold water"), (None, vec![]));
+        assert_eq!(_a_part_in_a_state("my nose is freezing cold").as_deref(), Some("cold"));
+        assert_eq!(_a_part_in_a_state("my hands are a bit clammy").as_deref(), Some("clammy"));
+        assert_eq!(_a_part_in_a_state("my face is hot"), None);
+        assert!(_a_claim_about_a_thing("the weather is"));
+        assert!(!_a_claim_about_a_thing("the week was"));
+        assert!(_an_order_it_cannot_do("set a timer for 10 minutes").unwrap()[0].starts_with("No clock on this end"));
+        assert!(_act_asked_of_me("can you order me a pizza").unwrap()[0].starts_with("I can't book, buy or pay"));
+    }
+
     #[test]
     fn inline_patterns_compile() {
         NOT_A_WORD_CHAR.check().unwrap();
