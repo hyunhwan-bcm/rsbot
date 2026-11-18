@@ -108,7 +108,7 @@ pub fn what_is_hurting_reply(memory: &Memory, low: &str) -> Option<String> {
         let low_prev = previous.to_lowercase();
         if FACTS_BODY_PART.is_match(&low_prev) && FACTS_BODY_HURTS.is_match(&low_prev) {
             // Somebody else's body: the line is what was said, and saying it back is honest.
-            return Some(super::mem8_py::py_str(&super::told::_quote(&previous, memory)));
+            return Some(super::told::_quote(&previous, memory));
         }
         return Some(_vary(
             &[

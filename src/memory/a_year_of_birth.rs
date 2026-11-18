@@ -33,7 +33,7 @@ pub fn _today() -> NaiveDate {
 
 /// Python: bot/memory/a_year_of_birth.py:51 `_the_store(memory)`
 pub fn _the_store(memory: &mut Memory) -> Value {
-    crate::memory::user(memory)
+    crate::memory::user(memory).clone()
 }
 
 /// Python: bot/memory/a_year_of_birth.py:56 `_a_slip(clean)`

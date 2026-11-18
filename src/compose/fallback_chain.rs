@@ -3482,7 +3482,7 @@ pub fn _reply_for(text_: &str, memory: &mut Memory, understood: Option<&Understo
     if _a_wear_ask_about_a_day(&clean, &repaired, text_) {
         return choose!(_the_wear_pool_for_the_line(&clean, &repaired, text_), memory, clean);
     }
-    if mood == "neutral" && _A_CORRECTION.match_(&clean).is_none() && truthy(crate::memory::swap::rewritten(&clean, &memory_value(memory))) {
+    if mood == "neutral" && _A_CORRECTION.match_(&clean).is_none() && crate::memory::swap::rewritten(&clean, memory).is_some() {
         return choose!(UNKNOWN, memory, clean);
     }
     if crate::understanding::kinds::verdicts_a_thing(&clean) {
@@ -3631,6 +3631,7 @@ fn opt_pool_exact<T: PyRet>(v: T) -> Option<Vec<String>> {
 }
 
 /// The memory as a plain Python value, for a reader whose contract takes one.
+#[allow(dead_code)]
 fn memory_value(memory: &Memory) -> Value {
     Value::from_plain(&serde_json::Value::Object(memory.to_plain()))
 }

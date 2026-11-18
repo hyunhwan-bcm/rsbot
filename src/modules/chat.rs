@@ -824,7 +824,7 @@ pub fn _a_limit(text_: &str, memory: &mut Memory) -> Option<String> {
     }
     attempt(|| {
         if crate::knowledge::lookup::find(&read, None, None, false).is_some()
-            && !truthy(crate::memory::limit::only_a_limit(text_, &NO_MEMORY))
+            && !truthy(crate::memory::limit::only_a_limit(text_, None))
         {
             return None;
         }
@@ -4756,7 +4756,7 @@ pub fn _just_named(memory: &mut Memory, name: &str) -> Option<Value> {
     if name.is_empty() {
         return None;
     }
-    let user = py(crate::memory::user(memory));
+    let user = crate::memory::user(memory).clone();
     let pets: Vec<Value> = user.get("pets").map(|p| p.items().iter().filter(|p| p.is_dict()).cloned().collect()).unwrap_or_default();
     let low = name.to_lowercase();
     pets.into_iter().filter(|p| py_str(p.get("name").unwrap_or(&Value::None)).to_lowercase() == low).last()
