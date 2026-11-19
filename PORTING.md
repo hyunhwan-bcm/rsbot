@@ -1,6 +1,6 @@
 # Porting PyBot to Rust: conventions for every workstream
 
-rsbot is an **exact, complete** hand-written Rust port of PyBot (github.com/huggingface/pybot at
+rsbot is an **exact, complete** Rust port of PyBot, written by AI agents, (github.com/huggingface/pybot at
 commit 24cbc0439e07, source in `../upstream/pybot/bot/`): every module, every function, every
 branch, and multi-turn conversations with memory. The target is the same reply and the same
 memory as PyBot on every turn of every conversation. The SmolTalkBench numbers are only a sanity
