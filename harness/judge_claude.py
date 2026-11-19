@@ -36,8 +36,9 @@ import workspace  # noqa: E402
 ROOT = workspace.root()
 PROMPT_FILE = os.path.join(ROOT, "data", "alpaca_eval", "clf_prompt.txt")
 CACHE = os.path.join(ROOT, "runs", "judge", "cache.jsonl")
-# Batch prices per million tokens (50% of standard) for the default model.
-PRICE_IN, PRICE_OUT = 2.00, 10.00
+# Batch prices per million tokens (50% of standard). Haiku 5.5's standard rate is $0.10 / $0.50
+# for prompts of 100K tokens or fewer (every judgement here is far below that).
+PRICES = {"claude-opus-5-5": (2.00, 10.00), "claude-haiku-5-5": (0.05, 0.25)}
 
 
 def load_prompt():
@@ -82,6 +83,7 @@ def main():
     ap.add_argument("--limit", type=int)
     ap.add_argument("--submit", action="store_true", help="send the batch (otherwise a dry run)")
     a = ap.parse_args()
+    PRICE_IN, PRICE_OUT = PRICES[a.model]
 
     system, template = load_prompt()
     bench = [json.loads(l) for l in open(a.bench)][: a.limit]
