@@ -1835,7 +1835,7 @@ pub fn _offer_with(reader: &mut Reader, memory: &mut Memory, reading: &Understoo
 
 /// Python: bot/modules/answers.py:6178 `_reply_of(item, reading, memory)`
 /// What this entry would say, without keeping it, so a reply can be read before it is given.
-pub fn _reply_of(item: &Entry, reading: &Understood, memory: &Memory) -> String {
+pub fn _reply_of(item: &Entry, reading: &Understood, memory: &mut Memory) -> String {
     use crate::knowledge::entry::Reply;
     match &item.reply {
         Reply::Text(s) => s.clone(),
@@ -1845,8 +1845,8 @@ pub fn _reply_of(item: &Entry, reading: &Understood, memory: &Memory) -> String 
             if !knowledge::registry::has_reply(&f.id) {
                 panic!("UNPORTED {}", f.id);
             }
-            let mut scratch = memory.clone();
-            match knowledge::registry::try_reply(f, &mut scratch, reading) {
+            // the reply runs on the caller's own memory: what it writes there is kept, as in Python
+            match knowledge::registry::try_reply(f, memory, reading) {
                 Ok(v) => v.unwrap_or_default(),
                 Err(()) => {
                     reraise_unported();
@@ -5082,7 +5082,7 @@ pub fn _the_interests(text_: &str, memory: &Memory, item: Option<&Entry>) -> Vec
 
 /// Python: bot/modules/answers.py:6580 `_the_entry_reply(item, memory, reading)`
 /// What the entry says, without being said: the price it already names, or an empty string.
-pub fn _the_entry_reply(item: &Entry, memory: &Memory, reading: &Understood) -> String {
+pub fn _the_entry_reply(item: &Entry, memory: &mut Memory, reading: &Understood) -> String {
     use crate::knowledge::entry::Reply;
     match &item.reply {
         Reply::Text(s) => s.clone(),
@@ -5092,8 +5092,8 @@ pub fn _the_entry_reply(item: &Entry, memory: &Memory, reading: &Understood) -> 
             if !knowledge::registry::has_reply(&f.id) {
                 panic!("UNPORTED {}", f.id);
             }
-            let mut scratch = memory.clone();
-            match knowledge::registry::try_reply(f, &mut scratch, reading) {
+            // the reply runs on the caller's own memory: what it writes there is kept, as in Python
+            match knowledge::registry::try_reply(f, memory, reading) {
                 Ok(v) => v.unwrap_or_default(),
                 Err(()) => {
                     reraise_unported();
@@ -5106,7 +5106,7 @@ pub fn _the_entry_reply(item: &Entry, memory: &Memory, reading: &Understood) -> 
 
 /// Python: bot/modules/answers.py:6590 `_the_present_with_a_price(text, reading, memory)`
 /// A present at the price the line gives, or the limit on the present just suggested.
-pub fn _the_present_with_a_price(text_: &str, reading: &Understood, memory: &Memory) -> Option<String> {
+pub fn _the_present_with_a_price(text_: &str, reading: &Understood, memory: &mut Memory) -> Option<String> {
     let (money, cheaper) = _price_limit(text_);
     if money.is_none() && !cheaper {
         return None;
@@ -5614,7 +5614,7 @@ pub fn _filling_in_an_emergency(understood: Option<&Understood>, memory: &Memory
 
 /// Python: bot/modules/answers.py:7469 `_usable(item, reading, memory)`
 /// False when the answer needs something the line says the kitchen has not got.
-pub fn _usable(item: &Entry, reading: &Understood, memory: &Memory) -> bool {
+pub fn _usable(item: &Entry, reading: &Understood, memory: &mut Memory) -> bool {
     if item.fault {
         return true;
     }
@@ -5623,7 +5623,7 @@ pub fn _usable(item: &Entry, reading: &Understood, memory: &Memory) -> bool {
 
 /// Python: bot/modules/answers.py:7479 `_next_usable(item, reading, memory)`
 /// The best entry that answers the same line without what the line has not got.
-pub fn _next_usable(item: &Entry, reading: &Understood, memory: &Memory) -> Option<&'static Entry> {
+pub fn _next_usable(item: &Entry, reading: &Understood, memory: &mut Memory) -> Option<&'static Entry> {
     let kept: Vec<&'static Entry> =
         knowledge::entry::entries().iter().filter(|one| !std::ptr::eq(*one, item) && _usable(one, reading, memory)).collect();
     if kept.is_empty() {
@@ -6219,9 +6219,11 @@ strs_static!(_TURN_ONLY);
 static TRIPS_THE_JOURNEY_ASK: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.trips.THE_JOURNEY_ASK"));
 static REPEAT_A_PAY_WORD: LazyLock<&'static Re> = LazyLock::new(|| data::re("bot.memory.repeat.A_PAY_WORD"));
 static COMPOSER_UNKNOWN: LazyLock<Vec<String>> = LazyLock::new(|| data::strs("bot.compose.fallback.UNKNOWN"));
-/// `pets.DOG_FEED_AMOUNT_ENTRY`, the module's own object (its domain is not the canonical row's).
-static DOG_FEED_AMOUNT_ENTRY: LazyLock<&'static Entry> =
-    LazyLock::new(|| Box::leak(Box::new(Entry::from_value(usize::MAX, data::get("bot.knowledge.pets.DOG_FEED_AMOUNT_ENTRY")))));
+/// `pets.DOG_FEED_AMOUNT_ENTRY`: the row of `pets.ENTRIES` itself, which is the object
+/// `knowledge.entries()` holds and writes the domain on in place, so it is the canonical row.
+static DOG_FEED_AMOUNT_ENTRY: LazyLock<&'static Entry> = LazyLock::new(|| {
+    knowledge::entry::canonical(&data::get("bot.knowledge.pets.DOG_FEED_AMOUNT_ENTRY")).expect("pets.DOG_FEED_AMOUNT_ENTRY is a row of pets.ENTRIES")
+});
 /// `cooking.DISHES` as (id, text).
 static COOKING_DISHES: LazyLock<Vec<(String, String)>> = LazyLock::new(|| {
     data::get("bot.knowledge.cooking.DISHES")
@@ -7373,12 +7375,20 @@ pub fn _the_fact_is_what_is_answered(text_: &str, stated: &str, entry: Option<&E
 
 /// Python: bot/modules/answers.py:10032 `_ask_a_line_of_its_own(line, memory)`
 /// The answer to a line asked with nothing on the table, as if it were the first thing said.
-pub fn _ask_a_line_of_its_own(line: &str, memory: &Memory) -> Option<String> {
-    let mut spoke = memory.clone();
+pub fn _ask_a_line_of_its_own(line: &str, memory: &mut Memory) -> Option<String> {
+    // a new dict of the same values: a key bound on it stays there, a write inside a value the
+    // memory holds is the memory's too
+    let mut spoke = memory.shallow();
     for key in ["topic", "topics", "entry_answer", "entry_answers", "last_answer"] {
         spoke.remove(key);
     }
-    _ask_a_rewritten_line(line, &mut spoke)
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| _ask_a_rewritten_line(line, &mut spoke)));
+    // whatever was written inside a shared value before an exception is the memory's as well
+    memory.absorb_shallow(&spoke);
+    match outcome {
+        Ok(answer) => answer,
+        Err(payload) => std::panic::resume_unwind(payload),
+    }
 }
 
 /// Python: bot/modules/answers.py:10046 `_the_entry_key_words(entry)`

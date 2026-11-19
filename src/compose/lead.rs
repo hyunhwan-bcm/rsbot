@@ -232,6 +232,14 @@ fn run_lead(f: &crate::data::FnRef, understood: &Understood) -> String {
             return run(f, understood);
         }
     }
+    // The leads of the other domains, which keep no `LEADS` table of their own.
+    match f.id.as_str() {
+        "bot.knowledge.consumer:_change_of_mind_verdict:1464" => return crate::knowledge::consumer::_change_of_mind_verdict(understood),
+        "bot.knowledge.health:_the_pregnancy_verdict:329" => return crate::knowledge::health::_the_pregnancy_verdict(understood),
+        "bot.knowledge.money:_the_assessment_sentence:11454" => return crate::knowledge::money::_the_assessment_sentence(understood),
+        "bot.knowledge.travel:_the_passport_verdict:7878" => return crate::knowledge::travel::_the_passport_verdict(understood),
+        _ => {}
+    }
     // An id none of the tables holds is a lead nobody has ported: the runtime counts it so.
     panic!("UNPORTED lead {}", f.id)
 }

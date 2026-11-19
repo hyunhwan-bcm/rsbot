@@ -65,10 +65,15 @@ fn diff(before: &Map<String, J>, after: &Map<String, J>) -> J {
     serde_json::json!({"set": set, "del": del})
 }
 
-fn diff_same(a: &J, b: &J) -> bool {
+/// Whether two diffs over the same `before` memory leave the same memory. A key only one side
+/// lists is read from `before` on the other: Rust's diff is built with `same`, which reads a
+/// blank value as absent, so a write that only adds a blank (`meal["offered"] = []`) is in
+/// PyBot's diff and not in Rust's, and the memories are still the same.
+fn diff_same(a: &J, b: &J, before: &Map<String, J>) -> bool {
     let (sa, sb) = (&a["set"], &b["set"]);
     let keys: std::collections::BTreeSet<&String> = sa.as_object().into_iter().flat_map(|o| o.keys()).chain(sb.as_object().into_iter().flat_map(|o| o.keys())).collect();
-    keys.into_iter().all(|k| same(&sa[k], &sb[k])) && {
+    let side = |s: &J, k: &String| -> J { s.get(k.as_str()).or_else(|| before.get(k.as_str())).cloned().unwrap_or(J::Null) };
+    keys.into_iter().all(|k| same(&side(sa, k), &side(sb, k))) && {
         let mut da: Vec<String> = a["del"].as_array().map(|v| v.iter().filter_map(|x| x.as_str().map(String::from)).collect()).unwrap_or_default();
         let mut db: Vec<String> = b["del"].as_array().map(|v| v.iter().filter_map(|x| x.as_str().map(String::from)).collect()).unwrap_or_default();
         da.sort();
@@ -181,7 +186,7 @@ fn main() {
                 let ok_run = guarded(|| (def.observe.unwrap())(text, &mut m));
                 let got = diff(&before, &m.to_plain());
                 let t = tallies.entry(format!("observe {name}")).or_default();
-                if diff_same(&got, &o["diff"]) {
+                if diff_same(&got, &o["diff"], &before) {
                     t.ok += 1;
                 } else {
                     t.bad += 1;
@@ -218,7 +223,7 @@ fn main() {
                 let got = diff(&post, &m.to_plain());
                 let reply_ok = got_reply.as_deref() == r["reply"].as_str();
                 let t = tallies.entry(format!("respond {name}")).or_default();
-                if reply_ok && diff_same(&got, &r["diff"]) {
+                if reply_ok && diff_same(&got, &r["diff"], &post) {
                     t.ok += 1;
                 } else {
                     t.bad += 1;
@@ -267,7 +272,7 @@ fn main() {
                 let res = guarded(|| (def.after.unwrap())(text, reply, &mut m));
                 let got = diff(&mem, &m.to_plain());
                 let t = tallies.entry(format!("after {name}")).or_default();
-                if diff_same(&got, &a["diff"]) { t.ok += 1 } else {
+                if diff_same(&got, &a["diff"], &mem) { t.ok += 1 } else {
                     t.bad += 1;
                     if res.is_none() {
                         if let Some(p) = take_last_panic().filter(|p| p.starts_with("UNPORTED")) {
