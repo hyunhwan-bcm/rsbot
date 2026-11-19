@@ -42,8 +42,8 @@ its own memory from turn to turn; only the user's lines come from the recording.
 |---|---|
 | single | 2,198 / 2,198 (100%) |
 | conversations | 9,348 / 9,348 (100%) |
-| synthetic | *(running)* |
-| extra | *(running)* |
+| synthetic | 9,000 / 9,000 (100%) |
+| extra | not run (stopped to free the machine for the benchmark; turn by turn it is 116 / 116 identical) |
 
 Lower-level checks, all with 0 differences: the regex layer (10,024 / 10,024 PyBot patterns,
 `regex_check`), CPython's `random` (304 / 304 seeds), the understanding engine's reading of every
@@ -72,7 +72,7 @@ probabilities, so the numbers are comparable in method but not identical in cons
 
 ### Speed and memory
 
-*Numbers pending: the run is in progress.*
+*Numbers to follow: the run is in progress and will be added in a follow-up commit.*
 
 How they are measured:
 - **Same work on both sides.** PyBot and rsbot's release build (`cargo build --release`, thin
