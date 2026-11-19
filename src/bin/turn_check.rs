@@ -234,11 +234,6 @@ fn main() {
                     }
                     if t.shown.len() < show {
                         t.shown.push(format!("{turn_id} text {:?}\n      reply rust: {:?}\n      reply py:   {:?}\n      memory keys differing: [{}]", text, got_reply, r["reply"].as_str(), keys_differing(&got, &r["diff"])));
-                        if std::env::var_os("RSBOT_SHOW_DIFF").is_some() {
-                            for k in keys_differing(&got, &r["diff"]).split(',') {
-                                t.shown.push(format!("  {k}\n      rust: {}\n      py:   {}", got["set"][k], r["diff"]["set"][k]));
-                            }
-                        }
                     }
                 }
             }
