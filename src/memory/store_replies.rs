@@ -1094,7 +1094,7 @@ pub fn _denial_this_turn(text_: &str, memory: &Memory) -> Option<String> {
         }
         let shown: String;
         if key == "pets" {
-            let given_line = ret_str(crate::memory::ack::pet_given_away(text_, memory));
+            let given_line = ret_str(crate::memory::ack::pet_given_away_text(text_, memory));
             if !given_line.is_empty() {
                 // The animal was given to a new home, so the line they get is the warm one and not
                 // the record being crossed out.
@@ -3408,7 +3408,7 @@ pub fn _a_choice_from_what_was_said(line: &str, memory: &Memory) -> bool {
         return false;
     }
     // A pick that cannot be made declines nothing.
-    or_on_raise(|| crate::modules::answers::_the_one_to_pick(&clean, &memory_value(memory)).val().truthy(), false)
+    or_on_raise(|| crate::modules::answers::_the_one_to_pick_for(&clean, memory).is_some_and(|pick| !pick.is_empty()), false)
 }
 
 static ASKS_A_DETAIL: LazyLock<Re> = LazyLock::new(|| Re::new(r"\b(?:how|whats?|where|when|which|whos?)\b", 0));

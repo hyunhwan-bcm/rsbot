@@ -3831,7 +3831,7 @@ pub fn same_as_before(understood: &Understood, memory: &Memory) -> Option<String
     if sentences.len() < 2 && whole.is_none() {
         return None;
     }
-    let part = deps::opt_string("bot.memory.narrow:part_in_the_unit", serde_json::json!([answer, line]), || crate::memory::narrow::part_in_the_unit(&answer, &line).py_str());
+    let part = deps::opt_string("bot.memory.narrow:part_in_the_unit", serde_json::json!([answer, line]), || crate::memory::narrow::part_in_the_unit_text(&answer, &line).py_str());
     if let Some(part) = part.filter(|p| !p.is_empty()) {
         if words(&part).join(" ") != words(&last.bot).join(" ") {
             return said_again(&part, memory, &line).or(Some(part));

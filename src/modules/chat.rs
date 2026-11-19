@@ -5081,7 +5081,7 @@ pub fn _news(clean: &str, tokens: &[String], memory: &mut Memory) -> Option<Stri
     if clean.ends_with('?') || !(1..=14).contains(&tokens.len()) {
         return None;
     }
-    let better = py(crate::memory::ack::a_person_getting_better(clean, memory));
+    let better = py(crate::memory::ack::a_person_getting_better_pool(clean, memory));
     if better.truthy() {
         return Some(pick(&better.strs(), memory, clean));
     }
@@ -5284,7 +5284,7 @@ pub fn _news(clean: &str, tokens: &[String], memory: &mut Memory) -> Option<Stri
         return Some(_say("just_started", memory, &[]));
     }
     if JUST_DONE.search(&flat).is_some() {
-        if truthy(crate::memory::ack::nobody_around(&flat.to_lowercase(), memory)) {
+        if truthy(crate::memory::ack::nobody_around_pool(&flat.to_lowercase(), memory)) {
             return None;
         }
         return Some(_say(if A_MOVE.search(&flat).is_some() { "move_done" } else { "just_done" }, memory, &[]));
@@ -6405,7 +6405,7 @@ fn respond_unwrapped(text_: &str, memory: &mut Memory) -> Option<String> {
         }
     }
     if !memory.get("greet").is_some_and(|g| g.truthy()) {
-        let narrowed = py(crate::memory::ack::a_limit_for_the_plan(text_, memory));
+        let narrowed = py(crate::memory::ack::a_limit_for_the_plan_text(text_, memory));
         if !narrowed.is_none() {
             return opt_str(narrowed);
         }
@@ -7736,13 +7736,13 @@ pub fn _respond(text_: &str, memory: &mut Memory, as_said: bool) -> Option<Strin
     }
     let steps = if live_emergency { Value::None } else { py(crate::memory::stuck::pool(&clean, memory)) };
     if steps.truthy() {
-        if let Some(again_steps) = said(crate::memory::repeat::answer_for(&text_, memory)) {
+        if let Some(again_steps) = said(crate::memory::repeat::answer_for_text(&text_, memory)) {
             return Some(again_steps);
         }
         return Some(pick(&steps.strs(), memory, &clean));
     }
     if data::re("bot.memory.repeat.A_TOLD_BACK").search(&clean).is_some() {
-        if let Some(told) = said(crate::memory::repeat::the_figure_they_gave(&text_, memory)) {
+        if let Some(told) = said(crate::memory::repeat::the_figure_they_gave_text(&text_, memory)) {
             return Some(told);
         }
     }
@@ -7756,7 +7756,7 @@ pub fn _respond(text_: &str, memory: &mut Memory, as_said: bool) -> Option<Strin
         let seed = if short == "overloaded" { clean.clone() } else { String::new() };
         return Some(_reply(&short, memory, name.as_deref(), &seed));
     }
-    if let Some(again) = said(crate::memory::repeat::answer_for(&text_, memory)) {
+    if let Some(again) = said(crate::memory::repeat::answer_for_text(&text_, memory)) {
         return Some(again);
     }
     if let Some(what) = said(crate::memory::meant::answer_for(&clean, memory)) {
@@ -7809,7 +7809,7 @@ pub fn _respond(text_: &str, memory: &mut Memory, as_said: bool) -> Option<Strin
     }
     if !chatty || live_emergency {
         if !live_emergency {
-            if let Some(carried) = said(crate::memory::repeat::carried_on(&text_, memory)) {
+            if let Some(carried) = said(crate::memory::repeat::carried_on_text(&text_, memory)) {
                 return Some(carried);
             }
         }

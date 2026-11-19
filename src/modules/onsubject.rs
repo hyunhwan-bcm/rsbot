@@ -22,7 +22,7 @@ pub fn respond(text: &str, memory: &mut Memory) -> Option<String> {
     if reading.is_none() {
         // A there-ask about the place the chat named needs no subject of its own: "do i need an
         // adapter there" after a trip to Orlando is a question about Orlando.
-        reading = or_none(onsubject::place_pool(text, &nothing_read, memory));
+        reading = or_none(onsubject::place_pool_mut(text, &nothing_read, memory));
     }
     let reading = reading?;
     // a broken composer keeps its own turn

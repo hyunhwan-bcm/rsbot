@@ -31,6 +31,9 @@ pub struct Memory {
     pub extra: IndexMap<String, Value>,
     /// `intent_wants` was set (to None) - Python keeps the key; the plain form shows it.
     pub extra_had_intent: bool,
+    /// Set on a `shallow()` copy only: the `extra` keys bound afresh on the copy since it was made
+    /// (`memory[key] = ...`, `memory.pop(key)`, a `setdefault` that had to create the key).
+    pub rebound: Option<Vec<String>>,
 }
 
 impl Memory {
@@ -54,16 +57,56 @@ impl Memory {
     }
     /// `memory[key] = value` for an `extra` key.
     pub fn set(&mut self, key: &str, value: impl Into<Value>) {
+        self.note_rebound(key);
         self.extra.insert(key.to_string(), value.into());
     }
     /// `memory.pop(key, None)`.
     pub fn remove(&mut self, key: &str) -> Option<Value> {
+        self.note_rebound(key);
         self.extra.shift_remove(key)
     }
     /// `memory.setdefault(key, default)`.
     pub fn setdefault(&mut self, key: &str, default: impl Into<Value>) -> &mut Value {
+        if !self.extra.contains_key(key) {
+            self.note_rebound(key);
+        }
         self.extra.entry(key.to_string()).or_insert_with(|| default.into())
     }
+    fn note_rebound(&mut self, key: &str) {
+        if let Some(rebound) = &mut self.rebound {
+            if !rebound.iter().any(|k| k == key) {
+                rebound.push(key.to_string());
+            }
+        }
+    }
+
+    /// Python's `dict(memory)`: a shallow copy. Its values are the same objects as the original's,
+    /// so a write *inside* a value the original already held (`sub["compose"]["taste"] = True`,
+    /// `sub["facts_log"].append(...)`) shows in the original, while a key bound on the copy
+    /// (`sub[key] = value`) does not. Values here are copy-on-write, so the copy remembers which
+    /// keys were bound afresh and `absorb_shallow` hands the rest back when the copy is done with.
+    /// (The typed fields - `understood`, `turns`, `intent_wants`, `asked_now` - are not handed
+    /// back: no caller of a shallow copy writes inside them.)
+    pub fn shallow(&self) -> Memory {
+        let mut copy = self.clone();
+        copy.rebound = Some(Vec::new());
+        copy
+    }
+
+    /// The other half of `shallow()`: every value the copy still shares with this memory (a key
+    /// both hold that the copy never bound afresh) is taken as the copy left it.
+    pub fn absorb_shallow(&mut self, copy: &Memory) {
+        let Some(rebound) = &copy.rebound else { return };
+        for (key, value) in &copy.extra {
+            if rebound.iter().any(|k| k == key) {
+                continue;
+            }
+            if let Some(mine) = self.extra.get_mut(key) {
+                *mine = value.clone();
+            }
+        }
+    }
+
     /// `key in memory`.
     pub fn has(&self, key: &str) -> bool {
         match key {

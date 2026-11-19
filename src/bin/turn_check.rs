@@ -112,7 +112,14 @@ fn keys_differing(a: &J, b: &J) -> String {
             out.push(*k);
         }
     }
-    out.iter().map(|k| k.as_str()).collect::<Vec<_>>().join(",")
+    let mut listed = out.iter().map(|k| k.as_str()).collect::<Vec<_>>().join(",");
+    // RSBOT_FULL=1: also print both values of every differing key
+    if std::env::var_os("RSBOT_FULL").is_some() {
+        for k in &out {
+            listed.push_str(&format!("\n      {k} rust: {}\n      {k} py:   {}", a["set"][k.as_str()], b["set"][k.as_str()]));
+        }
+    }
+    listed
 }
 
 fn main() {

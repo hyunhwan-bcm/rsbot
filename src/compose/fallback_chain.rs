@@ -3205,7 +3205,7 @@ pub fn _reply_for(text_: &str, memory: &mut Memory, understood: Option<&Understo
         return choose!(NEWS_TO_COME, memory, clean);
     }
     if truthy(crate::memory::facts::a_limit_on_the_plan(&clean)) {
-        if let Some(said_back) = text_of(crate::memory::ack::a_limit_reply(text_, memory)) {
+        if let Some(said_back) = text_of(crate::memory::ack::a_limit_reply_text(text_, memory)) {
             return Some(said_back);
         }
     }
