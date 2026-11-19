@@ -71,11 +71,23 @@ fn jsonl(inp: &str, out: &str, seed: i128) {
     let mut n = 0;
     for line in std::io::BufReader::new(std::fs::File::open(inp).unwrap()).lines() {
         let row: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
-        let text = row["instruction"].as_str().unwrap_or("");
         random::seed(seed);
         let mut memory = Memory::new();
-        let (reply, module, secs) = one(text, &mut memory);
-        let rec = serde_json::json!({"id": row["id"], "reply": reply, "module": module, "ms": (secs * 10000.0).round() / 10.0});
+        let rec = if let Some(turns) = row["turns"].as_array() {
+            // a whole conversation, memory carried from turn to turn
+            let mut replies = Vec::new();
+            let mut ms = Vec::new();
+            for t in turns {
+                let (reply, _module, secs) = one(t.as_str().unwrap_or(""), &mut memory);
+                replies.push(reply);
+                ms.push((secs * 10000.0).round() / 10.0);
+            }
+            serde_json::json!({"id": row["id"], "replies": replies, "ms": ms})
+        } else {
+            let text = row["instruction"].as_str().unwrap_or("");
+            let (reply, module, secs) = one(text, &mut memory);
+            serde_json::json!({"id": row["id"], "reply": reply, "module": module, "ms": (secs * 10000.0).round() / 10.0})
+        };
         writeln!(w, "{rec}").unwrap();
         n += 1;
     }

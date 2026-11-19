@@ -62,7 +62,24 @@ def main():
         runtime._OBSERVERS[:] = [h for h in runtime._OBSERVERS if h[0] in keep]
     rows = [json.loads(l) for l in open(a.inp)][:a.limit]
 
+    def conversation(row):
+        """A row with "turns": one conversation, memory carried from turn to turn."""
+        random.seed(a.seed)
+        memory, replies, ms = {}, [], []
+        for text in row["turns"]:
+            start = time.perf_counter()
+            try:
+                res = runtime.turn(text, memory)
+                reply = " ".join(str(res["reply"]).split()) or "Hello!"
+            except Exception:
+                reply = "Hello!"
+            replies.append(reply)
+            ms.append(round((time.perf_counter() - start) * 1000, 1))
+        return {"id": row["id"], "replies": replies, "ms": ms}
+
     def one(row):
+        if "turns" in row:
+            return conversation(row)
         random.seed(a.seed)
         start = time.perf_counter()
         try:
