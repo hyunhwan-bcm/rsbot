@@ -33,13 +33,10 @@ pub(crate) use globals;
 use crate::state::Memory;
 use crate::understood::Understood;
 
-/// `str(memory.get(key) or "")` for a memory key that holds a string.
+/// `str(memory.get(key) or "")`: Python's `str()` of whatever the key holds - `last_answer` is a
+/// dict, and `build_jobs._a_build_job` looks for a sentence inside the text of that dict.
 pub fn memory_str(memory: &Memory, key: &str) -> String {
-    match memory.extra.get(key) {
-        Some(crate::data::Value::Str(s)) => s.to_string(),
-        Some(crate::data::Value::Int(i)) if *i != 0 => i.to_string(),
-        _ => String::new(),
-    }
+    crate::modules::mod4::s_or(memory.get(key))
 }
 
 /// `str(reading.get("clean") or reading.get("text") or "")`.
