@@ -1,5 +1,10 @@
 # rsbot: PyBot in Rust
 
+![rsbot's web chat answering a four-turn conversation](docs/rsbot_chat.gif)
+
+*The same four-turn conversation, run through PyBot in the terminal and through rsbot's web chat,
+gives identical replies word for word, including remembering the name in the last turn.*
+
 A hand-written, exact port of [PyBot](https://github.com/huggingface/pybot) to Rust. PyBot is
 a rule-based chatbot (no weights, no training: if-else branches, regexes and lookup tables) that
 a swarm of agents wrote in about 640k lines of Python; its authors report a 26% win rate on
