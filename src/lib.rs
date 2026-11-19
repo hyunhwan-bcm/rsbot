@@ -1,4 +1,4 @@
-//! rsbot: a hand-written Rust port of PyBot's hot path.
+//! rsbot: an exact Rust port of PyBot, written by AI agents (Claude Code) and verified against it.
 //!
 //! PyBot (github.com/huggingface/pybot) is a rule-based chatbot a swarm of agents wrote in
 //! 640k lines of Python. This crate ports the code that actually produces its replies on

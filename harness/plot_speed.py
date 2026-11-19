@@ -32,12 +32,17 @@ def times(path):
 
 def main():
     src, dst = sys.argv[1], sys.argv[2]
-    sets = [("prompts", "2,198 SmolTalkBench prompts\n(one-turn chats)"),
-            ("conv500", "500 multi-turn conversations\n(1,960 turns, memory carried)")]
+    note = sys.argv[3] if len(sys.argv) > 3 else "Time per reply, one process each, same inputs and identical replies"
+    import os
+    sets = [(k, t) for k, t in [("prompts", "2,198 SmolTalkBench prompts\n(one-turn chats)"),
+                                ("conv500", "500 multi-turn conversations\n(1,960 turns, memory carried)")]
+            if os.path.exists(f"{src}/py_{k}.jsonl") and os.path.exists(f"{src}/rs_{k}.jsonl")]
     rng = random.Random(0)
     plt.rcParams.update({"font.family": "sans-serif", "font.size": 10, "text.color": TEXT,
                          "axes.labelcolor": MUTED, "xtick.color": MUTED, "ytick.color": MUTED})
-    fig, axes = plt.subplots(1, 2, figsize=(9, 5), sharey=True, facecolor=SURFACE)
+    fig, axes = plt.subplots(1, len(sets), figsize=(4.8 * len(sets) + 0.6, 5), sharey=True, facecolor=SURFACE,
+                             squeeze=False)
+    axes = axes[0]
     for ax, (key, title) in zip(axes, sets):
         ax.set_facecolor(SURFACE)
         for x, (_name, prefix, color) in enumerate([("Python (PyBot)", "py", PYTHON), ("Rust (rsbot)", "rs", RUST)]):
@@ -59,8 +64,7 @@ def main():
         ax.spines["bottom"].set_color(GRID)
         ax.tick_params(length=0)
     axes[0].set_ylabel("time per reply (ms, log scale)")
-    fig.suptitle("Time per reply, one process each, same inputs and identical replies", x=0.01, ha="left",
-                 fontsize=12, color=TEXT)
+    fig.suptitle(note, x=0.01, ha="left", fontsize=11, color=TEXT)
     fig.tight_layout()
     fig.savefig(dst, dpi=160, facecolor=SURFACE)
 

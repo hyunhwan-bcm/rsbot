@@ -5,8 +5,9 @@
 *The same four-turn conversation, run through PyBot in the terminal and through rsbot's web chat,
 gives identical replies word for word, including remembering the name in the last turn.*
 
-A hand-written, exact port of [PyBot](https://github.com/huggingface/pybot) to Rust. PyBot is
-a rule-based chatbot (no weights, no training: if-else branches, regexes and lookup tables) that
+An exact port of [PyBot](https://github.com/huggingface/pybot) to Rust, written by AI agents
+(Claude Code) and verified against PyBot itself on every recorded turn. PyBot is a rule-based chatbot 
+(no weights, no training: if-else branches, regexes and lookup tables) that
 a swarm of agents wrote in about 640k lines of Python; its authors report a 26% win rate on
 SmolTalkBench. The goal here is **the same reply and the same conversation memory as PyBot on
 every turn**, as readable Rust, plus a speed and memory comparison.
@@ -77,7 +78,27 @@ probabilities, so the numbers are comparable in method but not identical in cons
 
 ### Speed and memory
 
-*Numbers to follow: the run is in progress and will be added in a follow-up commit.*
+**Preliminary, from earlier runs.** The controlled benchmark described below is still running;
+its numbers and plot will replace these.
+
+![Time per reply, Python vs Rust, preliminary](docs/speed_jitter_preview.png)
+
+| | Python (PyBot) | Rust (rsbot) |
+|---|---|---|
+| median time per reply, 2,198 prompts | 1,129 ms | 144 ms (7.8x faster) |
+| 90th percentile | 4,364 ms | 382 ms (11.4x faster) |
+| startup and one reply (one prompt, release build) | 3.06 s | 0.87 s |
+| peak memory (one prompt) | 180 MB | 904 MB (5x more) |
+
+Why these numbers are only preliminary:
+- **Python:** the replies came from PyBot run with 10 parallel workers on a busy machine, which
+  slows each reply.
+- **Rust:** the replies came from the development build, run alone, while other checks were
+  running.
+- **Same work on both sides:** the replies themselves are identical on all 2,198 prompts.
+- **Memory:** Rust uses more because it loads all of PyBot's exported data (47 MB of JSON) into
+  memory at start, where Python imports what it needs. This can be fixed without changing any
+  reply.
 
 How they are measured:
 - **Same work on both sides.** PyBot and rsbot's release build (`cargo build --release`, thin
@@ -147,7 +168,7 @@ for usage-limit resets.
    - Record line coverage and the type of every argument and return value
      (`harness/trace_full.py`).
    - Export all module-level data (`harness/export_data.py`).
-2. **Build the shared foundation by hand.** The Python behaviours everything rests on:
+2. **Build the shared foundation first.** The Python behaviours everything rests on:
    - regex via PCRE2, checked against CPython on all 10,024 patterns;
    - CPython's Mersenne Twister;
    - Python `str` semantics;
@@ -179,6 +200,9 @@ for usage-limit resets.
    Every turn on every set is now identical.
 6. **Check end to end**, then **benchmark** against PyBot and **judge** on SmolTalkBench.
 
+The user's prompts for the whole build, in order up to the merge of PR #1, are in
+[docs/session-prompts.md](docs/session-prompts.md) (an API key removed; screened for slurs).
+
 ### What it cost
 
 Estimated from the token counts in the session transcripts, priced at Anthropic API list prices:
@@ -206,10 +230,10 @@ Estimated from the token counts in the session transcripts, priced at Anthropic 
 
 ## How the port is built and checked
 
-- **Data is exported, logic is hand-written.** PyBot's module-level data (~233k lines: word
+- **Data is exported, logic is translated.** PyBot's module-level data (~233k lines: word
   lists, reply pools, 10k regexes, 8,081 knowledge entries) is exported from Python into a
   bundle (`harness/export_data.py`) and read by name; the ~152k lines of logic in 10,800
-  functions are ported by hand.
+  functions are translated to Rust function by function, by the agents, from the Python source.
 - **A contract skeleton** (`harness/gen_skeleton.py`): one Rust stub per Python function, with
   a fixed signature inferred from the types PyBot's functions actually receive and return
   (`harness/trace_full.py --types`) and from a call-graph analysis of which functions write to
