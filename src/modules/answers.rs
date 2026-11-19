@@ -7375,12 +7375,20 @@ pub fn _the_fact_is_what_is_answered(text_: &str, stated: &str, entry: Option<&E
 
 /// Python: bot/modules/answers.py:10032 `_ask_a_line_of_its_own(line, memory)`
 /// The answer to a line asked with nothing on the table, as if it were the first thing said.
-pub fn _ask_a_line_of_its_own(line: &str, memory: &Memory) -> Option<String> {
-    let mut spoke = memory.clone();
+pub fn _ask_a_line_of_its_own(line: &str, memory: &mut Memory) -> Option<String> {
+    // a new dict of the same values: a key bound on it stays there, a write inside a value the
+    // memory holds is the memory's too
+    let mut spoke = memory.shallow();
     for key in ["topic", "topics", "entry_answer", "entry_answers", "last_answer"] {
         spoke.remove(key);
     }
-    _ask_a_rewritten_line(line, &mut spoke)
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| _ask_a_rewritten_line(line, &mut spoke)));
+    // whatever was written inside a shared value before an exception is the memory's as well
+    memory.absorb_shallow(&spoke);
+    match outcome {
+        Ok(answer) => answer,
+        Err(payload) => std::panic::resume_unwind(payload),
+    }
 }
 
 /// Python: bot/modules/answers.py:10046 `_the_entry_key_words(entry)`

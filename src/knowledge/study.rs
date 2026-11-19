@@ -1002,7 +1002,7 @@ pub fn _the_length_answer(clean: &str, memory: Option<&mut Memory>) -> Option<St
     if let Some(memory) = memory {
         match &row {
             Some(r) => {
-                memory.extra.insert("career".to_string(), Value::Str(Arc::from(r.names[0].as_str())));
+                memory.set("career", Value::Str(Arc::from(r.names[0].as_str())));
             }
             None => {
                 if let Some(career) = career_of(memory) {
@@ -1073,7 +1073,7 @@ pub fn _career_subjects(memory: &mut Memory, understood: &Understood) -> String 
         }
     }
     if let Some(row) = _the_job_row(&clean) {
-        memory.extra.insert("career".to_string(), Value::Str(Arc::from(row.names[0].as_str())));
+        memory.set("career", Value::Str(Arc::from(row.names[0].as_str())));
     }
     for (names, reply) in CAREER_SUBJECTS.iter() {
         if names.iter().any(|r| r.is_match(&clean)) {

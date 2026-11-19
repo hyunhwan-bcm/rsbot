@@ -933,7 +933,7 @@ fn plan_use_up(memory: &mut Memory, said: &str) {
         (vstr("minutes"), Value::None),
         (vstr("offered"), vlist(&[said.to_string()])),
     ];
-    memory.extra.insert("meal_plan".into(), Value::Dict(std::sync::Arc::new(plan)));
+    memory.set("meal_plan", Value::Dict(std::sync::Arc::new(plan)));
 }
 
 /// What to do with an ingredient they already have cooked: "leftover roast chicken".
@@ -1005,7 +1005,7 @@ pub fn _plan(
         (vstr("offered"), vlist(&all_offered[start..])),
         (vstr("pick"), vstr(offered.first().map(String::as_str).unwrap_or(&earlier_pick))),
     ];
-    memory.extra.insert("meal_plan".into(), Value::Dict(std::sync::Arc::new(plan)));
+    memory.set("meal_plan", Value::Dict(std::sync::Arc::new(plan)));
 }
 
 static ASK_WORDS: LazyLock<Vec<String>> = LazyLock::new(|| strs("ASK_WORDS"));

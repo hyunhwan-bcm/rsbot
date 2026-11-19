@@ -1306,7 +1306,7 @@ pub fn follow_up(understood: &Understood, memory: &mut Memory) -> Option<String>
         };
         let start = offered.len().saturating_sub(4);
         context.insert("offered".into(), Value::List(Arc::new(offered[start..].to_vec())));
-        memory.extra.insert("meal".into(), context_value(&context));
+        memory.set("meal", context_value(&context));
     }
     Some(reply)
 }

@@ -2429,7 +2429,7 @@ fn store_user(memory: &mut Memory) -> Value {
         Some(v @ Value::Dict(_)) => v.clone(),
         _ => {
             let empty = Value::Dict(std::sync::Arc::new(Vec::new()));
-            memory.extra.insert("user".into(), empty.clone());
+            memory.set("user", empty.clone());
             empty
         }
     }
