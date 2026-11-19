@@ -1,6 +1,7 @@
 # rsbot: PyBot in Rust
 
-A hand-written, exact port of [PyBot](https://github.com/huggingface/pybot) to Rust. PyBot is
+An exact port of [PyBot](https://github.com/huggingface/pybot) to Rust, written by AI agents
+(Claude Code) and verified against PyBot itself on every recorded turn. PyBot is
 a rule-based chatbot (no weights, no training: if-else branches, regexes and lookup tables) that
 a swarm of agents wrote in about 640k lines of Python; its authors report a 26% win rate on
 SmolTalkBench. The goal here is **the same reply and the same conversation memory as PyBot on
@@ -142,7 +143,7 @@ for usage-limit resets.
    - Record line coverage and the type of every argument and return value
      (`harness/trace_full.py`).
    - Export all module-level data (`harness/export_data.py`).
-2. **Build the shared foundation by hand.** The Python behaviours everything rests on:
+2. **Build the shared foundation first.** The Python behaviours everything rests on:
    - regex via PCRE2, checked against CPython on all 10,024 patterns;
    - CPython's Mersenne Twister;
    - Python `str` semantics;
@@ -174,6 +175,9 @@ for usage-limit resets.
    Every turn on every set is now identical.
 6. **Check end to end**, then **benchmark** against PyBot and **judge** on SmolTalkBench.
 
+The user's prompts for the whole build, in order up to the merge of PR #1, are in
+[docs/session-prompts.md](docs/session-prompts.md) (an API key removed; screened for slurs).
+
 ### What it cost
 
 Estimated from the token counts in the session transcripts, priced at Anthropic API list prices:
@@ -201,10 +205,10 @@ Estimated from the token counts in the session transcripts, priced at Anthropic 
 
 ## How the port is built and checked
 
-- **Data is exported, logic is hand-written.** PyBot's module-level data (~233k lines: word
+- **Data is exported, logic is translated.** PyBot's module-level data (~233k lines: word
   lists, reply pools, 10k regexes, 8,081 knowledge entries) is exported from Python into a
   bundle (`harness/export_data.py`) and read by name; the ~152k lines of logic in 10,800
-  functions are ported by hand.
+  functions are translated to Rust function by function, by the agents, from the Python source.
 - **A contract skeleton** (`harness/gen_skeleton.py`): one Rust stub per Python function, with
   a fixed signature inferred from the types PyBot's functions actually receive and return
   (`harness/trace_full.py --types`) and from a call-graph analysis of which functions write to
