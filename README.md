@@ -110,6 +110,11 @@ cargo build --release --bin rsbot_web
     `{"reply", "module", "ms", "turn"}`;
   - `POST /api/reset` forgets a conversation;
   - `GET /api/health` reports the server's state.
+- **Conversation logs:** every turn is saved, as one JSON line, to `logs/rsbot-YYYY-MM-DD.jsonl`
+  (one file per UTC day), recording the time, the tab's session id, the turn number, the user's
+  line, the reply, the module that answered and the time it took. A "New chat" is logged as a
+  `reset` event. Use `--log-dir DIR` to write them elsewhere, or `--no-log` to turn logging off.
+  The logs hold whatever people type, so treat them as private; `logs/` is in `.gitignore`.
 - **Built from:** the standard library only (no web framework), one request at a time. It is
   meant for local use; to reach it from other machines, bind it with `--host 0.0.0.0` behind
   your own proxy.
