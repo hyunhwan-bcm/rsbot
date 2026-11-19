@@ -196,20 +196,60 @@ src/bin/         rsbot (CLI, same options as pybot.py), oracle_check, turn_check
 harness/         Python side: exports, oracles, tracers, skeleton generator, benchmarks
 ```
 
-## Setting up the workspace
+## How to run it
 
-The crate expects a workspace directory with this repository as `rsbot/` and PyBot beside it:
+You need Rust (stable, 1.85 or later; edition 2024) and Python 3.12. You also need PyBot's
+exported data: rsbot reads PyBot's word lists, reply pools, regexes and knowledge entries from
+one JSON bundle instead of retyping them.
+
+**1. Set up the workspace once.** rsbot looks for the bundle at `../data/export/bundle.json`,
+next to this repository. Set `RSBOT_DATA=/path/to/bundle.json` to keep it elsewhere.
 
 ```sh
 mkdir work && cd work
-git clone <this repo> rsbot && ln -s rsbot/harness harness
+git clone https://github.com/hyunhwan-bcm/rsbot rsbot && ln -s rsbot/harness harness
 git clone https://github.com/huggingface/pybot upstream/pybot
 git -C upstream/pybot checkout 24cbc0439e07fd015c0747ab3be6e782a42b5c5b
-python3 harness/export_data.py data/export/bundle.json      # PyBot's data for the port
-cd rsbot && cargo build --release
+python3 harness/export_data.py data/export/bundle.json   # PyBot's data, about 47 MB
+cd rsbot && cargo build --release                         # about 2 minutes
 ```
 
-The oracles are regenerated with the scripts in `harness/` (see each script's docstring).
+**2. Chat in the terminal.** The options are the same as `pybot.py`'s.
+
+```sh
+./target/release/rsbot                      # interactive chat (/reset starts over, /exit quits)
+./target/release/rsbot -p "how do I boil an egg?"   # one reply, then exit
+./target/release/rsbot -v -p "hello"        # also show which module answered and how long it took
+echo "hi there" | ./target/release/rsbot    # one reply per line read from stdin
+./target/release/rsbot -s 42                # another random seed (the default is 0, as in PyBot)
+```
+
+**3. Run a file of prompts or conversations.** Each JSONL row gets a fresh conversation. A row
+with `"instruction"` is one turn; a row with `"turns": [...]` runs as one conversation, with
+memory carried from turn to turn. The output has one JSON line per row, holding the reply or
+replies, the module and the time per reply in milliseconds.
+
+```sh
+./target/release/rsbot --jsonl ../data/smoltalkbench/all.jsonl replies.jsonl
+```
+
+**4. Pin the date for exact comparisons.** Some replies depend on today's date (countdowns,
+"next Tuesday"). Set `RSBOT_TODAY=2026-11-17`, the date every oracle was recorded on, to get
+exactly PyBot's recorded replies; leave it unset to use the real date.
+
+**5. Run the checks against PyBot.** Build them with `cargo build --profile fast`, a quicker
+build for development.
+
+```sh
+export RSBOT_TODAY=2026-11-17
+./target/fast/oracle_check understood gold        # how the bot reads each benchmark prompt
+./target/fast/entry_check gold                    # every knowledge-entry guard and reply
+./target/fast/turn_check ../data/export/turn_oracle/conversations.jsonl.gz          # turn by turn
+./target/fast/turn_check ../data/export/turn_oracle/conversations.jsonl.gz --e2e    # whole conversations
+```
+
+The turn oracles are recorded from PyBot with `harness/turn_oracle.py`; its docstring has the
+command.
 
 ## Reproducing the benchmarks
 
