@@ -177,3 +177,25 @@ impl Memory {
         out
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `sub = dict(memory)`: a write inside a shared value shows in the original, a key bound on
+    /// the copy does not.
+    #[test]
+    fn a_shallow_copy_shares_its_values() {
+        let mut memory = Memory::new();
+        memory.setdefault("compose", Value::dict()).set_key("taste", false);
+        memory.set("topic", "tea");
+        let mut copy = memory.shallow();
+        copy.setdefault("compose", Value::dict()).set_key("taste", true); // sub["compose"]["taste"] = True
+        copy.set("topic", "coffee"); // sub["topic"] = "coffee"
+        copy.setdefault("fresh", Value::dict()).set_key("made", true); // a key the original never had
+        memory.absorb_shallow(&copy);
+        assert!(memory.get("compose").unwrap().get("taste").unwrap().truthy());
+        assert_eq!(memory.get("topic").unwrap().as_str(), Some("tea"));
+        assert!(!memory.has("fresh"));
+    }
+}
