@@ -72,7 +72,27 @@ probabilities, so the numbers are comparable in method but not identical in cons
 
 ### Speed and memory
 
-*Numbers to follow: the run is in progress and will be added in a follow-up commit.*
+**Preliminary, from earlier runs.** The controlled benchmark described below is still running;
+its numbers and plot will replace these.
+
+![Time per reply, Python vs Rust, preliminary](docs/speed_jitter_preview.png)
+
+| | Python (PyBot) | Rust (rsbot) |
+|---|---|---|
+| median time per reply, 2,198 prompts | 1,129 ms | 144 ms (7.8x faster) |
+| 90th percentile | 4,364 ms | 382 ms (11.4x faster) |
+| startup and one reply (one prompt, release build) | 3.06 s | 0.87 s |
+| peak memory (one prompt) | 180 MB | 904 MB (5x more) |
+
+Why these numbers are only preliminary:
+- **Python:** the replies came from PyBot run with 10 parallel workers on a busy machine, which
+  slows each reply.
+- **Rust:** the replies came from the development build, run alone, while other checks were
+  running.
+- **Same work on both sides:** the replies themselves are identical on all 2,198 prompts.
+- **Memory:** Rust uses more because it loads all of PyBot's exported data (47 MB of JSON) into
+  memory at start, where Python imports what it needs. This can be fixed without changing any
+  reply.
 
 How they are measured:
 - **Same work on both sides.** PyBot and rsbot's release build (`cargo build --release`, thin
