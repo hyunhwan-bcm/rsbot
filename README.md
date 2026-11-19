@@ -91,6 +91,41 @@ How they are measured:
 - **Script:** `harness/run_bench.sh` runs the benchmark, and `harness/plot_speed.py` draws the
   jitter plot of time per reply.
 
+## Web chat
+
+`rsbot_web` serves a chat page for talking to the bot in a browser:
+
+```sh
+cargo build --release --bin rsbot_web
+./target/release/rsbot_web --port 8790      # then open http://127.0.0.1:8790/
+```
+
+- **Conversations:** each browser tab is its own conversation. The server keeps the tab's
+  memory and its own copy of PyBot's random generator, so a conversation answers exactly as it
+  would running alone in `pybot.py`.
+- **Under each reply:** the module that answered and the time it took.
+- **Starting over:** "New chat" starts a fresh conversation.
+- **Endpoints:**
+  - `POST /api/chat` takes `{"session", "text"}` and returns
+    `{"reply", "module", "ms", "turn"}`;
+  - `POST /api/reset` forgets a conversation;
+  - `GET /api/health` reports the server's state.
+- **Built from:** the standard library only (no web framework), one request at a time. It is
+  meant for local use; to reach it from other machines, bind it with `--host 0.0.0.0` behind
+  your own proxy.
+
+`harness/web_test.mjs` drives the page in real Chrome (via `puppeteer-core`). It checks:
+- replies, and memory across turns;
+- that "New chat" forgets;
+- that two tabs keep separate memories;
+- Shift+Enter and empty lines;
+- dark mode;
+- phone width without sideways scrolling;
+- no page errors.
+
+All 14 checks pass. A five-turn conversation through the page gave the same replies as PyBot
+itself.
+
 ## How it was done
 
 The port was written by Claude agents (Claude Code), coordinated from one session, between
