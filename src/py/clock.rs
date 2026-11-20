@@ -5,7 +5,7 @@
 //! Dates are `chrono::NaiveDate`; Python's `date.weekday()` is `.weekday().num_days_from_monday()`,
 //! `date - timedelta(days=n)` is `d - chrono::Days::new(n)`.
 
-use chrono::{DateTime, Local, NaiveDate, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use std::sync::OnceLock;
 
 fn pinned() -> Option<NaiveDate> {
@@ -15,7 +15,29 @@ fn pinned() -> Option<NaiveDate> {
 
 /// `datetime.date.today()` (local date).
 pub fn today() -> NaiveDate {
-    pinned().unwrap_or_else(|| Local::now().date_naive())
+    pinned().unwrap_or_else(local_today)
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn local_today() -> NaiveDate {
+    chrono::Local::now().date_naive()
+}
+
+/// The local time zone's offset from UTC, in minutes, as the WebAssembly host reports it.
+#[cfg(target_family = "wasm")]
+static LOCAL_OFFSET_MINUTES: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
+
+/// In WebAssembly chrono cannot see the time zone (its `Local` is UTC there), so the page
+/// passes the browser's offset (east of UTC, in minutes) and the local date is computed from it.
+#[cfg(target_family = "wasm")]
+pub fn set_local_offset_minutes(minutes: i32) {
+    LOCAL_OFFSET_MINUTES.store(minutes, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[cfg(target_family = "wasm")]
+fn local_today() -> NaiveDate {
+    let minutes = LOCAL_OFFSET_MINUTES.load(std::sync::atomic::Ordering::Relaxed);
+    (Utc::now() + chrono::Duration::minutes(minutes as i64)).date_naive()
 }
 
 /// `datetime.datetime.now(datetime.timezone.utc)`.

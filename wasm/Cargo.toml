@@ -1,0 +1,20 @@
+[package]
+name = "rsbot_wasm"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "rsbot compiled to WebAssembly for a static web page"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rsbot = { path = ".." }
+flate2 = "1.1.11"
+serde_json = { version = "1.0.154", features = ["float_roundtrip", "preserve_order"] }
+
+# The runtime turns a Rust panic inside a module into "this module passed", as PyBot does with
+# a Python exception, so the WebAssembly build must unwind, not abort (see .cargo/config.toml).
+[profile.release]
+panic = "unwind"
+lto = "thin"
