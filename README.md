@@ -157,6 +157,78 @@ cargo build --release --bin rsbot_web
 All 14 checks pass. A five-turn conversation through the page gave the same replies as PyBot
 itself.
 
+## In the browser (WebAssembly)
+
+`wasm/` builds rsbot to WebAssembly, along with a static page that runs the bot entirely in
+the browser, with no server: **https://hyunhwan-bcm.github.io/rsbot/**. Nothing typed into it
+leaves the page.
+
+- **What the page downloads:** the bot (`rsbot.wasm.gz`, 8.1 MB) and PyBot's data
+  (`bundle.json.gz`, 9.5 MB), once. Both are unpacked in the page.
+- **Where it runs:** in a Web Worker, so the page stays responsive. One worker holds one
+  conversation, with its own memory and PyBot's random generator seeded with 0, as in
+  `rsbot_web`. "New chat" starts over.
+- **Today's date:** the browser's clock and time zone.
+- **Browsers:** it needs WebAssembly exception handling (Chrome 95, Firefox 100, Safari 15.2 or
+  later) and about 0.5 GB of memory. It has not been tried on a phone.
+
+How it is built:
+- **Target:** `wasm32-wasip1`, with a cdylib (`wasm/src/lib.rs`) exporting a small C interface
+  (`rsbot_load`, `rsbot_reset`, `rsbot_turn`). `wasm/web/wasi.js` is a minimal WASI host for
+  it: environment, clocks, random bytes, stdout and stderr, no file system.
+- **Unwinding:** the runtime catches panics, because a panic stands for a Python exception. The
+  prebuilt WebAssembly standard library aborts on panic instead, so `wasm/.cargo/config.toml`
+  rebuilds `std` with `panic=unwind` and WebAssembly exception handling. That needs a nightly
+  toolchain.
+- **Regex:** PCRE2 is compiled from C with wasi-sdk. PCRE2's JIT has no WebAssembly backend, so
+  `wasm/pcre2-nojit.h` turns it off, and PCRE2's interpreter runs the same patterns.
+- **Changes to the library:**
+  - `data::supply` takes the bundle's bytes when there is no file to read.
+  - In WebAssembly, `py::clock` takes the time zone offset from the page, because chrono's
+    `Local` is UTC there.
+
+  Native builds behave as before.
+
+Checks (`wasm/e2e.mjs` runs the WebAssembly module in Node, the same way
+`turn_check --e2e` runs the native bot):
+
+| Set | Replies identical to PyBot |
+|---|---|
+| single | 2,198 / 2,198 (100%) |
+| conversations | 9,348 / 9,348 (100%) |
+| synthetic | 9,000 / 9,000 (100%) |
+
+The checked module is the one deployed: `wasm/strip.mjs` removes only the debug names, and
+leaves every other section byte for byte. `wasm/web_test.mjs` drives the built page in Chrome
+and checks:
+- loading;
+- replies, and memory across turns;
+- that "New chat" forgets;
+- dark mode;
+- phone width without sideways scrolling;
+- no page errors;
+- with `RSBOT_BIN`, that a six-turn conversation is identical to the native bot's.
+
+All 13 checks pass.
+
+Speed and memory, from the PyBot checks above, which ran seven Node processes at once on the same Mac (so
+these are not controlled measurements):
+- **Per reply:** 0.21 s on average for synthetic, 0.38 s for conversations, 0.44 s for single.
+- **Memory:** the module peaks at about 470 MB, against 904 MB for the native process.
+- **In Chrome:** loading the data takes about a second. The first reply takes longer, because the
+  regexes compile on first use.
+
+To build and deploy:
+
+```sh
+rustup toolchain install nightly --profile minimal --component rust-src --target wasm32-wasip1
+# wasi-sdk: https://github.com/WebAssembly/wasi-sdk/releases (unpack anywhere)
+WASI_SDK=/path/to/wasi-sdk wasm/build.sh               # -> wasm/dist/, about 2 minutes
+node wasm/e2e.mjs ../data/export/turn_oracle/conversations.jsonl.gz    # check it against PyBot
+(cd wasm/dist && python3 -m http.server 8791)          # try it at http://127.0.0.1:8791/
+rsync -a --delete wasm/dist/ ../hyunhwan-bcm.github.io/rsbot/          # then commit and push there
+```
+
 ## How it was done
 
 The port was written by Claude agents (Claude Code), coordinated from one session, between
@@ -263,6 +335,7 @@ src/runtime.rs   one turn: observers, modules, arbiter, after-hooks (bot/runtime
 src/<package>/   bot/<package>/<file>.py -> src/<package>/<file>.rs
 src/bin/         rsbot (CLI, same options as pybot.py), oracle_check, turn_check, entry_check, ...
 harness/         Python side: exports, oracles, tracers, skeleton generator, benchmarks
+wasm/            the bot as WebAssembly, and the static page that runs it in a browser
 ```
 
 ## How to run it

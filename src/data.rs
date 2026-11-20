@@ -250,10 +250,24 @@ pub fn bundle_path() -> String {
     std::env::var("RSBOT_DATA").unwrap_or_else(|_| concat!(env!("CARGO_MANIFEST_DIR"), "/../data/export/bundle.json").to_string())
 }
 
+/// The bundle's bytes when the host hands them over ([`supply`]) instead of a file.
+static SUPPLIED: std::sync::Mutex<Option<Vec<u8>>> = std::sync::Mutex::new(None);
+
+/// Give the bundle's JSON bytes directly, for builds without a file system (the WebAssembly
+/// page downloads the bundle and passes it in). Call before the first lookup; the bytes are
+/// parsed on first use and then dropped. Without it the bundle is read from [`bundle_path`].
+pub fn supply(bytes: Vec<u8>) {
+    *SUPPLIED.lock().unwrap() = Some(bytes);
+}
+
 static BUNDLE: LazyLock<HashMap<String, Value>> = LazyLock::new(|| {
-    let path = bundle_path();
-    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("cannot read PyBot data bundle {path}: {e}"));
+    let supplied = SUPPLIED.lock().unwrap().take();
+    let bytes = supplied.unwrap_or_else(|| {
+        let path = bundle_path();
+        std::fs::read(&path).unwrap_or_else(|e| panic!("cannot read PyBot data bundle {path}: {e}"))
+    });
     let j: serde_json::Map<String, serde_json::Value> = serde_json::from_slice(&bytes).expect("bundle is JSON");
+    drop(bytes);
     j.iter().map(|(k, v)| (k.clone(), Value::from_json(v))).collect()
 });
 

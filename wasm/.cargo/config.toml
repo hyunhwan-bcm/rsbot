@@ -1,0 +1,17 @@
+# rsbot's runtime catches panics (they stand for Python exceptions), so the WebAssembly build
+# needs unwinding. The prebuilt wasm32-wasip1 standard library aborts on panic, so std is rebuilt
+# with panic=unwind and WebAssembly exception handling. This needs a nightly toolchain with
+# rust-src; build.sh takes care of that.
+[build]
+target = "wasm32-wasip1"
+
+[unstable]
+build-std = ["std", "panic_unwind"]
+
+[target.wasm32-wasip1]
+rustflags = [
+  "-Cpanic=unwind",
+  "-Ctarget-feature=+exception-handling",
+  # an 8 MB stack, as the native main thread has (the default in WebAssembly is 1 MB)
+  "-Clink-arg=-zstack-size=8388608",
+]
